@@ -1,0 +1,184 @@
+@model Brandora.Web.Models.Proposals.ProposalListViewModel
+@using Brandora.Web.Models.Influencers
+@{
+    ViewData["Title"] = "Proposals";
+    ViewData["ActiveNav"] = "Campaigns";
+    Layout = "_AppLayout";
+}
+
+@section Styles {
+
+    .page-head {
+        animation: fade-up .4s ease both;
+    }
+
+    .detail-crumb {
+        font-family: 'Inter', sans-serif;
+        font-size: 12.5px;
+        font-weight: 500;
+        color: #8189a8;
+    }
+
+    .page-title {
+        margin-top: 6px;
+
+        font-family: 'Playfair Display', serif;
+        font-weight: 600;
+        font-size: 28px;
+    }
+
+    .page-sub {
+        margin-top: 6px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 13.5px;
+        color: #6b7290;
+    }
+
+    .filter-bar {
+        margin-top: 22px;
+
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+
+        animation: fade-up .45s ease both;
+    }
+
+    .status-tab {
+        display: inline-flex;
+        align-items: center;
+
+        padding: 9px 16px;
+
+        border-radius: 20px;
+        border: 1px solid #e2e5f2;
+        background: #ffffff;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 12.5px;
+        font-weight: 600;
+        color: #545b7d;
+
+        transition: .2s;
+    }
+
+    .status-tab.is-active {
+        border-color: transparent;
+        color: #ffffff;
+        background: linear-gradient(105deg, #a326ff, #236eff);
+    }
+
+    .proposal-list {
+        margin-top: 22px;
+
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .proposal-row {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+
+        padding: 20px 24px;
+
+        border-radius: 16px;
+        background: #ffffff;
+        border: 1px solid #eaecf5;
+
+        transition: transform .2s ease, box-shadow .2s ease;
+
+        animation: fade-up .5s ease both;
+    }
+
+    a.proposal-row:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 14px 30px rgba(30,34,90,.08);
+    }
+
+    .proposal-body {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .proposal-name-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 700;
+        font-size: 15px;
+        color: #171d3d;
+    }
+
+    .proposal-meta {
+        margin-top: 3px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 12px;
+        color: #8189a8;
+    }
+
+    .proposal-amount {
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 800;
+        font-size: 17px;
+        color: #171d3d;
+
+        flex-shrink: 0;
+    }
+
+}
+
+<div class="page-head">
+    @if (Model.Campaign is not null)
+    {
+        <div class="detail-crumb"><a href="/Campaigns/Detail/@Model.Campaign.Id">@Model.Campaign.Title</a> / Proposals</div>
+    }
+    <h1 class="page-title">@(Model.Campaign is not null ? $"Proposals for {Model.Campaign.Title}" : "All Proposals")</h1>
+    <p class="page-sub">@Model.Proposals.Count proposal@(Model.Proposals.Count == 1 ? "" : "s").</p>
+</div>
+
+<div class="filter-bar">
+    <a href="/Proposals@(Model.CampaignId.HasValue ? $"?campaignId={Model.CampaignId}" : "")" class="status-tab @(Model.Status == null ? "is-active" : "")">All</a>
+    <a href="/Proposals?status=Pending@(Model.CampaignId.HasValue ? $"&campaignId={Model.CampaignId}" : "")" class="status-tab @(Model.Status == Brandora.Web.Models.Domain.ProposalStatus.Pending ? "is-active" : "")">Pending</a>
+    <a href="/Proposals?status=Accepted@(Model.CampaignId.HasValue ? $"&campaignId={Model.CampaignId}" : "")" class="status-tab @(Model.Status == Brandora.Web.Models.Domain.ProposalStatus.Accepted ? "is-active" : "")">Accepted</a>
+    <a href="/Proposals?status=Rejected@(Model.CampaignId.HasValue ? $"&campaignId={Model.CampaignId}" : "")" class="status-tab @(Model.Status == Brandora.Web.Models.Domain.ProposalStatus.Rejected ? "is-active" : "")">Rejected</a>
+</div>
+
+@if (Model.Proposals.Count > 0)
+{
+    <div class="proposal-list">
+        @foreach (var proposal in Model.Proposals)
+        {
+            <a href="/Proposals/Detail/@proposal.Id" class="proposal-row">
+
+                <div class="creator-avatar" style="width:44px;height:44px;font-size:14px;background: linear-gradient(135deg, hsl(@((proposal.InfluencerProfile.Id * 47) % 360)deg 75% 58%), hsl(@(((proposal.InfluencerProfile.Id * 47) + 45) % 360)deg 75% 48%));">
+                    @FollowerFormat.InitialsOf(proposal.InfluencerProfile.FullName)
+                </div>
+
+                <div class="proposal-body">
+                    <div class="proposal-name-row">
+                        @proposal.InfluencerProfile.FullName
+                        <span class="status-pill @proposal.Status.ToString().ToLowerInvariant()">@proposal.Status</span>
+                    </div>
+                    <div class="proposal-meta">@proposal.Campaign.Title &middot; @proposal.CreatedAt.ToString("MMM d, yyyy")</div>
+                </div>
+
+                <div class="proposal-amount">৳@proposal.ProposedAmount.ToString("N0")</div>
+
+            </a>
+        }
+    </div>
+}
+else
+{
+    <div class="panel empty-block" style="margin-top: 24px;">
+        <div class="empty-title">No proposals yet</div>
+        <p class="empty-text">Invite a creator from Discovery or Smart Match to send your first proposal.</p>
+        <a href="/Influencers" class="btn btn-primary" style="margin-top: 16px;">Discover Creators</a>
+    </div>
+}

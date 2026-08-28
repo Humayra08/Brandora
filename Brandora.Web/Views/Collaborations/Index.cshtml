@@ -1,0 +1,120 @@
+@model List<Brandora.Web.Models.Domain.Collaboration>
+@using Brandora.Web.Models.Influencers
+@{
+    ViewData["Title"] = "Collaborations";
+    ViewData["ActiveNav"] = "Campaigns";
+    Layout = "_AppLayout";
+}
+
+@section Styles {
+
+    .page-head {
+        animation: fade-up .4s ease both;
+    }
+
+    .page-title {
+        font-family: 'Playfair Display', serif;
+        font-weight: 600;
+        font-size: 28px;
+    }
+
+    .page-sub {
+        margin-top: 6px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 13.5px;
+        color: #6b7290;
+    }
+
+    .collab-list {
+        margin-top: 24px;
+
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .collab-row {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+
+        padding: 20px 24px;
+
+        border-radius: 16px;
+        background: #ffffff;
+        border: 1px solid #eaecf5;
+
+        transition: transform .2s ease, box-shadow .2s ease;
+
+        animation: fade-up .5s ease both;
+    }
+
+    a.collab-row:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 14px 30px rgba(30,34,90,.08);
+    }
+
+    .collab-body {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .collab-name-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 700;
+        font-size: 15px;
+        color: #171d3d;
+    }
+
+    .collab-meta {
+        margin-top: 3px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 12px;
+        color: #8189a8;
+    }
+
+}
+
+<div class="page-head">
+    <h1 class="page-title">Collaborations</h1>
+    <p class="page-sub">@Model.Count active or past collaboration@(Model.Count == 1 ? "" : "s").</p>
+</div>
+
+@if (Model.Count > 0)
+{
+    <div class="collab-list">
+        @foreach (var collaboration in Model)
+        {
+            var hue = (collaboration.InfluencerProfile.Id * 47) % 360;
+            <a href="/Collaborations/Detail/@collaboration.Id" class="collab-row">
+
+                <div class="creator-avatar" style="width:44px;height:44px;font-size:14px;background: linear-gradient(135deg, hsl(@(hue)deg 75% 58%), hsl(@((hue + 45) % 360)deg 75% 48%));">
+                    @FollowerFormat.InitialsOf(collaboration.InfluencerProfile.FullName)
+                </div>
+
+                <div class="collab-body">
+                    <div class="collab-name-row">
+                        @collaboration.InfluencerProfile.FullName
+                        <span class="status-pill @collaboration.Status.ToString().ToLowerInvariant()">@collaboration.Status</span>
+                    </div>
+                    <div class="collab-meta">@collaboration.Campaign.Title &middot; started @collaboration.CreatedAt.ToString("MMM d, yyyy")</div>
+                </div>
+
+            </a>
+        }
+    </div>
+}
+else
+{
+    <div class="panel empty-block" style="margin-top: 24px;">
+        <div class="empty-title">No collaborations yet</div>
+        <p class="empty-text">Once you confirm an accepted proposal, the collaboration will appear here.</p>
+        <a href="/Influencers" class="btn btn-primary" style="margin-top: 16px;">Discover Creators</a>
+    </div>
+}

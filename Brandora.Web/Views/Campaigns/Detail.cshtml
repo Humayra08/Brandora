@@ -231,18 +231,24 @@
     <div class="soon-grid">
 
         <div class="soon-panel">
-            <div class="panel-title">Proposals <span class="soon-tag" style="color:#9b2cff; border-color:#e3cfff;">Soon</span></div>
-            <p class="empty-text">Once you invite a creator, their proposal for this campaign will appear here.</p>
+            <div class="panel-title">Proposals</div>
+            <div class="figure-value" style="margin-top:8px;">@Model.ApplicantCount</div>
+            <p class="empty-text">@(Model.ApplicantCount > 0 ? "Proposals sent for this campaign." : "Invite a creator to send your first proposal.")</p>
+            <a href="/Proposals?campaignId=@campaign.Id" class="btn btn-secondary" style="margin-top: 14px;">View Proposals</a>
         </div>
 
         <div class="soon-panel">
-            <div class="panel-title">Collaboration <span class="soon-tag" style="color:#9b2cff; border-color:#e3cfff;">Soon</span></div>
-            <p class="empty-text">Milestones and deliverables will live here once a creator is confirmed.</p>
+            <div class="panel-title">Collaborations</div>
+            <div class="figure-value" style="margin-top:8px;">@Model.CollaborationCount</div>
+            <p class="empty-text">@(Model.CollaborationCount > 0 ? "Creators actively collaborating on this campaign." : "Confirm an accepted proposal to start one.")</p>
+            <a href="/Collaborations?campaignId=@campaign.Id" class="btn btn-secondary" style="margin-top: 14px;">View Collaborations</a>
         </div>
 
         <div class="soon-panel">
-            <div class="panel-title">Messages <span class="soon-tag" style="color:#9b2cff; border-color:#e3cfff;">Soon</span></div>
-            <p class="empty-text">Conversations tied to this campaign will show up here.</p>
+            <div class="panel-title">Messages</div>
+            <div class="figure-value" style="margin-top:8px;">@Model.ConversationCount</div>
+            <p class="empty-text">@(Model.ConversationCount > 0 ? "Conversations tied to this campaign." : "Message a creator to start a conversation here.")</p>
+            <a href="/Messages?campaignId=@campaign.Id" class="btn btn-secondary" style="margin-top: 14px;">View Messages</a>
         </div>
 
     </div>

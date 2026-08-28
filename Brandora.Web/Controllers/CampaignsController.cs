@@ -260,7 +260,15 @@ public class CampaignsController(UserManager<ApplicationUser> userManager, Appli
         }
 
         var applicantCount = await db.Proposals.CountAsync(p => p.CampaignId == id);
+        var collaborationCount = await db.Collaborations.CountAsync(c => c.CampaignId == id);
+        var conversationCount = await db.Conversations.CountAsync(c => c.CampaignId == id);
 
-        return View(new CampaignDetailViewModel { Campaign = campaign, ApplicantCount = applicantCount });
+        return View(new CampaignDetailViewModel
+        {
+            Campaign = campaign,
+            ApplicantCount = applicantCount,
+            CollaborationCount = collaborationCount,
+            ConversationCount = conversationCount
+        });
     }
 }
