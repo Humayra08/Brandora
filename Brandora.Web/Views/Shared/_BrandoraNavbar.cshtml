@@ -37,15 +37,29 @@
 
     <div class="nav-actions">
 
-        <a href="/Account/Login"
-           class="login-btn">
-            Log In
-        </a>
+        @if (User.Identity?.IsAuthenticated == true)
+        {
+            <form method="post" action="/Account/Logout" class="logout-form">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="login-btn">Log Out</button>
+            </form>
 
-        <a href="/Account/Register"
-           class="get-started-btn">
-            Get Started
-        </a>
+            <a href="/Dashboard" class="get-started-btn">
+                Dashboard
+            </a>
+        }
+        else
+        {
+            <a href="/Account/Login"
+               class="login-btn">
+                Log In
+            </a>
+
+            <a href="/Account/Register"
+               class="get-started-btn">
+                Get Started
+            </a>
+        }
 
     </div>
 
