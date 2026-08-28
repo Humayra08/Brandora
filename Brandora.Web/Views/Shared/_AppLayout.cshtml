@@ -321,6 +321,9 @@
         .status-pill.active { background: #e2faf1; color: #0d9c6c; }
         .status-pill.completed { background: #f3e8ff; color: #7a1fd6; }
         .status-pill.cancelled { background: #fde8ea; color: #c22540; }
+        .status-pill.pending { background: #fff2e2; color: #b5680a; }
+        .status-pill.accepted { background: #e2faf1; color: #0d9c6c; }
+        .status-pill.rejected { background: #fde8ea; color: #c22540; }
 
         .form-errors {
             margin-bottom: 18px;
@@ -519,10 +522,7 @@
 
             <a href="/Influencers" class="side-nav-item @(activeNav == "Influencers" ? "is-active" : "")">Influencers</a>
 
-            <span class="side-nav-item is-soon">
-                Messages
-                <span class="soon-tag">Soon</span>
-            </span>
+            <a href="/Messages" class="side-nav-item @(activeNav == "Messages" ? "is-active" : "")">Messages</a>
 
             <span class="side-nav-item is-soon">
                 Finance

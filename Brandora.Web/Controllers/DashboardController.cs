@@ -23,8 +23,7 @@ public class DashboardController(UserManager<ApplicationUser> userManager, Appli
 
         var pendingProposalCount = await db.Proposals
             .Where(p => p.Campaign.BrandProfileId == brand.Id
-                        && p.Status == ProposalStatus.Pending
-                        && p.InitiatedBy == ProposalInitiator.Influencer)
+                        && p.Status == ProposalStatus.Pending)
             .CountAsync();
 
         var vm = new DashboardViewModel

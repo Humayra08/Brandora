@@ -357,20 +357,21 @@
 
     <div class="panel">
         <div class="panel-title">Pending Actions</div>
-        <div class="panel-sub">Creator proposals awaiting your response.</div>
+        <div class="panel-sub">Invites awaiting confirmation.</div>
 
         @if (Model.PendingProposalCount > 0)
         {
             <div class="pending-count">
                 <span class="pending-number">@Model.PendingProposalCount</span>
-                <span class="pending-label">awaiting review</span>
+                <span class="pending-label">awaiting response</span>
             </div>
+            <a href="/Proposals?status=Pending" class="btn btn-secondary" style="margin-top: 14px;">Review Proposals</a>
         }
         else
         {
             <div class="empty-block">
                 <div class="empty-title">You're all caught up</div>
-                <p class="empty-text">New proposals from creators will show up here for review.</p>
+                <p class="empty-text">Invites you send to creators will show up here until confirmed.</p>
             </div>
         }
     </div>
