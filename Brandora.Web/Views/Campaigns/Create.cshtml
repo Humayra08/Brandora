@@ -249,7 +249,7 @@
                     <label for="Platform">Primary Platform</label>
                     <select id="Platform" name="Platform" required>
                         <option value="" disabled selected="@(string.IsNullOrEmpty(Model.Platform))">Select platform</option>
-                        @foreach (var platform in new[] { "Instagram", "TikTok", "YouTube", "Facebook", "X (Twitter)", "LinkedIn", "Multi-Platform" })
+                        @foreach (var platform in new[] { "Instagram", "TikTok", "YouTube", "Facebook", "X", "LinkedIn", "Multi-Platform" })
                         {
                             <option selected="@(Model.Platform == platform)">@platform</option>
                         }
@@ -260,7 +260,7 @@
                     <label for="Niche">Campaign Niche</label>
                     <select id="Niche" name="Niche" required>
                         <option value="" disabled selected="@(string.IsNullOrEmpty(Model.Niche))">Select niche</option>
-                        @foreach (var niche in new[] { "Fashion & Apparel", "Beauty & Cosmetics", "Food & Beverage", "Technology", "Health & Fitness", "Travel & Tourism", "Finance", "Education", "Home & Lifestyle", "Other" })
+                        @foreach (var niche in new[] { "Fashion & Style", "Beauty & Skincare", "Food & Cooking", "Travel & Lifestyle", "Fitness & Health", "Gaming", "Tech & Gadgets", "Education", "Comedy & Entertainment", "Home & Lifestyle", "Finance", "Other" })
                         {
                             <option selected="@(Model.Niche == niche)">@niche</option>
                         }
