@@ -1,0 +1,252 @@
+@model Brandora.Web.Models.Influencers.SmartMatchViewModel
+@using Brandora.Web.Models.Influencers
+@{
+    ViewData["Title"] = "Smart Match";
+    ViewData["ActiveNav"] = "Influencers";
+    Layout = "_AppLayout";
+}
+
+@section Styles {
+
+    .page-head {
+        animation: fade-up .4s ease both;
+    }
+
+    .detail-crumb {
+        font-family: 'Inter', sans-serif;
+        font-size: 12.5px;
+        font-weight: 500;
+        color: #8189a8;
+    }
+
+    .page-title {
+        margin-top: 8px;
+
+        font-family: 'Playfair Display', serif;
+        font-weight: 600;
+        font-size: 28px;
+    }
+
+    .page-sub {
+        margin-top: 6px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 13.5px;
+        color: #6b7290;
+    }
+
+    .criteria-strip {
+        margin-top: 18px;
+
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .match-list {
+        margin-top: 26px;
+
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+    }
+
+    .match-row {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+
+        padding: 22px 26px;
+
+        border-radius: 16px;
+        background: #ffffff;
+        border: 1px solid #eaecf5;
+
+        transition: transform .2s ease, box-shadow .2s ease;
+
+        animation: fade-up .5s ease both;
+    }
+
+    .match-row:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 14px 30px rgba(30,34,90,.08);
+    }
+
+    .match-ring {
+        position: relative;
+        width: 68px;
+        height: 68px;
+        flex-shrink: 0;
+
+        border-radius: 50%;
+    }
+
+    .match-ring-inner {
+        position: absolute;
+        inset: 6px;
+
+        border-radius: 50%;
+        background: #ffffff;
+
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .match-ring-value {
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 800;
+        font-size: 15px;
+        color: #171d3d;
+        line-height: 1;
+    }
+
+    .match-ring-percent {
+        font-size: 8px;
+        color: #9096b3;
+    }
+
+    .match-body {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .match-name-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 700;
+        font-size: 15.5px;
+        color: #171d3d;
+    }
+
+    .match-handle {
+        margin-top: 2px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 12px;
+        color: #8189a8;
+    }
+
+    .match-reasons {
+        margin-top: 10px;
+
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .reason-chip {
+        padding: 3px 10px;
+
+        border-radius: 20px;
+        background: #f2f3fa;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 11px;
+        font-weight: 600;
+        color: #545b7d;
+    }
+
+    .match-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+
+        flex-shrink: 0;
+    }
+
+    .match-actions .btn,
+    .match-actions .shortlist-btn {
+        width: 150px;
+    }
+
+    @@media(max-width: 700px) {
+        .match-row { flex-wrap: wrap; }
+        .match-actions { flex-direction: row; width: 100%; }
+        .match-actions .btn,
+        .match-actions .shortlist-btn { flex: 1; width: auto; }
+    }
+
+}
+
+<div class="page-head">
+    <div class="detail-crumb"><a href="/Campaigns/Detail/@Model.Campaign.Id">@Model.Campaign.Title</a> / Smart Match</div>
+    <h1 class="page-title">Smart Match for @Model.Campaign.Title</h1>
+    <p class="page-sub">Creators ranked against this campaign's platform, niche, and engagement criteria.</p>
+
+    <div class="criteria-strip">
+        <span class="tag">Platform: @(Model.Campaign.Platform ?? "Any")</span>
+        <span class="tag">Niche: @(Model.Campaign.Niche ?? "Any")</span>
+    </div>
+</div>
+
+@if (Model.Results.Count > 0)
+{
+    <div class="match-list">
+        @foreach (var result in Model.Results)
+        {
+            var ringColor = result.Score >= 80 ? "#12c48b" : result.Score >= 50 ? "#9b2cff" : "#ffb648";
+            <div class="match-row">
+
+                <div class="match-ring" style="background: conic-gradient(@ringColor 0% @(result.Score)%, #eef0f8 @(result.Score)% 100%);">
+                    <div class="match-ring-inner">
+                        <div class="match-ring-value">@result.Score%</div>
+                        <div class="match-ring-percent">Match</div>
+                    </div>
+                </div>
+
+                <div class="match-body">
+                    <div class="match-name-row">
+                        @result.Creator.FullName
+                        @if (result.Creator.Verified)
+                        {
+                            <span class="verified-badge">Verified</span>
+                        }
+                    </div>
+                    <div class="match-handle">@result.Creator.PrimaryPlatform &middot; @FollowerFormat.Format(result.Creator.Followers) followers &middot; @result.Creator.EngagementRate.ToString("0.0")% engagement</div>
+
+                    @if (result.Reasons.Count > 0)
+                    {
+                        <div class="match-reasons">
+                            @foreach (var reason in result.Reasons)
+                            {
+                                <span class="reason-chip">@reason</span>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="match-reasons">
+                            <span class="reason-chip">No direct match on platform or niche</span>
+                        </div>
+                    }
+                </div>
+
+                <div class="match-actions">
+                    <a href="/Influencers/Profile/@result.Creator.Id" class="btn btn-secondary">View Profile</a>
+
+                    <form method="post" action="/Influencers/ToggleShortlist">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="influencerId" value="@result.Creator.Id" />
+                        <input type="hidden" name="returnUrl" value="/Influencers/SmartMatch?campaignId=@Model.Campaign.Id" />
+                        <button type="submit" class="shortlist-btn @(result.IsShortlisted ? "is-saved" : "")">
+                            @(result.IsShortlisted ? "Shortlisted" : "+ Shortlist")
+                        </button>
+                    </form>
+                </div>
+
+            </div>
+        }
+    </div>
+}
+else
+{
+    <div class="panel empty-block" style="margin-top: 24px;">
+        <div class="empty-title">No creators to match yet</div>
+        <p class="empty-text">Once influencers join Brandora, Smart Match will rank them against this campaign automatically.</p>
+    </div>
+}

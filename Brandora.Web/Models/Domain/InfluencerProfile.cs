@@ -14,8 +14,15 @@ public class InfluencerProfile
     public string AudienceSize { get; set; } = string.Empty;
     public bool Verified { get; set; }
 
+    public string? Bio { get; set; }
+    public string? Location { get; set; }
+    public int Followers { get; set; }
+    public decimal EngagementRate { get; set; }
+    public string? RateNote { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public ICollection<Proposal> Proposals { get; set; } = new List<Proposal>();
     public ICollection<Conversation> Conversations { get; set; } = new List<Conversation>();
+    public ICollection<ShortlistEntry> ShortlistedBy { get; set; } = new List<ShortlistEntry>();
 }

@@ -16,6 +16,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<Message> Messages => Set<Message>();
     public DbSet<Payment> Payments => Set<Payment>();
     public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<ShortlistEntry> ShortlistEntries => Set<ShortlistEntry>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -33,10 +34,27 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         builder.Entity<InfluencerProfile>(entity =>
         {
             entity.HasIndex(e => e.UserId).IsUnique();
+            entity.Property(e => e.EngagementRate).HasPrecision(5, 2);
+
             entity.HasOne(e => e.User)
                 .WithOne(u => u.InfluencerProfile)
                 .HasForeignKey<InfluencerProfile>(e => e.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<ShortlistEntry>(entity =>
+        {
+            entity.HasIndex(e => new { e.BrandProfileId, e.InfluencerProfileId }).IsUnique();
+
+            entity.HasOne(e => e.BrandProfile)
+                .WithMany(b => b.ShortlistEntries)
+                .HasForeignKey(e => e.BrandProfileId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.InfluencerProfile)
+                .WithMany(i => i.ShortlistedBy)
+                .HasForeignKey(e => e.InfluencerProfileId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         builder.Entity<Campaign>(entity =>

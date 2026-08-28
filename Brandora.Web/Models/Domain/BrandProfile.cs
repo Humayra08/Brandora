@@ -17,4 +17,5 @@ public class BrandProfile
 
     public ICollection<Campaign> Campaigns { get; set; } = new List<Campaign>();
     public ICollection<Conversation> Conversations { get; set; } = new List<Conversation>();
+    public ICollection<ShortlistEntry> ShortlistEntries { get; set; } = new List<ShortlistEntry>();
 }

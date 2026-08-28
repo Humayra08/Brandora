@@ -24,6 +24,24 @@ public class InfluencerRegisterViewModel
     public string AudienceSize { get; set; } = string.Empty;
 
     [Required]
+    [Range(1, 500000000, ErrorMessage = "Enter your approximate follower count.")]
+    public int Followers { get; set; }
+
+    [Required]
+    [Range(0.1, 100, ErrorMessage = "Enter an engagement rate between 0.1 and 100.")]
+    public decimal EngagementRate { get; set; }
+
+    [Required]
+    public string Location { get; set; } = string.Empty;
+
+    [Required]
+    [StringLength(600)]
+    public string Bio { get; set; } = string.Empty;
+
+    [StringLength(200)]
+    public string? RateNote { get; set; }
+
+    [Required]
     [DataType(DataType.Password)]
     [MinLength(8, ErrorMessage = "Password must be at least 8 characters.")]
     public string Password { get; set; } = string.Empty;

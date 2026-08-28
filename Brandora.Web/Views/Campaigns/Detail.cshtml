@@ -196,6 +196,10 @@
             {
                 <a href="/Campaigns/Preview/@campaign.Id" class="btn btn-primary">Continue Setup</a>
             }
+            @if (campaign.Status != Brandora.Web.Models.Domain.CampaignStatus.Cancelled)
+            {
+                <a href="/Influencers/SmartMatch?campaignId=@campaign.Id" class="btn btn-secondary">Find Creators with Smart Match</a>
+            }
             @if (campaign.Status == Brandora.Web.Models.Domain.CampaignStatus.Published)
             {
                 <form method="post" action="/Campaigns/UpdateStatus/@campaign.Id">
@@ -228,7 +232,7 @@
 
         <div class="soon-panel">
             <div class="panel-title">Proposals <span class="soon-tag" style="color:#9b2cff; border-color:#e3cfff;">Soon</span></div>
-            <p class="empty-text">Creator proposals for this campaign will appear here once discovery launches.</p>
+            <p class="empty-text">Once you invite a creator, their proposal for this campaign will appear here.</p>
         </div>
 
         <div class="soon-panel">
