@@ -1,0 +1,324 @@
+@model Brandora.Web.Models.Campaigns.CampaignListViewModel
+@using Brandora.Web.Models.Domain
+@{
+    ViewData["Title"] = "Campaigns";
+    ViewData["ActiveNav"] = "Campaigns";
+    Layout = "_AppLayout";
+}
+
+@section Styles {
+
+    .page-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 20px;
+
+        animation: fade-up .4s ease both;
+    }
+
+    .page-title {
+        font-family: 'Playfair Display', serif;
+        font-weight: 600;
+        font-size: 28px;
+    }
+
+    .page-sub {
+        margin-top: 6px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 13.5px;
+        color: #6b7290;
+    }
+
+    .filter-bar {
+        margin-top: 26px;
+
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 10px;
+
+        animation: fade-up .45s ease both;
+    }
+
+    .status-tab {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+
+        padding: 9px 16px;
+
+        border-radius: 20px;
+        border: 1px solid #e2e5f2;
+        background: #ffffff;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 12.5px;
+        font-weight: 600;
+        color: #545b7d;
+
+        transition: .2s;
+    }
+
+    .status-tab:hover {
+        border-color: #c3c9ea;
+    }
+
+    .status-tab.is-active {
+        border-color: transparent;
+        color: #ffffff;
+        background: linear-gradient(105deg, #a326ff, #236eff);
+    }
+
+    .status-tab .count {
+        opacity: .7;
+        font-weight: 700;
+    }
+
+    .filter-spacer {
+        flex: 1;
+    }
+
+    .filter-input,
+    .filter-select {
+        height: 40px;
+
+        padding: 0 14px;
+
+        border-radius: 10px;
+        border: 1px solid #e2e5f2;
+        background: #ffffff;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 13px;
+        color: #2a3157;
+
+        outline: none;
+        transition: .2s;
+    }
+
+    .filter-input:focus,
+    .filter-select:focus {
+        border-color: #a978ff;
+        box-shadow: 0 0 0 3px rgba(155,44,255,.1);
+    }
+
+    .filter-input {
+        width: 220px;
+    }
+
+    .campaign-grid {
+        margin-top: 24px;
+
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 18px;
+    }
+
+    .campaign-card {
+        display: block;
+        padding: 24px 24px 20px;
+
+        border-radius: 16px;
+        background: #ffffff;
+        border: 1px solid #eaecf5;
+
+        transition: transform .2s ease, box-shadow .2s ease;
+
+        animation: fade-up .5s ease both;
+    }
+
+    .campaign-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 16px 34px rgba(30,34,90,.09);
+    }
+
+    .campaign-card-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+    }
+
+    .campaign-card-title {
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 700;
+        font-size: 16.5px;
+        color: #171d3d;
+
+        line-height: 1.35;
+    }
+
+    .campaign-card-tags {
+        margin-top: 10px;
+
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .tag {
+        padding: 3px 10px;
+
+        border-radius: 20px;
+        background: #f2f3fa;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 11px;
+        font-weight: 600;
+        color: #545b7d;
+    }
+
+    .campaign-card-figures {
+        margin-top: 18px;
+
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+
+        padding-top: 16px;
+        border-top: 1px solid #f0f1f7;
+    }
+
+    .figure-value {
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 800;
+        font-size: 19px;
+        color: #171d3d;
+    }
+
+    .figure-label {
+        margin-top: 2px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 10.5px;
+        font-weight: 600;
+        letter-spacing: .3px;
+        text-transform: uppercase;
+        color: #9096b3;
+    }
+
+    .campaign-card-deadline {
+        margin-top: 12px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 12px;
+        color: #6b7290;
+    }
+
+    @@media(max-width: 560px) {
+        .page-head { flex-direction: column; }
+        .filter-input { width: 100%; }
+    }
+
+}
+
+<div class="page-head">
+    <div>
+        <h1 class="page-title">Campaigns</h1>
+        <p class="page-sub">@Model.TotalCount campaign@(Model.TotalCount == 1 ? "" : "s") in your workspace.</p>
+    </div>
+    <a href="/Campaigns/Create" class="btn btn-primary">Create Campaign</a>
+</div>
+
+<form method="get" action="/Campaigns" class="filter-bar">
+
+    <a href="/Campaigns" class="status-tab @(Model.Status == null ? "is-active" : "")">
+        All <span class="count">@Model.TotalCount</span>
+    </a>
+    <a href="/Campaigns?status=Draft" class="status-tab @(Model.Status == CampaignStatus.Draft ? "is-active" : "")">
+        Drafts <span class="count">@Model.DraftCount</span>
+    </a>
+    <a href="/Campaigns?status=Published" class="status-tab @(Model.Status == CampaignStatus.Published ? "is-active" : "")">
+        Published <span class="count">@Model.PublishedCount</span>
+    </a>
+    <a href="/Campaigns?status=Active" class="status-tab @(Model.Status == CampaignStatus.Active ? "is-active" : "")">
+        Active <span class="count">@Model.ActiveCount</span>
+    </a>
+    <a href="/Campaigns?status=Completed" class="status-tab @(Model.Status == CampaignStatus.Completed ? "is-active" : "")">
+        Completed <span class="count">@Model.CompletedCount</span>
+    </a>
+
+    <div class="filter-spacer"></div>
+
+    <input type="text" name="search" class="filter-input" placeholder="Search campaigns..." value="@Model.Search" />
+
+    <select name="sort" class="filter-select" onchange="this.form.submit()">
+        <option value="" selected="@(string.IsNullOrEmpty(Model.Sort))">Newest first</option>
+        <option value="oldest" selected="@(Model.Sort == "oldest")">Oldest first</option>
+        <option value="budget" selected="@(Model.Sort == "budget")">Highest budget</option>
+    </select>
+
+    @if (Model.Status.HasValue)
+    {
+        <input type="hidden" name="status" value="@Model.Status" />
+    }
+
+    <button type="submit" class="btn btn-secondary">Search</button>
+
+</form>
+
+@if (Model.Campaigns.Count > 0)
+{
+    <div class="campaign-grid">
+        @foreach (var campaign in Model.Campaigns)
+        {
+            <a href="/Campaigns/Detail/@campaign.Id" class="campaign-card">
+                <div class="campaign-card-head">
+                    <div class="campaign-card-title">@campaign.Title</div>
+                    <span class="status-pill @campaign.Status.ToString().ToLowerInvariant()">@campaign.Status</span>
+                </div>
+
+                <div class="campaign-card-tags">
+                    @if (!string.IsNullOrEmpty(campaign.Platform))
+                    {
+                        <span class="tag">@campaign.Platform</span>
+                    }
+                    @if (!string.IsNullOrEmpty(campaign.Niche))
+                    {
+                        <span class="tag">@campaign.Niche</span>
+                    }
+                </div>
+
+                <div class="campaign-card-figures">
+                    <div>
+                        <div class="figure-value">৳@campaign.Budget.ToString("N0")</div>
+                        <div class="figure-label">Budget</div>
+                    </div>
+                    <div>
+                        <div class="figure-value">@Model.ApplicantsFor(campaign.Id)</div>
+                        <div class="figure-label">Applicants</div>
+                    </div>
+                </div>
+
+                <div class="campaign-card-deadline">
+                    @if (campaign.Deadline.HasValue)
+                    {
+                        <text>Deadline @campaign.Deadline.Value.ToString("MMM d, yyyy")</text>
+                    }
+                    else
+                    {
+                        <text>No deadline set</text>
+                    }
+                </div>
+            </a>
+        }
+    </div>
+}
+else if (Model.TotalCount == 0)
+{
+    <div class="panel empty-block" style="margin-top: 24px;">
+        <div class="empty-title">Your first campaign starts here</div>
+        <p class="empty-text">Create a campaign to define your budget, platform, and creative direction — then invite creators once discovery launches.</p>
+        <a href="/Campaigns/Create" class="btn btn-primary" style="margin-top: 16px;">Create Campaign</a>
+    </div>
+}
+else
+{
+    <div class="panel empty-block" style="margin-top: 24px;">
+        <div class="empty-title">No campaigns match these filters</div>
+        <p class="empty-text">Try a different search term or clear your filters.</p>
+        <a href="/Campaigns" class="btn btn-secondary" style="margin-top: 16px;">Clear Filters</a>
+    </div>
+}

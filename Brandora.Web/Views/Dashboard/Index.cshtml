@@ -1,786 +1,406 @@
 @model Brandora.Web.Models.Dashboard.DashboardViewModel
 @{
     ViewData["Title"] = "Dashboard";
-    Layout = null;
+    ViewData["ActiveNav"] = "Dashboard";
+    Layout = "_AppLayout";
 }
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+@section Styles {
 
-    <title>@ViewData["Title"] - Brandora</title>
+    /* =========================================================
+       HERO
+    ========================================================= */
 
-    <link rel="icon" type="image/png" href="~/images/brandora-icon.png" />
+    .hero-card {
+        position: relative;
+        overflow: hidden;
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        padding: 38px 42px;
 
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Playfair+Display:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap"
-          rel="stylesheet">
+        border-radius: 22px;
 
-    <style>
+        background:
+            radial-gradient(circle at 85% 0%, rgba(255,90,190,.35), transparent 45%),
+            radial-gradient(circle at 0% 100%, rgba(0,169,255,.3), transparent 50%),
+            linear-gradient(115deg, #6a1fd6 0%, #3a3fe0 55%, #1c6cff 100%);
 
-        /* =========================================================
-           GLOBAL
-        ========================================================= */
+        color: #ffffff;
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        animation: fade-up .5s ease both;
+    }
+
+    .hero-eyebrow {
+        font-family: 'Inter', sans-serif;
+        font-size: 11.5px;
+        font-weight: 700;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: rgba(255,255,255,.72);
+    }
+
+    .hero-title {
+        margin-top: 12px;
+
+        font-family: 'Playfair Display', serif;
+        font-weight: 600;
+
+        font-size: clamp(28px, 3.4vw, 38px);
+        letter-spacing: -.3px;
+    }
+
+    .hero-sub {
+        margin-top: 10px;
+
+        max-width: 520px;
+
+        font-size: 14.5px;
+        line-height: 1.65;
+        color: rgba(255,255,255,.82);
+    }
+
+    .hero-cta {
+        margin-top: 22px;
+
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+
+        height: 46px;
+        padding: 0 24px;
+
+        border-radius: 10px;
+        border: none;
+
+        background: #ffffff;
+        color: #3a1fc9;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 13.5px;
+        font-weight: 700;
+
+        transition: .2s;
+    }
+
+    .hero-cta:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 24px rgba(0,0,0,.2);
+    }
+
+
+    /* =========================================================
+       STAT CARDS
+    ========================================================= */
+
+    .stat-grid {
+        margin-top: 28px;
+
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 18px;
+    }
+
+    .stat-card {
+        padding: 22px 22px 20px;
+
+        border-radius: 16px;
+        background: #ffffff;
+        border: 1px solid #eaecf5;
+
+        box-shadow: 0 10px 24px rgba(30,34,90,.04);
+
+        transition: transform .2s ease, box-shadow .2s ease;
+
+        animation: fade-up .5s ease both;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 16px 32px rgba(30,34,90,.08);
+    }
+
+    .stat-accent {
+        width: 34px;
+        height: 4px;
+        border-radius: 4px;
+
+        margin-bottom: 16px;
+    }
+
+    .stat-card.drafts .stat-accent { background: linear-gradient(90deg, #ffb648, #ff8a3d); }
+    .stat-card.published .stat-accent { background: linear-gradient(90deg, #2694ff, #6bb7ff); }
+    .stat-card.active .stat-accent { background: linear-gradient(90deg, #12c48b, #5be2b4); }
+    .stat-card.completed .stat-accent { background: linear-gradient(90deg, #9b2cff, #c98bff); }
+
+    .stat-value {
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 800;
+        font-size: 32px;
+        letter-spacing: -.5px;
+    }
+
+    .stat-label {
+        margin-top: 4px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 12.5px;
+        font-weight: 500;
+        color: #6b7290;
+    }
+
+
+    /* =========================================================
+       SPLIT SECTION
+    ========================================================= */
+
+    .split-grid {
+        margin-top: 22px;
+
+        display: grid;
+        grid-template-columns: 1.4fr 1fr;
+        gap: 18px;
+    }
+
+    .spend-figures {
+        margin-top: 22px;
+
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+    }
+
+    .spend-amount {
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 800;
+        font-size: 30px;
+
+        background: linear-gradient(100deg, #6a1fd6, #1c6cff);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+    }
+
+    .spend-of {
+        font-family: 'Inter', sans-serif;
+        font-size: 13px;
+        color: #8189a8;
+    }
+
+    .spend-bar-track {
+        margin-top: 16px;
+
+        height: 10px;
+        border-radius: 10px;
+        background: #eef0f8;
+
+        overflow: hidden;
+    }
+
+    .spend-bar-fill {
+        height: 100%;
+        border-radius: 10px;
+
+        background: linear-gradient(90deg, #9b2cff, #2694ff);
+
+        width: 0%;
+        transition: width 1s cubic-bezier(.22,1,.36,1);
+    }
+
+    .pending-count {
+        margin-top: 18px;
+
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+    }
+
+    .pending-number {
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 800;
+        font-size: 30px;
+        color: #131a35;
+    }
+
+    .pending-label {
+        font-family: 'Inter', sans-serif;
+        font-size: 12.5px;
+        color: #8189a8;
+    }
+
+
+    /* =========================================================
+       RECENT CAMPAIGNS
+    ========================================================= */
+
+    .recent-panel {
+        margin-top: 18px;
+        padding: 26px 28px 8px;
+    }
+
+    .campaign-row {
+        display: grid;
+        grid-template-columns: 1.6fr .8fr .8fr .8fr;
+        align-items: center;
+        gap: 14px;
+
+        padding: 16px 0;
+        border-top: 1px solid #f0f1f7;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 13px;
+
+        transition: .15s;
+    }
+
+    .campaign-row:first-of-type {
+        border-top: none;
+    }
+
+    a.campaign-row:hover {
+        background: #fafbfe;
+        margin: 0 -12px;
+        padding: 16px 12px;
+        border-radius: 10px;
+    }
+
+    .campaign-title {
+        font-weight: 600;
+        color: #1a2044;
+    }
+
+    .campaign-budget {
+        color: #4b5273;
+    }
+
+    .campaign-date {
+        color: #9096b3;
+    }
+
+
+    /* =========================================================
+       RESPONSIVE
+    ========================================================= */
+
+    @@media(max-width: 1100px) {
+        .stat-grid { grid-template-columns: repeat(2, 1fr); }
+        .split-grid { grid-template-columns: 1fr; }
+    }
+
+    @@media(max-width: 820px) {
+        .campaign-row { grid-template-columns: 1.4fr .8fr; row-gap: 4px; }
+    }
+
+}
+
+<section class="hero-card">
+    <div class="hero-eyebrow">Entry Workspace</div>
+    <h1 class="hero-title">Welcome Back, @Model.CompanyName.</h1>
+    <p class="hero-sub">
+        This is your command center for brand&ndash;creator collaboration.
+        Creator discovery and Smart Match are arriving in the next phases &mdash;
+        for now, here's where your campaigns stand.
+    </p>
+    <a href="/Campaigns/Create" class="hero-cta">Create Campaign</a>
+</section>
+
+<section class="stat-grid">
+
+    <div class="stat-card drafts">
+        <div class="stat-accent"></div>
+        <div class="stat-value" data-count-to="@Model.DraftCount">0</div>
+        <div class="stat-label">Drafts</div>
+    </div>
+
+    <div class="stat-card published">
+        <div class="stat-accent"></div>
+        <div class="stat-value" data-count-to="@Model.PublishedCount">0</div>
+        <div class="stat-label">Published</div>
+    </div>
+
+    <div class="stat-card active">
+        <div class="stat-accent"></div>
+        <div class="stat-value" data-count-to="@Model.ActiveCount">0</div>
+        <div class="stat-label">Active</div>
+    </div>
+
+    <div class="stat-card completed">
+        <div class="stat-accent"></div>
+        <div class="stat-value" data-count-to="@Model.CompletedCount">0</div>
+        <div class="stat-label">Completed</div>
+    </div>
+
+</section>
+
+<section class="split-grid">
+
+    <div class="panel">
+        <div class="panel-title">Campaign Spend</div>
+        <div class="panel-sub">Total spend across all campaigns against total budget allocated.</div>
+
+        @if (Model.TotalBudget > 0)
+        {
+            <div class="spend-figures">
+                <span class="spend-amount">৳@Model.TotalSpend.ToString("N0")</span>
+                <span class="spend-of">of ৳@Model.TotalBudget.ToString("N0") budgeted</span>
+            </div>
+            <div class="spend-bar-track">
+                <div class="spend-bar-fill" data-fill-to="@(Math.Min(100, Model.TotalBudget == 0 ? 0 : (double)(Model.TotalSpend / Model.TotalBudget * 100)))"></div>
+            </div>
         }
-
-        body {
-            font-family: 'DM Sans', sans-serif;
-            background: #f5f6fb;
-            color: #131a35;
+        else
+        {
+            <div class="empty-block">
+                <div class="empty-title">No spend to show yet</div>
+                <p class="empty-text">Once you create and fund a campaign, spend against budget will track here in real time.</p>
+            </div>
         }
+    </div>
 
-        a {
-            text-decoration: none;
-            color: inherit;
+    <div class="panel">
+        <div class="panel-title">Pending Actions</div>
+        <div class="panel-sub">Creator proposals awaiting your response.</div>
+
+        @if (Model.PendingProposalCount > 0)
+        {
+            <div class="pending-count">
+                <span class="pending-number">@Model.PendingProposalCount</span>
+                <span class="pending-label">awaiting review</span>
+            </div>
         }
-
-        button {
-            font-family: inherit;
+        else
+        {
+            <div class="empty-block">
+                <div class="empty-title">You're all caught up</div>
+                <p class="empty-text">New proposals from creators will show up here for review.</p>
+            </div>
         }
-
-        ::selection {
-            background: rgba(155,44,255,.25);
-        }
-
-
-        /* =========================================================
-           APP SHELL
-        ========================================================= */
-
-        .app-shell {
-            display: flex;
-            min-height: 100vh;
-        }
-
-
-        /* =========================================================
-           SIDEBAR
-        ========================================================= */
-
-        .sidebar {
-            width: 264px;
-            flex-shrink: 0;
-
-            background:
-                radial-gradient(circle at 15% 0%, rgba(140,60,255,.35), transparent 45%),
-                linear-gradient(180deg, #0a0b2e 0%, #06071f 100%);
-
-            color: #ffffff;
-
-            display: flex;
-            flex-direction: column;
-
-            padding: 26px 20px;
-
-            position: sticky;
-            top: 0;
-            height: 100vh;
-        }
-
-        .side-brand {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-
-            padding: 0 6px;
-        }
-
-        .side-brand img {
-            height: 26px;
-            width: auto;
-        }
-
-        .side-brand span {
-            font-family: 'Playfair Display', serif;
-            font-weight: 600;
-            font-size: 19px;
-        }
-
-        .side-nav {
-            margin-top: 40px;
-
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-
-        .side-nav-item {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-
-            padding: 12px 14px;
-
-            border-radius: 10px;
-
-            font-family: 'Inter', sans-serif;
-            font-size: 14px;
-            font-weight: 500;
-
-            position: relative;
-        }
-
-        .side-nav-item.is-active {
-            color: #ffffff;
-            background: rgba(255,255,255,.08);
-        }
-
-        .side-nav-item.is-active::before {
-            content: "";
-            position: absolute;
-            left: -20px;
-            top: 50%;
-            transform: translateY(-50%);
-
-            width: 3px;
-            height: 20px;
-            border-radius: 3px;
-
-            background: linear-gradient(180deg, #b26bff, #4d9dff);
-        }
-
-        .side-nav-item.is-soon {
-            color: rgba(255,255,255,.4);
-        }
-
-        .soon-tag {
-            padding: 2px 8px;
-
-            border-radius: 20px;
-            border: 1px solid rgba(255,255,255,.14);
-
-            font-size: 10px;
-            font-weight: 600;
-            letter-spacing: .4px;
-
-            color: rgba(255,255,255,.45);
-        }
-
-        .side-foot {
-            margin-top: auto;
-
-            padding-top: 18px;
-            border-top: 1px solid rgba(255,255,255,.1);
-        }
-
-        .side-foot-company {
-            padding: 0 6px;
-
-            font-family: 'Inter', sans-serif;
-            font-size: 13px;
-            font-weight: 600;
-            color: #ffffff;
-
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .side-foot-role {
-            padding: 0 6px;
-            margin-top: 2px;
-
-            font-family: 'Inter', sans-serif;
-            font-size: 11.5px;
-            color: rgba(255,255,255,.5);
-        }
-
-        .side-logout-form {
-            margin-top: 14px;
-        }
-
-        .side-logout-btn {
-            width: 100%;
-
-            padding: 10px 14px;
-
-            border: 1px solid rgba(255,255,255,.14);
-            border-radius: 9px;
-            background: transparent;
-
-            color: rgba(255,255,255,.75);
-
-            font-family: 'Inter', sans-serif;
-            font-size: 13px;
-            font-weight: 500;
-
-            cursor: pointer;
-            transition: .2s;
-        }
-
-        .side-logout-btn:hover {
-            border-color: rgba(255,255,255,.35);
-            color: #ffffff;
-        }
-
-
-        /* =========================================================
-           MAIN
-        ========================================================= */
-
-        .main {
-            flex: 1;
-            min-width: 0;
-
-            padding: 34px 42px 60px;
-        }
-
-
-        /* =========================================================
-           HERO
-        ========================================================= */
-
-        .hero-card {
-            position: relative;
-            overflow: hidden;
-
-            padding: 38px 42px;
-
-            border-radius: 22px;
-
-            background:
-                radial-gradient(circle at 85% 0%, rgba(255,90,190,.35), transparent 45%),
-                radial-gradient(circle at 0% 100%, rgba(0,169,255,.3), transparent 50%),
-                linear-gradient(115deg, #6a1fd6 0%, #3a3fe0 55%, #1c6cff 100%);
-
-            color: #ffffff;
-
-            animation: fade-up .5s ease both;
-        }
-
-        .hero-eyebrow {
-            font-family: 'Inter', sans-serif;
-            font-size: 11.5px;
-            font-weight: 700;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            color: rgba(255,255,255,.72);
-        }
-
-        .hero-title {
-            margin-top: 12px;
-
-            font-family: 'Playfair Display', serif;
-            font-weight: 600;
-
-            font-size: clamp(28px, 3.4vw, 38px);
-            letter-spacing: -.3px;
-        }
-
-        .hero-sub {
-            margin-top: 10px;
-
-            max-width: 520px;
-
-            font-size: 14.5px;
-            line-height: 1.65;
-            color: rgba(255,255,255,.82);
-        }
-
-
-        /* =========================================================
-           STAT CARDS
-        ========================================================= */
-
-        .stat-grid {
-            margin-top: 28px;
-
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 18px;
-        }
-
-        .stat-card {
-            padding: 22px 22px 20px;
-
-            border-radius: 16px;
-            background: #ffffff;
-            border: 1px solid #eaecf5;
-
-            box-shadow: 0 10px 24px rgba(30,34,90,.04);
-
-            transition: transform .2s ease, box-shadow .2s ease;
-
-            animation: fade-up .5s ease both;
-        }
-
-        .stat-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 16px 32px rgba(30,34,90,.08);
-        }
-
-        .stat-accent {
-            width: 34px;
-            height: 4px;
-            border-radius: 4px;
-
-            margin-bottom: 16px;
-        }
-
-        .stat-card.drafts .stat-accent { background: linear-gradient(90deg, #ffb648, #ff8a3d); }
-        .stat-card.published .stat-accent { background: linear-gradient(90deg, #2694ff, #6bb7ff); }
-        .stat-card.active .stat-accent { background: linear-gradient(90deg, #12c48b, #5be2b4); }
-        .stat-card.completed .stat-accent { background: linear-gradient(90deg, #9b2cff, #c98bff); }
-
-        .stat-value {
-            font-family: 'DM Sans', sans-serif;
-            font-weight: 800;
-            font-size: 32px;
-            letter-spacing: -.5px;
-        }
-
-        .stat-label {
-            margin-top: 4px;
-
-            font-family: 'Inter', sans-serif;
-            font-size: 12.5px;
-            font-weight: 500;
-            color: #6b7290;
-        }
-
-
-        /* =========================================================
-           SPLIT SECTION
-        ========================================================= */
-
-        .split-grid {
-            margin-top: 22px;
-
-            display: grid;
-            grid-template-columns: 1.4fr 1fr;
-            gap: 18px;
-        }
-
-        .panel {
-            padding: 26px 28px;
-
-            border-radius: 18px;
-            background: #ffffff;
-            border: 1px solid #eaecf5;
-
-            animation: fade-up .55s ease both;
-        }
-
-        .panel-title {
-            font-family: 'DM Sans', sans-serif;
-            font-weight: 700;
-            font-size: 16px;
-        }
-
-        .panel-sub {
-            margin-top: 3px;
-
-            font-family: 'Inter', sans-serif;
-            font-size: 12.5px;
-            color: #8189a8;
-        }
-
-        /* Spend panel */
-        .spend-figures {
-            margin-top: 22px;
-
-            display: flex;
-            align-items: baseline;
-            gap: 10px;
-        }
-
-        .spend-amount {
-            font-family: 'DM Sans', sans-serif;
-            font-weight: 800;
-            font-size: 30px;
-
-            background: linear-gradient(100deg, #6a1fd6, #1c6cff);
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-        }
-
-        .spend-of {
-            font-family: 'Inter', sans-serif;
-            font-size: 13px;
-            color: #8189a8;
-        }
-
-        .spend-bar-track {
-            margin-top: 16px;
-
-            height: 10px;
-            border-radius: 10px;
-            background: #eef0f8;
-
-            overflow: hidden;
-        }
-
-        .spend-bar-fill {
-            height: 100%;
-            border-radius: 10px;
-
-            background: linear-gradient(90deg, #9b2cff, #2694ff);
-
-            width: 0%;
-            transition: width 1s cubic-bezier(.22,1,.36,1);
-        }
-
-        .empty-block {
-            margin-top: 22px;
-            padding: 26px 20px;
-
-            border-radius: 14px;
-            border: 1px dashed #dde1f0;
-            background: #fafbfe;
-
-            text-align: center;
-        }
-
-        .empty-title {
-            font-family: 'DM Sans', sans-serif;
-            font-weight: 700;
-            font-size: 14.5px;
-            color: #2a3157;
-        }
-
-        .empty-text {
-            margin-top: 6px;
-
-            font-family: 'Inter', sans-serif;
-            font-size: 12.5px;
-            line-height: 1.6;
-            color: #8189a8;
-
-            max-width: 320px;
-            margin-left: auto;
-            margin-right: auto;
-        }
-
-        /* Pending actions panel */
-        .pending-count {
-            margin-top: 18px;
-
-            display: flex;
-            align-items: baseline;
-            gap: 8px;
-        }
-
-        .pending-number {
-            font-family: 'DM Sans', sans-serif;
-            font-weight: 800;
-            font-size: 30px;
-            color: #131a35;
-        }
-
-        .pending-label {
-            font-family: 'Inter', sans-serif;
-            font-size: 12.5px;
-            color: #8189a8;
-        }
-
-
-        /* =========================================================
-           RECENT CAMPAIGNS
-        ========================================================= */
-
-        .recent-panel {
-            margin-top: 18px;
-            padding: 26px 28px 8px;
-
-            border-radius: 18px;
-            background: #ffffff;
-            border: 1px solid #eaecf5;
-
-            animation: fade-up .6s ease both;
-        }
-
-        .campaign-row {
-            display: grid;
-            grid-template-columns: 1.6fr .8fr .8fr .8fr;
-            align-items: center;
-            gap: 14px;
-
-            padding: 16px 0;
-            border-top: 1px solid #f0f1f7;
-
-            font-family: 'Inter', sans-serif;
-            font-size: 13px;
-        }
-
-        .campaign-row:first-of-type {
-            border-top: none;
-        }
-
-        .campaign-title {
-            font-weight: 600;
-            color: #1a2044;
-        }
-
-        .campaign-status-pill {
-            display: inline-flex;
-            width: fit-content;
-
-            padding: 4px 11px;
-            border-radius: 20px;
-
-            font-size: 11.5px;
-            font-weight: 600;
-        }
-
-        .campaign-status-pill.draft { background: #fff2e2; color: #b5680a; }
-        .campaign-status-pill.published { background: #e4f0ff; color: #1265d6; }
-        .campaign-status-pill.active { background: #e2faf1; color: #0d9c6c; }
-        .campaign-status-pill.completed { background: #f3e8ff; color: #7a1fd6; }
-
-        .campaign-budget {
-            color: #4b5273;
-        }
-
-        .campaign-date {
-            color: #9096b3;
-        }
-
-
-        /* =========================================================
-           MOTION
-        ========================================================= */
-
-        @@keyframes fade-up {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .stat-card:nth-child(1) { animation-delay: .02s; }
-        .stat-card:nth-child(2) { animation-delay: .07s; }
-        .stat-card:nth-child(3) { animation-delay: .12s; }
-        .stat-card:nth-child(4) { animation-delay: .17s; }
-
-
-        /* =========================================================
-           RESPONSIVE
-        ========================================================= */
-
-        @@media(max-width: 1100px) {
-            .stat-grid { grid-template-columns: repeat(2, 1fr); }
-            .split-grid { grid-template-columns: 1fr; }
-        }
-
-        @@media(max-width: 820px) {
-            .app-shell { flex-direction: column; }
-            .sidebar { width: 100%; height: auto; position: relative; flex-direction: row; align-items: center; overflow-x: auto; }
-            .side-nav { margin-top: 0; margin-left: 24px; flex-direction: row; }
-            .side-foot { display: none; }
-            .main { padding: 24px 18px 40px; }
-            .campaign-row { grid-template-columns: 1.4fr .8fr; row-gap: 4px; }
-        }
-
-    </style>
-</head>
-<body>
-
-<div class="app-shell">
-
-    <aside class="sidebar">
-
-        <a href="/Dashboard" class="side-brand">
-            <img src="~/images/brandora-mark.png" alt="Brandora" />
-            <span>Brandora</span>
-        </a>
-
-        <nav class="side-nav">
-
-            <a href="/Dashboard" class="side-nav-item is-active">Dashboard</a>
-
-            <span class="side-nav-item is-soon">
-                Campaigns
-                <span class="soon-tag">Soon</span>
-            </span>
-
-            <span class="side-nav-item is-soon">
-                Influencers
-                <span class="soon-tag">Soon</span>
-            </span>
-
-            <span class="side-nav-item is-soon">
-                Messages
-                <span class="soon-tag">Soon</span>
-            </span>
-
-            <span class="side-nav-item is-soon">
-                Finance
-                <span class="soon-tag">Soon</span>
-            </span>
-
-            <span class="side-nav-item is-soon">
-                Settings
-                <span class="soon-tag">Soon</span>
-            </span>
-
-        </nav>
-
-        <div class="side-foot">
-            <div class="side-foot-company">@Model.CompanyName</div>
-            <div class="side-foot-role">Brand Workspace</div>
-
-            <form method="post" action="/Account/Logout" class="side-logout-form">
-                @Html.AntiForgeryToken()
-                <button type="submit" class="side-logout-btn">Log Out</button>
-            </form>
+    </div>
+
+</section>
+
+<section class="panel recent-panel">
+    <div class="panel-title">Recent Campaigns</div>
+    <div class="panel-sub">Your most recently created campaigns.</div>
+
+    @if (Model.HasAnyCampaigns)
+    {
+        <div style="margin-top: 18px;">
+            @foreach (var campaign in Model.RecentCampaigns)
+            {
+                <a href="/Campaigns/Detail/@campaign.Id" class="campaign-row">
+                    <span class="campaign-title">@campaign.Title</span>
+                    <span class="status-pill @campaign.Status.ToString().ToLowerInvariant()">@campaign.Status</span>
+                    <span class="campaign-budget">৳@campaign.Budget.ToString("N0")</span>
+                    <span class="campaign-date">@campaign.CreatedAt.ToString("MMM d, yyyy")</span>
+                </a>
+            }
         </div>
-
-    </aside>
-
-    <main class="main">
-
-        <section class="hero-card">
-            <div class="hero-eyebrow">Entry Workspace</div>
-            <h1 class="hero-title">Welcome Back, @Model.CompanyName.</h1>
-            <p class="hero-sub">
-                This is your command center for brand–creator collaboration.
-                Campaign creation, creator discovery and Smart Match are arriving in the next phases —
-                for now, here's where your workspace stands.
-            </p>
-        </section>
-
-        <section class="stat-grid">
-
-            <div class="stat-card drafts">
-                <div class="stat-accent"></div>
-                <div class="stat-value" data-count-to="@Model.DraftCount">0</div>
-                <div class="stat-label">Drafts</div>
-            </div>
-
-            <div class="stat-card published">
-                <div class="stat-accent"></div>
-                <div class="stat-value" data-count-to="@Model.PublishedCount">0</div>
-                <div class="stat-label">Published</div>
-            </div>
-
-            <div class="stat-card active">
-                <div class="stat-accent"></div>
-                <div class="stat-value" data-count-to="@Model.ActiveCount">0</div>
-                <div class="stat-label">Active</div>
-            </div>
-
-            <div class="stat-card completed">
-                <div class="stat-accent"></div>
-                <div class="stat-value" data-count-to="@Model.CompletedCount">0</div>
-                <div class="stat-label">Completed</div>
-            </div>
-
-        </section>
-
-        <section class="split-grid">
-
-            <div class="panel">
-                <div class="panel-title">Campaign Spend</div>
-                <div class="panel-sub">Total spend across all campaigns against total budget allocated.</div>
-
-                @if (Model.TotalBudget > 0)
-                {
-                    <div class="spend-figures">
-                        <span class="spend-amount">৳@Model.TotalSpend.ToString("N0")</span>
-                        <span class="spend-of">of ৳@Model.TotalBudget.ToString("N0") budgeted</span>
-                    </div>
-                    <div class="spend-bar-track">
-                        <div class="spend-bar-fill" data-fill-to="@(Math.Min(100, Model.TotalBudget == 0 ? 0 : (double)(Model.TotalSpend / Model.TotalBudget * 100)))"></div>
-                    </div>
-                }
-                else
-                {
-                    <div class="empty-block">
-                        <div class="empty-title">No spend to show yet</div>
-                        <p class="empty-text">Once you create and fund a campaign, spend against budget will track here in real time.</p>
-                    </div>
-                }
-            </div>
-
-            <div class="panel">
-                <div class="panel-title">Pending Actions</div>
-                <div class="panel-sub">Creator proposals awaiting your response.</div>
-
-                @if (Model.PendingProposalCount > 0)
-                {
-                    <div class="pending-count">
-                        <span class="pending-number">@Model.PendingProposalCount</span>
-                        <span class="pending-label">awaiting review</span>
-                    </div>
-                }
-                else
-                {
-                    <div class="empty-block">
-                        <div class="empty-title">You're all caught up</div>
-                        <p class="empty-text">New proposals from creators will show up here for review.</p>
-                    </div>
-                }
-            </div>
-
-        </section>
-
-        <section class="recent-panel">
-            <div class="panel-title">Recent Campaigns</div>
-            <div class="panel-sub">Your most recently created campaigns.</div>
-
-            @if (Model.HasAnyCampaigns)
-            {
-                <div style="margin-top: 18px;">
-                    @foreach (var campaign in Model.RecentCampaigns)
-                    {
-                        <div class="campaign-row">
-                            <span class="campaign-title">@campaign.Title</span>
-                            <span class="campaign-status-pill @campaign.Status.ToString().ToLowerInvariant()">@campaign.Status</span>
-                            <span class="campaign-budget">৳@campaign.Budget.ToString("N0")</span>
-                            <span class="campaign-date">@campaign.CreatedAt.ToString("MMM d, yyyy")</span>
-                        </div>
-                    }
-                </div>
-            }
-            else
-            {
-                <div class="empty-block" style="margin-bottom: 24px;">
-                    <div class="empty-title">No campaigns yet</div>
-                    <p class="empty-text">Campaign creation launches in the next phase of Brandora. Your campaigns will appear here the moment they're created.</p>
-                </div>
-            }
-        </section>
-
-    </main>
-
-</div>
-
-<script>
-    (function () {
-        document.querySelectorAll('[data-count-to]').forEach(function (el) {
-            var target = parseInt(el.dataset.countTo, 10) || 0;
-            if (target === 0) { el.textContent = '0'; return; }
-
-            var start = null;
-            var duration = 700;
-
-            function step(ts) {
-                if (!start) start = ts;
-                var progress = Math.min((ts - start) / duration, 1);
-                var eased = 1 - Math.pow(1 - progress, 3);
-                el.textContent = Math.round(eased * target).toString();
-                if (progress < 1) requestAnimationFrame(step);
-            }
-
-            requestAnimationFrame(step);
-        });
-
-        var fill = document.querySelector('[data-fill-to]');
-        if (fill) {
-            requestAnimationFrame(function () {
-                fill.style.width = fill.dataset.fillTo + '%';
-            });
-        }
-    })();
-</script>
-
-</body>
-</html>
+    }
+    else
+    {
+        <div class="empty-block" style="margin-bottom: 24px;">
+            <div class="empty-title">No campaigns yet</div>
+            <p class="empty-text">Create your first campaign to start building your workspace.</p>
+            <a href="/Campaigns/Create" class="btn btn-primary" style="margin-top: 16px;">Create Campaign</a>
+        </div>
+    }
+</section>
