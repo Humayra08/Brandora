@@ -1,7 +1,8 @@
+@model Brandora.Web.Models.Account.RegisterPageViewModel
 @{
     ViewData["Title"] = "Join Brandora";
     Layout = null;
-    var initialView = ViewData["InitialView"] as string ?? "select";
+    var initialView = Model.InitialView;
 }
 
 <!DOCTYPE html>
@@ -383,6 +384,33 @@
             background:
                 linear-gradient(#0a0b33, #0a0b33) padding-box,
                 linear-gradient(135deg, #9b2cff, #00a9ff) border-box;
+        }
+
+
+        /* =========================================================
+           FORM ERRORS
+        ========================================================= */
+
+        .form-errors {
+            margin-top: 20px;
+            padding: 14px 16px;
+
+            border-radius: 10px;
+            border: 1px solid rgba(255,90,110,.4);
+            background: rgba(255,60,80,.1);
+
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            color: #ffb4bd;
+        }
+
+        .form-errors ul {
+            margin: 0;
+            padding-left: 18px;
+        }
+
+        .form-errors li {
+            margin: 3px 0;
         }
 
 
