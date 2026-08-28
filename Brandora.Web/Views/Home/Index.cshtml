@@ -1,8 +1,1449 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+@{
+    ViewData["Title"] = "Brandora - Where Brands Meet Influencers";
+    Layout = null;
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>@ViewData["Title"]</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap"
+          rel="stylesheet">
+
+    <link rel="stylesheet" href="~/css/brandora-shared.css" asp-append-version="true" />
+
+    <style>
+
+        /* =========================================================
+           GLOBAL
+        ========================================================= */
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: #ffffff;
+            color: #08123d;
+            overflow-x: hidden;
+        }
+
+        a {
+            text-decoration: none;
+            color: inherit;
+        }
+
+        button {
+            font-family: inherit;
+        }
+
+
+        /* =========================================================
+           HERO
+        ========================================================= */
+
+        .hero {
+            position: relative;
+            min-height: 650px;
+            padding-top: 82px;
+            overflow: hidden;
+
+            background:
+                radial-gradient(
+                    circle at 50% 30%,
+                    rgba(73, 45, 185, 0.30),
+                    transparent 35%
+                ),
+                linear-gradient(
+                    120deg,
+                    #030622 0%,
+                    #06072d 45%,
+                    #0a0631 100%
+                );
+
+            color: white;
+        }
+
+
+        /* =========================================================
+           HERO CONTENT
+        ========================================================= */
+
+        .hero-content {
+            max-width: 900px;
+            margin: 50px auto 0;
+            padding: 0 20px;
+
+            text-align: center;
+
+            position: relative;
+            z-index: 5;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+
+            padding: 8px 18px;
+
+            border-radius: 30px;
+
+            border: 1px solid transparent;
+
+            background:
+                linear-gradient(#09082f, #09082f) padding-box,
+                linear-gradient(
+                    90deg,
+                    #9b2cff,
+                    #00a9ff
+                ) border-box;
+
+            font-size: 13px;
+            color: #ffffff;
+        }
+
+        .hero-title {
+            margin-top: 23px;
+
+            font-family: 'Playfair Display', serif;
+
+            font-size: clamp(38px, 4.2vw, 60px);
+            line-height: 1.1;
+
+            font-weight: 500;
+
+            letter-spacing: -1.5px;
+        }
+
+        .hero-title .purple {
+            color: #a535ff;
+        }
+
+        .hero-title .blue {
+            color: #2694ff;
+        }
+
+        .hero-description {
+            max-width: 580px;
+            margin: 24px auto 0;
+
+            font-size: 16px;
+            line-height: 1.8;
+
+            color: rgba(255,255,255,.82);
+        }
+
+
+        /* =========================================================
+           HERO CTA
+        ========================================================= */
+
+        .hero-buttons {
+            margin-top: 30px;
+
+            display: flex;
+            justify-content: center;
+            gap: 14px;
+        }
+
+        .hero-btn {
+            width: 230px;
+            max-width: 100%;
+            min-height: 68px;
+
+            padding: 12px 20px;
+
+            border-radius: 11px;
+
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+
+            text-align: left;
+
+            font-size: 14px;
+            color: white;
+
+            cursor: pointer;
+
+            transition: .25s;
+        }
+
+        .hero-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .hero-btn-primary {
+            border: none;
+
+            background:
+                linear-gradient(
+                    105deg,
+                    #a326ff,
+                    #236eff,
+                    #18a9ff
+                );
+        }
+
+        .hero-btn-secondary {
+            background: rgba(4,5,31,.35);
+
+            border: 1px solid transparent;
+
+            background:
+                linear-gradient(#07082d, #07082d) padding-box,
+                linear-gradient(
+                    90deg,
+                    #9b2cff,
+                    #009fff
+                ) border-box;
+        }
+
+        .btn-text strong {
+            display: block;
+
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        .btn-text span {
+            display: block;
+
+            margin-top: 4px;
+
+            font-size: 12px;
+            opacity: .85;
+        }
+
+        .arrow {
+            font-size: 26px;
+            font-weight: 300;
+        }
+
+
+        /* =========================================================
+           HERO FEATURES
+        ========================================================= */
+
+        .hero-features {
+            margin-top: 43px;
+
+            display: flex;
+            justify-content: center;
+            align-items: center;
+
+            gap: 0;
+        }
+
+        .hero-feature {
+            min-width: 155px;
+            padding: 0 22px;
+
+            border-right: 1px solid rgba(255,255,255,.25);
+
+            text-align: center;
+        }
+
+        .hero-feature:last-child {
+            border-right: none;
+        }
+
+        .hero-feature strong {
+            display: block;
+
+            font-size: 12px;
+            font-weight: 600;
+
+            color: #ffffff;
+        }
+
+        .hero-feature span {
+            display: block;
+
+            margin-top: 5px;
+
+            font-size: 11px;
+            color: rgba(255,255,255,.68);
+        }
+
+
+        /* =========================================================
+           NEON WAVES
+        ========================================================= */
+
+        /* =========================================================
+           TRUSTED BRANDS
+        ========================================================= */
+
+        .trust-wrapper {
+            position: relative;
+            z-index: 10;
+
+            margin-top: -18px;
+        }
+
+        .trust-box {
+            max-width: 1280px;
+            margin: auto;
+
+            min-height: 105px;
+
+            border-radius: 16px;
+
+            background: #ffffff;
+
+            border: 1px solid #dce7ff;
+
+            box-shadow:
+                0 12px 35px rgba(35,72,160,.09);
+
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+
+            gap: 17px;
+        }
+
+        .trust-title {
+            font-size: 11px;
+            font-weight: 700;
+
+            letter-spacing: 2px;
+
+            color: #7c8ab0;
+        }
+
+        .brand-list {
+            width: 90%;
+
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+
+            color: #1a2752;
+        }
+
+        .brand-item {
+            font-size: 20px;
+            font-weight: 600;
+
+            opacity: .9;
+        }
+
+        .brand-item.brand-daraz {
+            font-weight: 800;
+            color: #e2231a;
+        }
+
+        .brand-item.brand-evaly {
+            font-weight: 700;
+            color: #6a2ea0;
+        }
+
+        .brand-item.brand-bkash {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-weight: 700;
+            color: #e2136e;
+        }
+
+        .brand-item.brand-pickaboo {
+            font-weight: 700;
+            color: #1a2752;
+        }
+
+        .brand-item.brand-garnier {
+            font-weight: 700;
+            letter-spacing: 1px;
+            color: #1a2752;
+        }
+
+        .brand-item.brand-lotto {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-weight: 800;
+            font-style: italic;
+            color: #1a2752;
+        }
+
+        .brand-item.brand-vivo {
+            font-weight: 800;
+            font-style: italic;
+            color: #415fff;
+        }
+
+
+        /* =========================================================
+           WHITE MAIN SECTION
+        ========================================================= */
+
+        .main-section {
+            background: #ffffff;
+
+            padding: 60px 32px 0;
+        }
+
+
+        /* =========================================================
+           HOW IT WORKS
+        ========================================================= */
+
+        .section-header {
+            text-align: center;
+            max-width: 760px;
+            margin: 0 auto 38px;
+        }
+
+        .section-label {
+            color: #1665ff;
+
+            font-size: 11px;
+            font-weight: 700;
+
+            letter-spacing: 2px;
+        }
+
+        .section-title {
+            margin-top: 12px;
+
+            font-family: 'Playfair Display', serif;
+
+            font-size: 36px;
+            line-height: 1.2;
+
+            color: #081441;
+        }
+
+        .section-description {
+            margin-top: 11px;
+
+            color: #4d5a7d;
+
+            font-size: 14px;
+        }
+
+        .steps {
+            max-width: 1280px;
+            margin: auto;
+
+            display: grid;
+            grid-template-columns:
+                repeat(5, 1fr);
+
+            gap: 35px;
+        }
+
+        .step {
+            min-height: 190px;
+            width: 100%;
+
+            padding: 25px 22px;
+
+            border-radius: 15px;
+
+            background: #ffffff;
+
+            border: 1px solid #dce8ff;
+
+            position: relative;
+        }
+
+        .step::after {
+            content: "";
+
+            position: absolute;
+
+            top: 75px;
+            right: -36px;
+
+            width: 35px;
+
+            border-top: 1px dashed #b4cfff;
+        }
+
+        .step:last-child::after {
+            display: none;
+        }
+
+        .step-number {
+            width: 40px;
+            height: 40px;
+
+            border-radius: 50%;
+
+            border: 1px solid #78a5ff;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            color: #1261f7;
+
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .step h3 {
+            margin-top: 23px;
+
+            font-size: 14px;
+            color: #101a42;
+        }
+
+        .step p {
+            margin-top: 12px;
+
+            font-size: 12px;
+            line-height: 1.7;
+
+            color: #526080;
+        }
+
+
+        /* =========================================================
+           BRAND / INFLUENCER PANELS
+        ========================================================= */
+
+        .audience-section {
+            max-width: 1000px;
+
+            margin: 56px auto 0;
+
+            display: grid;
+
+            grid-template-columns:
+                repeat(2, 1fr);
+
+            gap: 40px;
+        }
+
+        .audience-card {
+            min-height: 315px;
+
+            padding: 30px 35px;
+
+            border: 1px solid #dce7ff;
+
+            border-radius: 15px;
+
+            position: relative;
+            overflow: hidden;
+
+            background:
+                radial-gradient(
+                    circle at 100% 15%,
+                    rgba(140,60,255,.09),
+                    transparent 45%
+                ),
+                radial-gradient(
+                    circle at 100% 100%,
+                    rgba(20,120,255,.08),
+                    transparent 50%
+                ),
+                #ffffff;
+        }
+
+        .audience-label {
+            color: #075cff;
+
+            font-size: 11px;
+            font-weight: 700;
+
+            letter-spacing: 1.5px;
+        }
+
+        .audience-title {
+            margin-top: 12px;
+
+            max-width: 300px;
+
+            font-family: 'Playfair Display', serif;
+
+            font-size: 29px;
+            line-height: 1.15;
+
+            color: #0a1749;
+        }
+
+        .audience-text {
+            max-width: 340px;
+
+            margin-top: 14px;
+
+            font-size: 13px;
+            line-height: 1.65;
+
+            color: #56617f;
+        }
+
+        .check-list {
+            margin-top: 17px;
+
+            list-style: none;
+        }
+
+        .check-list li {
+            margin: 9px 0;
+
+            font-size: 12px;
+
+            color: #263456;
+        }
+
+        .check-list li::before {
+            content: "✓";
+
+            display: inline-flex;
+
+            width: 15px;
+            height: 15px;
+
+            align-items: center;
+            justify-content: center;
+
+            margin-right: 9px;
+
+            border-radius: 50%;
+
+            background: #1263ff;
+
+            color: white;
+
+            font-size: 9px;
+            font-weight: bold;
+        }
+
+
+        /* =========================================================
+           LOWER CTA BUTTONS
+           SAME GRADIENT AS HERO PRIMARY BUTTON
+        ========================================================= */
+
+        .audience-button {
+            margin-top: 17px;
+
+            width: 255px;
+            max-width: 100%;
+            height: 56px;
+
+            border: none;
+            border-radius: 9px;
+
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+
+            padding: 0 18px;
+
+            color: white;
+
+            background:
+                linear-gradient(
+                    105deg,
+                    #a326ff,
+                    #236eff,
+                    #18a9ff
+                );
+
+            cursor: pointer;
+
+            transition: .25s;
+        }
+
+        .audience-button:hover {
+            transform: translateY(-2px);
+
+            box-shadow:
+                0 8px 25px rgba(55,81,255,.25);
+        }
+
+        .audience-button strong {
+            display: block;
+
+            font-size: 13px;
+            font-weight: 600;
+
+            text-align: left;
+        }
+
+        .audience-button span {
+            display: block;
+
+            margin-top: 3px;
+
+            font-size: 10px;
+
+            text-align: left;
+        }
+
+        .audience-button .arrow {
+            font-size: 24px;
+        }
+
+
+        /* =========================================================
+           STATISTICS
+        ========================================================= */
+
+        .stats {
+            max-width: 1280px;
+
+            margin: 56px auto 0;
+
+            min-height: 90px;
+
+            border-radius: 15px;
+
+            border: 1px solid #dce7ff;
+
+            display: grid;
+
+            grid-template-columns:
+                repeat(4, 1fr);
+
+            align-items: center;
+
+            background: #ffffff;
+        }
+
+        .stat {
+            text-align: center;
+
+            border-right: 1px solid #dce7ff;
+        }
+
+        .stat:last-child {
+            border-right: none;
+        }
+
+        .stat strong {
+            display: block;
+
+            color: #075cff;
+
+            font-size: 25px;
+
+            font-weight: 600;
+        }
+
+        .stat span {
+            display: block;
+
+            margin-top: 5px;
+
+            color: #344267;
+
+            font-size: 12px;
+        }
+
+
+        /* =========================================================
+           RESPONSIVE
+        ========================================================= */
+
+        @@media(max-width: 1100px) {
+
+            .steps {
+                grid-template-columns:
+                    repeat(3, 1fr);
+            }
+
+            .step::after {
+                display: none;
+            }
+        }
+
+        @@media(max-width: 960px) {
+
+            .audience-section {
+                grid-template-columns:
+                    1fr;
+            }
+
+            .stats {
+                grid-template-columns:
+                    repeat(2, 1fr);
+
+                gap: 20px;
+
+                padding: 20px 0;
+            }
+
+            .stat:nth-child(2) {
+                border-right: none;
+            }
+        }
+
+        @@media(max-width: 800px) {
+
+            .hero {
+                min-height: 690px;
+            }
+
+            .hero-content {
+                padding: 0 20px;
+            }
+
+            .hero-title {
+                font-size: 43px;
+            }
+
+            .hero-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .hero-features {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .hero-feature {
+                border-right: none;
+            }
+
+            .brand-list {
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 20px;
+            }
+
+            .steps {
+                grid-template-columns:
+                    1fr;
+            }
+
+            .audience-section {
+                grid-template-columns:
+                    1fr;
+            }
+
+            .stats {
+                grid-template-columns:
+                    repeat(2, 1fr);
+
+                gap: 20px;
+
+                padding: 20px 0;
+            }
+
+            .stat:nth-child(2) {
+                border-right: none;
+            }
+        }
+
+        @@media(max-width: 500px) {
+
+            .trust-box {
+                margin: 0 15px;
+                padding: 20px 15px;
+            }
+
+            .section-title {
+                font-size: 26px;
+            }
+
+            .audience-title {
+                font-size: 24px;
+            }
+
+            .main-section {
+                padding-left: 15px;
+                padding-right: 15px;
+            }
+
+            .audience-card {
+                padding: 25px;
+            }
+        }
+
+        @@media(max-width: 360px) {
+
+            .hero-title {
+                font-size: 32px;
+            }
+
+            .stats {
+                grid-template-columns: 1fr;
+            }
+
+            .stat {
+                border-right: none;
+                border-bottom: 1px solid #dce7ff;
+                padding: 14px 0;
+            }
+
+            .stat:last-child {
+                border-bottom: none;
+            }
+        }
+
+    </style>
+</head>
+
+
+<body>
+
+
+<!-- ============================================================
+     HERO
+============================================================ -->
+
+<section class="hero">
+
+    <!-- NAVBAR -->
+    <partial name="_BrandoraNavbar" />
+
+
+    <!-- HERO CONTENT -->
+    <div class="hero-content">
+
+        <div class="hero-badge">
+            The Smarter Way to Collaborate
+        </div>
+
+
+        <h1 class="hero-title">
+
+            Where
+            <span class="purple">Brands</span>
+            Meet
+            <span class="blue">Influencers.</span>
+
+            <br />
+
+            Where Impact Grows.
+
+        </h1>
+
+
+        <p class="hero-description">
+
+            Brandora connects brands with the right influencers,
+            streamlines campaigns, and ensures secure
+            milestone-based payments.
+
+        </p>
+
+
+        <!-- HERO BUTTONS -->
+
+        <div class="hero-buttons">
+
+            <a href="/Account/Register?role=Brand"
+               class="hero-btn hero-btn-primary">
+
+                <span class="btn-text">
+
+                    <strong>
+                        Join as a Brand
+                    </strong>
+
+                    <span>
+                        Post Campaigns
+                    </span>
+
+                </span>
+
+                <span class="arrow">
+                    →
+                </span>
+
+            </a>
+
+
+            <a href="/Account/Register?role=Influencer"
+               class="hero-btn hero-btn-secondary">
+
+                <span class="btn-text">
+
+                    <strong>
+                        Join as an Influencer
+                    </strong>
+
+                    <span>
+                        Find Opportunities
+                    </span>
+
+                </span>
+
+                <span class="arrow">
+                    →
+                </span>
+
+            </a>
+
+        </div>
+
+
+        <!-- HERO BENEFITS -->
+
+        <div class="hero-features">
+
+            <div class="hero-feature">
+
+                <strong>
+                    AI-Powered Matching
+                </strong>
+
+                <span>
+                    Find the perfect fit
+                </span>
+
+            </div>
+
+
+            <div class="hero-feature">
+
+                <strong>
+                    Safe Milestone Payments
+                </strong>
+
+                <span>
+                    Via bKash & Nagad
+                </span>
+
+            </div>
+
+
+            <div class="hero-feature">
+
+                <strong>
+                    Trusted by Thousands
+                </strong>
+
+                <span>
+                    Brands & Influencers
+                </span>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+
+</section>
+
+
+
+<!-- ============================================================
+     TRUSTED BRANDS
+============================================================ -->
+
+<div class="trust-wrapper">
+
+    <div class="trust-box">
+
+        <div class="trust-title">
+            TRUSTED BY LEADING BRANDS
+        </div>
+
+        <div class="brand-list">
+
+            <span class="brand-item brand-daraz">
+                daraz
+            </span>
+
+            <span class="brand-item brand-evaly">
+                evaly
+            </span>
+
+            <span class="brand-item brand-bkash">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M3 12c4-6 8-9 18-9-2 6-4 9-8 9-3 0-4-1-6-3 1 3 2 5 5 7-4 1-7 0-9-4z" fill="currentColor"/></svg>
+                bKash
+            </span>
+
+            <span class="brand-item brand-pickaboo">
+                Pickaboo.com
+            </span>
+
+            <span class="brand-item brand-garnier">
+                GARNIER
+            </span>
+
+            <span class="brand-item brand-lotto">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M4 2h14l-6 6 6 6H4z" fill="#e2231a"/></svg>
+                lotto
+            </span>
+
+            <span class="brand-item brand-vivo">
+                vivo
+            </span>
+
+        </div>
+
+    </div>
+
 </div>
+
+
+
+<!-- ============================================================
+     WHITE MAIN CONTENT
+============================================================ -->
+
+<main class="main-section">
+
+
+    <!-- ========================================================
+         HOW IT WORKS
+    ========================================================= -->
+
+    <section id="how-it-works">
+
+        <div class="section-header">
+
+            <div class="section-label">
+                HOW IT WORKS
+            </div>
+
+            <h2 class="section-title">
+                Simple Process. Powerful Results.
+            </h2>
+
+            <p class="section-description">
+                From campaign creation to payment —
+                Brandora makes influencer marketing seamless.
+            </p>
+
+        </div>
+
+
+        <div class="steps">
+
+
+            <div class="step">
+
+                <div class="step-number">
+                    01
+                </div>
+
+                <h3>
+                    Post Campaign
+                </h3>
+
+                <p>
+                    Brands create campaigns with goals,
+                    budget, and requirements.
+                </p>
+
+            </div>
+
+
+            <div class="step">
+
+                <div class="step-number">
+                    02
+                </div>
+
+                <h3>
+                    Discover & Connect
+                </h3>
+
+                <p>
+                    Our AI matches you with the best
+                    influencers. Review proposals and connect.
+                </p>
+
+            </div>
+
+
+            <div class="step">
+
+                <div class="step-number">
+                    03
+                </div>
+
+                <h3>
+                    Collaborate
+                </h3>
+
+                <p>
+                    Communicate, align on deliverables,
+                    and plan the campaign together.
+                </p>
+
+            </div>
+
+
+            <div class="step">
+
+                <div class="step-number">
+                    04
+                </div>
+
+                <h3>
+                    Post & Submit Proof
+                </h3>
+
+                <p>
+                    Influencers complete the work and
+                    submit proof of post for review.
+                </p>
+
+            </div>
+
+
+            <div class="step">
+
+                <div class="step-number">
+                    05
+                </div>
+
+                <h3>
+                    Approve & Pay
+                </h3>
+
+                <p>
+                    Admins verify the proof and payments
+                    are released securely.
+                </p>
+
+            </div>
+
+
+        </div>
+
+    </section>
+
+
+
+    <!-- ========================================================
+         BRAND + INFLUENCER
+    ========================================================= -->
+
+    <section class="audience-section">
+
+
+        <!-- BRAND -->
+
+        <div class="audience-card"
+             id="brands">
+
+            <div class="audience-label">
+                FOR BRANDS
+            </div>
+
+            <h2 class="audience-title">
+                Run Campaigns
+                <br />
+                That Deliver
+            </h2>
+
+            <p class="audience-text">
+                Launch data-driven campaigns,
+                track performance in real-time,
+                and achieve measurable results.
+            </p>
+
+
+            <ul class="check-list">
+
+                <li>
+                    Find the right influencers
+                </li>
+
+                <li>
+                    AI-powered recommendations
+                </li>
+
+                <li>
+                    Real-time performance tracking
+                </li>
+
+                <li>
+                    Secure milestone payments
+                </li>
+
+            </ul>
+
+
+            <a href="/Account/Register?role=Brand"
+               class="audience-button">
+
+                <span>
+
+                    <strong>
+                        Join as a Brand
+                    </strong>
+
+                    <span>
+                        Post Campaigns
+                    </span>
+
+                </span>
+
+                <span class="arrow">
+                    →
+                </span>
+
+            </a>
+
+        </div>
+
+
+
+        <!-- INFLUENCER -->
+
+        <div class="audience-card"
+             id="influencers">
+
+            <div class="audience-label">
+                FOR INFLUENCERS
+            </div>
+
+            <h2 class="audience-title">
+                Find Opportunities.
+                <br />
+                Get Paid.
+            </h2>
+
+            <p class="audience-text">
+                Access quality brand campaigns,
+                work on your terms, and grow
+                your personal brand.
+            </p>
+
+
+            <ul class="check-list">
+
+                <li>
+                    Access verified campaigns
+                </li>
+
+                <li>
+                    Fair collaboration & clear guidelines
+                </li>
+
+                <li>
+                    Get paid securely via bKash or Nagad
+                </li>
+
+                <li>
+                    Build your portfolio & grow
+                </li>
+
+            </ul>
+
+
+            <a href="/Account/Register?role=Influencer"
+               class="audience-button">
+
+                <span>
+
+                    <strong>
+                        Join as an Influencer
+                    </strong>
+
+                    <span>
+                        Find Opportunities
+                    </span>
+
+                </span>
+
+                <span class="arrow">
+                    →
+                </span>
+
+            </a>
+
+        </div>
+
+
+    </section>
+
+
+
+    <!-- ========================================================
+         STATISTICS
+    ========================================================= -->
+
+    <section class="stats">
+
+        <div class="stat">
+
+            <strong>
+                2,500+
+            </strong>
+
+            <span>
+                Active Brands
+            </span>
+
+        </div>
+
+
+        <div class="stat">
+
+            <strong>
+                15,000+
+            </strong>
+
+            <span>
+                Verified Influencers
+            </span>
+
+        </div>
+
+
+        <div class="stat">
+
+            <strong>
+                8,000+
+            </strong>
+
+            <span>
+                Campaigns Completed
+            </span>
+
+        </div>
+
+
+        <div class="stat">
+
+            <strong>
+                ৳120M+
+            </strong>
+
+            <span>
+                Paid to Influencers
+            </span>
+
+        </div>
+
+    </section>
+
+
+</main>
+
+
+
+<!-- ============================================================
+     FOOTER
+============================================================ -->
+
+<partial name="_BrandoraFooter" />
+
+
+</body>
+</html>
