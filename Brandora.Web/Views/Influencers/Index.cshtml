@@ -1,0 +1,298 @@
+@model Brandora.Web.Models.Influencers.CreatorListViewModel
+@using Brandora.Web.Models.Influencers
+@{
+    ViewData["Title"] = "Discover Creators";
+    ViewData["ActiveNav"] = "Influencers";
+    Layout = "_AppLayout";
+}
+
+@section Styles {
+
+    .page-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 20px;
+
+        animation: fade-up .4s ease both;
+    }
+
+    .page-title {
+        font-family: 'Playfair Display', serif;
+        font-weight: 600;
+        font-size: 28px;
+    }
+
+    .page-sub {
+        margin-top: 6px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 13.5px;
+        color: #6b7290;
+    }
+
+    .filter-bar {
+        margin-top: 26px;
+
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 10px;
+
+        animation: fade-up .45s ease both;
+    }
+
+    .filter-input,
+    .filter-select {
+        height: 42px;
+
+        padding: 0 14px;
+
+        border-radius: 10px;
+        border: 1px solid #e2e5f2;
+        background: #ffffff;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 13px;
+        color: #2a3157;
+
+        outline: none;
+        transition: .2s;
+    }
+
+    .filter-input:focus,
+    .filter-select:focus {
+        border-color: #a978ff;
+        box-shadow: 0 0 0 3px rgba(155,44,255,.1);
+    }
+
+    .filter-input {
+        width: 220px;
+    }
+
+    .creator-grid {
+        margin-top: 26px;
+
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 18px;
+    }
+
+    .creator-card {
+        position: relative;
+        overflow: hidden;
+
+        padding: 24px 22px 22px;
+
+        border-radius: 18px;
+        background: #ffffff;
+        border: 1px solid #eaecf5;
+
+        transition: transform .2s ease, box-shadow .2s ease;
+
+        animation: fade-up .5s ease both;
+    }
+
+    .creator-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 18px 36px rgba(30,34,90,.1);
+    }
+
+    .creator-card-head {
+        display: flex;
+        align-items: flex-start;
+        gap: 14px;
+    }
+
+    .creator-name-row {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 700;
+        font-size: 16px;
+        color: #171d3d;
+    }
+
+    .creator-handle {
+        margin-top: 2px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 12px;
+        color: #8189a8;
+    }
+
+    .creator-tags {
+        margin-top: 12px;
+
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .creator-figures {
+        margin-top: 18px;
+        padding-top: 16px;
+        border-top: 1px solid #f0f1f7;
+
+        display: flex;
+        justify-content: space-between;
+    }
+
+    .figure-value {
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 800;
+        font-size: 18px;
+        color: #171d3d;
+    }
+
+    .figure-label {
+        margin-top: 2px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: .3px;
+        text-transform: uppercase;
+        color: #9096b3;
+    }
+
+    .creator-actions {
+        margin-top: 18px;
+
+        display: flex;
+        gap: 8px;
+    }
+
+    .creator-actions .btn {
+        flex: 1;
+        height: 40px;
+        font-size: 12.5px;
+    }
+
+    .creator-actions .shortlist-btn {
+        flex: 1;
+        height: 40px;
+    }
+
+    @@media(max-width: 560px) {
+        .page-head { flex-direction: column; }
+        .filter-input { width: 100%; }
+    }
+
+}
+
+<div class="page-head">
+    <div>
+        <h1 class="page-title">Discover Creators</h1>
+        <p class="page-sub">@Model.TotalCount creator@(Model.TotalCount == 1 ? "" : "s") on Brandora.</p>
+    </div>
+    <a href="/Influencers/Shortlist" class="btn btn-secondary">View Shortlist (@Model.ShortlistedIds.Count)</a>
+</div>
+
+<form method="get" action="/Influencers" class="filter-bar">
+
+    <input type="text" name="search" class="filter-input" placeholder="Search by name or handle..." value="@Model.Search" />
+
+    <select name="platform" class="filter-select" onchange="this.form.submit()">
+        <option value="" selected="@(string.IsNullOrEmpty(Model.Platform))">All platforms</option>
+        @foreach (var platform in new[] { "Instagram", "TikTok", "YouTube", "Facebook", "X", "LinkedIn" })
+        {
+            <option selected="@(Model.Platform == platform)">@platform</option>
+        }
+    </select>
+
+    <select name="niche" class="filter-select" onchange="this.form.submit()">
+        <option value="" selected="@(string.IsNullOrEmpty(Model.Niche))">All niches</option>
+        @foreach (var niche in new[] { "Fashion & Style", "Beauty & Skincare", "Food & Cooking", "Travel & Lifestyle", "Fitness & Health", "Gaming", "Tech & Gadgets", "Education", "Comedy & Entertainment", "Home & Lifestyle", "Finance", "Other" })
+        {
+            <option selected="@(Model.Niche == niche)">@niche</option>
+        }
+    </select>
+
+    <select name="sort" class="filter-select" onchange="this.form.submit()">
+        <option value="" selected="@(string.IsNullOrEmpty(Model.Sort))">Newest first</option>
+        <option value="followers" selected="@(Model.Sort == "followers")">Most followers</option>
+        <option value="engagement" selected="@(Model.Sort == "engagement")">Highest engagement</option>
+    </select>
+
+    <button type="submit" class="btn btn-secondary">Search</button>
+
+</form>
+
+@if (Model.Creators.Count > 0)
+{
+    <div class="creator-grid">
+        @foreach (var creator in Model.Creators)
+        {
+            var hue = (creator.Id * 47) % 360;
+            <div class="creator-card">
+
+                <div class="creator-card-head">
+                    <div class="creator-avatar" style="background: linear-gradient(135deg, hsl(@(hue)deg 75% 58%), hsl(@((hue + 45) % 360)deg 75% 48%));">
+                        @FollowerFormat.InitialsOf(creator.FullName)
+                    </div>
+                    <div>
+                        <div class="creator-name-row">
+                            @creator.FullName
+                            @if (creator.Verified)
+                            {
+                                <span class="verified-badge">Verified</span>
+                            }
+                        </div>
+                        <div class="creator-handle">@creator.PrimaryPlatform &middot; @creator.PlatformUsername</div>
+                    </div>
+                </div>
+
+                <div class="creator-tags">
+                    <span class="tag">@creator.ContentNiche</span>
+                    @if (!string.IsNullOrEmpty(creator.Location))
+                    {
+                        <span class="tag">@creator.Location</span>
+                    }
+                </div>
+
+                <div class="creator-figures">
+                    <div>
+                        <div class="figure-value">@FollowerFormat.Format(creator.Followers)</div>
+                        <div class="figure-label">Followers</div>
+                    </div>
+                    <div>
+                        <div class="figure-value">@creator.EngagementRate.ToString("0.0")%</div>
+                        <div class="figure-label">Engagement</div>
+                    </div>
+                </div>
+
+                <div class="creator-actions">
+                    <a href="/Influencers/Profile/@creator.Id" class="btn btn-secondary">View Profile</a>
+
+                    <form method="post" action="/Influencers/ToggleShortlist">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="influencerId" value="@creator.Id" />
+                        <input type="hidden" name="returnUrl" value="@Context.Request.Path@Context.Request.QueryString" />
+                        <button type="submit" class="shortlist-btn @(Model.IsShortlisted(creator.Id) ? "is-saved" : "")">
+                            @(Model.IsShortlisted(creator.Id) ? "Shortlisted" : "+ Shortlist")
+                        </button>
+                    </form>
+                </div>
+
+            </div>
+        }
+    </div>
+}
+else if (Model.TotalCount == 0)
+{
+    <div class="panel empty-block" style="margin-top: 24px;">
+        <div class="empty-title">No creators yet</div>
+        <p class="empty-text">Once influencers join Brandora, they'll appear here for you to discover and shortlist.</p>
+    </div>
+}
+else
+{
+    <div class="panel empty-block" style="margin-top: 24px;">
+        <div class="empty-title">No creators match these filters</div>
+        <p class="empty-text">Try a different search term or clear your filters.</p>
+        <a href="/Influencers" class="btn btn-secondary" style="margin-top: 16px;">Clear Filters</a>
+    </div>
+}

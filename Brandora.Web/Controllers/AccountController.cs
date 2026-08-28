@@ -104,7 +104,12 @@ public class AccountController(
             PrimaryPlatform = model.PrimaryPlatform,
             PlatformUsername = model.PlatformUsername,
             ContentNiche = model.ContentNiche,
-            AudienceSize = model.AudienceSize
+            AudienceSize = model.AudienceSize,
+            Followers = model.Followers,
+            EngagementRate = model.EngagementRate,
+            Location = model.Location,
+            Bio = model.Bio,
+            RateNote = model.RateNote
         });
         await db.SaveChangesAsync();
 

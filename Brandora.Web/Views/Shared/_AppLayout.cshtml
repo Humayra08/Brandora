@@ -392,6 +392,87 @@
 
 
         /* =========================================================
+           SHARED: CREATOR PRIMITIVES
+        ========================================================= */
+
+        .tag {
+            padding: 3px 10px;
+
+            border-radius: 20px;
+            background: #f2f3fa;
+
+            font-family: 'Inter', sans-serif;
+            font-size: 11px;
+            font-weight: 600;
+            color: #545b7d;
+        }
+
+        .creator-avatar {
+            width: 56px;
+            height: 56px;
+            flex-shrink: 0;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            border-radius: 50%;
+
+            font-family: 'DM Sans', sans-serif;
+            font-weight: 700;
+            font-size: 18px;
+            color: #ffffff;
+        }
+
+        .verified-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+
+            padding: 2px 9px;
+
+            border-radius: 20px;
+            background: #e4f0ff;
+            color: #1265d6;
+
+            font-family: 'Inter', sans-serif;
+            font-size: 10.5px;
+            font-weight: 700;
+        }
+
+        .shortlist-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+
+            height: 38px;
+            padding: 0 16px;
+
+            border-radius: 9px;
+            border: 1px solid #dde1f0;
+            background: #ffffff;
+
+            font-family: 'Inter', sans-serif;
+            font-size: 12.5px;
+            font-weight: 600;
+            color: #545b7d;
+
+            cursor: pointer;
+            transition: .2s;
+        }
+
+        .shortlist-btn:hover {
+            border-color: #b7c0e0;
+        }
+
+        .shortlist-btn.is-saved {
+            border-color: transparent;
+            background: linear-gradient(105deg, #a326ff, #236eff);
+            color: #ffffff;
+        }
+
+
+        /* =========================================================
            MOTION
         ========================================================= */
 
@@ -436,10 +517,7 @@
 
             <a href="/Campaigns" class="side-nav-item @(activeNav == "Campaigns" ? "is-active" : "")">Campaigns</a>
 
-            <span class="side-nav-item is-soon">
-                Influencers
-                <span class="soon-tag">Soon</span>
-            </span>
+            <a href="/Influencers" class="side-nav-item @(activeNav == "Influencers" ? "is-active" : "")">Influencers</a>
 
             <span class="side-nav-item is-soon">
                 Messages
