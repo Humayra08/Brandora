@@ -80,8 +80,10 @@
         flex-shrink: 0;
     }
 
-    .profile-side-actions .shortlist-btn {
-        width: 160px;
+    .profile-side-actions .shortlist-btn,
+    .profile-side-actions .btn,
+    .profile-side-actions form {
+        width: 180px;
     }
 
     .stat-strip {
@@ -181,11 +183,19 @@
         </div>
 
         <div class="profile-side-actions">
+            <a href="/Proposals/Invite?influencerId=@creator.Id" class="btn btn-primary">Invite to Campaign</a>
+
+            <form method="post" action="/Messages/StartWithCreator">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="influencerId" value="@creator.Id" />
+                <button type="submit" class="btn btn-secondary" style="width:100%;">Start Conversation</button>
+            </form>
+
             <form method="post" action="/Influencers/ToggleShortlist">
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="influencerId" value="@creator.Id" />
                 <input type="hidden" name="returnUrl" value="/Influencers/Profile/@creator.Id" />
-                <button type="submit" class="shortlist-btn @(Model.IsShortlisted ? "is-saved" : "")">
+                <button type="submit" class="shortlist-btn @(Model.IsShortlisted ? "is-saved" : "")" style="width:100%;">
                     @(Model.IsShortlisted ? "Shortlisted" : "+ Add to Shortlist")
                 </button>
             </form>

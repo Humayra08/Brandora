@@ -1,0 +1,150 @@
+@model List<Brandora.Web.Models.Domain.Conversation>
+@using Brandora.Web.Models.Influencers
+@{
+    ViewData["Title"] = "Messages";
+    ViewData["ActiveNav"] = "Messages";
+    Layout = "_AppLayout";
+}
+
+@section Styles {
+
+    .page-head {
+        animation: fade-up .4s ease both;
+    }
+
+    .page-title {
+        font-family: 'Playfair Display', serif;
+        font-weight: 600;
+        font-size: 28px;
+    }
+
+    .page-sub {
+        margin-top: 6px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 13.5px;
+        color: #6b7290;
+    }
+
+    .inbox-list {
+        margin-top: 24px;
+
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+
+        max-width: 720px;
+    }
+
+    .inbox-row {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+
+        padding: 18px 22px;
+
+        border-radius: 16px;
+        background: #ffffff;
+        border: 1px solid #eaecf5;
+
+        transition: transform .2s ease, box-shadow .2s ease;
+
+        animation: fade-up .5s ease both;
+    }
+
+    a.inbox-row:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 14px 30px rgba(30,34,90,.08);
+    }
+
+    .inbox-body {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .inbox-name-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 700;
+        font-size: 15px;
+        color: #171d3d;
+    }
+
+    .inbox-time {
+        font-family: 'Inter', sans-serif;
+        font-size: 11.5px;
+        font-weight: 500;
+        color: #9096b3;
+
+        flex-shrink: 0;
+    }
+
+    .inbox-campaign {
+        margin-top: 2px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 11.5px;
+        font-weight: 600;
+        color: #8b2cff;
+    }
+
+    .inbox-snippet {
+        margin-top: 4px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 12.5px;
+        color: #6b7290;
+
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+}
+
+<div class="page-head">
+    <h1 class="page-title">Messages</h1>
+    <p class="page-sub">@Model.Count conversation@(Model.Count == 1 ? "" : "s") with creators.</p>
+</div>
+
+@if (Model.Count > 0)
+{
+    <div class="inbox-list">
+        @foreach (var conversation in Model)
+        {
+            var hue = (conversation.InfluencerProfile.Id * 47) % 360;
+            var lastMessage = conversation.Messages.OrderByDescending(m => m.SentAt).FirstOrDefault();
+            <a href="/Messages/Conversation/@conversation.Id" class="inbox-row">
+
+                <div class="creator-avatar" style="width:46px;height:46px;font-size:15px;background: linear-gradient(135deg, hsl(@(hue)deg 75% 58%), hsl(@((hue + 45) % 360)deg 75% 48%));">
+                    @FollowerFormat.InitialsOf(conversation.InfluencerProfile.FullName)
+                </div>
+
+                <div class="inbox-body">
+                    <div class="inbox-name-row">
+                        <span>@conversation.InfluencerProfile.FullName</span>
+                        <span class="inbox-time">@(lastMessage?.SentAt.ToString("MMM d") ?? conversation.CreatedAt.ToString("MMM d"))</span>
+                    </div>
+                    @if (conversation.Campaign is not null)
+                    {
+                        <div class="inbox-campaign">@conversation.Campaign.Title</div>
+                    }
+                    <div class="inbox-snippet">@(lastMessage is not null ? lastMessage.Body : "No messages yet — say hello.")</div>
+                </div>
+
+            </a>
+        }
+    </div>
+}
+else
+{
+    <div class="panel empty-block" style="margin-top: 24px; max-width: 480px;">
+        <div class="empty-title">No conversations yet</div>
+        <p class="empty-text">Start a conversation from a creator's profile or a collaboration to see it here.</p>
+        <a href="/Influencers" class="btn btn-primary" style="margin-top: 16px;">Discover Creators</a>
+    </div>
+}

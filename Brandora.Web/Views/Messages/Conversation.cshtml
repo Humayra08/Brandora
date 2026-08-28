@@ -1,0 +1,210 @@
+@model Brandora.Web.Models.Domain.Conversation
+@using Brandora.Web.Models.Influencers
+@inject Microsoft.AspNetCore.Identity.UserManager<Brandora.Web.Models.Domain.ApplicationUser> UserManager
+@{
+    ViewData["Title"] = "Chat with " + Model.InfluencerProfile.FullName;
+    ViewData["ActiveNav"] = "Messages";
+    Layout = "_AppLayout";
+    var hue = (Model.InfluencerProfile.Id * 47) % 360;
+    var currentUserId = UserManager.GetUserId(User);
+    var messages = Model.Messages.OrderBy(m => m.SentAt).ToList();
+}
+
+@section Styles {
+
+    .thread-shell {
+        max-width: 720px;
+        margin: 0 auto;
+
+        animation: fade-up .4s ease both;
+
+        display: flex;
+        flex-direction: column;
+        height: calc(100vh - 190px);
+    }
+
+    .detail-crumb {
+        font-family: 'Inter', sans-serif;
+        font-size: 12.5px;
+        font-weight: 500;
+        color: #8189a8;
+    }
+
+    .thread-header {
+        margin-top: 14px;
+        padding: 18px 22px;
+
+        border-radius: 16px 16px 0 0;
+        background: #ffffff;
+        border: 1px solid #eaecf5;
+        border-bottom: none;
+
+        display: flex;
+        align-items: center;
+        gap: 14px;
+    }
+
+    .thread-name {
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 700;
+        font-size: 15.5px;
+        color: #171d3d;
+    }
+
+    .thread-sub {
+        margin-top: 2px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 12px;
+        color: #8189a8;
+    }
+
+    .thread-body {
+        flex: 1;
+        overflow-y: auto;
+
+        padding: 22px;
+
+        background: #fafbfe;
+        border: 1px solid #eaecf5;
+        border-top: none;
+        border-bottom: none;
+
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .msg-row {
+        display: flex;
+    }
+
+    .msg-row.is-mine {
+        justify-content: flex-end;
+    }
+
+    .msg-bubble {
+        max-width: 70%;
+
+        padding: 11px 16px;
+
+        border-radius: 16px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 13.5px;
+        line-height: 1.55;
+
+        animation: fade-up .3s ease both;
+    }
+
+    .msg-row.is-mine .msg-bubble {
+        background: linear-gradient(105deg, #a326ff, #236eff);
+        color: #ffffff;
+        border-bottom-right-radius: 4px;
+    }
+
+    .msg-row:not(.is-mine) .msg-bubble {
+        background: #ffffff;
+        border: 1px solid #eaecf5;
+        color: #2a3157;
+        border-bottom-left-radius: 4px;
+    }
+
+    .msg-time {
+        margin-top: 4px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 10.5px;
+        color: #9096b3;
+    }
+
+    .msg-row.is-mine .msg-time {
+        text-align: right;
+    }
+
+    .thread-composer {
+        padding: 16px 20px;
+
+        border-radius: 0 0 16px 16px;
+        background: #ffffff;
+        border: 1px solid #eaecf5;
+
+        display: flex;
+        gap: 10px;
+    }
+
+    .thread-composer textarea {
+        flex: 1;
+        resize: none;
+        height: 46px;
+        padding: 12px 14px;
+
+        border-radius: 10px;
+        border: 1px solid #e2e5f2;
+        background: #fbfbfe;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 13.5px;
+        color: #171d3d;
+
+        outline: none;
+    }
+
+    .thread-composer textarea:focus {
+        border-color: #a978ff;
+        background: #ffffff;
+    }
+
+    .thread-empty {
+        margin: auto;
+        text-align: center;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 13px;
+        color: #9096b3;
+    }
+
+}
+
+<div class="detail-crumb"><a href="/Messages">Messages</a> / @Model.InfluencerProfile.FullName</div>
+
+<div class="thread-shell">
+
+    <div class="thread-header">
+        <div class="creator-avatar" style="width:42px;height:42px;font-size:14px;background: linear-gradient(135deg, hsl(@(hue)deg 75% 58%), hsl(@((hue + 45) % 360)deg 75% 48%));">
+            @FollowerFormat.InitialsOf(Model.InfluencerProfile.FullName)
+        </div>
+        <div>
+            <div class="thread-name">@Model.InfluencerProfile.FullName</div>
+            <div class="thread-sub">@(Model.Campaign is not null ? Model.Campaign.Title : "General inquiry")</div>
+        </div>
+    </div>
+
+    <div class="thread-body">
+        @if (messages.Count > 0)
+        {
+            @foreach (var message in messages)
+            {
+                var isMine = message.SenderUserId == currentUserId;
+                <div class="msg-row @(isMine ? "is-mine" : "")">
+                    <div>
+                        <div class="msg-bubble">@message.Body</div>
+                        <div class="msg-time">@message.SentAt.ToString("MMM d, h:mm tt")</div>
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="thread-empty">No messages yet &mdash; say hello to @Model.InfluencerProfile.FullName.</div>
+        }
+    </div>
+
+    <form class="thread-composer" method="post" action="/Messages/Send">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="conversationId" value="@Model.Id" />
+        <textarea name="body" placeholder="Write a message..." required></textarea>
+        <button type="submit" class="btn btn-primary">Send</button>
+    </form>
+
+</div>
