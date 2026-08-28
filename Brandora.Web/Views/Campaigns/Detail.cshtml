@@ -1,0 +1,246 @@
+@model Brandora.Web.Models.Campaigns.CampaignDetailViewModel
+@{
+    var campaign = Model.Campaign;
+    ViewData["Title"] = campaign.Title;
+    ViewData["ActiveNav"] = "Campaigns";
+    Layout = "_AppLayout";
+}
+
+@section Styles {
+
+    .detail-shell {
+        max-width: 880px;
+        margin: 0 auto;
+
+        animation: fade-up .4s ease both;
+    }
+
+    .detail-crumb {
+        font-family: 'Inter', sans-serif;
+        font-size: 12.5px;
+        font-weight: 500;
+        color: #8189a8;
+    }
+
+    .detail-crumb a:hover {
+        color: #545b7d;
+    }
+
+    .detail-head {
+        margin-top: 14px;
+
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 20px;
+    }
+
+    .detail-title {
+        font-family: 'Playfair Display', serif;
+        font-weight: 600;
+        font-size: 28px;
+        color: #171d3d;
+    }
+
+    .detail-tags {
+        margin-top: 12px;
+
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .tag {
+        padding: 3px 10px;
+
+        border-radius: 20px;
+        background: #f2f3fa;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 11px;
+        font-weight: 600;
+        color: #545b7d;
+    }
+
+    .detail-card {
+        margin-top: 24px;
+        padding: 28px 30px;
+
+        border-radius: 18px;
+        background: #ffffff;
+        border: 1px solid #eaecf5;
+    }
+
+    .detail-figures {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+    }
+
+    .figure-value {
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 800;
+        font-size: 21px;
+        color: #171d3d;
+    }
+
+    .figure-label {
+        margin-top: 3px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 10.5px;
+        font-weight: 600;
+        letter-spacing: .3px;
+        text-transform: uppercase;
+        color: #9096b3;
+    }
+
+    .detail-description {
+        margin-top: 22px;
+        padding-top: 22px;
+        border-top: 1px solid #f0f1f7;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 13.5px;
+        line-height: 1.75;
+        color: #3c4363;
+
+        white-space: pre-wrap;
+    }
+
+    .action-row {
+        margin-top: 22px;
+
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .soon-grid {
+        margin-top: 18px;
+
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 18px;
+    }
+
+    .soon-panel {
+        padding: 24px;
+
+        border-radius: 16px;
+        background: #fafbfe;
+        border: 1px dashed #dde1f0;
+
+        text-align: center;
+    }
+
+    .soon-panel .panel-title {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
+
+    @@media(max-width: 760px) {
+        .detail-figures { grid-template-columns: repeat(3, 1fr); gap: 12px; }
+        .soon-grid { grid-template-columns: 1fr; }
+    }
+
+}
+
+<div class="detail-shell">
+
+    <div class="detail-crumb"><a href="/Campaigns">Campaigns</a> / @campaign.Title</div>
+
+    <div class="detail-head">
+        <div>
+            <h1 class="detail-title">@campaign.Title</h1>
+            <div class="detail-tags">
+                <span class="status-pill @campaign.Status.ToString().ToLowerInvariant()">@campaign.Status</span>
+                @if (!string.IsNullOrEmpty(campaign.Platform))
+                {
+                    <span class="tag">@campaign.Platform</span>
+                }
+                @if (!string.IsNullOrEmpty(campaign.Niche))
+                {
+                    <span class="tag">@campaign.Niche</span>
+                }
+            </div>
+        </div>
+
+        <a href="/Campaigns/Edit/@campaign.Id" class="btn btn-secondary">Edit</a>
+    </div>
+
+    <div class="detail-card">
+
+        <div class="detail-figures">
+            <div>
+                <div class="figure-value">৳@campaign.Budget.ToString("N0")</div>
+                <div class="figure-label">Budget</div>
+            </div>
+            <div>
+                <div class="figure-value">@Model.ApplicantCount</div>
+                <div class="figure-label">Applicants</div>
+            </div>
+            <div>
+                <div class="figure-value">@(campaign.Deadline?.ToString("MMM d, yyyy") ?? "None")</div>
+                <div class="figure-label">Deadline</div>
+            </div>
+        </div>
+
+        <p class="detail-description">@campaign.Description</p>
+
+        <div class="action-row">
+            @if (campaign.Status == Brandora.Web.Models.Domain.CampaignStatus.Draft)
+            {
+                <a href="/Campaigns/Preview/@campaign.Id" class="btn btn-primary">Continue Setup</a>
+            }
+            @if (campaign.Status == Brandora.Web.Models.Domain.CampaignStatus.Published)
+            {
+                <form method="post" action="/Campaigns/UpdateStatus/@campaign.Id">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="status" value="Active" />
+                    <button type="submit" class="btn btn-primary">Mark as Active</button>
+                </form>
+            }
+            @if (campaign.Status == Brandora.Web.Models.Domain.CampaignStatus.Active)
+            {
+                <form method="post" action="/Campaigns/UpdateStatus/@campaign.Id">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="status" value="Completed" />
+                    <button type="submit" class="btn btn-primary">Mark as Completed</button>
+                </form>
+            }
+            @if (campaign.Status != Brandora.Web.Models.Domain.CampaignStatus.Completed && campaign.Status != Brandora.Web.Models.Domain.CampaignStatus.Cancelled)
+            {
+                <form method="post" action="/Campaigns/UpdateStatus/@campaign.Id">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="status" value="Cancelled" />
+                    <button type="submit" class="btn btn-ghost">Cancel Campaign</button>
+                </form>
+            }
+        </div>
+
+    </div>
+
+    <div class="soon-grid">
+
+        <div class="soon-panel">
+            <div class="panel-title">Proposals <span class="soon-tag" style="color:#9b2cff; border-color:#e3cfff;">Soon</span></div>
+            <p class="empty-text">Creator proposals for this campaign will appear here once discovery launches.</p>
+        </div>
+
+        <div class="soon-panel">
+            <div class="panel-title">Collaboration <span class="soon-tag" style="color:#9b2cff; border-color:#e3cfff;">Soon</span></div>
+            <p class="empty-text">Milestones and deliverables will live here once a creator is confirmed.</p>
+        </div>
+
+        <div class="soon-panel">
+            <div class="panel-title">Messages <span class="soon-tag" style="color:#9b2cff; border-color:#e3cfff;">Soon</span></div>
+            <p class="empty-text">Conversations tied to this campaign will show up here.</p>
+        </div>
+
+    </div>
+
+</div>

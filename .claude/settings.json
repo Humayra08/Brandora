@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(powershell -NoProfile -Command \"Get-Process -Name 'Brandora.Web' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue\")",
+      "Bash(dotnet build *)",
+      "Bash(curl -s -o /dev/null -w \"server: %{http_code}\\\\n\" http://localhost:5130/ --max-time 5)"
+    ]
+  }
+}
