@@ -651,56 +651,51 @@
                     <p class="auth-subtitle">Let's find the right influencers for your campaigns.</p>
                 </div>
 
-                <form class="auth-form" method="post" action="/Account/Register">
+                <form class="auth-form" method="post" action="/Account/RegisterBrand">
+
+                    @Html.AntiForgeryToken()
 
                     <div class="form-grid">
 
                         <div class="field">
                             <label for="brandCompanyName">Company Name</label>
-                            <input type="text" id="brandCompanyName" name="CompanyName" placeholder="Company Name" required />
+                            <input type="text" id="brandCompanyName" name="CompanyName" placeholder="Company Name" value="@Model.Brand.CompanyName" required />
                         </div>
 
                         <div class="field">
                             <label for="brandEmail">Work Email Address (Smart)</label>
-                            <input type="email" id="brandEmail" name="Email" placeholder="Work Email Address" required />
+                            <input type="email" id="brandEmail" name="Email" placeholder="Work Email Address" value="@Model.Brand.Email" required />
                         </div>
 
                         <div class="field">
                             <label for="brandContactName">Contact Full Name</label>
-                            <input type="text" id="brandContactName" name="ContactFullName" placeholder="Contact Full Name" required />
+                            <input type="text" id="brandContactName" name="ContactFullName" placeholder="Contact Full Name" value="@Model.Brand.ContactFullName" required />
                         </div>
 
                         <div class="field">
                             <label for="brandWebsite">Website URL</label>
-                            <input type="url" id="brandWebsite" name="WebsiteUrl" placeholder="Website URL" />
+                            <input type="url" id="brandWebsite" name="WebsiteUrl" placeholder="Website URL" value="@Model.Brand.WebsiteUrl" />
                         </div>
 
                         <div class="field">
                             <label for="brandIndustry">Select Industry/Niche</label>
                             <select id="brandIndustry" name="Industry" required>
-                                <option value="" selected disabled>Select Industry/Niche</option>
-                                <option>Fashion &amp; Apparel</option>
-                                <option>Beauty &amp; Cosmetics</option>
-                                <option>Food &amp; Beverage</option>
-                                <option>Technology</option>
-                                <option>Health &amp; Fitness</option>
-                                <option>Travel &amp; Tourism</option>
-                                <option>Finance</option>
-                                <option>Education</option>
-                                <option>Home &amp; Lifestyle</option>
-                                <option>Other</option>
+                                <option value="" disabled selected="@(string.IsNullOrEmpty(Model.Brand.Industry))">Select Industry/Niche</option>
+                                @foreach (var industry in new[] { "Fashion & Apparel", "Beauty & Cosmetics", "Food & Beverage", "Technology", "Health & Fitness", "Travel & Tourism", "Finance", "Education", "Home & Lifestyle", "Other" })
+                                {
+                                    <option selected="@(Model.Brand.Industry == industry)">@industry</option>
+                                }
                             </select>
                         </div>
 
                         <div class="field">
                             <label for="brandBudget">Estimated Monthly Influencer Budget</label>
                             <select id="brandBudget" name="MonthlyBudget" required>
-                                <option value="" selected disabled>Estimated Monthly Budget</option>
-                                <option>Under &#2547;50,000</option>
-                                <option>&#2547;50,000 &ndash; &#2547;150,000</option>
-                                <option>&#2547;150,000 &ndash; &#2547;500,000</option>
-                                <option>&#2547;500,000 &ndash; &#2547;1,000,000</option>
-                                <option>Above &#2547;1,000,000</option>
+                                <option value="" disabled selected="@(string.IsNullOrEmpty(Model.Brand.MonthlyBudget))">Estimated Monthly Budget</option>
+                                @foreach (var budget in new[] { "Under ৳50,000", "৳50,000 – ৳150,000", "৳150,000 – ৳500,000", "৳500,000 – ৳1,000,000", "Above ৳1,000,000" })
+                                {
+                                    <option selected="@(Model.Brand.MonthlyBudget == budget)">@budget</option>
+                                }
                             </select>
                         </div>
 
@@ -723,9 +718,21 @@
                     </div>
 
                     <div class="terms-row">
-                        <input type="checkbox" id="brandTerms" name="AcceptTerms" required />
+                        <input type="checkbox" id="brandTerms" name="AcceptTerms" value="true" checked="@Model.Brand.AcceptTerms" required />
                         <label for="brandTerms">I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>.</label>
                     </div>
+
+                    @if (!ViewData.ModelState.IsValid && initialView == "brand")
+                    {
+                        <div class="form-errors">
+                            <ul>
+                                @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                                {
+                                    <li>@error.ErrorMessage</li>
+                                }
+                            </ul>
+                        </div>
+                    }
 
                     <button type="submit" class="submit-btn">Register as a Brand</button>
 
@@ -750,24 +757,26 @@
                     <p class="auth-subtitle">Connect with brands and unlock opportunities.</p>
                 </div>
 
-                <form class="auth-form" method="post" action="/Account/Register">
+                <form class="auth-form" method="post" action="/Account/RegisterInfluencer">
+
+                    @Html.AntiForgeryToken()
 
                     <div class="form-grid">
 
                         <div class="field">
                             <label for="infName">Full Name</label>
-                            <input type="text" id="infName" name="FullName" placeholder="Full Name" required />
+                            <input type="text" id="infName" name="FullName" placeholder="Full Name" value="@Model.Influencer.FullName" required />
                         </div>
 
                         <div class="field">
                             <label for="infEmail">Your Email Address (Smart)</label>
-                            <input type="email" id="infEmail" name="Email" placeholder="Your Email Address" required />
+                            <input type="email" id="infEmail" name="Email" placeholder="Your Email Address" value="@Model.Influencer.Email" required />
                         </div>
 
                         <div class="field">
                             <label>Select Primary Platform</label>
-                            <input type="hidden" name="PrimaryPlatform" id="infPrimaryPlatform" />
-                            <div class="platform-picker">
+                            <input type="hidden" name="PrimaryPlatform" id="infPrimaryPlatform" value="@Model.Influencer.PrimaryPlatform" />
+                            <div class="platform-picker" data-selected-platform="@Model.Influencer.PrimaryPlatform">
 
                                 <div class="platform-option" data-platform="Facebook" aria-label="Facebook" title="Facebook">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M15 8.5h2.5V5.2c-.4-.06-2-.2-3.2-.2-3.2 0-4.8 1.9-4.8 4.6V12H6.8v3.6h2.7V22h3.7v-6.4h2.8l.5-3.6h-3.3V9.9c0-1 .3-1.4 1.8-1.4z" fill="currentColor"/></svg>
@@ -798,35 +807,28 @@
 
                         <div class="field">
                             <label for="infUsername">Platform Username</label>
-                            <input type="text" id="infUsername" name="PlatformUsername" placeholder="e.g. @@handle" required />
+                            <input type="text" id="infUsername" name="PlatformUsername" placeholder="e.g. @@handle" value="@Model.Influencer.PlatformUsername" required />
                         </div>
 
                         <div class="field">
                             <label for="infNiche">Main Content Niche</label>
                             <select id="infNiche" name="ContentNiche" required>
-                                <option value="" selected disabled>Main Content Niche</option>
-                                <option>Fashion &amp; Style</option>
-                                <option>Beauty &amp; Skincare</option>
-                                <option>Food &amp; Cooking</option>
-                                <option>Travel &amp; Lifestyle</option>
-                                <option>Fitness &amp; Health</option>
-                                <option>Gaming</option>
-                                <option>Tech &amp; Gadgets</option>
-                                <option>Education</option>
-                                <option>Comedy &amp; Entertainment</option>
-                                <option>Other</option>
+                                <option value="" disabled selected="@(string.IsNullOrEmpty(Model.Influencer.ContentNiche))">Main Content Niche</option>
+                                @foreach (var niche in new[] { "Fashion & Style", "Beauty & Skincare", "Food & Cooking", "Travel & Lifestyle", "Fitness & Health", "Gaming", "Tech & Gadgets", "Education", "Comedy & Entertainment", "Other" })
+                                {
+                                    <option selected="@(Model.Influencer.ContentNiche == niche)">@niche</option>
+                                }
                             </select>
                         </div>
 
                         <div class="field">
                             <label for="infAudience">Estimated Audience Size</label>
                             <select id="infAudience" name="AudienceSize" required>
-                                <option value="" selected disabled>Estimated Audience Size</option>
-                                <option>Under 10K</option>
-                                <option>10K &ndash; 50K</option>
-                                <option>50K &ndash; 100K</option>
-                                <option>100K &ndash; 500K</option>
-                                <option>500K+</option>
+                                <option value="" disabled selected="@(string.IsNullOrEmpty(Model.Influencer.AudienceSize))">Estimated Audience Size</option>
+                                @foreach (var size in new[] { "Under 10K", "10K – 50K", "50K – 100K", "100K – 500K", "500K+" })
+                                {
+                                    <option selected="@(Model.Influencer.AudienceSize == size)">@size</option>
+                                }
                             </select>
                         </div>
 
@@ -849,9 +851,21 @@
                     </div>
 
                     <div class="terms-row">
-                        <input type="checkbox" id="infTerms" name="AcceptTerms" required />
+                        <input type="checkbox" id="infTerms" name="AcceptTerms" value="true" checked="@Model.Influencer.AcceptTerms" required />
                         <label for="infTerms">I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>.</label>
                     </div>
+
+                    @if (!ViewData.ModelState.IsValid && initialView == "influencer")
+                    {
+                        <div class="form-errors">
+                            <ul>
+                                @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                                {
+                                    <li>@error.ErrorMessage</li>
+                                }
+                            </ul>
+                        </div>
+                    }
 
                     <button type="submit" class="submit-btn">Register as an Influencer</button>
 
@@ -958,6 +972,11 @@
 
         // Platform picker (single-select)
         var platformInput = document.getElementById('infPrimaryPlatform');
+        var platformPicker = card.querySelector('.platform-picker');
+        if (platformPicker && platformPicker.dataset.selectedPlatform) {
+            var preselected = platformPicker.querySelector('[data-platform="' + platformPicker.dataset.selectedPlatform + '"]');
+            if (preselected) preselected.classList.add('is-selected');
+        }
         card.querySelectorAll('.platform-option').forEach(function (opt) {
             opt.addEventListener('click', function () {
                 card.querySelectorAll('.platform-option').forEach(function (o) {
@@ -968,11 +987,13 @@
             });
         });
 
-        // Registration isn't wired to a backend yet - validate, but don't post.
+        // Let the browser block an invalid submission; a valid one posts to the server.
         card.querySelectorAll('form').forEach(function (form) {
             form.addEventListener('submit', function (e) {
-                e.preventDefault();
-                form.reportValidity();
+                if (!form.checkValidity()) {
+                    e.preventDefault();
+                    form.reportValidity();
+                }
             });
         });
     })();
