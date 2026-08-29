@@ -10,16 +10,16 @@
 
     <div class="nav-links">
 
-        <a href="#how-it-works" class="nav-link-caret">
+        <a href="/#how-it-works" class="nav-link-caret">
             Platform
             <svg width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </a>
 
-        <a href="#brands">
+        <a href="/#brands">
             For Brands
         </a>
 
-        <a href="#influencers">
+        <a href="/#influencers">
             For Influencers
         </a>
 
@@ -37,15 +37,29 @@
 
     <div class="nav-actions">
 
-        <a href="/Account/Login"
-           class="login-btn">
-            Log In
-        </a>
+        @if (User.Identity?.IsAuthenticated == true)
+        {
+            <form method="post" action="/Account/Logout" class="logout-form">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="login-btn">Log Out</button>
+            </form>
 
-        <a href="/Account/Register"
-           class="get-started-btn">
-            Get Started
-        </a>
+            <a href="/Dashboard" class="get-started-btn">
+                Dashboard
+            </a>
+        }
+        else
+        {
+            <a href="/Account/Login"
+               class="login-btn">
+                Log In
+            </a>
+
+            <a href="/Account/Register"
+               class="get-started-btn">
+                Get Started
+            </a>
+        }
 
     </div>
 

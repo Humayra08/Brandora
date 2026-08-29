@@ -1,3 +1,4 @@
+@model Brandora.Web.Models.Account.LoginViewModel
 @{
     ViewData["Title"] = "Log In";
     Layout = null;
@@ -334,6 +335,24 @@
 
 
         /* =========================================================
+           FORM ERRORS
+        ========================================================= */
+
+        .form-errors {
+            margin-bottom: 18px;
+            padding: 14px 16px;
+
+            border-radius: 10px;
+            border: 1px solid rgba(255,90,110,.4);
+            background: rgba(255,60,80,.1);
+
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            color: #ffb4bd;
+        }
+
+
+        /* =========================================================
            SUBMIT
         ========================================================= */
 
@@ -485,11 +504,25 @@
             <p class="auth-subtitle">Sign in to manage your influencer partnerships and campaigns.</p>
         </div>
 
+        @if (!ViewData.ModelState.IsValid)
+        {
+            <div class="form-errors">
+                <ul>
+                    @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                    {
+                        <li>@error.ErrorMessage</li>
+                    }
+                </ul>
+            </div>
+        }
+
         <form method="post" action="/Account/Login">
+
+            @Html.AntiForgeryToken()
 
             <div class="field">
                 <label for="loginEmail">Email Address</label>
-                <input type="email" id="loginEmail" name="Email" placeholder="name@company.com" required />
+                <input type="email" id="loginEmail" name="Email" placeholder="name@company.com" value="@Model.Email" required />
             </div>
 
             <div class="field field-password">
@@ -504,18 +537,8 @@
             </div>
 
             <div class="remember-row">
-                <input type="checkbox" id="rememberMe" name="RememberMe" />
+                <input type="checkbox" id="rememberMe" name="RememberMe" value="true" checked="@Model.RememberMe" />
                 <label for="rememberMe">Remember Me</label>
-            </div>
-
-            <div class="field">
-                <label for="loginRole">Log in as...</label>
-                <select id="loginRole" name="Role">
-                    <option value="" selected disabled>Select Account Type</option>
-                    <option value="Brand">Brand</option>
-                    <option value="Influencer">Influencer</option>
-                </select>
-               
             </div>
 
             <button type="submit" class="submit-btn">Log In</button>
@@ -560,8 +583,10 @@
 
         document.querySelectorAll('form').forEach(function (form) {
             form.addEventListener('submit', function (e) {
-                e.preventDefault();
-                form.reportValidity();
+                if (!form.checkValidity()) {
+                    e.preventDefault();
+                    form.reportValidity();
+                }
             });
         });
     })();

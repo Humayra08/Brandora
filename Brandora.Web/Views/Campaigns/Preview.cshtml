@@ -1,0 +1,205 @@
+@model Brandora.Web.Models.Domain.Campaign
+@{
+    ViewData["Title"] = "Preview Campaign";
+    ViewData["ActiveNav"] = "Campaigns";
+    Layout = "_AppLayout";
+}
+
+@section Styles {
+
+    .preview-shell {
+        max-width: 720px;
+        margin: 0 auto;
+
+        animation: fade-up .4s ease both;
+    }
+
+    .preview-head {
+        text-align: center;
+    }
+
+    .form-eyebrow {
+        font-family: 'Inter', sans-serif;
+        font-size: 11.5px;
+        font-weight: 700;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: #9b2cff;
+    }
+
+    .form-title {
+        margin-top: 10px;
+
+        font-family: 'Playfair Display', serif;
+        font-weight: 600;
+        font-size: 30px;
+    }
+
+    .form-sub {
+        margin-top: 8px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 13.5px;
+        color: #6b7290;
+    }
+
+    .preview-card {
+        margin-top: 30px;
+        padding: 32px 34px;
+
+        border-radius: 20px;
+        background: #ffffff;
+        border: 1px solid #eaecf5;
+
+        box-shadow: 0 20px 50px rgba(30,34,90,.06);
+    }
+
+    .preview-title-row {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+    }
+
+    .preview-title {
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 700;
+        font-size: 22px;
+        color: #171d3d;
+    }
+
+    .preview-tags {
+        margin-top: 12px;
+
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .tag {
+        padding: 3px 10px;
+
+        border-radius: 20px;
+        background: #f2f3fa;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 11px;
+        font-weight: 600;
+        color: #545b7d;
+    }
+
+    .preview-description {
+        margin-top: 20px;
+        padding-top: 20px;
+        border-top: 1px solid #f0f1f7;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 13.5px;
+        line-height: 1.75;
+        color: #3c4363;
+
+        white-space: pre-wrap;
+    }
+
+    .preview-figures {
+        margin-top: 22px;
+        padding-top: 20px;
+        border-top: 1px solid #f0f1f7;
+
+        display: flex;
+        gap: 40px;
+    }
+
+    .figure-value {
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 800;
+        font-size: 22px;
+        color: #171d3d;
+    }
+
+    .figure-label {
+        margin-top: 2px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 10.5px;
+        font-weight: 600;
+        letter-spacing: .3px;
+        text-transform: uppercase;
+        color: #9096b3;
+    }
+
+    .preview-actions {
+        margin-top: 26px;
+
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 12px;
+    }
+
+    .preview-note {
+        margin-top: 16px;
+
+        text-align: center;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 12px;
+        color: #9096b3;
+    }
+
+}
+
+<div class="preview-shell">
+
+    <div class="preview-head">
+        <div class="form-eyebrow">Step 2 of 2</div>
+        <h1 class="form-title">This is how your campaign looks</h1>
+        <p class="form-sub">Review the details below, then publish when you're ready.</p>
+    </div>
+
+    <div class="preview-card">
+
+        <div class="preview-title-row">
+            <div>
+                <div class="preview-title">@Model.Title</div>
+                <div class="preview-tags">
+                    @if (!string.IsNullOrEmpty(Model.Platform))
+                    {
+                        <span class="tag">@Model.Platform</span>
+                    }
+                    @if (!string.IsNullOrEmpty(Model.Niche))
+                    {
+                        <span class="tag">@Model.Niche</span>
+                    }
+                </div>
+            </div>
+            <span class="status-pill draft">Draft</span>
+        </div>
+
+        <p class="preview-description">@Model.Description</p>
+
+        <div class="preview-figures">
+            <div>
+                <div class="figure-value">৳@Model.Budget.ToString("N0")</div>
+                <div class="figure-label">Budget</div>
+            </div>
+            <div>
+                <div class="figure-value">@(Model.Deadline?.ToString("MMM d, yyyy") ?? "No deadline")</div>
+                <div class="figure-label">Deadline</div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="preview-actions">
+        <a href="/Campaigns/Edit/@Model.Id" class="btn btn-secondary">Edit Campaign</a>
+
+        <form method="post" action="/Campaigns/Publish/@Model.Id">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="btn btn-primary">Publish Campaign</button>
+        </form>
+    </div>
+
+    <p class="preview-note">You can also save this as a draft and publish it later from your campaigns list.</p>
+
+</div>

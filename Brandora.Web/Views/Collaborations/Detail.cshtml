@@ -1,0 +1,322 @@
+@model Brandora.Web.Models.Domain.Collaboration
+@using Brandora.Web.Models.Influencers
+@using Brandora.Web.Models.Domain
+@{
+    ViewData["Title"] = "Collaboration";
+    ViewData["ActiveNav"] = "Campaigns";
+    Layout = "_AppLayout";
+    var hue = (Model.InfluencerProfile.Id * 47) % 360;
+    var conversationId = ViewData["ConversationId"] as int?;
+}
+
+@section Styles {
+
+    .detail-shell {
+        max-width: 780px;
+        margin: 0 auto;
+
+        animation: fade-up .4s ease both;
+    }
+
+    .detail-crumb {
+        font-family: 'Inter', sans-serif;
+        font-size: 12.5px;
+        font-weight: 500;
+        color: #8189a8;
+    }
+
+    .collab-header {
+        margin-top: 14px;
+        padding: 28px 30px;
+
+        border-radius: 18px;
+        background: #ffffff;
+        border: 1px solid #eaecf5;
+
+        display: flex;
+        align-items: flex-start;
+        gap: 18px;
+    }
+
+    .collab-title {
+        font-family: 'Playfair Display', serif;
+        font-weight: 600;
+        font-size: 22px;
+        color: #171d3d;
+    }
+
+    .collab-sub {
+        margin-top: 4px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 13px;
+        color: #6b7290;
+    }
+
+    .collab-actions {
+        margin-left: auto;
+
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+
+        flex-shrink: 0;
+    }
+
+    .collab-actions .btn {
+        width: 170px;
+    }
+
+    .progress-track {
+        margin-top: 18px;
+        padding: 26px 30px;
+
+        border-radius: 18px;
+        background: #ffffff;
+        border: 1px solid #eaecf5;
+    }
+
+    .progress-title {
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 700;
+        font-size: 15px;
+        color: #171d3d;
+    }
+
+    .progress-line {
+        margin-top: 22px;
+
+        display: flex;
+        align-items: center;
+    }
+
+    .progress-step {
+        flex: 1;
+        text-align: center;
+        position: relative;
+    }
+
+    .progress-step::before {
+        content: "";
+        position: absolute;
+        top: 6px;
+        left: -50%;
+        width: 100%;
+        height: 2px;
+        background: #e8eaf5;
+        z-index: 0;
+    }
+
+    .progress-step:first-child::before {
+        display: none;
+    }
+
+    .progress-step.is-done::before {
+        background: linear-gradient(90deg, #9b2cff, #2694ff);
+    }
+
+    .progress-dot {
+        position: relative;
+        z-index: 1;
+
+        width: 14px;
+        height: 14px;
+        margin: 0 auto;
+
+        border-radius: 50%;
+        background: #e8eaf5;
+        border: 2px solid #ffffff;
+        box-shadow: 0 0 0 2px #e8eaf5;
+    }
+
+    .progress-step.is-done .progress-dot {
+        background: linear-gradient(135deg, #9b2cff, #2694ff);
+        box-shadow: 0 0 0 2px #d9bfff;
+    }
+
+    .progress-label {
+        margin-top: 10px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 11px;
+        font-weight: 600;
+        color: #9096b3;
+    }
+
+    .progress-step.is-done .progress-label {
+        color: #2a3157;
+    }
+
+    .soon-grid {
+        margin-top: 18px;
+
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 18px;
+    }
+
+    .soon-panel {
+        padding: 24px;
+
+        border-radius: 16px;
+        background: #fafbfe;
+        border: 1px dashed #dde1f0;
+
+        text-align: center;
+    }
+
+    .soon-panel .panel-title {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
+
+    .milestone-row {
+        display: grid;
+        grid-template-columns: 1.6fr .8fr .8fr .8fr;
+        align-items: center;
+        gap: 14px;
+
+        padding: 16px 0;
+        border-top: 1px solid #f0f1f7;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 13px;
+        color: inherit;
+
+        transition: .15s;
+    }
+
+    .milestone-row:first-of-type {
+        border-top: none;
+    }
+
+    .milestone-row:hover {
+        background: #fafbfe;
+        margin: 0 -12px;
+        padding: 16px 12px;
+        border-radius: 10px;
+    }
+
+    .milestone-row-title {
+        font-weight: 600;
+        color: #1a2044;
+    }
+
+    .milestone-row-amount {
+        color: #4b5273;
+    }
+
+    .milestone-row-date {
+        color: #9096b3;
+    }
+
+    @@media(max-width: 700px) {
+        .milestone-row { grid-template-columns: 1.4fr .8fr; row-gap: 4px; }
+        .collab-header { flex-direction: column; }
+        .collab-actions { margin-left: 0; flex-direction: row; width: 100%; }
+        .collab-actions .btn { flex: 1; width: auto; }
+        .soon-grid { grid-template-columns: 1fr; }
+    }
+
+}
+
+<div class="detail-shell">
+
+    <div class="detail-crumb"><a href="/Collaborations">Collaborations</a> / @Model.InfluencerProfile.FullName</div>
+
+    <div class="collab-header">
+        <div class="creator-avatar" style="background: linear-gradient(135deg, hsl(@(hue)deg 75% 58%), hsl(@((hue + 45) % 360)deg 75% 48%));">
+            @FollowerFormat.InitialsOf(Model.InfluencerProfile.FullName)
+        </div>
+        <div>
+            <div class="collab-title">@Model.InfluencerProfile.FullName</div>
+            <div class="collab-sub">@Model.Campaign.Title &middot; ৳@Model.Proposal.ProposedAmount.ToString("N0") &middot; started @Model.CreatedAt.ToString("MMM d, yyyy")</div>
+            <div style="margin-top: 10px;">
+                <span class="status-pill @Model.Status.ToString().ToLowerInvariant()">@Model.Status</span>
+            </div>
+        </div>
+
+        <div class="collab-actions">
+            @if (conversationId.HasValue)
+            {
+                <a href="/Messages/Conversation/@conversationId" class="btn btn-primary">Open Chat</a>
+            }
+            @if (Model.Status == CollaborationStatus.Active)
+            {
+                <form method="post" action="/Collaborations/UpdateStatus/@Model.Id">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="status" value="Completed" />
+                    <button type="submit" class="btn btn-secondary">Mark Completed</button>
+                </form>
+                <form method="post" action="/Collaborations/UpdateStatus/@Model.Id">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="status" value="Cancelled" />
+                    <button type="submit" class="btn btn-ghost">Cancel</button>
+                </form>
+            }
+        </div>
+    </div>
+
+    @{
+        var hasDeliveredMilestone = Model.Milestones.Any(m => m.Status is MilestoneStatus.Approved or MilestoneStatus.Paid);
+        var allPaid = Model.Milestones.Count > 0 && Model.Milestones.All(m => m.Status == MilestoneStatus.Paid);
+    }
+
+    <div class="progress-track">
+        <div class="progress-title">Collaboration Progress</div>
+
+        <div class="progress-line">
+            <div class="progress-step is-done">
+                <div class="progress-dot"></div>
+                <div class="progress-label">Proposal Accepted</div>
+            </div>
+            <div class="progress-step @(Model.Status != CollaborationStatus.Cancelled ? "is-done" : "")">
+                <div class="progress-dot"></div>
+                <div class="progress-label">Collaboration Active</div>
+            </div>
+            <div class="progress-step @(hasDeliveredMilestone ? "is-done" : "")">
+                <div class="progress-dot"></div>
+                <div class="progress-label">Milestones Delivered</div>
+            </div>
+            <div class="progress-step @(Model.Status == CollaborationStatus.Completed || allPaid ? "is-done" : "")">
+                <div class="progress-dot"></div>
+                <div class="progress-label">Completed &amp; Paid</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="panel" style="margin-top: 18px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap: 16px;">
+            <div>
+                <div class="panel-title">Milestones</div>
+                <div class="panel-sub">Deliverables agreed with @Model.InfluencerProfile.FullName.</div>
+            </div>
+            <a href="/Milestones/Create?collaborationId=@Model.Id" class="btn btn-primary">Add Milestone</a>
+        </div>
+
+        @if (Model.Milestones.Count > 0)
+        {
+            <div style="margin-top: 18px;">
+                @foreach (var milestone in Model.Milestones.OrderBy(m => m.CreatedAt))
+                {
+                    <a href="/Milestones/Detail/@milestone.Id" class="milestone-row">
+                        <span class="milestone-row-title">@milestone.Title</span>
+                        <span class="status-pill @milestone.Status.ToString().ToLowerInvariant()" style="width:fit-content;">@milestone.Status</span>
+                        <span class="milestone-row-amount">৳@milestone.Amount.ToString("N0")</span>
+                        <span class="milestone-row-date">@(milestone.DueDate?.ToString("MMM d, yyyy") ?? "No due date")</span>
+                    </a>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="empty-block">
+                <div class="empty-title">No milestones yet</div>
+                <p class="empty-text">Add a milestone to define what @Model.InfluencerProfile.FullName will deliver and when.</p>
+            </div>
+        }
+    </div>
+
+</div>
