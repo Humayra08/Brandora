@@ -183,6 +183,110 @@
         gap: 12px;
     }
 
+    .dropzone {
+        margin-top: 22px;
+
+        position: relative;
+
+        border: 1.5px dashed #d9bfff;
+        border-radius: 16px;
+        background: linear-gradient(180deg, #fbf8ff, #ffffff);
+
+        padding: 30px;
+
+        text-align: center;
+
+        cursor: pointer;
+        transition: border-color .2s ease, background .2s ease, transform .2s ease;
+    }
+
+    .dropzone:hover,
+    .dropzone.is-dragover {
+        border-color: #9b2cff;
+        background: linear-gradient(180deg, #f6edff, #ffffff);
+        transform: translateY(-2px);
+    }
+
+    .dropzone input[type="file"] {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        cursor: pointer;
+    }
+
+    .dropzone-title {
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 700;
+        font-size: 14px;
+        color: #171d3d;
+    }
+
+    .dropzone-sub {
+        margin-top: 4px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 12px;
+        color: #9096b3;
+    }
+
+    .media-preview {
+        margin-top: 18px;
+        display: none;
+
+        position: relative;
+        width: 160px;
+
+        border-radius: 16px;
+        overflow: hidden;
+
+        aspect-ratio: 9 / 16;
+
+        background: #171d3d;
+
+        box-shadow: 0 14px 30px rgba(30,34,90,.16);
+    }
+
+    .media-preview.has-media {
+        display: block;
+    }
+
+    .media-preview img,
+    .media-preview video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+
+    .media-remove {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+
+        width: 26px;
+        height: 26px;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        border-radius: 50%;
+        border: none;
+        background: rgba(10,11,30,.7);
+        color: #ffffff;
+
+        font-size: 14px;
+        font-weight: 700;
+        line-height: 1;
+
+        cursor: pointer;
+        transition: .2s;
+    }
+
+    .media-remove:hover {
+        background: rgba(220,50,70,.85);
+    }
+
     @@media(max-width: 600px) {
         .form-fields { grid-template-columns: 1fr; }
         .form-field.span-2 { grid-column: span 1; }
@@ -202,6 +306,7 @@
             <span class="is-filled"></span>
             <span class="is-filled"></span>
             <span class="is-filled"></span>
+            <span class="is-filled"></span>
         </div>
     </div>
 
@@ -217,7 +322,7 @@
         </div>
     }
 
-    <form method="post" action="@(isEdit ? $"/Campaigns/Edit/{Model.Id}" : "/Campaigns/Create")">
+    <form method="post" action="@(isEdit ? $"/Campaigns/Edit/{Model.Id}" : "/Campaigns/Create")" enctype="multipart/form-data">
 
         @Html.AntiForgeryToken()
 
@@ -287,6 +392,32 @@
             </div>
         </section>
 
+        <section class="form-section">
+            <div class="section-num">04</div>
+            <div class="section-heading">Campaign Creative</div>
+            <p class="section-desc">Add a cover image or short video &mdash; it'll show up as a reel-style preview in your campaign feed.</p>
+
+            <div class="dropzone" id="mediaDropzone">
+                <input type="file" id="MediaFile" name="MediaFile" accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime" />
+                <div class="dropzone-title">Drop an image or video, or click to browse</div>
+                <div class="dropzone-sub">JPG, PNG, WEBP, GIF up to 15MB &middot; MP4, WEBM, MOV up to 80MB</div>
+            </div>
+
+            <div class="media-preview @(!string.IsNullOrEmpty(Model.ExistingMediaUrl) ? "has-media" : "")" id="mediaPreview">
+                @if (Model.ExistingMediaType == "video")
+                {
+                    <video src="@Model.ExistingMediaUrl" muted loop playsinline></video>
+                }
+                else if (!string.IsNullOrEmpty(Model.ExistingMediaUrl))
+                {
+                    <img src="@Model.ExistingMediaUrl" alt="Campaign media" />
+                }
+                <button type="button" class="media-remove" id="mediaRemoveBtn" aria-label="Remove media">&times;</button>
+            </div>
+
+            <input type="hidden" name="RemoveMedia" id="RemoveMedia" value="false" />
+        </section>
+
         <div class="form-actions">
             <a href="/Campaigns" class="btn btn-ghost">Cancel</a>
             <button type="submit" class="btn btn-primary">@(isEdit ? "Save Changes" : "Continue to Preview")</button>
@@ -295,3 +426,82 @@
     </form>
 
 </div>
+
+@section Scripts {
+    <script>
+        (function () {
+            var dropzone = document.getElementById('mediaDropzone');
+            var fileInput = document.getElementById('MediaFile');
+            var preview = document.getElementById('mediaPreview');
+            var removeBtn = document.getElementById('mediaRemoveBtn');
+            var removeFlag = document.getElementById('RemoveMedia');
+
+            function showPreview(url, isVideo) {
+                preview.innerHTML = '';
+                var el = document.createElement(isVideo ? 'video' : 'img');
+                if (isVideo) {
+                    el.muted = true;
+                    el.loop = true;
+                    el.setAttribute('playsinline', '');
+                    el.autoplay = true;
+                } else {
+                    el.alt = 'Campaign media';
+                }
+                el.src = url;
+                preview.appendChild(el);
+
+                var btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'media-remove';
+                btn.setAttribute('aria-label', 'Remove media');
+                btn.innerHTML = '&times;';
+                btn.addEventListener('click', clearMedia);
+                preview.appendChild(btn);
+
+                preview.classList.add('has-media');
+                removeFlag.value = 'false';
+            }
+
+            function clearMedia(e) {
+                if (e) e.preventDefault();
+                fileInput.value = '';
+                preview.classList.remove('has-media');
+                preview.innerHTML = '';
+                removeFlag.value = 'true';
+            }
+
+            fileInput.addEventListener('change', function () {
+                var file = fileInput.files && fileInput.files[0];
+                if (!file) return;
+                var url = URL.createObjectURL(file);
+                showPreview(url, file.type.indexOf('video/') === 0);
+            });
+
+            ['dragenter', 'dragover'].forEach(function (evt) {
+                dropzone.addEventListener(evt, function (e) {
+                    e.preventDefault();
+                    dropzone.classList.add('is-dragover');
+                });
+            });
+
+            ['dragleave', 'drop'].forEach(function (evt) {
+                dropzone.addEventListener(evt, function (e) {
+                    e.preventDefault();
+                    dropzone.classList.remove('is-dragover');
+                });
+            });
+
+            dropzone.addEventListener('drop', function (e) {
+                var file = e.dataTransfer.files && e.dataTransfer.files[0];
+                if (!file) return;
+                fileInput.files = e.dataTransfer.files;
+                var url = URL.createObjectURL(file);
+                showPreview(url, file.type.indexOf('video/') === 0);
+            });
+
+            if (removeBtn) {
+                removeBtn.addEventListener('click', clearMedia);
+            }
+        })();
+    </script>
+}

@@ -207,12 +207,83 @@
         color: #6b7290;
     }
 
+    .campaign-card.has-media {
+        padding: 0 0 20px;
+        overflow: hidden;
+    }
+
+    .campaign-media {
+        position: relative;
+        width: 100%;
+        aspect-ratio: 3 / 4;
+
+        background: #171d3d;
+        overflow: hidden;
+    }
+
+    .campaign-media img,
+    .campaign-media video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+
+        transition: transform .5s ease;
+    }
+
+    .campaign-card:hover .campaign-media img,
+    .campaign-card:hover .campaign-media video {
+        transform: scale(1.05);
+    }
+
+    .campaign-media-overlay {
+        position: absolute;
+        inset: 0;
+
+        background: linear-gradient(180deg, rgba(10,11,30,0) 38%, rgba(10,11,30,.88) 100%);
+
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+
+        padding: 16px 18px;
+    }
+
+    .campaign-media-overlay .status-pill {
+        align-self: flex-start;
+        margin-bottom: 8px;
+    }
+
+    .campaign-media-title {
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 700;
+        font-size: 16px;
+        color: #ffffff;
+        line-height: 1.3;
+    }
+
+    .campaign-card.has-media .campaign-card-tags,
+    .campaign-card.has-media .campaign-card-figures,
+    .campaign-card.has-media .campaign-card-deadline {
+        padding-left: 20px;
+        padding-right: 20px;
+    }
+
+    .campaign-card.has-media .campaign-card-tags {
+        margin-top: 14px;
+    }
+
     @@media(max-width: 560px) {
         .page-head { flex-direction: column; }
         .filter-input { width: 100%; }
     }
 
 }
+
+<a href="/Dashboard" class="back-to-dashboard">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    Back to Dashboard
+</a>
 
 <div class="page-head">
     <div>
@@ -264,11 +335,32 @@
     <div class="campaign-grid">
         @foreach (var campaign in Model.Campaigns)
         {
-            <a href="/Campaigns/Detail/@campaign.Id" class="campaign-card">
-                <div class="campaign-card-head">
-                    <div class="campaign-card-title">@campaign.Title</div>
-                    <span class="status-pill @campaign.Status.ToString().ToLowerInvariant()">@campaign.Status</span>
-                </div>
+            <a href="/Campaigns/Detail/@campaign.Id" class="campaign-card @(!string.IsNullOrEmpty(campaign.MediaUrl) ? "has-media" : "")">
+
+                @if (!string.IsNullOrEmpty(campaign.MediaUrl))
+                {
+                    <div class="campaign-media">
+                        @if (campaign.MediaType == "video")
+                        {
+                            <video src="@campaign.MediaUrl" muted loop playsinline preload="metadata"></video>
+                        }
+                        else
+                        {
+                            <img src="@campaign.MediaUrl" alt="@campaign.Title" />
+                        }
+                        <div class="campaign-media-overlay">
+                            <span class="status-pill @campaign.Status.ToString().ToLowerInvariant()">@campaign.Status</span>
+                            <div class="campaign-media-title">@campaign.Title</div>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="campaign-card-head">
+                        <div class="campaign-card-title">@campaign.Title</div>
+                        <span class="status-pill @campaign.Status.ToString().ToLowerInvariant()">@campaign.Status</span>
+                    </div>
+                }
 
                 <div class="campaign-card-tags">
                     @if (!string.IsNullOrEmpty(campaign.Platform))
@@ -321,4 +413,14 @@ else
         <p class="empty-text">Try a different search term or clear your filters.</p>
         <a href="/Campaigns" class="btn btn-secondary" style="margin-top: 16px;">Clear Filters</a>
     </div>
+}
+
+@section Scripts {
+    <script>
+        document.querySelectorAll('.campaign-media video').forEach(function (video) {
+            var card = video.closest('.campaign-card');
+            card.addEventListener('mouseenter', function () { video.play().catch(function () {}); });
+            card.addEventListener('mouseleave', function () { video.pause(); video.currentTime = 0; });
+        });
+    </script>
 }
