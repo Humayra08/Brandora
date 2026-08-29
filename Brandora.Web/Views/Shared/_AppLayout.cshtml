@@ -1,0 +1,896 @@
+@{
+    var activeNav = ViewData["ActiveNav"] as string ?? "";
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>@ViewData["Title"] - Brandora</title>
+
+    <link rel="icon" type="image/png" href="~/images/brandora-icon.png" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Playfair+Display:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap"
+          rel="stylesheet">
+
+    <link rel="stylesheet" href="~/css/brandora-shared.css" asp-append-version="true" />
+
+    <style>
+
+        /* =========================================================
+           GLOBAL
+        ========================================================= */
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: #f5f6fb;
+            color: #131a35;
+        }
+
+        a {
+            text-decoration: none;
+            color: inherit;
+        }
+
+        button {
+            font-family: inherit;
+        }
+
+        ::selection {
+            background: rgba(155,44,255,.25);
+        }
+
+
+        /* =========================================================
+           APP SHELL
+        ========================================================= */
+
+        .app-shell {
+            display: flex;
+            min-height: calc(100vh - 82px);
+
+            margin-top: 82px;
+        }
+
+
+        /* =========================================================
+           SIDEBAR
+        ========================================================= */
+
+        .sidebar {
+            width: 264px;
+            flex-shrink: 0;
+
+            background: linear-gradient(165deg, #12123f 0%, #0a0b2e 45%, #06071f 100%);
+
+            color: #ffffff;
+
+            display: flex;
+            flex-direction: column;
+
+            padding: 26px 20px;
+
+            position: sticky;
+            top: 82px;
+            height: calc(100vh - 82px);
+            z-index: 1;
+
+            overflow-y: auto;
+            overflow-x: hidden;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255,255,255,.15) transparent;
+
+            transition: width .3s cubic-bezier(.22,1,.36,1), padding .3s cubic-bezier(.22,1,.36,1);
+        }
+
+        .sidebar::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            z-index: -1;
+            pointer-events: none;
+
+            background:
+                radial-gradient(circle at 18% 8%, rgba(175,60,255,.45), transparent 42%),
+                radial-gradient(circle at 88% 22%, rgba(255,60,190,.24), transparent 38%),
+                radial-gradient(circle at 75% 96%, rgba(0,169,255,.3), transparent 48%),
+                radial-gradient(circle at 10% 70%, rgba(120,80,255,.2), transparent 40%);
+
+            animation: sidebar-glow 14s ease-in-out infinite;
+        }
+
+        @@keyframes sidebar-glow {
+            0%, 100% { opacity: .8; transform: scale(1) rotate(0deg); }
+            50% { opacity: 1; transform: scale(1.12) rotate(4deg); }
+        }
+
+        .sidebar.is-collapsed {
+            width: 92px;
+            padding-left: 14px;
+            padding-right: 14px;
+        }
+
+        .side-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .side-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+
+            padding: 0 6px;
+
+            min-width: 0;
+        }
+
+        .side-brand img {
+            height: 26px;
+            width: auto;
+            flex-shrink: 0;
+
+            filter: drop-shadow(0 0 8px rgba(150,100,255,.5));
+        }
+
+        .side-brand span {
+            font-family: 'Playfair Display', serif;
+            font-weight: 600;
+            font-size: 19px;
+
+            white-space: nowrap;
+            overflow: hidden;
+
+            transition: opacity .2s ease, width .2s ease;
+        }
+
+        .sidebar-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+
+            width: 28px;
+            height: 28px;
+
+            border-radius: 50%;
+            border: 1px solid rgba(255,255,255,.14);
+            background: rgba(255,255,255,.04);
+
+            color: rgba(255,255,255,.7);
+            cursor: pointer;
+
+            transition: .2s;
+        }
+
+        .sidebar-toggle:hover {
+            border-color: rgba(255,255,255,.35);
+            background: rgba(255,255,255,.1);
+            color: #ffffff;
+        }
+
+        .sidebar-toggle svg {
+            transition: transform .3s cubic-bezier(.22,1,.36,1);
+        }
+
+        .sidebar.is-collapsed .sidebar-toggle svg {
+            transform: rotate(180deg);
+        }
+
+        .sidebar.is-collapsed .side-top {
+            justify-content: center;
+        }
+
+        .sidebar.is-collapsed .side-brand span,
+        .sidebar.is-collapsed .side-toggle-hide {
+            display: none;
+        }
+
+        .side-nav {
+            margin-top: 40px;
+
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .side-nav-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+
+            padding: 12px 14px;
+
+            border-radius: 10px;
+
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            font-weight: 500;
+
+            position: relative;
+
+            color: rgba(255,255,255,.75);
+            transition: background .25s ease, color .25s ease, transform .2s ease;
+        }
+
+        a.side-nav-item:hover {
+            background: rgba(255,255,255,.06);
+            color: #ffffff;
+            transform: translateX(3px);
+        }
+
+        a.side-nav-item:active {
+            transform: translateX(3px) scale(.97);
+        }
+
+        .side-nav-item.is-active {
+            color: #ffffff;
+            background: rgba(255,255,255,.08);
+        }
+
+        .side-nav-item.is-active::before {
+            content: "";
+            position: absolute;
+            left: -20px;
+            top: 50%;
+            transform: translateY(-50%);
+
+            width: 3px;
+            height: 20px;
+            border-radius: 3px;
+
+            background: linear-gradient(180deg, #b26bff, #4d9dff);
+            box-shadow: 0 0 10px rgba(150,100,255,.7);
+        }
+
+        .side-nav-item.is-soon {
+            color: rgba(255,255,255,.4);
+        }
+
+        .nav-label {
+            flex: 1;
+            min-width: 0;
+
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+
+            white-space: nowrap;
+        }
+
+        .nav-letter {
+            display: none;
+            position: relative;
+            flex-shrink: 0;
+
+            width: 30px;
+            height: 30px;
+
+            align-items: center;
+            justify-content: center;
+
+            border-radius: 50%;
+            background: rgba(255,255,255,.06);
+
+            font-family: 'DM Sans', sans-serif;
+            font-weight: 700;
+            font-size: 12.5px;
+        }
+
+        .nav-dot {
+            position: absolute;
+            top: -2px;
+            right: -2px;
+
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+
+            background: linear-gradient(105deg, #a326ff, #236eff);
+            border: 2px solid #0a0b2e;
+        }
+
+        .sidebar.is-collapsed .side-nav-item {
+            justify-content: center;
+            padding: 10px;
+        }
+
+        .sidebar.is-collapsed .nav-letter {
+            display: flex;
+        }
+
+        .sidebar.is-collapsed .nav-label {
+            display: none;
+        }
+
+        .sidebar.is-collapsed .side-nav-item.is-active::before {
+            left: -14px;
+        }
+
+        .soon-tag {
+            padding: 2px 8px;
+
+            border-radius: 20px;
+            border: 1px solid rgba(255,255,255,.14);
+
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: .4px;
+
+            color: rgba(255,255,255,.45);
+        }
+
+        .unread-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+
+            min-width: 20px;
+            height: 20px;
+            padding: 0 6px;
+
+            border-radius: 20px;
+            background: linear-gradient(105deg, #a326ff, #236eff);
+
+            font-size: 10.5px;
+            font-weight: 700;
+            color: #ffffff;
+        }
+
+        .side-foot {
+            margin-top: auto;
+
+            padding-top: 18px;
+            border-top: 1px solid rgba(255,255,255,.1);
+        }
+
+        .side-foot-company {
+            padding: 0 6px;
+
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            color: #ffffff;
+
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .side-foot-role {
+            padding: 0 6px;
+            margin-top: 2px;
+
+            font-family: 'Inter', sans-serif;
+            font-size: 11.5px;
+            color: rgba(255,255,255,.5);
+        }
+
+        .side-logout-form {
+            margin-top: 14px;
+        }
+
+        .side-logout-btn {
+            width: 100%;
+
+            padding: 10px 14px;
+
+            border: 1px solid rgba(255,255,255,.14);
+            border-radius: 9px;
+            background: transparent;
+
+            color: rgba(255,255,255,.75);
+
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            font-weight: 500;
+
+            cursor: pointer;
+            transition: .2s;
+        }
+
+        .logout-mark {
+            display: none;
+        }
+
+        .sidebar.is-collapsed .logout-mark {
+            display: inline;
+        }
+
+        .sidebar.is-collapsed .side-foot {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .side-logout-btn:hover {
+            border-color: rgba(255,255,255,.35);
+            color: #ffffff;
+        }
+
+
+        /* =========================================================
+           MAIN
+        ========================================================= */
+
+        .main {
+            flex: 1;
+            min-width: 0;
+
+            padding: 34px 42px 60px;
+        }
+
+
+        /* =========================================================
+           SHARED: PANELS, EMPTY STATES, PILLS, BUTTONS
+        ========================================================= */
+
+        .panel {
+            padding: 26px 28px;
+
+            border-radius: 18px;
+            background: #ffffff;
+            border: 1px solid #eaecf5;
+
+            animation: fade-up .5s ease both;
+        }
+
+        .panel-title {
+            font-family: 'DM Sans', sans-serif;
+            font-weight: 700;
+            font-size: 16px;
+        }
+
+        .panel-sub {
+            margin-top: 3px;
+
+            font-family: 'Inter', sans-serif;
+            font-size: 12.5px;
+            color: #8189a8;
+        }
+
+        .empty-block {
+            margin-top: 22px;
+            padding: 26px 20px;
+
+            border-radius: 14px;
+            border: 1px dashed #dde1f0;
+            background: #fafbfe;
+
+            text-align: center;
+        }
+
+        .empty-title {
+            font-family: 'DM Sans', sans-serif;
+            font-weight: 700;
+            font-size: 14.5px;
+            color: #2a3157;
+        }
+
+        .empty-text {
+            margin-top: 6px;
+
+            font-family: 'Inter', sans-serif;
+            font-size: 12.5px;
+            line-height: 1.6;
+            color: #8189a8;
+
+            max-width: 360px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .status-pill {
+            display: inline-flex;
+            width: fit-content;
+
+            padding: 4px 11px;
+            border-radius: 20px;
+
+            font-family: 'Inter', sans-serif;
+            font-size: 11.5px;
+            font-weight: 600;
+        }
+
+        .status-pill.draft { background: #fff2e2; color: #b5680a; }
+        .status-pill.published { background: #e4f0ff; color: #1265d6; }
+        .status-pill.active { background: #e2faf1; color: #0d9c6c; }
+        .status-pill.completed { background: #f3e8ff; color: #7a1fd6; }
+        .status-pill.cancelled { background: #fde8ea; color: #c22540; }
+        .status-pill.pending { background: #fff2e2; color: #b5680a; }
+        .status-pill.accepted { background: #e2faf1; color: #0d9c6c; }
+        .status-pill.rejected { background: #fde8ea; color: #c22540; }
+        .status-pill.submitted { background: #e4f0ff; color: #1265d6; }
+        .status-pill.approved { background: #e2faf1; color: #0d9c6c; }
+        .status-pill.revisionrequested { background: #fff2e2; color: #b5680a; }
+        .status-pill.paid { background: #f3e8ff; color: #7a1fd6; }
+        .status-pill.failed { background: #fde8ea; color: #c22540; }
+
+        .form-errors {
+            margin-bottom: 18px;
+            padding: 14px 16px;
+
+            border-radius: 10px;
+            border: 1px solid rgba(220,50,70,.25);
+            background: rgba(220,50,70,.06);
+
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            color: #a71b34;
+        }
+
+        .form-errors ul {
+            margin: 0;
+            padding-left: 18px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+
+            height: 46px;
+            padding: 0 22px;
+
+            border-radius: 10px;
+            border: none;
+
+            font-family: 'Inter', sans-serif;
+            font-size: 13.5px;
+            font-weight: 600;
+
+            cursor: pointer;
+            transition: .2s;
+            white-space: nowrap;
+        }
+
+        .btn-primary {
+            color: #ffffff;
+            background: linear-gradient(100deg, #e0389f, #a326ff 35%, #236eff 70%, #18a9ff);
+            background-size: 160% 160%;
+            background-position: 0% 50%;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            background-position: 100% 50%;
+            box-shadow: 0 10px 26px rgba(140,60,255,.35);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0) scale(.98);
+        }
+
+        .btn-secondary {
+            color: #2a3157;
+            background: #ffffff;
+            border: 1px solid #dde1f0;
+        }
+
+        .btn-secondary:hover {
+            border-color: transparent;
+            transform: translateY(-2px);
+            box-shadow: 0 0 0 1.5px #9b2cff, 0 10px 22px rgba(140,60,255,.18);
+        }
+
+        .btn-secondary:active {
+            transform: translateY(0);
+        }
+
+        .btn-ghost {
+            color: #6b7290;
+            background: transparent;
+            border: 1px solid transparent;
+        }
+
+        .btn-ghost:hover {
+            color: #9b2cff;
+            background: rgba(155,44,255,.06);
+        }
+
+
+        /* =========================================================
+           SHARED: BACK TO DASHBOARD
+        ========================================================= */
+
+        .back-to-dashboard {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+
+            margin-bottom: 18px;
+
+            font-family: 'Inter', sans-serif;
+            font-size: 12.5px;
+            font-weight: 600;
+            color: #8189a8;
+
+            transition: color .2s ease;
+        }
+
+        .back-to-dashboard svg {
+            transition: transform .2s ease;
+        }
+
+        .back-to-dashboard:hover {
+            color: #9b2cff;
+        }
+
+        .back-to-dashboard:hover svg {
+            transform: translateX(-3px);
+        }
+
+
+        /* =========================================================
+           SHARED: CREATOR PRIMITIVES
+        ========================================================= */
+
+        .tag {
+            padding: 3px 10px;
+
+            border-radius: 20px;
+            background: #f2f3fa;
+
+            font-family: 'Inter', sans-serif;
+            font-size: 11px;
+            font-weight: 600;
+            color: #545b7d;
+        }
+
+        .creator-avatar {
+            width: 56px;
+            height: 56px;
+            flex-shrink: 0;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            border-radius: 50%;
+
+            font-family: 'DM Sans', sans-serif;
+            font-weight: 700;
+            font-size: 18px;
+            color: #ffffff;
+
+            transition: transform .35s cubic-bezier(.22,1,.36,1);
+        }
+
+        .verified-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+
+            padding: 2px 9px;
+
+            border-radius: 20px;
+            background: #e4f0ff;
+            color: #1265d6;
+
+            font-family: 'Inter', sans-serif;
+            font-size: 10.5px;
+            font-weight: 700;
+        }
+
+        .shortlist-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+
+            height: 38px;
+            padding: 0 16px;
+
+            border-radius: 9px;
+            border: 1px solid #dde1f0;
+            background: #ffffff;
+
+            font-family: 'Inter', sans-serif;
+            font-size: 12.5px;
+            font-weight: 600;
+            color: #545b7d;
+
+            cursor: pointer;
+            transition: .2s;
+        }
+
+        .shortlist-btn:hover {
+            border-color: #b7c0e0;
+        }
+
+        .shortlist-btn.is-saved {
+            border-color: transparent;
+            background: linear-gradient(105deg, #a326ff, #236eff);
+            color: #ffffff;
+        }
+
+
+        /* =========================================================
+           MOTION
+        ========================================================= */
+
+        @@keyframes fade-up {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+
+        /* =========================================================
+           RESPONSIVE
+        ========================================================= */
+
+        @@media(max-width: 820px) {
+            .app-shell { flex-direction: column; }
+            .sidebar { width: 100%; height: auto; position: relative; top: 0; flex-direction: row; align-items: center; overflow-x: auto; }
+            .side-nav { margin-top: 0; margin-left: 24px; flex-direction: row; }
+            .side-foot { display: none; }
+            .main { padding: 24px 18px 40px; }
+        }
+
+        @RenderSection("Styles", required: false)
+
+    </style>
+</head>
+<body>
+
+<partial name="_BrandoraNavbar" />
+
+<div class="app-shell">
+
+    <aside class="sidebar" id="brandoraSidebar">
+
+        <div class="side-top">
+            <a href="/Dashboard" class="side-brand">
+                <img src="~/images/brandora-mark.png" alt="Brandora" />
+                <span>Brandora</span>
+            </a>
+
+            <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-label="Collapse sidebar">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+        </div>
+
+        <nav class="side-nav">
+            @{
+                var unread = ViewData["UnreadNotifications"] as int? ?? 0;
+            }
+
+            <a href="/Dashboard" class="side-nav-item @(activeNav == "Dashboard" ? "is-active" : "")">
+                <span class="nav-letter">D</span>
+                <span class="nav-label side-toggle-hide">Dashboard</span>
+            </a>
+
+            <a href="/Campaigns" class="side-nav-item @(activeNav == "Campaigns" ? "is-active" : "")">
+                <span class="nav-letter">C</span>
+                <span class="nav-label side-toggle-hide">Campaigns</span>
+            </a>
+
+            <a href="/Influencers" class="side-nav-item @(activeNav == "Influencers" ? "is-active" : "")">
+                <span class="nav-letter">I</span>
+                <span class="nav-label side-toggle-hide">Influencers</span>
+            </a>
+
+            <a href="/Messages" class="side-nav-item @(activeNav == "Messages" ? "is-active" : "")">
+                <span class="nav-letter">M</span>
+                <span class="nav-label side-toggle-hide">Messages</span>
+            </a>
+
+            <a href="/Payments" class="side-nav-item @(activeNav == "Finance" ? "is-active" : "")">
+                <span class="nav-letter">F</span>
+                <span class="nav-label side-toggle-hide">Finance</span>
+            </a>
+
+            <a href="/Analytics" class="side-nav-item @(activeNav == "Analytics" ? "is-active" : "")">
+                <span class="nav-letter">A</span>
+                <span class="nav-label side-toggle-hide">Analytics</span>
+            </a>
+
+            <a href="/Notifications" class="side-nav-item @(activeNav == "Notifications" ? "is-active" : "")">
+                <span class="nav-letter">N@(unread > 0 ? Html.Raw("<span class=\"nav-dot\"></span>") : null)</span>
+                <span class="nav-label side-toggle-hide">
+                    Notifications
+                    @if (unread > 0)
+                    {
+                        <span class="unread-badge">@unread</span>
+                    }
+                </span>
+            </a>
+
+            <a href="/Settings" class="side-nav-item @(activeNav == "Settings" ? "is-active" : "")">
+                <span class="nav-letter">S</span>
+                <span class="nav-label side-toggle-hide">Settings</span>
+            </a>
+
+        </nav>
+
+        <div class="side-foot">
+            <div class="side-foot-company side-toggle-hide">@ViewData["CompanyName"]</div>
+            <div class="side-foot-role side-toggle-hide">Brand Workspace</div>
+
+            <form method="post" action="/Account/Logout" class="side-logout-form">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="side-logout-btn">
+                    <span class="side-toggle-hide">Log Out</span>
+                    <span class="logout-mark">L</span>
+                </button>
+            </form>
+        </div>
+
+    </aside>
+
+    <main class="main">
+        @RenderBody()
+    </main>
+
+</div>
+
+<partial name="_BrandoraFooter" />
+
+<script>
+    (function () {
+        document.querySelectorAll('[data-count-to]').forEach(function (el) {
+            var target = parseInt(el.dataset.countTo, 10) || 0;
+            if (target === 0) { el.textContent = '0'; return; }
+
+            var start = null;
+            var duration = 700;
+
+            function step(ts) {
+                if (!start) start = ts;
+                var progress = Math.min((ts - start) / duration, 1);
+                var eased = 1 - Math.pow(1 - progress, 3);
+                el.textContent = Math.round(eased * target).toString();
+                if (progress < 1) requestAnimationFrame(step);
+            }
+
+            requestAnimationFrame(step);
+        });
+
+        document.querySelectorAll('[data-fill-to]').forEach(function (fill) {
+            requestAnimationFrame(function () {
+                fill.style.width = fill.dataset.fillTo + '%';
+            });
+        });
+
+        // Sidebar collapse / expand
+        var sidebar = document.getElementById('brandoraSidebar');
+        var toggle = document.getElementById('sidebarToggle');
+
+        if (sidebar && toggle) {
+            var STORAGE_KEY = 'brandora-sidebar-collapsed';
+
+            try {
+                if (localStorage.getItem(STORAGE_KEY) === 'true') {
+                    sidebar.classList.add('is-collapsed');
+                    toggle.setAttribute('aria-label', 'Expand sidebar');
+                }
+            } catch (e) {}
+
+            toggle.addEventListener('click', function () {
+                var collapsed = sidebar.classList.toggle('is-collapsed');
+                toggle.setAttribute('aria-label', collapsed ? 'Expand sidebar' : 'Collapse sidebar');
+                try {
+                    localStorage.setItem(STORAGE_KEY, collapsed ? 'true' : 'false');
+                } catch (e) {}
+            });
+        }
+    })();
+</script>
+
+@RenderSection("Scripts", required: false)
+
+</body>
+</html>
