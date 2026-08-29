@@ -88,14 +88,59 @@
         background: #ffffff;
         border: 1px solid #eaecf5;
 
-        transition: transform .2s ease, box-shadow .2s ease;
+        transition: transform .45s cubic-bezier(.22,1,.36,1), box-shadow .4s ease;
 
-        animation: fade-up .5s ease both;
+        opacity: 0;
+        transform: translateY(26px);
+    }
+
+    .creator-card.is-visible {
+        opacity: 1;
+        transform: translateY(0);
+        transition: opacity .6s ease, transform .6s cubic-bezier(.22,1,.36,1), box-shadow .4s ease;
+    }
+
+    .creator-card::before,
+    .creator-card::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity .35s ease;
+    }
+
+    .creator-card::before {
+        background: var(--card-wash);
+    }
+
+    .creator-card::after {
+        border-radius: inherit;
+        padding: 1.5px;
+        background: var(--card-border);
+        -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+        -webkit-mask-composite: xor;
+        mask-composite: exclude;
     }
 
     .creator-card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 18px 36px rgba(30,34,90,.1);
+        transform: translateY(-7px) scale(1.015);
+        box-shadow: 0 26px 46px rgba(30,34,90,.16);
+    }
+
+    .creator-card:hover::before,
+    .creator-card:hover::after {
+        opacity: 1;
+    }
+
+    .creator-card > * {
+        position: relative;
+        z-index: 1;
+    }
+
+    .creator-card:hover .creator-avatar {
+        transform: scale(1.08) rotate(-3deg);
     }
 
     .creator-card-head {
@@ -232,7 +277,9 @@
         @foreach (var creator in Model.Creators)
         {
             var hue = (creator.Id * 47) % 360;
-            <div class="creator-card">
+            var hue2 = (hue + 50) % 360;
+            <div class="creator-card" data-reveal
+                 style="--card-wash: radial-gradient(circle at 22% -10%, hsla(@(hue), 90%, 65%, .16), transparent 55%), radial-gradient(circle at 100% 110%, hsla(@(hue2), 90%, 60%, .12), transparent 55%); --card-border: linear-gradient(135deg, hsl(@(hue)deg 85% 62%), hsl(@(hue2)deg 85% 55%));">
 
                 <div class="creator-card-head">
                     <div class="creator-avatar" style="background: linear-gradient(135deg, hsl(@(hue)deg 75% 58%), hsl(@((hue + 45) % 360)deg 75% 48%));">
@@ -300,4 +347,32 @@ else
         <p class="empty-text">Try a different search term or clear your filters.</p>
         <a href="/Influencers" class="btn btn-secondary" style="margin-top: 16px;">Clear Filters</a>
     </div>
+}
+
+@section Scripts {
+    <script>
+        (function () {
+            var cards = document.querySelectorAll('.creator-card[data-reveal]');
+            if (!cards.length) return;
+
+            if (!('IntersectionObserver' in window)) {
+                cards.forEach(function (c) { c.classList.add('is-visible'); });
+                return;
+            }
+
+            var observer = new IntersectionObserver(function (entries) {
+                entries.forEach(function (entry) {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('is-visible');
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+
+            cards.forEach(function (card, index) {
+                card.style.transitionDelay = Math.min(index % 12, 8) * 45 + 'ms';
+                observer.observe(card);
+            });
+        })();
+    </script>
 }
