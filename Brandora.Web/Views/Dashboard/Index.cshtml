@@ -1,41 +1,114 @@
 @model Brandora.Web.Models.Dashboard.DashboardViewModel
+@using Brandora.Web.Models.Domain
+@using Brandora.Web.Models.Influencers
 @{
     ViewData["Title"] = "Dashboard";
     ViewData["ActiveNav"] = "Dashboard";
     Layout = "_AppLayout";
+
+    var maxSpend = Model.SpendByMonth.Count > 0 ? Model.SpendByMonth.Max(p => p.Amount) : 0m;
+    var budgetPercent = Model.TotalBudget > 0 ? (int)Math.Round(Math.Min(100, (double)(Model.TotalSpend / Model.TotalBudget * 100))) : 0;
 }
 
 @section Styles {
 
     /* =========================================================
-       HERO
+       HERO — layered, atmospheric, editorial
     ========================================================= */
 
     .hero-card {
         position: relative;
         overflow: hidden;
 
-        padding: 38px 42px;
+        padding: 36px 42px 32px;
 
-        border-radius: 22px;
+        border-radius: 20px;
 
         background:
-            radial-gradient(circle at 85% 0%, rgba(255,90,190,.35), transparent 45%),
-            radial-gradient(circle at 0% 100%, rgba(0,169,255,.3), transparent 50%),
-            linear-gradient(115deg, #6a1fd6 0%, #3a3fe0 55%, #1c6cff 100%);
+            radial-gradient(circle at 16% 20%, rgba(163,38,255,.26), transparent 38%),
+            radial-gradient(circle at 85% 12%, rgba(255,110,205,.14), transparent 34%),
+            radial-gradient(circle at 75% 92%, rgba(24,169,255,.18), transparent 40%),
+            radial-gradient(circle at 20% 96%, rgba(120,80,255,.12), transparent 36%),
+            linear-gradient(155deg, #150c38 0%, #1c1046 48%, #241458 100%);
 
         color: #ffffff;
 
-        animation: fade-up .5s ease both;
+        box-shadow: 0 18px 46px rgba(20,10,60,.14);
+
+        animation: fade-up .6s ease both;
+    }
+
+    .hero-card::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+
+        background:
+            radial-gradient(circle at 25% 30%, rgba(255,255,255,.05), transparent 34%),
+            radial-gradient(circle at 76% 68%, rgba(255,255,255,.04), transparent 36%);
+
+        animation: hero-drift 24s ease-in-out infinite;
+    }
+
+    @@keyframes hero-drift {
+        0%, 100% { transform: translate(0, 0) scale(1); opacity: .75; }
+        50% { transform: translate(1.5%, -1.5%) scale(1.035); opacity: 1; }
+    }
+
+    .hero-trail {
+        position: absolute;
+        z-index: 0;
+        pointer-events: none;
+        opacity: .5;
+    }
+
+    .hero-sparkle {
+        position: absolute;
+        z-index: 0;
+        pointer-events: none;
+
+        width: 3px;
+        height: 3px;
+        border-radius: 50%;
+        background: #ffffff;
+        box-shadow: 0 0 6px 1.5px rgba(255,255,255,.6);
+
+        animation: sparkle-pulse 7s ease-in-out infinite;
+    }
+
+    .hero-sparkle.is-small {
+        width: 2px;
+        height: 2px;
+        box-shadow: 0 0 4px 1px rgba(255,255,255,.5);
+    }
+
+    @@keyframes sparkle-pulse {
+        0%, 100% { opacity: 0; transform: scale(.4); }
+        50% { opacity: .8; transform: scale(1); }
+    }
+
+    @@media (prefers-reduced-motion: reduce) {
+        .hero-card::before,
+        .hero-sparkle {
+            animation: none !important;
+        }
+    }
+
+    .hero-content {
+        position: relative;
+        z-index: 1;
+        max-width: 620px;
     }
 
     .hero-eyebrow {
         font-family: 'Inter', sans-serif;
-        font-size: 11.5px;
+        font-size: 10.5px;
         font-weight: 700;
-        letter-spacing: 2px;
+        letter-spacing: 2.5px;
         text-transform: uppercase;
-        color: rgba(255,255,255,.72);
+        color: rgba(255,255,255,.7);
     }
 
     .hero-title {
@@ -44,235 +117,1140 @@
         font-family: 'Playfair Display', serif;
         font-weight: 600;
 
-        font-size: clamp(28px, 3.4vw, 38px);
+        font-size: clamp(24px, 2.7vw, 32px);
+        line-height: 1.2;
         letter-spacing: -.3px;
     }
 
-    .hero-sub {
-        margin-top: 10px;
-
-        max-width: 520px;
-
-        font-size: 14.5px;
-        line-height: 1.65;
-        color: rgba(255,255,255,.82);
-    }
-
-    .hero-cta {
-        margin-top: 22px;
-
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-
-        height: 46px;
-        padding: 0 24px;
-
-        border-radius: 10px;
-        border: none;
-
-        background: #ffffff;
-        color: #3a1fc9;
-
-        font-family: 'Inter', sans-serif;
-        font-size: 13.5px;
-        font-weight: 700;
-
-        transition: .2s;
-    }
-
-    .hero-cta:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 10px 24px rgba(0,0,0,.2);
-    }
-
-
-    /* =========================================================
-       STAT CARDS
-    ========================================================= */
-
-    .stat-grid {
-        margin-top: 28px;
-
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 18px;
-    }
-
-    .stat-card {
-        padding: 22px 22px 20px;
-
-        border-radius: 16px;
-        background: #ffffff;
-        border: 1px solid #eaecf5;
-
-        box-shadow: 0 10px 24px rgba(30,34,90,.04);
-
-        transition: transform .2s ease, box-shadow .2s ease;
-
-        animation: fade-up .5s ease both;
-    }
-
-    .stat-card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 16px 32px rgba(30,34,90,.08);
-    }
-
-    .stat-accent {
-        width: 34px;
-        height: 4px;
-        border-radius: 4px;
-
-        margin-bottom: 16px;
-    }
-
-    .stat-card.drafts .stat-accent { background: linear-gradient(90deg, #ffb648, #ff8a3d); }
-    .stat-card.published .stat-accent { background: linear-gradient(90deg, #2694ff, #6bb7ff); }
-    .stat-card.active .stat-accent { background: linear-gradient(90deg, #12c48b, #5be2b4); }
-    .stat-card.completed .stat-accent { background: linear-gradient(90deg, #9b2cff, #c98bff); }
-
-    .stat-value {
-        font-family: 'DM Sans', sans-serif;
-        font-weight: 800;
-        font-size: 32px;
-        letter-spacing: -.5px;
-    }
-
-    .stat-label {
-        margin-top: 4px;
-
-        font-family: 'Inter', sans-serif;
-        font-size: 12.5px;
-        font-weight: 500;
-        color: #6b7290;
-    }
-
-
-    /* =========================================================
-       SPLIT SECTION
-    ========================================================= */
-
-    .split-grid {
-        margin-top: 22px;
-
-        display: grid;
-        grid-template-columns: 1.4fr 1fr;
-        gap: 18px;
-    }
-
-    .spend-figures {
-        margin-top: 22px;
-
-        display: flex;
-        align-items: baseline;
-        gap: 10px;
-    }
-
-    .spend-amount {
-        font-family: 'DM Sans', sans-serif;
-        font-weight: 800;
-        font-size: 30px;
-
-        background: linear-gradient(100deg, #6a1fd6, #1c6cff);
+    .hero-accent {
+        background: linear-gradient(100deg, #dcb8ff, #a9c9ff 60%, #8fdfff);
         -webkit-background-clip: text;
         background-clip: text;
         color: transparent;
     }
 
-    .spend-of {
+    .hero-sub {
+        margin-top: 10px;
+
+        max-width: 480px;
+
         font-family: 'Inter', sans-serif;
-        font-size: 13px;
-        color: #8189a8;
+        font-size: 13.5px;
+        line-height: 1.65;
+        color: rgba(255,255,255,.75);
     }
 
-    .spend-bar-track {
-        margin-top: 16px;
-
-        height: 10px;
-        border-radius: 10px;
-        background: #eef0f8;
-
-        overflow: hidden;
-    }
-
-    .spend-bar-fill {
-        height: 100%;
-        border-radius: 10px;
-
-        background: linear-gradient(90deg, #9b2cff, #2694ff);
-
-        width: 0%;
-        transition: width 1s cubic-bezier(.22,1,.36,1);
-    }
-
-    .pending-count {
-        margin-top: 18px;
+    .hero-actions {
+        margin-top: 20px;
 
         display: flex;
-        align-items: baseline;
-        gap: 8px;
+        flex-wrap: wrap;
+        gap: 12px;
     }
 
-    .pending-number {
+    .hero-cta {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+
+        height: 44px;
+        padding: 0 24px;
+
+        border-radius: 10px;
+        border: none;
+
+        background: linear-gradient(105deg, #a326ff, #236eff, #18a9ff);
+        background-size: 160% 160%;
+        background-position: 0% 50%;
+        color: #ffffff;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 13px;
+        font-weight: 700;
+
+        transition: transform .25s cubic-bezier(.22,1,.36,1), box-shadow .25s ease, background-position .3s ease;
+    }
+
+    .hero-cta:hover {
+        transform: translateY(-2px);
+        background-position: 100% 50%;
+        box-shadow: 0 12px 28px rgba(140,60,255,.4);
+    }
+
+    .hero-cta-ghost {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+
+        height: 44px;
+        padding: 0 24px;
+
+        border-radius: 10px;
+        border: 1px solid rgba(255,255,255,.32);
+
+        background: rgba(255,255,255,.06);
+        backdrop-filter: blur(8px);
+        color: #ffffff;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 13px;
+        font-weight: 700;
+
+        transition: transform .25s cubic-bezier(.22,1,.36,1), background .25s ease, border-color .25s ease;
+    }
+
+    .hero-cta-ghost:hover {
+        transform: translateY(-2px);
+        background: rgba(255,255,255,.13);
+        border-color: rgba(255,255,255,.6);
+    }
+
+
+    /* =========================================================
+       METRIC BAND — varied, editorial, real drill-down links
+    ========================================================= */
+
+    .metric-band {
+        margin-top: 22px;
+
+        display: grid;
+        grid-template-columns: 1.7fr 1fr 1fr 1fr 1.5fr 1fr;
+        gap: 14px;
+    }
+
+    .metric-block {
+        position: relative;
+        overflow: hidden;
+
+        padding: 20px 20px 18px;
+
+        border-radius: 16px;
+        border: 1px solid #dce7ff;
+
+        background: #ffffff;
+
+        transition: transform .3s cubic-bezier(.22,1,.36,1), box-shadow .3s ease, border-color .3s ease;
+
+        opacity: 0;
+        transform: translateY(18px);
+    }
+
+    .metric-block.is-visible {
+        opacity: 1;
+        transform: translateY(0);
+        transition: opacity .5s ease, transform .5s cubic-bezier(.22,1,.36,1), box-shadow .3s ease, border-color .3s ease;
+    }
+
+    a.metric-block:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 18px 34px rgba(30,34,90,.12);
+        border-color: transparent;
+    }
+
+    .metric-block::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+        opacity: .55;
+    }
+
+    .metric-block.tone-violet::before { background: radial-gradient(circle at 100% 0%, rgba(163,38,255,.1), transparent 55%); }
+    .metric-block.tone-amber::before { background: radial-gradient(circle at 100% 0%, rgba(255,166,48,.14), transparent 55%); }
+    .metric-block.tone-blue::before { background: radial-gradient(circle at 100% 0%, rgba(38,148,255,.14), transparent 55%); }
+    .metric-block.tone-purple::before { background: radial-gradient(circle at 100% 0%, rgba(155,44,255,.12), transparent 55%); }
+    .metric-block.tone-magenta::before { background: radial-gradient(circle at 100% 0%, rgba(255,60,190,.15), transparent 55%); }
+    .metric-block.tone-mint::before { background: radial-gradient(circle at 100% 0%, rgba(18,196,139,.16), transparent 55%); }
+
+    .metric-block > * {
+        position: relative;
+        z-index: 1;
+    }
+
+    .metric-value {
         font-family: 'DM Sans', sans-serif;
         font-weight: 800;
         font-size: 30px;
-        color: #131a35;
+        letter-spacing: -.5px;
+        color: #171d3d;
     }
 
-    .pending-label {
+    .metric-block.tone-violet .metric-value { font-size: 38px; }
+
+    .metric-label {
+        margin-top: 5px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 12px;
+        font-weight: 600;
+        color: #6b7290;
+    }
+
+    .metric-context {
+        margin-top: 10px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 11.5px;
+        line-height: 1.5;
+        color: #9096b3;
+    }
+
+    .metric-flag {
+        position: absolute;
+        top: 16px;
+        right: 16px;
+        z-index: 1;
+
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+
+        background: linear-gradient(105deg, #ff3cbe, #a326ff);
+        box-shadow: 0 0 0 4px rgba(255,60,190,.16);
+
+        animation: metric-flag-pulse 2s ease-in-out infinite;
+    }
+
+    @@keyframes metric-flag-pulse {
+        0%, 100% { opacity: .7; }
+        50% { opacity: 1; }
+    }
+
+    @@media(max-width: 1150px) {
+        .metric-band { grid-template-columns: repeat(3, 1fr); }
+        .metric-block.tone-violet { grid-column: span 3; }
+        .metric-block.tone-magenta { grid-column: span 2; }
+    }
+
+    @@media(max-width: 620px) {
+        .metric-band { grid-template-columns: repeat(2, 1fr); }
+        .metric-block.tone-violet { grid-column: span 2; }
+        .metric-block.tone-magenta { grid-column: span 2; }
+    }
+
+
+    /* =========================================================
+       SECTION SCAFFOLDING
+    ========================================================= */
+
+    .dash-section {
+        margin-top: 34px;
+
+        opacity: 0;
+        transform: translateY(22px);
+        transition: opacity .6s ease, transform .6s cubic-bezier(.22,1,.36,1);
+    }
+
+    .dash-section.is-visible {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    .dash-section-head {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 16px;
+
+        margin-bottom: 18px;
+    }
+
+    .dash-section-title {
+        font-family: 'Playfair Display', serif;
+        font-weight: 600;
+        font-size: 21px;
+        color: #171d3d;
+    }
+
+    .dash-section-sub {
+        margin-top: 4px;
+
         font-family: 'Inter', sans-serif;
         font-size: 12.5px;
         color: #8189a8;
     }
 
-
-    /* =========================================================
-       RECENT CAMPAIGNS
-    ========================================================= */
-
-    .recent-panel {
-        margin-top: 18px;
-        padding: 26px 28px 8px;
-    }
-
-    .campaign-row {
-        display: grid;
-        grid-template-columns: 1.6fr .8fr .8fr .8fr;
-        align-items: center;
-        gap: 14px;
-
-        padding: 16px 0;
-        border-top: 1px solid #f0f1f7;
+    .dash-section-link {
+        flex-shrink: 0;
 
         font-family: 'Inter', sans-serif;
-        font-size: 13px;
+        font-size: 12.5px;
+        font-weight: 700;
+        color: #7a1fd6;
 
-        transition: .15s;
+        transition: color .2s ease;
     }
 
-    .campaign-row:first-of-type {
-        border-top: none;
+    .dash-section-link:hover {
+        color: #a326ff;
     }
 
-    a.campaign-row:hover {
-        background: #fafbfe;
-        margin: 0 -12px;
-        padding: 16px 12px;
-        border-radius: 10px;
+
+    /* =========================================================
+       CAMPAIGN WORKSPACE — the heart of the dashboard
+    ========================================================= */
+
+    .campaign-workspace {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
     }
 
-    .campaign-title {
+    .campaign-row-card {
+        position: relative;
+        overflow: hidden;
+
+        padding: 24px 26px;
+
+        border-radius: 18px;
+        background: #ffffff;
+        border: 1px solid #eaecf5;
+
+        display: grid;
+        grid-template-columns: 1.6fr .9fr 1fr 1.1fr .7fr;
+        align-items: center;
+        gap: 22px;
+
+        transition: transform .3s cubic-bezier(.22,1,.36,1), box-shadow .3s ease, border-color .3s ease;
+    }
+
+    .campaign-row-card::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+
+        background: var(--campaign-accent, linear-gradient(180deg, #a326ff, #236eff));
+    }
+
+    a.campaign-row-card:hover {
+        transform: translateY(-3px) translateX(2px);
+        box-shadow: 0 20px 40px rgba(30,34,90,.1);
+        border-color: transparent;
+    }
+
+    .campaign-row-title {
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 700;
+        font-size: 16px;
+        color: #171d3d;
+    }
+
+    .campaign-row-meta {
+        margin-top: 5px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 12px;
+        color: #8189a8;
+    }
+
+    .campaign-row-creators {
+        margin-top: 8px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 11.5px;
         font-weight: 600;
-        color: #1a2044;
+        color: #7a1fd6;
     }
 
-    .campaign-budget {
+    .campaign-row-budget-value {
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 800;
+        font-size: 17px;
+        color: #171d3d;
+    }
+
+    .campaign-row-budget-label {
+        margin-top: 2px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 10.5px;
+        font-weight: 600;
+        letter-spacing: .3px;
+        text-transform: uppercase;
+        color: #9096b3;
+    }
+
+    .campaign-row-progress-track {
+        height: 8px;
+        border-radius: 8px;
+        background: #eef0f8;
+        overflow: hidden;
+    }
+
+    .campaign-row-progress-fill {
+        height: 100%;
+        border-radius: 8px;
+        width: 0%;
+        background: var(--campaign-accent, linear-gradient(90deg, #a326ff, #236eff));
+        transition: width 1.1s cubic-bezier(.22,1,.36,1);
+    }
+
+    .campaign-row-progress-label {
+        margin-top: 6px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 11px;
+        color: #8189a8;
+    }
+
+    .campaign-row-deadline-value {
+        font-family: 'Inter', sans-serif;
+        font-size: 12.5px;
+        font-weight: 600;
+        color: #3c4363;
+    }
+
+    .campaign-row-deadline-label {
+        margin-top: 2px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 10.5px;
+        color: #9096b3;
+    }
+
+    @@media(max-width: 940px) {
+        .campaign-row-card { grid-template-columns: 1fr 1fr; row-gap: 14px; }
+    }
+
+
+    /* =========================================================
+       SPLIT: ATTENTION + COLLABORATION ACTIVITY
+    ========================================================= */
+
+    .split-grid {
+        display: grid;
+        grid-template-columns: 1.1fr 1fr;
+        gap: 18px;
+        align-items: start;
+    }
+
+    .tinted-panel {
+        padding: 26px 28px;
+        border-radius: 20px;
+
+        background: linear-gradient(160deg, #f8f5ff 0%, #f2f6ff 100%);
+        border: 1px solid #e8e4ff;
+    }
+
+    .attention-list {
+        margin-top: 18px;
+
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .attention-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+
+        padding: 14px 16px;
+
+        border-radius: 13px;
+        background: #ffffff;
+        border: 1px solid #e8e4ff;
+
+        transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+    }
+
+    a.attention-row:hover {
+        transform: translateX(3px);
+        box-shadow: 0 10px 22px rgba(122,31,214,.1);
+        border-color: #d6bfff;
+    }
+
+    .attention-title {
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 700;
+        font-size: 13.5px;
+        color: #171d3d;
+    }
+
+    .attention-detail {
+        margin-top: 3px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 11.5px;
+        color: #8189a8;
+    }
+
+    .attention-action {
+        flex-shrink: 0;
+
+        padding: 7px 14px;
+
+        border-radius: 20px;
+        background: linear-gradient(105deg, #a326ff, #236eff, #18a9ff);
+
+        font-family: 'Inter', sans-serif;
+        font-size: 11.5px;
+        font-weight: 700;
+        color: #ffffff;
+
+        white-space: nowrap;
+    }
+
+    .caught-up {
+        margin-top: 18px;
+        padding: 30px 20px;
+
+        text-align: center;
+    }
+
+    .caught-up-title {
+        font-family: 'Playfair Display', serif;
+        font-weight: 600;
+        font-size: 18px;
+        color: #171d3d;
+    }
+
+    .caught-up-text {
+        margin-top: 6px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 12.5px;
+        color: #8189a8;
+    }
+
+    .collab-list {
+        margin-top: 18px;
+
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .collab-row {
+        display: block;
+        padding: 16px 18px;
+
+        border-radius: 14px;
+        background: #ffffff;
+        border: 1px solid #eaecf5;
+
+        transition: transform .2s ease, box-shadow .2s ease;
+    }
+
+    .collab-row.needs-attention {
+        border-color: #ffd9a8;
+        background: linear-gradient(120deg, #fffaf2, #ffffff);
+    }
+
+    a.collab-row:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 14px 26px rgba(30,34,90,.08);
+    }
+
+    .collab-row-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+    }
+
+    .collab-row-name {
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 700;
+        font-size: 14px;
+        color: #171d3d;
+    }
+
+    .collab-row-campaign {
+        margin-top: 2px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 11.5px;
+        color: #8189a8;
+    }
+
+    .collab-row-milestones {
+        flex-shrink: 0;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 11.5px;
+        font-weight: 700;
+        color: #0d9c6c;
+    }
+
+    .collab-row.needs-attention .collab-row-milestones {
+        color: #b5680a;
+    }
+
+    .collab-row-track {
+        margin-top: 10px;
+
+        height: 6px;
+        border-radius: 6px;
+        background: #eef0f8;
+        overflow: hidden;
+    }
+
+    .collab-row-fill {
+        height: 100%;
+        border-radius: 6px;
+        width: 0%;
+        background: linear-gradient(90deg, #18a9ff, #0d9c6c);
+        transition: width 1s cubic-bezier(.22,1,.36,1);
+    }
+
+    .collab-row-due {
+        margin-top: 8px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 11px;
+        color: #9096b3;
+    }
+
+
+    /* =========================================================
+       CREATOR DISCOVERY PREVIEW
+    ========================================================= */
+
+    .creator-preview-row {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+    }
+
+    .mini-creator-card {
+        position: relative;
+        overflow: hidden;
+
+        padding: 20px 18px;
+
+        border-radius: 16px;
+        background: #ffffff;
+        border: 1px solid #eaecf5;
+
+        transition: transform .3s cubic-bezier(.22,1,.36,1), box-shadow .3s ease;
+    }
+
+    .mini-creator-card::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity .3s ease;
+        background: var(--card-wash);
+    }
+
+    .mini-creator-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 18px 34px rgba(30,34,90,.1);
+    }
+
+    .mini-creator-card:hover::before {
+        opacity: 1;
+    }
+
+    .mini-creator-card > * {
+        position: relative;
+        z-index: 1;
+    }
+
+    .mini-creator-head {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .mini-creator-name {
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 700;
+        font-size: 13.5px;
+        color: #171d3d;
+    }
+
+    .mini-creator-handle {
+        margin-top: 2px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 11px;
+        color: #8189a8;
+    }
+
+    .mini-creator-figures {
+        margin-top: 14px;
+        padding-top: 12px;
+        border-top: 1px solid #f0f1f7;
+
+        display: flex;
+        justify-content: space-between;
+    }
+
+    .mini-figure-value {
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 800;
+        font-size: 14.5px;
+        color: #171d3d;
+    }
+
+    .mini-figure-label {
+        margin-top: 1px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 9.5px;
+        font-weight: 600;
+        letter-spacing: .3px;
+        text-transform: uppercase;
+        color: #9096b3;
+    }
+
+    .mini-creator-actions {
+        margin-top: 14px;
+
+        display: flex;
+        gap: 6px;
+    }
+
+    .mini-action-btn {
+        flex: 1;
+
+        height: 32px;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        border-radius: 8px;
+        border: 1px solid #dde1f0;
+        background: #ffffff;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 10.5px;
+        font-weight: 700;
+        color: #545b7d;
+
+        transition: .2s;
+    }
+
+    .mini-action-btn:hover {
+        border-color: transparent;
+        box-shadow: 0 0 0 1.5px #9b2cff;
+    }
+
+    .mini-action-btn.is-primary {
+        border: none;
+        background: linear-gradient(105deg, #a326ff, #236eff, #18a9ff);
+        color: #ffffff;
+    }
+
+    .mini-action-btn.is-saved {
+        border-color: transparent;
+        background: #f3e8ff;
+        color: #7a1fd6;
+    }
+
+    @@media(max-width: 940px) {
+        .creator-preview-row { grid-template-columns: repeat(2, 1fr); }
+    }
+
+
+    /* =========================================================
+       SMART MATCH — signature feature treatment
+    ========================================================= */
+
+    .smart-match-panel {
+        position: relative;
+        overflow: hidden;
+
+        padding: 30px 32px;
+
+        border-radius: 22px;
+
+        background:
+            radial-gradient(circle at 90% 0%, rgba(255,60,190,.22), transparent 42%),
+            radial-gradient(circle at 0% 100%, rgba(0,169,255,.22), transparent 46%),
+            linear-gradient(135deg, #1a1140 0%, #2c1466 45%, #0d1f5c 100%);
+
+        color: #ffffff;
+    }
+
+    .smart-match-head {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 16px;
+
+        position: relative;
+        z-index: 1;
+    }
+
+    .smart-match-eyebrow {
+        font-family: 'Inter', sans-serif;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: rgba(255,255,255,.6);
+    }
+
+    .smart-match-title {
+        margin-top: 8px;
+
+        font-family: 'Playfair Display', serif;
+        font-weight: 600;
+        font-size: 22px;
+    }
+
+    .smart-match-sub {
+        margin-top: 6px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 12.5px;
+        color: rgba(255,255,255,.65);
+        max-width: 460px;
+    }
+
+    .smart-match-link {
+        flex-shrink: 0;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 12.5px;
+        font-weight: 700;
+        color: #ffffff;
+
+        padding: 10px 18px;
+        border-radius: 20px;
+        border: 1px solid rgba(255,255,255,.35);
+
+        transition: .2s;
+    }
+
+    .smart-match-link:hover {
+        background: rgba(255,255,255,.12);
+        border-color: rgba(255,255,255,.6);
+    }
+
+    .smart-match-list {
+        position: relative;
+        z-index: 1;
+
+        margin-top: 24px;
+
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .smart-match-row {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+
+        padding: 16px 18px;
+
+        border-radius: 16px;
+        background: rgba(255,255,255,.07);
+        border: 1px solid rgba(255,255,255,.12);
+        backdrop-filter: blur(10px);
+
+        transition: transform .25s ease, background .25s ease;
+    }
+
+    a.smart-match-row:hover {
+        transform: translateX(4px);
+        background: rgba(255,255,255,.13);
+    }
+
+    .match-score {
+        flex-shrink: 0;
+
+        width: 58px;
+        height: 58px;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        border-radius: 50%;
+
+        background: conic-gradient(from -90deg, #ff3cbe 0%, #a326ff calc(var(--score) * 1%), rgba(255,255,255,.14) calc(var(--score) * 1%));
+
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 800;
+        font-size: 15px;
+    }
+
+    .match-score-inner {
+        width: 46px;
+        height: 46px;
+        border-radius: 50%;
+        background: #1e1250;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .match-body {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .match-name {
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 700;
+        font-size: 14.5px;
+    }
+
+    .match-reasons {
+        margin-top: 4px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 11.5px;
+        color: rgba(255,255,255,.65);
+        line-height: 1.5;
+    }
+
+    .smart-match-empty {
+        position: relative;
+        z-index: 1;
+        margin-top: 22px;
+
+        padding: 26px;
+        text-align: center;
+
+        border-radius: 16px;
+        border: 1px dashed rgba(255,255,255,.25);
+    }
+
+    .smart-match-empty p {
+        margin-top: 6px;
+        font-family: 'Inter', sans-serif;
+        font-size: 12.5px;
+        color: rgba(255,255,255,.65);
+    }
+
+
+    /* =========================================================
+       FINANCE OVERVIEW
+    ========================================================= */
+
+    .finance-panel {
+        padding: 30px 32px;
+        border-radius: 22px;
+
+        background: linear-gradient(160deg, #f1fbf6 0%, #eef8ff 100%);
+        border: 1px solid #d7f0e6;
+
+        display: grid;
+        grid-template-columns: 1fr 1.2fr;
+        gap: 34px;
+        align-items: center;
+    }
+
+    .finance-spend-value {
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 800;
+        font-size: 36px;
+
+        background: linear-gradient(100deg, #0d9c6c, #18a9ff);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+    }
+
+    .finance-spend-of {
+        margin-top: 4px;
+        font-family: 'Inter', sans-serif;
+        font-size: 13px;
         color: #4b5273;
     }
 
-    .campaign-date {
+    .finance-bar-track {
+        margin-top: 16px;
+        height: 10px;
+        border-radius: 10px;
+        background: #dcf0e6;
+        overflow: hidden;
+    }
+
+    .finance-bar-fill {
+        height: 100%;
+        border-radius: 10px;
+        width: 0%;
+        background: linear-gradient(90deg, #0d9c6c, #18a9ff);
+        transition: width 1.1s cubic-bezier(.22,1,.36,1);
+    }
+
+    .finance-substats {
+        margin-top: 20px;
+
+        display: flex;
+        gap: 26px;
+    }
+
+    .finance-substat-value {
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 800;
+        font-size: 17px;
+        color: #171d3d;
+    }
+
+    .finance-substat-label {
+        margin-top: 2px;
+        font-family: 'Inter', sans-serif;
+        font-size: 10.5px;
+        font-weight: 600;
+        letter-spacing: .3px;
+        text-transform: uppercase;
+        color: #6b8478;
+    }
+
+    .finance-chart {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 10px;
+
+        height: 140px;
+        padding: 0 4px;
+    }
+
+    .finance-chart-col {
+        flex: 1;
+
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .finance-chart-bar-track {
+        width: 100%;
+        max-width: 34px;
+        height: 100px;
+
+        display: flex;
+        align-items: flex-end;
+
+        border-radius: 8px;
+        background: rgba(13,156,108,.08);
+        overflow: hidden;
+    }
+
+    .finance-chart-bar-fill {
+        width: 100%;
+        height: 0%;
+        border-radius: 8px;
+        background: linear-gradient(180deg, #18a9ff, #0d9c6c);
+        transition: height 1s cubic-bezier(.22,1,.36,1);
+    }
+
+    .finance-chart-label {
+        font-family: 'Inter', sans-serif;
+        font-size: 10.5px;
+        font-weight: 600;
+        color: #4b5273;
+    }
+
+    @@media(max-width: 900px) {
+        .finance-panel { grid-template-columns: 1fr; }
+    }
+
+
+    /* =========================================================
+       UPCOMING + ACTIVITY
+    ========================================================= */
+
+    .list-panel {
+        padding: 24px 26px;
+        border-radius: 18px;
+        background: #ffffff;
+        border: 1px solid #eaecf5;
+    }
+
+    .list-row {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+
+        padding: 12px 0;
+        border-top: 1px solid #f0f1f7;
+
+        transition: transform .2s ease;
+    }
+
+    .list-row:first-of-type {
+        border-top: none;
+    }
+
+    a.list-row:hover {
+        transform: translateX(3px);
+    }
+
+    .list-row-date {
+        flex-shrink: 0;
+
+        width: 46px;
+        text-align: center;
+
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 800;
+        font-size: 15px;
+        color: #7a1fd6;
+    }
+
+    .list-row-date-month {
+        display: block;
+        margin-top: 1px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 9px;
+        font-weight: 700;
+        letter-spacing: .5px;
+        text-transform: uppercase;
+        color: #a3a8c3;
+    }
+
+    .list-row-body {
+        min-width: 0;
+    }
+
+    .list-row-title {
+        font-family: 'Inter', sans-serif;
+        font-size: 13px;
+        font-weight: 600;
+        color: #2a3157;
+
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .list-row-kind {
+        margin-top: 2px;
+        font-family: 'Inter', sans-serif;
+        font-size: 11px;
         color: #9096b3;
+    }
+
+    .activity-dot {
+        flex-shrink: 0;
+
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+
+        background: linear-gradient(105deg, #a326ff, #18a9ff);
+    }
+
+    .activity-row-time {
+        margin-left: auto;
+        flex-shrink: 0;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 10.5px;
+        color: #b0b5cc;
     }
 
 
@@ -281,127 +1259,502 @@
     ========================================================= */
 
     @@media(max-width: 1100px) {
-        .stat-grid { grid-template-columns: repeat(2, 1fr); }
         .split-grid { grid-template-columns: 1fr; }
     }
 
     @@media(max-width: 820px) {
-        .campaign-row { grid-template-columns: 1.4fr .8fr; row-gap: 4px; }
+        .hero-card { padding: 28px 22px 26px; }
     }
 
 }
 
-<section class="hero-card">
-    <div class="hero-eyebrow">Entry Workspace</div>
-    <h1 class="hero-title">Welcome Back, @Model.CompanyName.</h1>
-    <p class="hero-sub">
-        This is your command center for brand&ndash;creator collaboration &mdash;
-        from discovering creators and Smart Match, through proposals and
-        collaboration, to milestones, payments, and performance.
-    </p>
-    <a href="/Campaigns/Create" class="hero-cta">Create Campaign</a>
+<section class="hero-card" id="dashHero">
+
+    <svg class="hero-trail" width="280" height="150" viewBox="0 0 280 150" style="top:-12px; right:10px;" aria-hidden="true">
+        <path d="M14 132 Q 130 8 268 58" stroke="url(#heroTrailGrad)" stroke-width="1" fill="none" stroke-linecap="round" />
+        <defs>
+            <linearGradient id="heroTrailGrad" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stop-color="#ffffff" stop-opacity="0" />
+                <stop offset="50%" stop-color="#c9a9ff" stop-opacity=".55" />
+                <stop offset="100%" stop-color="#ffffff" stop-opacity="0" />
+            </linearGradient>
+        </defs>
+    </svg>
+
+    <span class="hero-sparkle" style="top:16%; left:58%; animation-delay:.3s;"></span>
+    <span class="hero-sparkle is-small" style="top:62%; left:72%; animation-delay:2.4s;"></span>
+    <span class="hero-sparkle is-small" style="top:34%; left:86%; animation-delay:4.6s;"></span>
+    <span class="hero-sparkle" style="top:78%; left:20%; animation-delay:1.4s;"></span>
+    <span class="hero-sparkle is-small" style="top:10%; left:32%; animation-delay:3.6s;"></span>
+    <span class="hero-sparkle is-small" style="top:48%; left:8%; animation-delay:5.2s;"></span>
+
+    <div class="hero-content">
+        <div class="hero-eyebrow">Brandora &middot; Brand Workspace</div>
+        <h1 class="hero-title">Where @Model.CompanyName builds its <span class="hero-accent">creator partnerships</span>.</h1>
+        <p class="hero-sub">
+            Track every campaign, review every creator, and move each collaboration
+            forward &mdash; from first invite to final payment.
+        </p>
+        <div class="hero-actions">
+            <a href="/Campaigns/Create" class="hero-cta">Create Campaign</a>
+            <a href="/Influencers" class="hero-cta-ghost">Discover Creators</a>
+        </div>
+    </div>
 </section>
 
-<section class="stat-grid">
+<section class="metric-band">
 
-    <div class="stat-card drafts">
-        <div class="stat-accent"></div>
-        <div class="stat-value" data-count-to="@Model.DraftCount">0</div>
-        <div class="stat-label">Drafts</div>
-    </div>
+    <a href="/Campaigns?status=Active" class="metric-block tone-violet" data-reveal>
+        <div class="metric-value" data-count-to="@Model.ActiveCount">0</div>
+        <div class="metric-label">Active Campaigns</div>
+        <div class="metric-context">@(Model.ActiveCount > 0 ? "Currently running with creators" : "Publish a draft to get one running")</div>
+    </a>
 
-    <div class="stat-card published">
-        <div class="stat-accent"></div>
-        <div class="stat-value" data-count-to="@Model.PublishedCount">0</div>
-        <div class="stat-label">Published</div>
-    </div>
+    <a href="/Campaigns?status=Draft" class="metric-block tone-amber" data-reveal>
+        <div class="metric-value" data-count-to="@Model.DraftCount">0</div>
+        <div class="metric-label">Drafts</div>
+        <div class="metric-context">Ready to publish</div>
+    </a>
 
-    <div class="stat-card active">
-        <div class="stat-accent"></div>
-        <div class="stat-value" data-count-to="@Model.ActiveCount">0</div>
-        <div class="stat-label">Active</div>
-    </div>
+    <a href="/Campaigns?status=Published" class="metric-block tone-blue" data-reveal>
+        <div class="metric-value" data-count-to="@Model.PublishedCount">0</div>
+        <div class="metric-label">Published</div>
+        <div class="metric-context">Open to creators</div>
+    </a>
 
-    <div class="stat-card completed">
-        <div class="stat-accent"></div>
-        <div class="stat-value" data-count-to="@Model.CompletedCount">0</div>
-        <div class="stat-label">Completed</div>
-    </div>
+    <a href="/Campaigns?status=Completed" class="metric-block tone-purple" data-reveal>
+        <div class="metric-value" data-count-to="@Model.CompletedCount">0</div>
+        <div class="metric-label">Completed</div>
+        <div class="metric-context">Delivered campaigns</div>
+    </a>
 
-</section>
-
-<section class="split-grid">
-
-    <div class="panel">
-        <div class="panel-title">Campaign Spend</div>
-        <div class="panel-sub">Total spend across all campaigns against total budget allocated.</div>
-
-        @if (Model.TotalBudget > 0)
-        {
-            <div class="spend-figures">
-                <span class="spend-amount">৳@Model.TotalSpend.ToString("N0")</span>
-                <span class="spend-of">of ৳@Model.TotalBudget.ToString("N0") budgeted</span>
-            </div>
-            <div class="spend-bar-track">
-                <div class="spend-bar-fill" data-fill-to="@(Math.Min(100, Model.TotalBudget == 0 ? 0 : (double)(Model.TotalSpend / Model.TotalBudget * 100)))"></div>
-            </div>
-        }
-        else
-        {
-            <div class="empty-block">
-                <div class="empty-title">No spend to show yet</div>
-                <p class="empty-text">Once you create and fund a campaign, spend against budget will track here in real time.</p>
-            </div>
-        }
-    </div>
-
-    <div class="panel">
-        <div class="panel-title">Pending Actions</div>
-        <div class="panel-sub">Invites awaiting confirmation.</div>
-
+    <a href="/Proposals?status=Pending" class="metric-block tone-magenta" data-reveal>
         @if (Model.PendingProposalCount > 0)
         {
-            <div class="pending-count">
-                <span class="pending-number">@Model.PendingProposalCount</span>
-                <span class="pending-label">awaiting response</span>
-            </div>
-            <a href="/Proposals?status=Pending" class="btn btn-secondary" style="margin-top: 14px;">Review Proposals</a>
+            <span class="metric-flag"></span>
         }
-        else
-        {
-            <div class="empty-block">
-                <div class="empty-title">You're all caught up</div>
-                <p class="empty-text">Invites you send to creators will show up here until confirmed.</p>
-            </div>
-        }
-    </div>
+        <div class="metric-value" data-count-to="@Model.PendingProposalCount">0</div>
+        <div class="metric-label">Pending Proposals</div>
+        <div class="metric-context">@(Model.PendingProposalCount > 0 ? "Awaiting your confirmation" : "Nothing waiting on you")</div>
+    </a>
+
+    <a href="/Influencers/Shortlist" class="metric-block tone-mint" data-reveal>
+        <div class="metric-value" data-count-to="@Model.ShortlistedCount">0</div>
+        <div class="metric-label">Shortlisted</div>
+        <div class="metric-context">Creators saved</div>
+    </a>
 
 </section>
 
-<section class="panel recent-panel">
-    <div class="panel-title">Recent Campaigns</div>
-    <div class="panel-sub">Your most recently created campaigns.</div>
+<section class="dash-section" data-reveal>
+    <div class="dash-section-head">
+        <div>
+            <div class="dash-section-title">Campaign Workspace</div>
+            <div class="dash-section-sub">Where things stand, at a glance.</div>
+        </div>
+        <a href="/Campaigns" class="dash-section-link">View All Campaigns &rarr;</a>
+    </div>
 
-    @if (Model.HasAnyCampaigns)
+    @if (Model.CampaignWorkspace.Count > 0)
     {
-        <div style="margin-top: 18px;">
-            @foreach (var campaign in Model.RecentCampaigns)
+        <div class="campaign-workspace">
+            @foreach (var item in Model.CampaignWorkspace)
             {
-                <a href="/Campaigns/Detail/@campaign.Id" class="campaign-row">
-                    <span class="campaign-title">@campaign.Title</span>
-                    <span class="status-pill @campaign.Status.ToString().ToLowerInvariant()">@campaign.Status</span>
-                    <span class="campaign-budget">৳@campaign.Budget.ToString("N0")</span>
-                    <span class="campaign-date">@campaign.CreatedAt.ToString("MMM d, yyyy")</span>
+                var c = item.Campaign;
+                var accent = c.Status switch
+                {
+                    CampaignStatus.Draft => "linear-gradient(180deg, #ffb648, #ff8a3d)",
+                    CampaignStatus.Published => "linear-gradient(180deg, #2694ff, #6bb7ff)",
+                    CampaignStatus.Active => "linear-gradient(180deg, #12c48b, #5be2b4)",
+                    CampaignStatus.Completed => "linear-gradient(180deg, #9b2cff, #c98bff)",
+                    _ => "linear-gradient(180deg, #e0507a, #ff8fae)"
+                };
+                <a href="/Campaigns/Detail/@c.Id" class="campaign-row-card" style="--campaign-accent: @accent;">
+
+                    <div>
+                        <div class="campaign-row-title">@c.Title</div>
+                        <div class="campaign-row-meta">@(c.Platform ?? "Any platform") &middot; @(c.Niche ?? "General")</div>
+                        @if (item.CreatorNames.Count > 0)
+                        {
+                            <div class="campaign-row-creators">@string.Join(", ", item.CreatorNames.Take(2))@(item.CreatorNames.Count > 2 ? $" +{item.CreatorNames.Count - 2}" : "")</div>
+                        }
+                        else if (item.ApplicantCount > 0)
+                        {
+                            <div class="campaign-row-creators">@item.ApplicantCount proposal@(item.ApplicantCount == 1 ? "" : "s") sent</div>
+                        }
+                    </div>
+
+                    <span class="status-pill @c.Status.ToString().ToLowerInvariant()">@c.Status</span>
+
+                    <div>
+                        <div class="campaign-row-budget-value">৳@c.Budget.ToString("N0")</div>
+                        <div class="campaign-row-budget-label">Budget</div>
+                    </div>
+
+                    <div>
+                        <div class="campaign-row-progress-track">
+                            <div class="campaign-row-progress-fill" data-fill-to="@item.ProgressPercent" style="--campaign-accent: @accent;"></div>
+                        </div>
+                        <div class="campaign-row-progress-label">@item.ProgressPercent% complete</div>
+                    </div>
+
+                    <div>
+                        <div class="campaign-row-deadline-value">@(c.Deadline?.ToString("MMM d") ?? "No deadline")</div>
+                        <div class="campaign-row-deadline-label">@(c.Deadline.HasValue ? "Deadline" : "Open-ended")</div>
+                    </div>
+
                 </a>
             }
         </div>
     }
     else
     {
-        <div class="empty-block" style="margin-bottom: 24px;">
-            <div class="empty-title">No campaigns yet</div>
-            <p class="empty-text">Create your first campaign to start building your workspace.</p>
+        <div class="empty-block">
+            <div class="empty-title">Your campaign workspace is empty</div>
+            <p class="empty-text">Create your first campaign to define a budget, platform, and creative direction &mdash; then invite creators once discovery launches.</p>
             <a href="/Campaigns/Create" class="btn btn-primary" style="margin-top: 16px;">Create Campaign</a>
         </div>
     }
 </section>
+
+<section class="dash-section split-grid" data-reveal>
+
+    <div class="tinted-panel">
+        <div class="panel-title">What Needs Your Attention</div>
+        <div class="panel-sub">Real actions waiting on you &mdash; nothing more.</div>
+
+        @if (Model.AttentionItems.Count > 0)
+        {
+            <div class="attention-list">
+                @foreach (var item in Model.AttentionItems)
+                {
+                    <a href="@item.LinkUrl" class="attention-row">
+                        <div>
+                            <div class="attention-title">@item.Title</div>
+                            <div class="attention-detail">@item.Detail</div>
+                        </div>
+                        <span class="attention-action">@item.ActionLabel</span>
+                    </a>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="caught-up">
+                <div class="caught-up-title">You're all caught up</div>
+                <p class="caught-up-text">No proposals, milestones, or payments are waiting on you right now.</p>
+                <a href="/Influencers" class="btn btn-primary" style="margin-top: 16px;">Discover Creators</a>
+            </div>
+        }
+    </div>
+
+    <div class="panel">
+        <div class="panel-title">Collaboration Activity</div>
+        <div class="panel-sub">Live progress across active creator collaborations.</div>
+
+        @if (Model.CollaborationActivity.Count > 0)
+        {
+            <div class="collab-list">
+                @foreach (var item in Model.CollaborationActivity)
+                {
+                    var pct = item.TotalMilestones > 0 ? (int)Math.Round(item.PaidMilestones * 100.0 / item.TotalMilestones) : 0;
+                    <a href="/Collaborations/Detail/@item.Collaboration.Id" class="collab-row @(item.NeedsAttention ? "needs-attention" : "")">
+                        <div class="collab-row-head">
+                            <div>
+                                <div class="collab-row-name">@item.Collaboration.InfluencerProfile.FullName</div>
+                                <div class="collab-row-campaign">@item.Collaboration.Campaign.Title</div>
+                            </div>
+                            <div class="collab-row-milestones">@item.PaidMilestones/@item.TotalMilestones paid</div>
+                        </div>
+                        <div class="collab-row-track">
+                            <div class="collab-row-fill" data-fill-to="@pct"></div>
+                        </div>
+                        <div class="collab-row-due">
+                            @(item.NeedsAttention
+                                ? "Needs your review"
+                                : item.NextDueDate.HasValue
+                                    ? $"Next milestone due {item.NextDueDate.Value:MMM d}"
+                                    : "On track")
+                        </div>
+                    </a>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="empty-block">
+                <div class="empty-title">No active collaborations yet</div>
+                <p class="empty-text">Once a creator confirms a proposal, the collaboration will appear here with live milestone progress.</p>
+            </div>
+        }
+    </div>
+
+</section>
+
+<section class="dash-section" data-reveal>
+    <div class="dash-section-head">
+        <div>
+            <div class="dash-section-title">Discover Creators</div>
+            <div class="dash-section-sub">Fresh profiles from the Brandora creator marketplace.</div>
+        </div>
+        <a href="/Influencers" class="dash-section-link">Browse All Creators &rarr;</a>
+    </div>
+
+    @if (Model.CreatorPreview.Count > 0)
+    {
+        <div class="creator-preview-row">
+            @foreach (var creator in Model.CreatorPreview)
+            {
+                var hue = (creator.Id * 47) % 360;
+                var hue2 = (hue + 50) % 360;
+                <div class="mini-creator-card" style="--card-wash: radial-gradient(circle at 20% -10%, hsla(@(hue), 90%, 65%, .12), transparent 55%);">
+
+                    <div class="mini-creator-head">
+                        <div class="creator-avatar" style="width:44px;height:44px;font-size:14px;background: linear-gradient(135deg, hsl(@(hue)deg 75% 58%), hsl(@(hue2)deg 75% 48%));">
+                            @FollowerFormat.InitialsOf(creator.FullName)
+                        </div>
+                        <div>
+                            <div class="mini-creator-name">
+                                @creator.FullName
+                                @if (creator.Verified)
+                                {
+                                    <span class="verified-badge" style="margin-left:4px;">Verified</span>
+                                }
+                            </div>
+                            <div class="mini-creator-handle">@creator.PrimaryPlatform &middot; @creator.ContentNiche</div>
+                        </div>
+                    </div>
+
+                    <div class="mini-creator-figures">
+                        <div>
+                            <div class="mini-figure-value">@FollowerFormat.Format(creator.Followers)</div>
+                            <div class="mini-figure-label">Followers</div>
+                        </div>
+                        <div>
+                            <div class="mini-figure-value">@creator.EngagementRate.ToString("0.0")%</div>
+                            <div class="mini-figure-label">Engagement</div>
+                        </div>
+                    </div>
+
+                    <div class="mini-creator-actions">
+                        <a href="/Influencers/Profile/@creator.Id" class="mini-action-btn">Profile</a>
+
+                        <form method="post" action="/Influencers/ToggleShortlist" style="flex:1;">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="influencerId" value="@creator.Id" />
+                            <input type="hidden" name="returnUrl" value="/Dashboard" />
+                            <button type="submit" class="mini-action-btn @(Model.IsShortlisted(creator.Id) ? "is-saved" : "")" style="width:100%;">
+                                @(Model.IsShortlisted(creator.Id) ? "Saved" : "Shortlist")
+                            </button>
+                        </form>
+
+                        <a href="/Proposals/Invite?influencerId=@creator.Id" class="mini-action-btn is-primary">Invite</a>
+                    </div>
+
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="empty-block">
+            <div class="empty-title">No creators to show yet</div>
+            <p class="empty-text">Once influencers join Brandora, fresh profiles will appear here for you to discover and shortlist.</p>
+        </div>
+    }
+</section>
+
+<section class="dash-section" data-reveal>
+    <div class="smart-match-panel">
+        <div class="smart-match-head">
+            <div>
+                <div class="smart-match-eyebrow">Signature Feature</div>
+                <div class="smart-match-title">Smart Match</div>
+                <p class="smart-match-sub">Rule-based creator matching against your campaign's platform, niche, and engagement criteria &mdash; fully transparent, never a black box.</p>
+            </div>
+            @if (Model.SmartMatchCampaign is not null)
+            {
+                <a href="/Influencers/SmartMatch?campaignId=@Model.SmartMatchCampaign.Id" class="smart-match-link">View Full Match &rarr;</a>
+            }
+        </div>
+
+        @if (Model.SmartMatchCampaign is not null && Model.SmartMatchPreview.Count > 0)
+        {
+            <div class="smart-match-list">
+                @foreach (var result in Model.SmartMatchPreview)
+                {
+                    <a href="/Influencers/Profile/@result.Creator.Id" class="smart-match-row">
+                        <div class="match-score" style="--score: @result.Score;">
+                            <div class="match-score-inner">@result.Score%</div>
+                        </div>
+                        <div class="match-body">
+                            <div class="match-name">@result.Creator.FullName &middot; for "@Model.SmartMatchCampaign.Title"</div>
+                            <div class="match-reasons">@string.Join(" · ", result.Reasons)</div>
+                        </div>
+                    </a>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="smart-match-empty">
+                <div class="caught-up-title" style="color:#fff;">No matches to show yet</div>
+                <p>Set a platform or niche on a published campaign, and Smart Match will surface the creators who fit it best.</p>
+            </div>
+        }
+    </div>
+</section>
+
+<section class="dash-section" data-reveal>
+    <div class="dash-section-head">
+        <div>
+            <div class="dash-section-title">Finance Overview</div>
+            <div class="dash-section-sub">Spend, budget, and payment activity across your campaigns.</div>
+        </div>
+        <a href="/Payments" class="dash-section-link">Open Finance &rarr;</a>
+    </div>
+
+    <div class="finance-panel">
+        <div>
+            @if (Model.TotalBudget > 0)
+            {
+                <div class="finance-spend-value">৳@Model.TotalSpend.ToString("N0")</div>
+                <div class="finance-spend-of">of ৳@Model.TotalBudget.ToString("N0") budgeted</div>
+                <div class="finance-bar-track">
+                    <div class="finance-bar-fill" data-fill-to="@budgetPercent"></div>
+                </div>
+            }
+            else
+            {
+                <div class="finance-spend-value">৳0</div>
+                <div class="finance-spend-of">Fund a campaign to start tracking spend</div>
+            }
+
+            <div class="finance-substats">
+                <div>
+                    <div class="finance-substat-value">৳@Model.PendingPaymentsAmount.ToString("N0")</div>
+                    <div class="finance-substat-label">Pending</div>
+                </div>
+                <div>
+                    <div class="finance-substat-value">৳@Model.CompletedPaymentsAmount.ToString("N0")</div>
+                    <div class="finance-substat-label">Paid Out</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="finance-chart">
+            @foreach (var point in Model.SpendByMonth)
+            {
+                var pct = maxSpend > 0 ? (int)Math.Round((double)(point.Amount / maxSpend * 100)) : 0;
+                <div class="finance-chart-col">
+                    <div class="finance-chart-bar-track">
+                        <div class="finance-chart-bar-fill" data-fill-height-to="@pct"></div>
+                    </div>
+                    <div class="finance-chart-label">@point.Month</div>
+                </div>
+            }
+        </div>
+    </div>
+</section>
+
+<section class="dash-section split-grid" data-reveal>
+
+    <div class="list-panel">
+        <div class="panel-title">Next Up</div>
+        <div class="panel-sub">Deadlines and milestones ahead.</div>
+
+        @if (Model.UpcomingItems.Count > 0)
+        {
+            <div style="margin-top: 14px;">
+                @foreach (var item in Model.UpcomingItems)
+                {
+                    <a href="@item.LinkUrl" class="list-row">
+                        <div class="list-row-date">
+                            @item.Date.ToString("d")
+                            <span class="list-row-date-month">@item.Date.ToString("MMM")</span>
+                        </div>
+                        <div class="list-row-body">
+                            <div class="list-row-title">@item.Title</div>
+                            <div class="list-row-kind">@item.Kind</div>
+                        </div>
+                    </a>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="empty-block" style="margin-top: 14px;">
+                <div class="empty-title">Nothing scheduled</div>
+                <p class="empty-text">Campaign deadlines and milestone due dates will appear here as you set them.</p>
+            </div>
+        }
+    </div>
+
+    <div class="list-panel">
+        <div class="panel-title">Recent Activity</div>
+        <div class="panel-sub">What's happened across your workspace.</div>
+
+        @if (Model.RecentActivity.Count > 0)
+        {
+            <div style="margin-top: 14px;">
+                @foreach (var activity in Model.RecentActivity)
+                {
+                    <a href="/Notifications/Open/@activity.Id" class="list-row">
+                        <span class="activity-dot"></span>
+                        <div class="list-row-body">
+                            <div class="list-row-title">@activity.Title</div>
+                            <div class="list-row-kind">@activity.Body</div>
+                        </div>
+                        <span class="activity-row-time">@activity.CreatedAt.ToString("MMM d")</span>
+                    </a>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="empty-block" style="margin-top: 14px;">
+                <div class="empty-title">No activity yet</div>
+                <p class="empty-text">Proposals, milestones, and payments will show up here as they happen.</p>
+            </div>
+        }
+    </div>
+
+</section>
+
+@section Scripts {
+    <script>
+        (function () {
+            var revealEls = document.querySelectorAll('[data-reveal]');
+            var fillHeightEls = document.querySelectorAll('[data-fill-height-to]');
+
+            function runFillHeights(scope) {
+                scope.querySelectorAll('[data-fill-height-to]').forEach(function (el) {
+                    requestAnimationFrame(function () {
+                        el.style.height = el.dataset.fillHeightTo + '%';
+                    });
+                });
+            }
+
+            if (!('IntersectionObserver' in window)) {
+                revealEls.forEach(function (el) { el.classList.add('is-visible'); });
+                runFillHeights(document);
+                return;
+            }
+
+            var observer = new IntersectionObserver(function (entries) {
+                entries.forEach(function (entry) {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('is-visible');
+                        runFillHeights(entry.target);
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+
+            revealEls.forEach(function (el, index) {
+                el.style.transitionDelay = Math.min(index % 10, 6) * 45 + 'ms';
+                observer.observe(el);
+            });
+        })();
+    </script>
+}
