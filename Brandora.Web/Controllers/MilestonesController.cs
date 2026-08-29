@@ -1,13 +1,14 @@
 using Brandora.Web.Data;
 using Brandora.Web.Models.Domain;
 using Brandora.Web.Models.Milestones;
+using Brandora.Web.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace Brandora.Web.Controllers;
 
-public class MilestonesController(UserManager<ApplicationUser> userManager, ApplicationDbContext db) : BrandControllerBase(userManager, db)
+public class MilestonesController(UserManager<ApplicationUser> userManager, ApplicationDbContext db, NotificationService notifications) : BrandControllerBase(userManager, db)
 {
     public async Task<IActionResult> Create(int collaborationId)
     {
@@ -152,6 +153,13 @@ public class MilestonesController(UserManager<ApplicationUser> userManager, Appl
         milestone.ProofNotes = model.ProofNotes;
         milestone.Status = MilestoneStatus.Submitted;
 
+        notifications.Notify(
+            userManager.GetUserId(User)!,
+            "Milestone",
+            "Submission logged",
+            $"{milestone.Collaboration.InfluencerProfile.FullName}'s submission for \"{milestone.Title}\" is ready for review.",
+            $"/Milestones/Detail/{milestone.Id}");
+
         await db.SaveChangesAsync();
 
         return RedirectToAction("Detail", new { id = milestone.Id });
@@ -169,6 +177,7 @@ public class MilestonesController(UserManager<ApplicationUser> userManager, Appl
 
         var milestone = await db.Milestones
             .Include(m => m.Collaboration).ThenInclude(c => c.Campaign)
+            .Include(m => m.Collaboration).ThenInclude(c => c.InfluencerProfile)
             .FirstOrDefaultAsync(m => m.Id == id && m.Collaboration.Campaign.BrandProfileId == brand.Id);
 
         if (milestone is null)
@@ -179,6 +188,14 @@ public class MilestonesController(UserManager<ApplicationUser> userManager, Appl
         if (milestone.Status == MilestoneStatus.Submitted)
         {
             milestone.Status = MilestoneStatus.Approved;
+
+            notifications.Notify(
+                userManager.GetUserId(User)!,
+                "Milestone",
+                "Milestone approved",
+                $"\"{milestone.Title}\" for {milestone.Collaboration.InfluencerProfile.FullName} is approved and ready for payment.",
+                $"/Milestones/Detail/{milestone.Id}");
+
             await db.SaveChangesAsync();
         }
 
