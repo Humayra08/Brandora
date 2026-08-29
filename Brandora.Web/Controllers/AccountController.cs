@@ -115,7 +115,7 @@ public class AccountController(
 
         await signInManager.SignInAsync(user, isPersistent: false);
 
-        return RedirectToAction("Index", "Home");
+        return RedirectToAction("Index", "InfluencerDashboard");
     }
 
     public IActionResult Login()
@@ -142,7 +142,7 @@ public class AccountController(
             {
                 return user.Role == UserRole.Brand
                     ? RedirectToAction("Index", "Dashboard")
-                    : RedirectToAction("Index", "Home");
+                    : RedirectToAction("Index", "InfluencerDashboard");
             }
         }
 

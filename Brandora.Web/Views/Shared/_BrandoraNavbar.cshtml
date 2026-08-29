@@ -1,3 +1,17 @@
+@using Brandora.Web.Models.Domain
+@using Microsoft.AspNetCore.Identity
+@inject UserManager<ApplicationUser> UserManager
+@{
+    var dashboardUrl = "/Dashboard";
+    if (User.Identity?.IsAuthenticated == true)
+    {
+        var currentUser = await UserManager.GetUserAsync(User);
+        if (currentUser?.Role == UserRole.Influencer)
+        {
+            dashboardUrl = "/InfluencerDashboard";
+        }
+    }
+}
 <div class="navbar-fixed">
 <nav class="navbar">
 
@@ -44,7 +58,7 @@
                 <button type="submit" class="login-btn">Log Out</button>
             </form>
 
-            <a href="/Dashboard" class="get-started-btn">
+            <a href="@dashboardUrl" class="get-started-btn">
                 Dashboard
             </a>
         }

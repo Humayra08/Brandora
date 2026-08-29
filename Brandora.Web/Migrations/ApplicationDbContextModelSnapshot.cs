@@ -136,7 +136,7 @@ namespace Brandora.Web.Migrations
                     b.HasIndex("UserId")
                         .IsUnique();
 
-                    b.ToTable("BrandProfiles");
+                    b.ToTable("BrandProfiles", (string)null);
                 });
 
             modelBuilder.Entity("Brandora.Web.Models.Domain.Campaign", b =>
@@ -191,7 +191,7 @@ namespace Brandora.Web.Migrations
 
                     b.HasIndex("BrandProfileId");
 
-                    b.ToTable("Campaigns");
+                    b.ToTable("Campaigns", (string)null);
                 });
 
             modelBuilder.Entity("Brandora.Web.Models.Domain.Collaboration", b =>
@@ -226,7 +226,7 @@ namespace Brandora.Web.Migrations
                     b.HasIndex("ProposalId")
                         .IsUnique();
 
-                    b.ToTable("Collaborations");
+                    b.ToTable("Collaborations", (string)null);
                 });
 
             modelBuilder.Entity("Brandora.Web.Models.Domain.Conversation", b =>
@@ -257,7 +257,7 @@ namespace Brandora.Web.Migrations
 
                     b.HasIndex("InfluencerProfileId");
 
-                    b.ToTable("Conversations");
+                    b.ToTable("Conversations", (string)null);
                 });
 
             modelBuilder.Entity("Brandora.Web.Models.Domain.InfluencerProfile", b =>
@@ -319,7 +319,7 @@ namespace Brandora.Web.Migrations
                     b.HasIndex("UserId")
                         .IsUnique();
 
-                    b.ToTable("InfluencerProfiles");
+                    b.ToTable("InfluencerProfiles", (string)null);
                 });
 
             modelBuilder.Entity("Brandora.Web.Models.Domain.Message", b =>
@@ -359,7 +359,7 @@ namespace Brandora.Web.Migrations
 
                     b.HasIndex("SenderUserId");
 
-                    b.ToTable("Messages");
+                    b.ToTable("Messages", (string)null);
                 });
 
             modelBuilder.Entity("Brandora.Web.Models.Domain.Milestone", b =>
@@ -403,7 +403,7 @@ namespace Brandora.Web.Migrations
 
                     b.HasIndex("CollaborationId");
 
-                    b.ToTable("Milestones");
+                    b.ToTable("Milestones", (string)null);
                 });
 
             modelBuilder.Entity("Brandora.Web.Models.Domain.Notification", b =>
@@ -443,7 +443,7 @@ namespace Brandora.Web.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Notifications");
+                    b.ToTable("Notifications", (string)null);
                 });
 
             modelBuilder.Entity("Brandora.Web.Models.Domain.Payment", b =>
@@ -479,7 +479,7 @@ namespace Brandora.Web.Migrations
 
                     b.HasIndex("MilestoneId");
 
-                    b.ToTable("Payments");
+                    b.ToTable("Payments", (string)null);
                 });
 
             modelBuilder.Entity("Brandora.Web.Models.Domain.Proposal", b =>
@@ -525,7 +525,7 @@ namespace Brandora.Web.Migrations
 
                     b.HasIndex("InfluencerProfileId");
 
-                    b.ToTable("Proposals");
+                    b.ToTable("Proposals", (string)null);
                 });
 
             modelBuilder.Entity("Brandora.Web.Models.Domain.ShortlistEntry", b =>
@@ -552,7 +552,7 @@ namespace Brandora.Web.Migrations
                     b.HasIndex("BrandProfileId", "InfluencerProfileId")
                         .IsUnique();
 
-                    b.ToTable("ShortlistEntries");
+                    b.ToTable("ShortlistEntries", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
