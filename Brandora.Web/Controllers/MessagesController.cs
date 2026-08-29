@@ -1,14 +1,16 @@
 using Brandora.Web.Data;
 using Brandora.Web.Models.Domain;
+using Brandora.Web.Models.Messages;
+using Brandora.Web.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace Brandora.Web.Controllers;
 
-public class MessagesController(UserManager<ApplicationUser> userManager, ApplicationDbContext db) : BrandControllerBase(userManager, db)
+public class MessagesController(UserManager<ApplicationUser> userManager, ApplicationDbContext db, MediaUploadService mediaUploads) : BrandControllerBase(userManager, db)
 {
-    public async Task<IActionResult> Index(int? campaignId)
+    public async Task<IActionResult> Index(int? campaignId, string? search)
     {
         var brand = await GetCurrentBrandAsync();
         if (brand is null)
@@ -29,11 +31,31 @@ public class MessagesController(UserManager<ApplicationUser> userManager, Applic
             .Include(c => c.Messages)
             .ToListAsync();
 
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            conversations = conversations.Where(c =>
+                c.InfluencerProfile.FullName.Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                (c.Campaign != null && c.Campaign.Title.Contains(search, StringComparison.OrdinalIgnoreCase))
+            ).ToList();
+        }
+
+        var userId = userManager.GetUserId(User);
+        var unreadCounts = conversations.ToDictionary(
+            c => c.Id,
+            c => c.Messages.Count(m => m.SenderUserId != userId && m.ReadAt == null));
+
         var ordered = conversations
             .OrderByDescending(c => c.Messages.Count > 0 ? c.Messages.Max(m => m.SentAt) : c.CreatedAt)
             .ToList();
 
-        return View(ordered);
+        return View(new InboxViewModel
+        {
+            Conversations = ordered,
+            UnreadCounts = unreadCounts,
+            Search = search,
+            TotalCount = ordered.Count,
+            TotalUnread = unreadCounts.Values.Sum()
+        });
     }
 
     public async Task<IActionResult> Conversation(int id)
@@ -72,7 +94,8 @@ public class MessagesController(UserManager<ApplicationUser> userManager, Applic
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Send(int conversationId, string body)
+    [RequestSizeLimit(100_000_000)]
+    public async Task<IActionResult> Send(int conversationId, string? body, IFormFile? mediaFile)
     {
         var brand = await GetCurrentBrandAsync();
         if (brand is null)
@@ -86,13 +109,33 @@ public class MessagesController(UserManager<ApplicationUser> userManager, Applic
             return NotFound();
         }
 
-        if (!string.IsNullOrWhiteSpace(body))
+        string? mediaUrl = null;
+        string? mediaType = null;
+
+        if (mediaFile is { Length: > 0 })
+        {
+            var (url, type, error) = await mediaUploads.SaveMediaAsync(mediaFile, "messages");
+            if (error is not null)
+            {
+                TempData["MessageError"] = error;
+                return RedirectToAction("Conversation", new { id = conversationId });
+            }
+
+            mediaUrl = url;
+            mediaType = type;
+        }
+
+        var trimmedBody = body?.Trim() ?? string.Empty;
+
+        if (!string.IsNullOrEmpty(trimmedBody) || mediaUrl is not null)
         {
             db.Messages.Add(new Message
             {
                 ConversationId = conversation.Id,
                 SenderUserId = userManager.GetUserId(User)!,
-                Body = body.Trim()
+                Body = trimmedBody,
+                MediaUrl = mediaUrl,
+                MediaType = mediaType
             });
 
             await db.SaveChangesAsync();
