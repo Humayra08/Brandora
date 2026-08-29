@@ -324,6 +324,11 @@
         .status-pill.pending { background: #fff2e2; color: #b5680a; }
         .status-pill.accepted { background: #e2faf1; color: #0d9c6c; }
         .status-pill.rejected { background: #fde8ea; color: #c22540; }
+        .status-pill.submitted { background: #e4f0ff; color: #1265d6; }
+        .status-pill.approved { background: #e2faf1; color: #0d9c6c; }
+        .status-pill.revisionrequested { background: #fff2e2; color: #b5680a; }
+        .status-pill.paid { background: #f3e8ff; color: #7a1fd6; }
+        .status-pill.failed { background: #fde8ea; color: #c22540; }
 
         .form-errors {
             margin-bottom: 18px;
@@ -524,10 +529,7 @@
 
             <a href="/Messages" class="side-nav-item @(activeNav == "Messages" ? "is-active" : "")">Messages</a>
 
-            <span class="side-nav-item is-soon">
-                Finance
-                <span class="soon-tag">Soon</span>
-            </span>
+            <a href="/Payments" class="side-nav-item @(activeNav == "Finance" ? "is-active" : "")">Finance</a>
 
             <span class="side-nav-item is-soon">
                 Settings
