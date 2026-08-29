@@ -19,7 +19,7 @@ public class MediaUploadService(IWebHostEnvironment env)
     private const long MaxImageBytes = 15L * 1024 * 1024;
     private const long MaxVideoBytes = 80L * 1024 * 1024;
 
-    public async Task<(string? Url, string? Type, string? Error)> SaveCampaignMediaAsync(IFormFile file)
+    public async Task<(string? Url, string? Type, string? Error)> SaveMediaAsync(IFormFile file, string folder)
     {
         if (!AllowedTypes.TryGetValue(file.ContentType, out var ext))
         {
@@ -34,21 +34,21 @@ public class MediaUploadService(IWebHostEnvironment env)
             return (null, null, isVideo ? "Video must be 80MB or smaller." : "Image must be 15MB or smaller.");
         }
 
-        var folder = Path.Combine(env.WebRootPath, "uploads", "campaigns");
-        Directory.CreateDirectory(folder);
+        var dir = Path.Combine(env.WebRootPath, "uploads", folder);
+        Directory.CreateDirectory(dir);
 
         var fileName = $"{Guid.NewGuid():N}{ext}";
-        var fullPath = Path.Combine(folder, fileName);
+        var fullPath = Path.Combine(dir, fileName);
 
         await using (var stream = new FileStream(fullPath, FileMode.Create))
         {
             await file.CopyToAsync(stream);
         }
 
-        return ($"/uploads/campaigns/{fileName}", isVideo ? "video" : "image", null);
+        return ($"/uploads/{folder}/{fileName}", isVideo ? "video" : "image", null);
     }
 
-    public void DeleteCampaignMedia(string? mediaUrl)
+    public void DeleteMedia(string? mediaUrl)
     {
         if (string.IsNullOrEmpty(mediaUrl))
         {

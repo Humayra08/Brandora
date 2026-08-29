@@ -108,7 +108,7 @@ public class CampaignsController(UserManager<ApplicationUser> userManager, Appli
 
         if (model.MediaFile is { Length: > 0 })
         {
-            var (url, type, error) = await mediaUploads.SaveCampaignMediaAsync(model.MediaFile);
+            var (url, type, error) = await mediaUploads.SaveMediaAsync(model.MediaFile, "campaigns");
             if (error is not null)
             {
                 ModelState.AddModelError(string.Empty, error);
@@ -201,14 +201,14 @@ public class CampaignsController(UserManager<ApplicationUser> userManager, Appli
 
         if (model.RemoveMedia && campaign.MediaUrl is not null)
         {
-            mediaUploads.DeleteCampaignMedia(campaign.MediaUrl);
+            mediaUploads.DeleteMedia(campaign.MediaUrl);
             campaign.MediaUrl = null;
             campaign.MediaType = null;
         }
 
         if (model.MediaFile is { Length: > 0 })
         {
-            var (url, type, error) = await mediaUploads.SaveCampaignMediaAsync(model.MediaFile);
+            var (url, type, error) = await mediaUploads.SaveMediaAsync(model.MediaFile, "campaigns");
             if (error is not null)
             {
                 ModelState.AddModelError(string.Empty, error);
@@ -217,7 +217,7 @@ public class CampaignsController(UserManager<ApplicationUser> userManager, Appli
                 return View("Create", model);
             }
 
-            mediaUploads.DeleteCampaignMedia(campaign.MediaUrl);
+            mediaUploads.DeleteMedia(campaign.MediaUrl);
             campaign.MediaUrl = url;
             campaign.MediaType = type;
         }
