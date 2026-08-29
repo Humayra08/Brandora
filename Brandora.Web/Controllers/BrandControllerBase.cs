@@ -19,6 +19,9 @@ public abstract class BrandControllerBase(UserManager<ApplicationUser> userManag
         {
             ViewData["CompanyName"] = brand.CompanyName;
             ViewData["UnreadNotifications"] = await db.Notifications.CountAsync(n => n.UserId == userId && !n.IsRead);
+            ViewData["ProfilePictureUrl"] = brand.ProfilePictureUrl;
+            ViewData["ContactFullName"] = brand.ContactFullName;
+            ViewData["Email"] = await db.Users.Where(u => u.Id == userId).Select(u => u.Email).FirstOrDefaultAsync();
         }
 
         return brand;

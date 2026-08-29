@@ -16,8 +16,16 @@ public class MediaUploadService(IWebHostEnvironment env)
         ["video/quicktime"] = ".mov"
     };
 
+    private static readonly Dictionary<string, string> AllowedImageTypes = new()
+    {
+        ["image/jpeg"] = ".jpg",
+        ["image/png"] = ".png",
+        ["image/webp"] = ".webp"
+    };
+
     private const long MaxImageBytes = 15L * 1024 * 1024;
     private const long MaxVideoBytes = 80L * 1024 * 1024;
+    private const long MaxProfilePictureBytes = 5L * 1024 * 1024;
 
     public async Task<(string? Url, string? Type, string? Error)> SaveMediaAsync(IFormFile file, string folder)
     {
@@ -46,6 +54,32 @@ public class MediaUploadService(IWebHostEnvironment env)
         }
 
         return ($"/uploads/{folder}/{fileName}", isVideo ? "video" : "image", null);
+    }
+
+    public async Task<(string? Url, string? Error)> SaveProfilePictureAsync(IFormFile file)
+    {
+        if (!AllowedImageTypes.TryGetValue(file.ContentType, out var ext))
+        {
+            return (null, "Upload a JPG, PNG, or WEBP image.");
+        }
+
+        if (file.Length > MaxProfilePictureBytes)
+        {
+            return (null, "Image must be 5MB or smaller.");
+        }
+
+        var dir = Path.Combine(env.WebRootPath, "uploads", "profiles");
+        Directory.CreateDirectory(dir);
+
+        var fileName = $"{Guid.NewGuid():N}{ext}";
+        var fullPath = Path.Combine(dir, fileName);
+
+        await using (var stream = new FileStream(fullPath, FileMode.Create))
+        {
+            await file.CopyToAsync(stream);
+        }
+
+        return ($"/uploads/profiles/{fileName}", null);
     }
 
     public void DeleteMedia(string? mediaUrl)

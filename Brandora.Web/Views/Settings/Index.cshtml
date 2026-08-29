@@ -134,6 +134,100 @@
         justify-content: flex-end;
     }
 
+    .picture-row {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+
+        padding-bottom: 22px;
+        margin-bottom: 4px;
+        border-bottom: 1px solid #f0f1f7;
+    }
+
+    .picture-preview {
+        position: relative;
+        overflow: hidden;
+        flex-shrink: 0;
+
+        width: 72px;
+        height: 72px;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        border-radius: 50%;
+        background: linear-gradient(135deg, #a326ff, #236eff);
+
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 700;
+        font-size: 24px;
+        color: #ffffff;
+
+        box-shadow: 0 0 0 4px #f3e8ff;
+    }
+
+    .picture-preview img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .picture-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .picture-action-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .picture-action-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+
+        height: 36px;
+        padding: 0 16px;
+
+        border-radius: 9px;
+        border: 1px solid #dde1f0;
+        background: #ffffff;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 12.5px;
+        font-weight: 600;
+        color: #2a3157;
+
+        cursor: pointer;
+        transition: .2s;
+    }
+
+    .picture-action-btn:hover,
+    .picture-action-btn:focus-visible {
+        border-color: transparent;
+        box-shadow: 0 0 0 1.5px #9b2cff, 0 8px 18px rgba(140,60,255,.15);
+        outline: none;
+    }
+
+    .picture-action-btn.is-remove {
+        color: #c22540;
+    }
+
+    .picture-action-btn.is-remove:hover,
+    .picture-action-btn.is-remove:focus-visible {
+        box-shadow: 0 0 0 1.5px #e0507a, 0 8px 18px rgba(220,50,70,.12);
+    }
+
+    .picture-hint {
+        font-family: 'Inter', sans-serif;
+        font-size: 11.5px;
+        color: #9096b3;
+    }
+
     .banner {
         margin-bottom: 18px;
         padding: 13px 16px;
@@ -201,8 +295,36 @@
             </div>
         }
 
-        <form method="post" action="/Settings/Update">
+        <form method="post" action="/Settings/Update" enctype="multipart/form-data" id="brandProfileForm">
             @Html.AntiForgeryToken()
+
+            <div class="picture-row">
+                <div class="picture-preview" id="picturePreview">
+                    @if (!string.IsNullOrEmpty(Model.ExistingProfilePictureUrl))
+                    {
+                        <img src="@Model.ExistingProfilePictureUrl" alt="Profile picture" id="picturePreviewImg" />
+                    }
+                    else
+                    {
+                        <span id="picturePreviewInitial">@(string.IsNullOrEmpty(Model.CompanyName) ? "B" : Model.CompanyName[..1].ToUpperInvariant())</span>
+                    }
+                </div>
+
+                <div class="picture-actions">
+                    <div class="picture-action-row">
+                        <label for="ProfilePictureFile" class="picture-action-btn" tabindex="0">
+                            @(string.IsNullOrEmpty(Model.ExistingProfilePictureUrl) ? "Upload Profile Picture" : "Change Picture")
+                        </label>
+                        <input type="file" id="ProfilePictureFile" name="ProfilePictureFile" accept="image/jpeg,image/png,image/webp" hidden />
+
+                        @if (!string.IsNullOrEmpty(Model.ExistingProfilePictureUrl))
+                        {
+                            <button type="submit" name="RemoveProfilePicture" value="true" class="picture-action-btn is-remove">Remove Picture</button>
+                        }
+                    </div>
+                    <p class="picture-hint">JPG, PNG, or WEBP &middot; up to 5MB</p>
+                </div>
+            </div>
 
             <div class="form-fields">
 
@@ -299,3 +421,51 @@
     </div>
 
 </div>
+
+@section Scripts {
+    <script>
+        (function () {
+            var fileInput = document.getElementById('ProfilePictureFile');
+            var label = document.querySelector('label[for="ProfilePictureFile"]');
+            var preview = document.getElementById('picturePreview');
+            var form = document.getElementById('brandProfileForm');
+
+            if (!fileInput || !preview) return;
+
+            var MAX_BYTES = 5 * 1024 * 1024;
+            var ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+
+            if (label) {
+                label.addEventListener('keydown', function (e) {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        fileInput.click();
+                    }
+                });
+            }
+
+            fileInput.addEventListener('change', function () {
+                var file = fileInput.files && fileInput.files[0];
+                if (!file) return;
+
+                if (ALLOWED_TYPES.indexOf(file.type) === -1) {
+                    alert('Please choose a JPG, PNG, or WEBP image.');
+                    fileInput.value = '';
+                    return;
+                }
+
+                if (file.size > MAX_BYTES) {
+                    alert('That image is larger than 5MB. Please choose a smaller file.');
+                    fileInput.value = '';
+                    return;
+                }
+
+                var reader = new FileReader();
+                reader.onload = function (e) {
+                    preview.innerHTML = '<img src="' + e.target.result + '" alt="Selected profile picture" />';
+                };
+                reader.readAsDataURL(file);
+            });
+        })();
+    </script>
+}

@@ -77,5 +77,69 @@
 
     </div>
 
+    <button type="button" class="nav-burger" id="navBurger" aria-label="Open menu" aria-expanded="false">
+        <span></span>
+        <span></span>
+        <span></span>
+    </button>
+
 </nav>
+
+<div class="nav-mobile-panel" id="navMobilePanel">
+
+    <a href="/#how-it-works">Platform</a>
+    <a href="/#brands">For Brands</a>
+    <a href="/#influencers">For Influencers</a>
+    <a href="#">Pricing</a>
+    <a href="#">Resources</a>
+
+    <div class="nav-mobile-actions">
+        @if (User.Identity?.IsAuthenticated == true)
+        {
+            <form method="post" action="/Account/Logout" class="logout-form">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="login-btn">Log Out</button>
+            </form>
+
+            <a href="@dashboardUrl" class="get-started-btn">
+                Dashboard
+            </a>
+        }
+        else
+        {
+            <a href="/Account/Login" class="login-btn">
+                Log In
+            </a>
+
+            <a href="/Account/Register" class="get-started-btn">
+                Get Started
+            </a>
+        }
+    </div>
+
 </div>
+</div>
+
+<script>
+    (function () {
+        var burger = document.getElementById('navBurger');
+        var panel = document.getElementById('navMobilePanel');
+        if (!burger || !panel) return;
+
+        burger.addEventListener('click', function () {
+            var isOpen = panel.classList.toggle('is-open');
+            burger.classList.toggle('is-open', isOpen);
+            burger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+            burger.setAttribute('aria-label', isOpen ? 'Close menu' : 'Open menu');
+        });
+
+        panel.querySelectorAll('a').forEach(function (link) {
+            link.addEventListener('click', function () {
+                panel.classList.remove('is-open');
+                burger.classList.remove('is-open');
+                burger.setAttribute('aria-expanded', 'false');
+                burger.setAttribute('aria-label', 'Open menu');
+            });
+        });
+    })();
+</script>
