@@ -1,0 +1,1461 @@
+@model Brandora.Web.Models.Dashboard.InfluencerDashboardViewModel
+@using Brandora.Web.Models.Domain
+@using Brandora.Web.Models.Influencers
+@{
+    ViewData["Title"] = "Dashboard";
+    Layout = null;
+
+    string[] palette = { "#e2231a", "#6a2ea0", "#e2136e", "#415fff", "#0d9c6c", "#b5680a", "#9b2cff" };
+    string ColorForBrand(string name)
+    {
+        if (string.IsNullOrEmpty(name)) return palette[0];
+        var hash = 0;
+        foreach (var ch in name) hash = hash * 31 + ch;
+        return palette[Math.Abs(hash) % palette.Length];
+    }
+
+    string PlatformIcon(string? platform) => (platform ?? "").ToLowerInvariant() switch
+    {
+        var p when p.Contains("facebook") => "bi-facebook",
+        var p when p.Contains("tiktok") => "bi-tiktok",
+        var p when p.Contains("instagram") => "bi-instagram",
+        var p when p.Contains("youtube") => "bi-youtube",
+        var p when p.Contains("twitter") || p.Contains("x") => "bi-twitter-x",
+        _ => "bi-people"
+    };
+
+    var niches = (Model.Profile.ContentNiche ?? string.Empty)
+        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        .ToList();
+
+    var maxEarn = Model.EarningsSeries.Count > 0 ? Model.EarningsSeries.Max(p => p.Amount) : 0;
+
+    const int chartW = 700;
+    const int chartH = 130;
+    var points = new List<(double X, double Y, decimal Amount, string Label)>();
+    for (var i = 0; i < Model.EarningsSeries.Count; i++)
+    {
+        var pt = Model.EarningsSeries[i];
+        var x = Model.EarningsSeries.Count == 1 ? 0 : chartW * i / (double)(Model.EarningsSeries.Count - 1);
+        var y = maxEarn == 0 ? chartH - 10 : chartH - 10 - (double)(pt.Amount / maxEarn) * (chartH - 20);
+        points.Add((x, y, pt.Amount, pt.Label));
+    }
+
+    var linePath = points.Count == 0 ? "" : "M " + string.Join(" L ", points.Select(p => $"{p.X:0.##},{p.Y:0.##}"));
+    var areaPath = points.Count == 0 ? "" : linePath + $" L {points[^1].X:0.##},{chartH} L {points[0].X:0.##},{chartH} Z";
+
+    string FormatK(decimal v) => v <= 0 ? "0" : (v / 1000m).ToString("0.#") + "K";
+
+    decimal niceMax = 0;
+    if (maxEarn > 0)
+    {
+        var raw = (double)maxEarn;
+        var magnitude = Math.Pow(10, Math.Floor(Math.Log10(raw)));
+        niceMax = (decimal)(Math.Ceiling(raw / magnitude) * magnitude);
+    }
+    var yAxisLabels = new List<string> { FormatK(niceMax), FormatK(niceMax * 2 / 3), FormatK(niceMax / 3), "0" };
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>@ViewData["Title"] - Brandora</title>
+
+    <link rel="icon" type="image/png" href="~/images/brandora-icon.png" />
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+          rel="stylesheet">
+
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Playfair+Display:wght@500;600;700&display=swap"
+          rel="stylesheet">
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'DM Sans', sans-serif;
+            background: #ffffff;
+            color: #20283a;
+            overflow-x: hidden;
+        }
+
+        /* ==============================
+           SIDEBAR
+        ============================== */
+
+        .sidebar {
+            position: fixed;
+            width: 260px;
+            height: 100vh;
+            left: 0;
+            top: 0;
+            padding: 22px 12px;
+            background:
+                radial-gradient(circle at 0% 30%, rgba(139, 34, 255, .18), transparent 30%),
+                linear-gradient(180deg, #070c22 0%, #0a1028 100%);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid rgba(255,255,255,.06);
+            z-index: 1000;
+
+            transition: transform .25s ease;
+        }
+
+        .sidebar.is-hidden {
+            transform: translateX(-100%);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            padding: 0 12px 24px;
+        }
+
+        .brand-logo-img {
+            height: 46px;
+            width: auto;
+            display: block;
+        }
+
+        .sidebar-menu {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .sidebar-menu li {
+            margin-bottom: 2px;
+        }
+
+        .sidebar-menu a {
+            color: #d9dce8;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 10px 14px;
+            border-radius: 13px;
+            font-size: 15px;
+            transition: .25s ease;
+        }
+
+        .sidebar-menu a:hover {
+            background: rgba(255,255,255,.06);
+            color: white;
+        }
+
+        .sidebar-menu .active {
+            color: white;
+            background:
+                linear-gradient(100deg,
+                    rgba(163, 24, 238, .95),
+                    rgba(22, 124, 234, .85));
+            box-shadow:
+                inset 0 0 0 1px rgba(255,255,255,.2),
+                0 8px 25px rgba(106, 37, 213, .25);
+        }
+
+        .notification-count {
+            margin-left: auto;
+            width: 26px;
+            height: 26px;
+            display: grid;
+            place-items: center;
+            border-radius: 50%;
+            background: #6825c7;
+            font-size: 13px;
+        }
+
+        /* Sidebar Profile */
+
+        .sidebar-bottom {
+            margin-top: auto;
+            border-top: 1px solid rgba(255,255,255,.08);
+            padding: 18px 12px 4px;
+        }
+
+        .sidebar-user {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding-bottom: 18px;
+        }
+
+        .avatar-circle {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            flex-shrink: 0;
+            background: linear-gradient(145deg, #c93cff, #4e38ff 55%, #159cff);
+            color: #ffffff;
+            font-family: 'DM Sans', sans-serif;
+            font-weight: 700;
+        }
+
+        .avatar-circle.small {
+            width: 46px;
+            height: 46px;
+            font-size: 15px;
+            border: 2px solid rgba(255,255,255,.12);
+        }
+
+        .avatar-circle.main {
+            width: 56px;
+            height: 56px;
+            font-size: 18px;
+            border: 2px solid #ffffff;
+            box-shadow: 0 0 0 1px #dce0ea;
+        }
+
+        .sidebar-user h6 {
+            margin: 0 0 5px;
+            font-size: 15px;
+        }
+
+        .sidebar-user span {
+            color: #afb4c6;
+            font-size: 13px;
+        }
+
+        .logout-btn {
+            width: 100%;
+            padding: 14px;
+            border: 0;
+            border-top: 1px solid rgba(255,255,255,.08);
+            background: transparent;
+            color: #dce0ea;
+            text-align: left;
+            font-size: 15px;
+            cursor: pointer;
+        }
+
+        .logout-btn i {
+            margin-right: 12px;
+            font-size: 18px;
+        }
+
+        .logout-btn:hover {
+            color: white;
+        }
+
+        /* ==============================
+           MAIN CONTENT
+        ============================== */
+
+        .main-content {
+            margin-left: 260px;
+            min-height: 100vh;
+            padding: 24px 26px;
+            background: #ffffff;
+
+            transition: margin-left .25s ease;
+        }
+
+        .main-content.sidebar-hidden {
+            margin-left: 0;
+        }
+
+        /* Header */
+
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .menu-btn {
+            border: 0;
+            background: transparent;
+            font-size: 26px;
+            color: #20283a;
+        }
+
+        .top-actions {
+            display: flex;
+            align-items: center;
+            gap: 22px;
+        }
+
+        .bell {
+            position: relative;
+            font-size: 23px;
+        }
+
+        .bell-badge {
+            position: absolute;
+            top: -9px;
+            right: -10px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #7624d6;
+            color: white;
+            font-size: 12px;
+            display: grid;
+            place-items: center;
+        }
+
+        .browse-btn {
+            border: 0;
+            color: white;
+            padding: 9px 16px;
+            border-radius: 9px;
+            font-size: 13px;
+            font-weight: 600;
+            background: linear-gradient(105deg, #a326ff, #236eff, #18a9ff);
+            transition: .25s;
+        }
+
+        .browse-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .browse-btn i {
+            margin-left: 10px;
+        }
+
+        /* ==============================
+           PROFILE SUMMARY
+        ============================== */
+
+        .profile-summary {
+            display: flex;
+            align-items: center;
+            padding: 6px 8px 18px;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+
+        .profile-info {
+            min-width: 220px;
+        }
+
+        .profile-name-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .profile-name {
+            font-family: 'Playfair Display', serif;
+            font-size: 22px;
+            font-weight: 600;
+        }
+
+        .verified {
+            color: #2379d7;
+            font-size: 15px;
+        }
+
+        .profile-role {
+            color: #566176;
+            margin-top: 2px;
+            font-size: 14px;
+        }
+
+        .profile-location {
+            color: #475166;
+            margin-top: 3px;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .profile-stats {
+            display: flex;
+            align-items: center;
+            margin-left: auto;
+            gap: 6px;
+        }
+
+        .profile-stat {
+            min-width: 92px;
+            padding: 0 18px;
+            border-right: 1px solid #dce0ea;
+        }
+
+        .profile-stat:last-child {
+            border-right: 0;
+        }
+
+        .profile-stat small {
+            color: #566176;
+            display: block;
+            margin-bottom: 4px;
+            font-size: 13px;
+        }
+
+        .profile-stat strong {
+            font-size: 17px;
+        }
+
+        .profile-stat i {
+            margin-left: 6px;
+            color: #1c72ca;
+            font-size: 15px;
+        }
+
+        .profile-tags {
+            width: 100%;
+            padding-left: 70px;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .tag {
+            padding: 5px 12px;
+            border-radius: 20px;
+            border: 1px solid #dce0e9;
+            background: rgba(255,255,255,.5);
+            color: #495369;
+            font-size: 13px;
+        }
+
+        /* ==============================
+           CARDS (matches home page card styling)
+        ============================== */
+
+        .glass-card {
+            background: #ffffff;
+            border: 1px solid #dce7ff;
+            border-radius: 15px;
+        }
+
+        .glass-card.stat-card {
+            position: relative;
+            overflow: hidden;
+
+            background:
+                radial-gradient(
+                    circle at 100% 15%,
+                    rgba(140,60,255,.05),
+                    transparent 45%
+                ),
+                radial-gradient(
+                    circle at 100% 100%,
+                    rgba(20,120,255,.04),
+                    transparent 50%
+                ),
+                #ffffff;
+        }
+
+        /* ==============================
+           STAT CARDS
+        ============================== */
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 22px;
+            margin-bottom: 28px;
+        }
+
+        .stat-card {
+            min-height: 130px;
+            padding: 18px 16px;
+            position: relative;
+        }
+
+        .stat-top {
+            display: flex;
+            align-items: center;
+            gap: 13px;
+        }
+
+        .stat-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            display: grid;
+            place-items: center;
+            font-size: 18px;
+        }
+
+        .purple-icon {
+            background: linear-gradient(135deg, #efe6ff, #d6ccff);
+            color: #6322d4;
+        }
+
+        .pink-icon {
+            background: #f8e8ef;
+            color: #db4593;
+        }
+
+        .blue-icon {
+            background: #e2eefb;
+            color: #176fc8;
+        }
+
+        .stat-title {
+            color: #475166;
+            font-size: 12px;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .stat-link {
+            position: absolute;
+            bottom: 16px;
+            right: 16px;
+            text-decoration: none;
+            font-size: 12px;
+        }
+
+        .stat-link.purple {
+            color: #8d25d7;
+        }
+
+        /* ==============================
+           CONTENT CARDS
+        ============================== */
+
+        .content-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 22px;
+            margin-bottom: 28px;
+        }
+
+        .section-card {
+            padding: 20px;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+
+        .section-header h4 {
+            font-family: 'Playfair Display', serif;
+            font-size: 18px;
+            margin: 0;
+            font-weight: 600;
+        }
+
+        .view-all {
+            text-decoration: none;
+            color: #2369b9;
+            font-size: 13px;
+        }
+
+        /* Campaign Row */
+
+        .campaign-row,
+        .milestone-row {
+            display: grid;
+            align-items: center;
+            gap: 13px;
+            padding: 9px;
+            margin-bottom: 7px;
+            border-radius: 13px;
+            background: #ffffff;
+            border: 1px solid #dce8ff;
+            transition: box-shadow .2s ease;
+        }
+
+        .campaign-row:hover,
+        .milestone-row:hover {
+            box-shadow: 0 6px 16px rgba(35,72,160,.08);
+        }
+
+        .campaign-row {
+            grid-template-columns: 48px 1.4fr 1.15fr 80px 18px;
+        }
+
+        .milestone-row {
+            grid-template-columns: 48px 1fr 90px;
+        }
+
+        .brand-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 9px;
+            flex-shrink: 0;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            color: #ffffff;
+            font-family: 'DM Sans', sans-serif;
+            font-weight: 700;
+            font-size: 14px;
+        }
+
+        .campaign-name {
+            font-weight: 600;
+            margin-bottom: 6px;
+            font-size: 14px;
+        }
+
+        .campaign-type {
+            font-size: 13px;
+            color: #606b80;
+        }
+
+        .progress-text {
+            font-size: 13px;
+            margin-bottom: 9px;
+        }
+
+        .progress {
+            height: 6px;
+            background: #dfe3ec;
+            border-radius: 10px;
+        }
+
+        .progress-bar {
+            background: linear-gradient(90deg, #9d24dc, #1c9be8);
+            border-radius: 10px;
+        }
+
+        .amount {
+            text-align: right;
+            font-weight: 600;
+        }
+
+        .arrow {
+            font-size: 20px;
+            text-align: right;
+        }
+
+        .milestone-title {
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .milestone-desc,
+        .milestone-date {
+            font-size: 13px;
+            color: #5d677b;
+        }
+
+        .milestone-amount {
+            text-align: right;
+            font-weight: 600;
+        }
+
+        .status {
+            display: inline-block;
+            margin-top: 9px;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+        }
+
+        .status.pending {
+            background: #f8f0e3;
+            color: #a05e12;
+        }
+
+        .status.progress-status {
+            background: #e7eef8;
+            color: #2362a9;
+        }
+
+        .status.approved {
+            background: #e2faf1;
+            color: #0d9c6c;
+        }
+
+        .empty-note {
+            padding: 26px 10px;
+            text-align: center;
+            color: #6b7290;
+            font-size: 13px;
+        }
+
+        /* ==============================
+           EARNINGS
+        ============================== */
+
+        .earnings-card {
+            padding: 20px;
+        }
+
+        .earnings-wrapper {
+            display: grid;
+            grid-template-columns: 360px 1fr;
+            gap: 35px;
+            align-items: start;
+        }
+
+        .earnings-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 12px;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #eef0f8;
+        }
+
+        .earnings-header h4 {
+            font-family: 'Playfair Display', serif;
+            margin: 0;
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .month-select {
+            border: 1px solid #d9deea;
+            background: rgba(255,255,255,.55);
+            padding: 8px 14px;
+            border-radius: 9px;
+            color: #485268;
+        }
+
+        .earning-values {
+            display: flex;
+            gap: 40px;
+        }
+
+        .earning-item small {
+            display: block;
+            color: #596277;
+            margin-bottom: 8px;
+        }
+
+        .earning-item strong {
+            font-size: 22px;
+        }
+
+        .earning-item:first-child strong {
+            color: #1265d6;
+        }
+
+        .paid {
+            color: #1265d6;
+        }
+
+        .pending-amount {
+            color: #1265d6;
+        }
+
+        /* Chart */
+
+        .chart-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .chart-yaxis {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+
+            height: 130px;
+            padding-bottom: 1px;
+
+            color: #9096b3;
+            font-size: 12px;
+            text-align: right;
+        }
+
+        .chart-area {
+            flex: 1;
+            height: 130px;
+            position: relative;
+            border-bottom: 1px solid #cfd6e3;
+            border-left: 1px solid #cfd6e3;
+            margin-top: 10px;
+        }
+
+        .chart-svg {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            bottom: 0;
+        }
+
+        .chart-labels {
+            display: flex;
+            justify-content: space-between;
+            margin: 8px 0 0 44px;
+            color: #596277;
+            font-size: 13px;
+        }
+
+        /* ==============================
+           RESPONSIVE
+        ============================== */
+
+        @@media(max-width: 1400px) {
+            .stats-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+
+            .profile-stat {
+                padding: 0 18px;
+                min-width: 125px;
+            }
+        }
+
+        @@media(max-width: 1100px) {
+            .sidebar {
+                width: 220px;
+            }
+
+            .main-content {
+                margin-left: 220px;
+            }
+
+            .content-grid,
+            .earnings-wrapper {
+                grid-template-columns: 1fr;
+            }
+
+            .profile-stats {
+                margin-left: 0;
+            }
+
+            .profile-tags {
+                padding-left: 0;
+            }
+        }
+
+        @@media(max-width: 768px) {
+            .sidebar {
+                width: 75px;
+                padding: 20px 8px;
+            }
+
+            .brand {
+                justify-content: center;
+            }
+
+            .sidebar-menu a span,
+            .sidebar-user > div,
+            .logout-btn span {
+                display: none;
+            }
+
+            .sidebar-menu a {
+                justify-content: center;
+                padding: 16px;
+            }
+
+            .notification-count {
+                display: none;
+            }
+
+            .sidebar-user {
+                justify-content: center;
+            }
+
+            .logout-btn {
+                text-align: center;
+            }
+
+            .logout-btn i {
+                margin: 0;
+            }
+
+            .main-content {
+                margin-left: 75px;
+                padding: 18px 14px;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .profile-summary {
+                align-items: flex-start;
+            }
+
+            .profile-stats {
+                width: 100%;
+                overflow-x: auto;
+            }
+
+            .profile-stat {
+                padding: 0 15px;
+                min-width: 140px;
+            }
+
+            .campaign-row {
+                grid-template-columns: 55px 1fr;
+            }
+
+            .campaign-row > :nth-child(n+3) {
+                grid-column: 2;
+            }
+
+            .milestone-row {
+                grid-template-columns: 60px 1fr;
+            }
+
+            .milestone-amount {
+                grid-column: 2;
+                text-align: left;
+            }
+
+            .top-actions {
+                gap: 12px;
+            }
+
+            .browse-btn {
+                padding: 8px 12px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- ================= SIDEBAR ================= -->
+
+    <aside class="sidebar" id="dashboardSidebar">
+
+        <div class="brand">
+            <img src="~/images/Brandora.png" alt="Brandora" class="brand-logo-img" />
+        </div>
+
+        <ul class="sidebar-menu">
+
+            <li>
+                <a href="/InfluencerDashboard" class="active">
+                    <span>Dashboard</span>
+                </a>
+            </li>
+
+            <li>
+                <a href="#">
+                    <span>Browse Campaigns</span>
+                </a>
+            </li>
+
+            <li>
+                <a href="#">
+                    <span>My Proposals</span>
+                </a>
+            </li>
+
+            <li>
+                <a href="#">
+                    <span>Active Campaigns</span>
+                </a>
+            </li>
+
+            <li>
+                <a href="#">
+                    <span>Chat</span>
+                </a>
+            </li>
+
+            <li>
+                <a href="#">
+                    <span>Earnings</span>
+                </a>
+            </li>
+
+            <li>
+                <a href="#">
+                    <span>Social Accounts</span>
+                </a>
+            </li>
+
+            <li>
+                <a href="#">
+                    <span>Upload Proof</span>
+                </a>
+            </li>
+
+            <li>
+                <a href="#">
+                    <span>Payments</span>
+                </a>
+            </li>
+
+            <li>
+                <a href="#">
+                    <span>Profile Settings</span>
+                </a>
+            </li>
+
+        </ul>
+
+
+        <!-- Bottom User Profile -->
+
+        <div class="sidebar-bottom">
+
+            <div class="sidebar-user">
+                <div class="avatar-circle small">@FollowerFormat.InitialsOf(Model.Profile.FullName)</div>
+
+                <div>
+                    <h6>@Model.Profile.FullName</h6>
+                    <span>Influencer</span>
+                </div>
+            </div>
+
+            <form method="post" action="/Account/Logout">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="logout-btn">
+                    <i class="bi bi-box-arrow-right"></i>
+                    <span>Logout</span>
+                </button>
+            </form>
+
+        </div>
+
+    </aside>
+
+
+    <!-- ================= MAIN ================= -->
+
+    <main class="main-content" id="dashboardMain">
+
+        <!-- TOP BAR -->
+
+        <div class="topbar">
+
+            <button class="menu-btn" id="menuToggleBtn" aria-label="Toggle sidebar" type="button">
+                <i class="bi bi-list"></i>
+            </button>
+
+            <div class="top-actions">
+
+                <div class="bell">
+                    <i class="bi bi-bell"></i>
+                </div>
+
+                <a href="#">
+                    <button class="browse-btn">
+                        Browse Campaigns
+                        <i class="bi bi-arrow-right"></i>
+                    </button>
+                </a>
+
+            </div>
+
+        </div>
+
+
+        <!-- PROFILE SUMMARY -->
+
+        <section class="profile-summary">
+
+            <div class="avatar-circle main">@FollowerFormat.InitialsOf(Model.Profile.FullName)</div>
+
+            <div class="profile-info">
+
+                <div class="profile-name-row">
+                    <span class="profile-name">@Model.Profile.FullName</span>
+                    @if (Model.Profile.Verified)
+                    {
+                        <i class="bi bi-patch-check-fill verified"></i>
+                    }
+                </div>
+
+                <div class="profile-role">
+                    @(string.IsNullOrWhiteSpace(Model.Profile.ContentNiche) ? "Influencer" : Model.Profile.ContentNiche)
+                </div>
+
+                @if (!string.IsNullOrWhiteSpace(Model.Profile.Location))
+                {
+                    <div class="profile-location">
+                        <i class="bi bi-geo-alt"></i>
+                        @Model.Profile.Location
+                    </div>
+                }
+
+            </div>
+
+
+            <div class="profile-stats">
+
+                <div class="profile-stat">
+                    <small>Followers</small>
+                    <strong>
+                        @FollowerFormat.Format(Model.Profile.Followers)
+                        <i class="bi @PlatformIcon(Model.Profile.PrimaryPlatform)"></i>
+                    </strong>
+                </div>
+
+                <div class="profile-stat">
+                    <small>Engagement Rate</small>
+                    <strong>
+                        @Model.Profile.EngagementRate.ToString("0.#")%
+                        <i class="bi bi-graph-up-arrow"></i>
+                    </strong>
+                </div>
+
+            </div>
+
+
+            <div class="profile-tags">
+                @foreach (var niche in niches)
+                {
+                    <span class="tag">@niche</span>
+                }
+            </div>
+
+        </section>
+
+
+        <!-- ================= STATISTICS ================= -->
+
+        <section class="stats-grid">
+
+            <div class="glass-card stat-card">
+
+                <div class="stat-top">
+
+                    <div class="stat-icon purple-icon">
+                        <i class="bi bi-rocket-takeoff"></i>
+                    </div>
+
+                    <div>
+                        <div class="stat-title">Active Campaigns</div>
+                        <div class="stat-value">@Model.ActiveCampaignCount</div>
+                    </div>
+
+                </div>
+
+                <a href="#active-campaigns" class="stat-link purple">
+                    View all <i class="bi bi-arrow-right"></i>
+                </a>
+
+            </div>
+
+
+            <div class="glass-card stat-card">
+
+                <div class="stat-top">
+
+                    <div class="stat-icon pink-icon">
+                        <i class="bi bi-bar-chart-line"></i>
+                    </div>
+
+                    <div>
+                        <div class="stat-title">Pending Earnings</div>
+                        <div class="stat-value">৳@Model.PendingEarnings.ToString("N0")</div>
+                    </div>
+
+                </div>
+
+                <a href="#earnings" class="stat-link purple">
+                    View earnings <i class="bi bi-arrow-right"></i>
+                </a>
+
+            </div>
+
+
+            <div class="glass-card stat-card">
+
+                <div class="stat-top">
+
+                    <div class="stat-icon blue-icon">
+                        <i class="bi bi-calendar-check"></i>
+                    </div>
+
+                    <div>
+                        <div class="stat-title">Completed Campaigns</div>
+                        <div class="stat-value">@Model.CompletedCampaignCount</div>
+                    </div>
+
+                </div>
+
+                <a href="#" class="stat-link purple">
+                    View history <i class="bi bi-arrow-right"></i>
+                </a>
+
+            </div>
+
+
+            <div class="glass-card stat-card">
+
+                <div class="stat-top">
+
+                    <div class="stat-icon purple-icon">
+                        <i class="bi bi-wallet"></i>
+                    </div>
+
+                    <div>
+                        <div class="stat-title">Total Earnings</div>
+                        <div class="stat-value">৳@Model.TotalEarnings.ToString("N0")</div>
+                    </div>
+
+                </div>
+
+                <a href="#" class="stat-link purple">
+                    View details <i class="bi bi-arrow-right"></i>
+                </a>
+
+            </div>
+
+        </section>
+
+
+        <!-- ================= ACTIVE + MILESTONES ================= -->
+
+        <section class="content-grid">
+
+
+            <!-- ACTIVE CAMPAIGNS -->
+
+            <div class="glass-card section-card" id="active-campaigns">
+
+                <div class="section-header">
+                    <h4>Active Campaigns</h4>
+
+                    <a href="#" class="view-all">
+                        View all <i class="bi bi-arrow-right"></i>
+                    </a>
+                </div>
+
+                @if (Model.ActiveCampaigns.Count > 0)
+                {
+                    @foreach (var c in Model.ActiveCampaigns)
+                    {
+                        <div class="campaign-row">
+
+                            <div class="brand-icon" style="background: @ColorForBrand(c.BrandName);">@FollowerFormat.InitialsOf(c.BrandName)</div>
+
+                            <div>
+                                <div class="campaign-name">@c.CampaignTitle</div>
+                                <div class="campaign-type">@(c.Platform ?? "Brandora") Campaign</div>
+                            </div>
+
+                            <div>
+                                <div class="progress-text">@c.ProgressPercent% Complete</div>
+
+                                <div class="progress">
+                                    <div class="progress-bar" style="width:@(c.ProgressPercent)%"></div>
+                                </div>
+                            </div>
+
+                            <div class="amount">৳@c.TotalValue.ToString("N0")</div>
+
+                            <div class="arrow">
+                                <i class="bi bi-chevron-right"></i>
+                            </div>
+
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="empty-note">No active campaigns yet. Once a brand accepts your proposal, it'll show up here.</div>
+                }
+
+            </div>
+
+
+            <!-- UPCOMING MILESTONES -->
+
+            <div class="glass-card section-card">
+
+                <div class="section-header">
+                    <h4>Upcoming Milestones</h4>
+
+                    <a href="#" class="view-all">
+                        View all <i class="bi bi-arrow-right"></i>
+                    </a>
+                </div>
+
+                @if (Model.UpcomingMilestones.Count > 0)
+                {
+                    @foreach (var m in Model.UpcomingMilestones)
+                    {
+                        var statusClass = m.Status == MilestoneStatus.Submitted ? "progress-status" : "pending";
+                        var statusText = m.Status == MilestoneStatus.Submitted ? "In Progress" : m.Status.ToString();
+
+                        <div class="milestone-row">
+
+                            <div class="brand-icon" style="background: @ColorForBrand(m.BrandName);">@FollowerFormat.InitialsOf(m.BrandName)</div>
+
+                            <div>
+                                <div class="milestone-title">@m.CampaignTitle</div>
+                                <div class="milestone-desc">@m.MilestoneTitle</div>
+                                @if (m.DueDate.HasValue)
+                                {
+                                    <div class="milestone-date">
+                                        <i class="bi bi-calendar3"></i>
+                                        @m.DueDate.Value.ToString("d MMM yyyy")
+                                    </div>
+                                }
+                            </div>
+
+                            <div class="milestone-amount">
+                                ৳@m.Amount.ToString("N0")
+                                <br>
+                                <span class="status @statusClass">@statusText</span>
+                            </div>
+
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="empty-note">Nothing due. Milestones from your active collaborations will appear here.</div>
+                }
+
+            </div>
+
+        </section>
+
+
+        <!-- ================= EARNINGS ================= -->
+
+        <section class="glass-card earnings-card" id="earnings">
+
+            <div class="earnings-wrapper">
+
+
+                <div>
+
+                    <div class="earnings-header">
+
+                        <h4>Earnings Overview</h4>
+
+                        <button class="month-select">
+                            This Month
+                            <i class="bi bi-chevron-down ms-2"></i>
+                        </button>
+
+                    </div>
+
+
+                    <div class="earning-values">
+
+                        <div class="earning-item">
+                            <small>Total Earnings</small>
+                            <strong>৳@Model.MonthTotal.ToString("N0")</strong>
+                        </div>
+
+                        <div class="earning-item">
+                            <small>Paid</small>
+                            <strong class="paid">৳@Model.MonthPaid.ToString("N0")</strong>
+                        </div>
+
+                        <div class="earning-item">
+                            <small>Pending</small>
+                            <strong class="pending-amount">৳@Model.MonthPending.ToString("N0")</strong>
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- SVG Chart -->
+
+                <div>
+
+                    <div class="chart-row">
+
+                        @if (maxEarn > 0)
+                        {
+                            <div class="chart-yaxis">
+                                @foreach (var label in yAxisLabels)
+                                {
+                                    <span>@label</span>
+                                }
+                            </div>
+                        }
+
+                        <div class="chart-area">
+
+                            @if (maxEarn > 0)
+                            {
+                                <svg class="chart-svg"
+                                     viewBox="0 0 @chartW @chartH"
+                                     preserveAspectRatio="none">
+
+                                    <defs>
+
+                                        <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="0%" stop-color="#7b25e0" stop-opacity=".28" />
+                                            <stop offset="100%" stop-color="#7b25e0" stop-opacity=".02" />
+                                        </linearGradient>
+
+                                        <linearGradient id="lineGradient" x1="0" y1="0" x2="1" y2="0">
+                                            <stop offset="0%" stop-color="#237fe0" />
+                                            <stop offset="45%" stop-color="#8c28df" />
+                                            <stop offset="100%" stop-color="#6823d2" />
+                                        </linearGradient>
+
+                                    </defs>
+
+                                    <path d="@areaPath" fill="url(#areaGradient)" />
+                                    <path d="@linePath" fill="none" stroke="url(#lineGradient)" stroke-width="3" />
+
+                                    @foreach (var p in points)
+                                    {
+                                        <circle cx="@p.X.ToString("0.##")" cy="@p.Y.ToString("0.##")" r="4" fill="#6e27d8" />
+                                    }
+
+                                </svg>
+                            }
+
+                        </div>
+
+                    </div>
+
+                    @if (maxEarn > 0)
+                    {
+                        <div class="chart-labels">
+                            @foreach (var p in points)
+                            {
+                                <span>@p.Label</span>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="empty-note">No earnings yet this month.</div>
+                    }
+
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        (function () {
+            var menuBtn = document.getElementById('menuToggleBtn');
+            var sidebar = document.getElementById('dashboardSidebar');
+            var main = document.getElementById('dashboardMain');
+
+            if (!menuBtn || !sidebar || !main) return;
+
+            menuBtn.addEventListener('click', function () {
+                sidebar.classList.toggle('is-hidden');
+                main.classList.toggle('sidebar-hidden');
+            });
+        })();
+    </script>
+
+</body>
+</html>
