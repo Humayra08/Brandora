@@ -1,0 +1,326 @@
+@model Brandora.Web.Models.Domain.Milestone
+@using Brandora.Web.Models.Domain
+@using Brandora.Web.Models.Influencers
+@{
+    ViewData["Title"] = Model.Title;
+    ViewData["ActiveNav"] = "Campaigns";
+    Layout = "_AppLayout";
+    var collaboration = Model.Collaboration;
+    var hue = (collaboration.InfluencerProfile.Id * 47) % 360;
+}
+
+@section Styles {
+
+    .detail-shell {
+        max-width: 720px;
+        margin: 0 auto;
+
+        animation: fade-up .4s ease both;
+    }
+
+    .detail-crumb {
+        font-family: 'Inter', sans-serif;
+        font-size: 12.5px;
+        font-weight: 500;
+        color: #8189a8;
+    }
+
+    .milestone-header {
+        margin-top: 14px;
+        padding: 28px 30px;
+
+        border-radius: 18px;
+        background: #ffffff;
+        border: 1px solid #eaecf5;
+
+        display: flex;
+        align-items: flex-start;
+        gap: 18px;
+    }
+
+    .milestone-title {
+        font-family: 'Playfair Display', serif;
+        font-weight: 600;
+        font-size: 22px;
+        color: #171d3d;
+    }
+
+    .milestone-sub {
+        margin-top: 4px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 13px;
+        color: #6b7290;
+    }
+
+    .milestone-card {
+        margin-top: 18px;
+        padding: 28px 30px;
+
+        border-radius: 18px;
+        background: #ffffff;
+        border: 1px solid #eaecf5;
+    }
+
+    .milestone-figures {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+    }
+
+    .figure-value {
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 800;
+        font-size: 20px;
+        color: #171d3d;
+    }
+
+    .figure-label {
+        margin-top: 3px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 10.5px;
+        font-weight: 600;
+        letter-spacing: .3px;
+        text-transform: uppercase;
+        color: #9096b3;
+    }
+
+    .milestone-block {
+        margin-top: 20px;
+        padding-top: 20px;
+        border-top: 1px solid #f0f1f7;
+    }
+
+    .milestone-block-label {
+        font-family: 'Inter', sans-serif;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: .3px;
+        text-transform: uppercase;
+        color: #9096b3;
+    }
+
+    .milestone-block-text {
+        margin-top: 8px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 13.5px;
+        line-height: 1.7;
+        color: #3c4363;
+
+        white-space: pre-wrap;
+    }
+
+    .proof-link {
+        display: inline-flex;
+        margin-top: 8px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 13.5px;
+        font-weight: 600;
+        color: #4d9dff;
+
+        word-break: break-all;
+    }
+
+    .proof-link:hover {
+        text-decoration: underline;
+    }
+
+    .action-panel {
+        margin-top: 18px;
+        padding: 26px 30px;
+
+        border-radius: 18px;
+        border: 1px solid #eaecf5;
+        background:
+            radial-gradient(circle at 100% 0%, rgba(155,44,255,.06), transparent 50%),
+            #ffffff;
+    }
+
+    .action-title {
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 700;
+        font-size: 15px;
+        color: #171d3d;
+    }
+
+    .action-sub {
+        margin-top: 4px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 12.5px;
+        color: #8189a8;
+    }
+
+    .action-buttons {
+        margin-top: 18px;
+
+        display: flex;
+        gap: 12px;
+    }
+
+    .action-buttons form,
+    .action-buttons a {
+        flex: 1;
+    }
+
+    .action-buttons .btn {
+        width: 100%;
+        height: 50px;
+    }
+
+    .outcome-banner {
+        margin-top: 18px;
+        padding: 20px 24px;
+
+        border-radius: 16px;
+
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
+    }
+
+    .outcome-banner.approved,
+    .outcome-banner.paid {
+        background: #e2faf1;
+        border: 1px solid #b9f1dd;
+    }
+
+    .outcome-banner.revision {
+        background: #fff2e2;
+        border: 1px solid #ffdcae;
+    }
+
+    .outcome-text {
+        font-family: 'Inter', sans-serif;
+        font-size: 13.5px;
+        font-weight: 600;
+        color: #2a3157;
+    }
+
+}
+
+<div class="detail-shell">
+
+    <div class="detail-crumb"><a href="/Collaborations/Detail/@collaboration.Id">@collaboration.InfluencerProfile.FullName</a> / @Model.Title</div>
+
+    <div class="milestone-header">
+        <div class="creator-avatar" style="background: linear-gradient(135deg, hsl(@(hue)deg 75% 58%), hsl(@((hue + 45) % 360)deg 75% 48%));">
+            @FollowerFormat.InitialsOf(collaboration.InfluencerProfile.FullName)
+        </div>
+        <div>
+            <div class="milestone-title">@Model.Title</div>
+            <div class="milestone-sub">@collaboration.InfluencerProfile.FullName &middot; @collaboration.Campaign.Title</div>
+        </div>
+        <span class="status-pill @Model.Status.ToString().ToLowerInvariant()" style="margin-left:auto;">@Model.Status</span>
+    </div>
+
+    <div class="milestone-card">
+
+        <div class="milestone-figures">
+            <div>
+                <div class="figure-value">৳@Model.Amount.ToString("N0")</div>
+                <div class="figure-label">Amount</div>
+            </div>
+            <div>
+                <div class="figure-value">@(Model.DueDate?.ToString("MMM d, yyyy") ?? "No due date")</div>
+                <div class="figure-label">Due Date</div>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(Model.Description))
+        {
+            <div class="milestone-block">
+                <div class="milestone-block-label">Description</div>
+                <p class="milestone-block-text">@Model.Description</p>
+            </div>
+        }
+
+        @if (Model.Status != MilestoneStatus.Pending && !string.IsNullOrEmpty(Model.ProofUrl))
+        {
+            <div class="milestone-block">
+                <div class="milestone-block-label">Submitted Proof</div>
+                <a href="@Model.ProofUrl" target="_blank" rel="noopener" class="proof-link">@Model.ProofUrl</a>
+                @if (!string.IsNullOrEmpty(Model.ProofNotes))
+                {
+                    <p class="milestone-block-text">@Model.ProofNotes</p>
+                }
+            </div>
+        }
+
+    </div>
+
+    @if (Model.Status == MilestoneStatus.Pending)
+    {
+        <div class="action-panel">
+            <div class="action-title">Awaiting submission</div>
+            <p class="action-sub">Once @collaboration.InfluencerProfile.FullName shares their post or content, log it here to move this milestone forward.</p>
+            <div class="action-buttons">
+                <a href="/Milestones/LogSubmission/@Model.Id" class="btn btn-primary">Log Submission</a>
+            </div>
+        </div>
+    }
+    else if (Model.Status == MilestoneStatus.Submitted)
+    {
+        <div class="action-panel">
+            <div class="action-title">Review submission</div>
+            <p class="action-sub">Check the proof above, then approve it or request a revision.</p>
+            <div class="action-buttons">
+                <form method="post" action="/Milestones/Approve/@Model.Id">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-primary">Approve</button>
+                </form>
+                <form method="post" action="/Milestones/RequestRevision/@Model.Id">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-ghost">Request Revision</button>
+                </form>
+            </div>
+        </div>
+    }
+    else if (Model.Status == MilestoneStatus.RevisionRequested)
+    {
+        <div class="outcome-banner revision">
+            <span class="outcome-text">A revision was requested for this milestone.</span>
+            <a href="/Milestones/LogSubmission/@Model.Id" class="btn btn-secondary">Log New Submission</a>
+        </div>
+    }
+    else if (Model.Status == MilestoneStatus.Approved && Model.Payment is null)
+    {
+        <div class="outcome-banner approved">
+            <span class="outcome-text">Approved &mdash; ready to release payment.</span>
+            <form method="post" action="/Payments/Release">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="milestoneId" value="@Model.Id" />
+                <button type="submit" class="btn btn-primary">Release Payment</button>
+            </form>
+        </div>
+    }
+    else if (Model.Status == MilestoneStatus.Approved && Model.Payment is { Status: PaymentStatus.Pending })
+    {
+        <div class="outcome-banner revision">
+            <span class="outcome-text">Payment released &mdash; confirm once ৳@Model.Amount.ToString("N0") has cleared via bKash or Nagad.</span>
+            <form method="post" action="/Payments/Confirm/@Model.Payment.Id">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-primary">Confirm Payment</button>
+            </form>
+        </div>
+    }
+    else if (Model.Status == MilestoneStatus.Paid)
+    {
+        <div class="outcome-banner paid">
+            <span class="outcome-text">
+                Paid &mdash; ৳@Model.Amount.ToString("N0")
+                @if (Model.Payment?.PaidAt is not null)
+                {
+                    <text> on @Model.Payment.PaidAt.Value.ToString("MMM d, yyyy")</text>
+                }
+            </span>
+            <a href="/Payments" class="btn btn-secondary">View in Finance</a>
+        </div>
+    }
+
+</div>
