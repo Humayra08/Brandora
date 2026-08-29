@@ -1,4 +1,4 @@
-@model List<Brandora.Web.Models.Domain.Conversation>
+@model Brandora.Web.Models.Messages.InboxViewModel
 @using Brandora.Web.Models.Influencers
 @{
     ViewData["Title"] = "Messages";
@@ -9,6 +9,11 @@
 @section Styles {
 
     .page-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 20px;
+
         animation: fade-up .4s ease both;
     }
 
@@ -26,35 +31,147 @@
         color: #6b7290;
     }
 
-    .inbox-list {
+    .unread-pill {
+        margin-left: 8px;
+        padding: 2px 9px;
+
+        border-radius: 20px;
+        background: linear-gradient(105deg, #d0369b, #8b2cff 55%, #236eff);
+
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 700;
+        font-size: 11px;
+        color: #fff;
+    }
+
+    .search-bar {
         margin-top: 24px;
 
         display: flex;
-        flex-direction: column;
+        align-items: center;
         gap: 10px;
 
-        max-width: 720px;
+        animation: fade-up .45s ease both;
+    }
+
+    .search-input-wrap {
+        position: relative;
+        width: 320px;
+    }
+
+    .search-input-wrap svg {
+        position: absolute;
+        left: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #a3a8c3;
+        pointer-events: none;
+    }
+
+    .search-input {
+        width: 100%;
+        height: 44px;
+
+        padding: 0 16px 0 40px;
+
+        border-radius: 12px;
+        border: 1px solid #e2e5f2;
+        background: #ffffff;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 13.5px;
+        color: #2a3157;
+
+        outline: none;
+        transition: border-color .2s ease, box-shadow .2s ease;
+    }
+
+    .search-input:focus {
+        border-color: #a978ff;
+        box-shadow: 0 0 0 3px rgba(155,44,255,.1);
+    }
+
+    .inbox-list {
+        margin-top: 22px;
+
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+
+        max-width: 760px;
     }
 
     .inbox-row {
+        position: relative;
+        overflow: hidden;
+
         display: flex;
         align-items: center;
         gap: 16px;
 
         padding: 18px 22px;
 
-        border-radius: 16px;
+        border-radius: 18px;
         background: #ffffff;
         border: 1px solid #eaecf5;
 
-        transition: transform .2s ease, box-shadow .2s ease;
+        transition: transform .4s cubic-bezier(.22,1,.36,1), box-shadow .4s ease;
 
-        animation: fade-up .5s ease both;
+        opacity: 0;
+        transform: translateY(22px);
+    }
+
+    .inbox-row.is-visible {
+        opacity: 1;
+        transform: translateY(0);
+        transition: opacity .55s ease, transform .55s cubic-bezier(.22,1,.36,1), box-shadow .4s ease;
+    }
+
+    .inbox-row.has-unread {
+        border-color: hsla(var(--row-hue), 80%, 60%, .35);
+    }
+
+    .inbox-row::before,
+    .inbox-row::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity .35s ease;
+    }
+
+    .inbox-row::before {
+        background: var(--row-wash);
+    }
+
+    .inbox-row::after {
+        border-radius: inherit;
+        padding: 1.5px;
+        background: var(--row-border);
+        -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+        -webkit-mask-composite: xor;
+        mask-composite: exclude;
     }
 
     a.inbox-row:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 14px 30px rgba(30,34,90,.08);
+        transform: translateY(-4px) scale(1.008);
+        box-shadow: 0 22px 42px rgba(30,34,90,.12);
+    }
+
+    a.inbox-row:hover::before,
+    a.inbox-row:hover::after {
+        opacity: 1;
+    }
+
+    .inbox-row > * {
+        position: relative;
+        z-index: 1;
+    }
+
+    .inbox-row:hover .creator-avatar {
+        transform: scale(1.08) rotate(-3deg);
     }
 
     .inbox-body {
@@ -72,6 +189,38 @@
         font-weight: 700;
         font-size: 15px;
         color: #171d3d;
+    }
+
+    .inbox-name-left {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+    }
+
+    .inbox-name-left span:first-child {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .inbox-unread-dot {
+        flex-shrink: 0;
+        min-width: 18px;
+        height: 18px;
+        padding: 0 5px;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        border-radius: 10px;
+        background: linear-gradient(105deg, #d0369b, #8b2cff 55%, #236eff);
+
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 700;
+        font-size: 10px;
+        color: #fff;
     }
 
     .inbox-time {
@@ -104,6 +253,16 @@
         white-space: nowrap;
     }
 
+    .inbox-snippet.is-unread {
+        color: #2a3157;
+        font-weight: 600;
+    }
+
+    @@media(max-width: 560px) {
+        .page-head { flex-direction: column; }
+        .search-input-wrap { width: 100%; }
+    }
+
 }
 
 <a href="/Dashboard" class="back-to-dashboard">
@@ -112,44 +271,115 @@
 </a>
 
 <div class="page-head">
-    <h1 class="page-title">Messages</h1>
-    <p class="page-sub">@Model.Count conversation@(Model.Count == 1 ? "" : "s") with creators.</p>
+    <div>
+        <h1 class="page-title">
+            Messages
+            @if (Model.TotalUnread > 0)
+            {
+                <span class="unread-pill">@Model.TotalUnread new</span>
+            }
+        </h1>
+        <p class="page-sub">@Model.TotalCount conversation@(Model.TotalCount == 1 ? "" : "s") with creators.</p>
+    </div>
+    <a href="/Influencers" class="btn btn-primary">New Message</a>
 </div>
 
-@if (Model.Count > 0)
+<form method="get" action="/Messages" class="search-bar">
+    <div class="search-input-wrap">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <input type="text" name="search" class="search-input" placeholder="Search creators or campaigns..." value="@Model.Search" />
+    </div>
+    <button type="submit" class="btn btn-secondary">Search</button>
+    @if (!string.IsNullOrEmpty(Model.Search))
+    {
+        <a href="/Messages" class="btn btn-ghost">Clear</a>
+    }
+</form>
+
+@if (Model.TotalCount > 0)
 {
     <div class="inbox-list">
-        @foreach (var conversation in Model)
+        @foreach (var conversation in Model.Conversations)
         {
             var hue = (conversation.InfluencerProfile.Id * 47) % 360;
+            var hue2 = (hue + 50) % 360;
             var lastMessage = conversation.Messages.OrderByDescending(m => m.SentAt).FirstOrDefault();
-            <a href="/Messages/Conversation/@conversation.Id" class="inbox-row">
+            var unread = Model.UnreadFor(conversation.Id);
+            var snippet = lastMessage is null
+                ? "No messages yet — say hello."
+                : (!string.IsNullOrEmpty(lastMessage.MediaUrl) && string.IsNullOrEmpty(lastMessage.Body)
+                    ? (lastMessage.MediaType == "video" ? "Sent a video" : "Sent a photo")
+                    : lastMessage.Body);
+            <a href="/Messages/Conversation/@conversation.Id" class="inbox-row @(unread > 0 ? "has-unread" : "")" data-reveal
+               style="--row-hue: @hue; --row-wash: radial-gradient(circle at 15% -10%, hsla(@(hue), 90%, 65%, .14), transparent 55%), radial-gradient(circle at 100% 110%, hsla(@(hue2), 90%, 60%, .1), transparent 55%); --row-border: linear-gradient(135deg, hsl(@(hue)deg 85% 62%), hsl(@(hue2)deg 85% 55%));">
 
-                <div class="creator-avatar" style="width:46px;height:46px;font-size:15px;background: linear-gradient(135deg, hsl(@(hue)deg 75% 58%), hsl(@((hue + 45) % 360)deg 75% 48%));">
+                <div class="creator-avatar" style="width:46px;height:46px;font-size:15px;background: linear-gradient(135deg, hsl(@(hue)deg 75% 58%), hsl(@(hue2)deg 75% 48%));">
                     @FollowerFormat.InitialsOf(conversation.InfluencerProfile.FullName)
                 </div>
 
                 <div class="inbox-body">
                     <div class="inbox-name-row">
-                        <span>@conversation.InfluencerProfile.FullName</span>
+                        <div class="inbox-name-left">
+                            <span>@conversation.InfluencerProfile.FullName</span>
+                            @if (unread > 0)
+                            {
+                                <span class="inbox-unread-dot">@unread</span>
+                            }
+                        </div>
                         <span class="inbox-time">@(lastMessage?.SentAt.ToString("MMM d") ?? conversation.CreatedAt.ToString("MMM d"))</span>
                     </div>
                     @if (conversation.Campaign is not null)
                     {
                         <div class="inbox-campaign">@conversation.Campaign.Title</div>
                     }
-                    <div class="inbox-snippet">@(lastMessage is not null ? lastMessage.Body : "No messages yet — say hello.")</div>
+                    <div class="inbox-snippet @(unread > 0 ? "is-unread" : "")">@snippet</div>
                 </div>
 
             </a>
         }
     </div>
 }
-else
+else if (string.IsNullOrEmpty(Model.Search))
 {
-    <div class="panel empty-block" style="margin-top: 24px; max-width: 480px;">
+    <div class="panel empty-block" style="margin-top: 24px;">
         <div class="empty-title">No conversations yet</div>
         <p class="empty-text">Start a conversation from a creator's profile or a collaboration to see it here.</p>
         <a href="/Influencers" class="btn btn-primary" style="margin-top: 16px;">Discover Creators</a>
     </div>
+}
+else
+{
+    <div class="panel empty-block" style="margin-top: 24px;">
+        <div class="empty-title">No conversations match "@Model.Search"</div>
+        <p class="empty-text">Try a different name or clear your search.</p>
+        <a href="/Messages" class="btn btn-secondary" style="margin-top: 16px;">Clear Search</a>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        (function () {
+            var rows = document.querySelectorAll('.inbox-row[data-reveal]');
+            if (!rows.length) return;
+
+            if (!('IntersectionObserver' in window)) {
+                rows.forEach(function (r) { r.classList.add('is-visible'); });
+                return;
+            }
+
+            var observer = new IntersectionObserver(function (entries) {
+                entries.forEach(function (entry) {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('is-visible');
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+
+            rows.forEach(function (row, index) {
+                row.style.transitionDelay = Math.min(index % 12, 8) * 40 + 'ms';
+                observer.observe(row);
+            });
+        })();
+    </script>
 }

@@ -11,6 +11,8 @@ public class Message
     public ApplicationUser SenderUser { get; set; } = null!;
 
     public string Body { get; set; } = string.Empty;
+    public string? MediaUrl { get; set; }
+    public string? MediaType { get; set; }
     public DateTime SentAt { get; set; } = DateTime.UtcNow;
     public DateTime? ReadAt { get; set; }
 }
