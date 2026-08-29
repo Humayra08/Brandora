@@ -1,0 +1,296 @@
+@model Brandora.Web.Models.Settings.BrandSettingsViewModel
+@{
+    ViewData["Title"] = "Settings";
+    ViewData["ActiveNav"] = "Settings";
+    Layout = "_AppLayout";
+
+    var profileErrors = (TempData["ProfileErrors"] as string)?.Split('|', StringSplitOptions.RemoveEmptyEntries) ?? Array.Empty<string>();
+    var passwordErrors = (TempData["PasswordErrors"] as string)?.Split('|', StringSplitOptions.RemoveEmptyEntries) ?? Array.Empty<string>();
+    var profileSaved = TempData["ProfileSaved"] as string == "true";
+    var passwordChanged = TempData["PasswordChanged"] as string == "true";
+}
+
+@section Styles {
+
+    .page-head {
+        animation: fade-up .4s ease both;
+    }
+
+    .page-title {
+        font-family: 'Playfair Display', serif;
+        font-weight: 600;
+        font-size: 28px;
+    }
+
+    .page-sub {
+        margin-top: 6px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 13.5px;
+        color: #6b7290;
+    }
+
+    .settings-shell {
+        max-width: 640px;
+        margin-top: 24px;
+
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+    }
+
+    .settings-section {
+        padding: 26px 28px;
+
+        border-radius: 18px;
+        background: #ffffff;
+        border: 1px solid #eaecf5;
+
+        animation: fade-up .5s ease both;
+    }
+
+    .settings-section-title {
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 700;
+        font-size: 15.5px;
+        color: #171d3d;
+    }
+
+    .settings-section-sub {
+        margin-top: 3px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 12.5px;
+        color: #8189a8;
+    }
+
+    .form-fields {
+        margin-top: 20px;
+
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+    }
+
+    .form-field {
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+    }
+
+    .form-field.span-2 {
+        grid-column: span 2;
+    }
+
+    .form-field label {
+        font-family: 'Inter', sans-serif;
+        font-size: 12.5px;
+        font-weight: 600;
+        color: #2a3157;
+    }
+
+    .form-field input,
+    .form-field select {
+        padding: 12px 14px;
+
+        border-radius: 10px;
+        border: 1px solid #e2e5f2;
+        background: #fbfbfe;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 13.5px;
+        color: #171d3d;
+
+        outline: none;
+        transition: .2s;
+    }
+
+    .form-field input:disabled {
+        color: #9096b3;
+        background: #f5f6fb;
+    }
+
+    .form-field input:focus,
+    .form-field select:focus {
+        border-color: #a978ff;
+        background: #ffffff;
+        box-shadow: 0 0 0 4px rgba(155,44,255,.1);
+    }
+
+    .form-field select {
+        appearance: none;
+        -webkit-appearance: none;
+
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6' fill='none'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%23545b7d' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 14px center;
+        padding-right: 34px;
+    }
+
+    .settings-actions {
+        margin-top: 20px;
+
+        display: flex;
+        justify-content: flex-end;
+    }
+
+    .banner {
+        margin-bottom: 18px;
+        padding: 13px 16px;
+
+        border-radius: 10px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+    .banner.success {
+        background: #e2faf1;
+        color: #0d9c6c;
+        border: 1px solid #b9f1dd;
+    }
+
+    .banner.error {
+        background: rgba(220,50,70,.06);
+        color: #a71b34;
+        border: 1px solid rgba(220,50,70,.25);
+    }
+
+    .banner ul {
+        margin: 0;
+        padding-left: 18px;
+    }
+
+    @@media(max-width: 560px) {
+        .form-fields { grid-template-columns: 1fr; }
+        .form-field.span-2 { grid-column: span 1; }
+    }
+
+}
+
+<div class="page-head">
+    <h1 class="page-title">Settings</h1>
+    <p class="page-sub">Manage your brand profile and account security.</p>
+</div>
+
+<div class="settings-shell">
+
+    <div class="settings-section">
+        <div class="settings-section-title">Brand Profile</div>
+        <div class="settings-section-sub">This is what creators and your team see across Brandora.</div>
+
+        @if (profileSaved)
+        {
+            <div class="banner success" style="margin-top:18px;">Profile updated.</div>
+        }
+        @if (profileErrors.Length > 0)
+        {
+            <div class="banner error" style="margin-top:18px;">
+                <ul>
+                    @foreach (var error in profileErrors)
+                    {
+                        <li>@error</li>
+                    }
+                </ul>
+            </div>
+        }
+
+        <form method="post" action="/Settings/Update">
+            @Html.AntiForgeryToken()
+
+            <div class="form-fields">
+
+                <div class="form-field">
+                    <label for="Email">Email Address</label>
+                    <input type="email" id="Email" value="@ViewData["Email"]" disabled />
+                </div>
+
+                <div class="form-field">
+                    <label for="ContactFullName">Contact Full Name</label>
+                    <input type="text" id="ContactFullName" name="ContactFullName" value="@Model.ContactFullName" required />
+                </div>
+
+                <div class="form-field span-2">
+                    <label for="CompanyName">Company Name</label>
+                    <input type="text" id="CompanyName" name="CompanyName" value="@Model.CompanyName" required />
+                </div>
+
+                <div class="form-field span-2">
+                    <label for="WebsiteUrl">Website URL</label>
+                    <input type="url" id="WebsiteUrl" name="WebsiteUrl" value="@Model.WebsiteUrl" placeholder="https://" />
+                </div>
+
+                <div class="form-field">
+                    <label for="Industry">Industry</label>
+                    <select id="Industry" name="Industry" required>
+                        @foreach (var industry in new[] { "Fashion & Apparel", "Beauty & Cosmetics", "Food & Beverage", "Technology", "Health & Fitness", "Travel & Tourism", "Finance", "Education", "Home & Lifestyle", "Other" })
+                        {
+                            <option selected="@(Model.Industry == industry)">@industry</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="form-field">
+                    <label for="MonthlyBudget">Estimated Monthly Budget</label>
+                    <select id="MonthlyBudget" name="MonthlyBudget" required>
+                        @foreach (var budget in new[] { "Under ৳50,000", "৳50,000 – ৳150,000", "৳150,000 – ৳500,000", "৳500,000 – ৳1,000,000", "Above ৳1,000,000" })
+                        {
+                            <option selected="@(Model.MonthlyBudget == budget)">@budget</option>
+                        }
+                    </select>
+                </div>
+
+            </div>
+
+            <div class="settings-actions">
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="settings-section">
+        <div class="settings-section-title">Password</div>
+        <div class="settings-section-sub">Change the password used to sign in to Brandora.</div>
+
+        @if (passwordChanged)
+        {
+            <div class="banner success" style="margin-top:18px;">Password changed.</div>
+        }
+        @if (passwordErrors.Length > 0)
+        {
+            <div class="banner error" style="margin-top:18px;">
+                <ul>
+                    @foreach (var error in passwordErrors)
+                    {
+                        <li>@error</li>
+                    }
+                </ul>
+            </div>
+        }
+
+        <form method="post" action="/Settings/ChangePassword">
+            @Html.AntiForgeryToken()
+
+            <div class="form-fields">
+                <div class="form-field span-2">
+                    <label for="CurrentPassword">Current Password</label>
+                    <input type="password" id="CurrentPassword" name="CurrentPassword" required />
+                </div>
+                <div class="form-field">
+                    <label for="NewPassword">New Password</label>
+                    <input type="password" id="NewPassword" name="NewPassword" required />
+                </div>
+                <div class="form-field">
+                    <label for="ConfirmNewPassword">Confirm New Password</label>
+                    <input type="password" id="ConfirmNewPassword" name="ConfirmNewPassword" required />
+                </div>
+            </div>
+
+            <div class="settings-actions">
+                <button type="submit" class="btn btn-secondary">Change Password</button>
+            </div>
+        </form>
+    </div>
+
+</div>

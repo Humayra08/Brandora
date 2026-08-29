@@ -1,13 +1,14 @@
 using Brandora.Web.Data;
 using Brandora.Web.Models.Domain;
 using Brandora.Web.Models.Payments;
+using Brandora.Web.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace Brandora.Web.Controllers;
 
-public class PaymentsController(UserManager<ApplicationUser> userManager, ApplicationDbContext db) : BrandControllerBase(userManager, db)
+public class PaymentsController(UserManager<ApplicationUser> userManager, ApplicationDbContext db, NotificationService notifications) : BrandControllerBase(userManager, db)
 {
     public async Task<IActionResult> Index()
     {
@@ -87,6 +88,7 @@ public class PaymentsController(UserManager<ApplicationUser> userManager, Applic
 
         var payment = await db.Payments
             .Include(p => p.Collaboration).ThenInclude(c => c.Campaign)
+            .Include(p => p.Collaboration).ThenInclude(c => c.InfluencerProfile)
             .Include(p => p.Milestone)
             .FirstOrDefaultAsync(p => p.Id == id && p.Collaboration.Campaign.BrandProfileId == brand.Id);
 
@@ -106,6 +108,13 @@ public class PaymentsController(UserManager<ApplicationUser> userManager, Applic
             }
 
             payment.Collaboration.Campaign.SpentAmount += payment.Amount;
+
+            notifications.Notify(
+                userManager.GetUserId(User)!,
+                "Payment",
+                "Payment confirmed",
+                $"৳{payment.Amount:N0} confirmed for {payment.Collaboration.InfluencerProfile.FullName} on {payment.Collaboration.Campaign.Title}.",
+                "/Payments");
 
             await db.SaveChangesAsync();
         }
