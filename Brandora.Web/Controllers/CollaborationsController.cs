@@ -44,6 +44,7 @@ public class CollaborationsController(UserManager<ApplicationUser> userManager, 
             .Include(c => c.Campaign)
             .Include(c => c.InfluencerProfile)
             .Include(c => c.Proposal)
+            .Include(c => c.Milestones).ThenInclude(m => m.Payment)
             .FirstOrDefaultAsync(c => c.Id == id && c.Campaign.BrandProfileId == brand.Id);
 
         if (collaboration is null)

@@ -172,7 +172,48 @@
         gap: 8px;
     }
 
+    .milestone-row {
+        display: grid;
+        grid-template-columns: 1.6fr .8fr .8fr .8fr;
+        align-items: center;
+        gap: 14px;
+
+        padding: 16px 0;
+        border-top: 1px solid #f0f1f7;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 13px;
+        color: inherit;
+
+        transition: .15s;
+    }
+
+    .milestone-row:first-of-type {
+        border-top: none;
+    }
+
+    .milestone-row:hover {
+        background: #fafbfe;
+        margin: 0 -12px;
+        padding: 16px 12px;
+        border-radius: 10px;
+    }
+
+    .milestone-row-title {
+        font-weight: 600;
+        color: #1a2044;
+    }
+
+    .milestone-row-amount {
+        color: #4b5273;
+    }
+
+    .milestone-row-date {
+        color: #9096b3;
+    }
+
     @@media(max-width: 700px) {
+        .milestone-row { grid-template-columns: 1.4fr .8fr; row-gap: 4px; }
         .collab-header { flex-direction: column; }
         .collab-actions { margin-left: 0; flex-direction: row; width: 100%; }
         .collab-actions .btn { flex: 1; width: auto; }
@@ -218,6 +259,11 @@
         </div>
     </div>
 
+    @{
+        var hasDeliveredMilestone = Model.Milestones.Any(m => m.Status is MilestoneStatus.Approved or MilestoneStatus.Paid);
+        var allPaid = Model.Milestones.Count > 0 && Model.Milestones.All(m => m.Status == MilestoneStatus.Paid);
+    }
+
     <div class="progress-track">
         <div class="progress-title">Collaboration Progress</div>
 
@@ -230,29 +276,47 @@
                 <div class="progress-dot"></div>
                 <div class="progress-label">Collaboration Active</div>
             </div>
-            <div class="progress-step @(Model.Status == CollaborationStatus.Completed ? "is-done" : "")">
+            <div class="progress-step @(hasDeliveredMilestone ? "is-done" : "")">
                 <div class="progress-dot"></div>
                 <div class="progress-label">Milestones Delivered</div>
             </div>
-            <div class="progress-step @(Model.Status == CollaborationStatus.Completed ? "is-done" : "")">
+            <div class="progress-step @(Model.Status == CollaborationStatus.Completed || allPaid ? "is-done" : "")">
                 <div class="progress-dot"></div>
                 <div class="progress-label">Completed &amp; Paid</div>
             </div>
         </div>
     </div>
 
-    <div class="soon-grid">
-
-        <div class="soon-panel">
-            <div class="panel-title">Milestones <span class="soon-tag" style="color:#9b2cff; border-color:#e3cfff;">Soon</span></div>
-            <p class="empty-text">Deliverables and due dates will be tracked here once milestones launch.</p>
+    <div class="panel" style="margin-top: 18px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap: 16px;">
+            <div>
+                <div class="panel-title">Milestones</div>
+                <div class="panel-sub">Deliverables agreed with @Model.InfluencerProfile.FullName.</div>
+            </div>
+            <a href="/Milestones/Create?collaborationId=@Model.Id" class="btn btn-primary">Add Milestone</a>
         </div>
 
-        <div class="soon-panel">
-            <div class="panel-title">Payments <span class="soon-tag" style="color:#9b2cff; border-color:#e3cfff;">Soon</span></div>
-            <p class="empty-text">Milestone payments for this collaboration will appear here.</p>
-        </div>
-
+        @if (Model.Milestones.Count > 0)
+        {
+            <div style="margin-top: 18px;">
+                @foreach (var milestone in Model.Milestones.OrderBy(m => m.CreatedAt))
+                {
+                    <a href="/Milestones/Detail/@milestone.Id" class="milestone-row">
+                        <span class="milestone-row-title">@milestone.Title</span>
+                        <span class="status-pill @milestone.Status.ToString().ToLowerInvariant()" style="width:fit-content;">@milestone.Status</span>
+                        <span class="milestone-row-amount">৳@milestone.Amount.ToString("N0")</span>
+                        <span class="milestone-row-date">@(milestone.DueDate?.ToString("MMM d, yyyy") ?? "No due date")</span>
+                    </a>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="empty-block">
+                <div class="empty-title">No milestones yet</div>
+                <p class="empty-text">Add a milestone to define what @Model.InfluencerProfile.FullName will deliver and when.</p>
+            </div>
+        }
     </div>
 
 </div>

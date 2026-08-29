@@ -1,0 +1,191 @@
+@model Brandora.Web.Models.Milestones.MilestoneFormViewModel
+@using Brandora.Web.Models.Domain
+@{
+    var collaboration = ViewData["Collaboration"] as Collaboration;
+    ViewData["Title"] = "Add Milestone";
+    ViewData["ActiveNav"] = "Campaigns";
+    Layout = "_AppLayout";
+}
+
+@section Styles {
+
+    .form-shell {
+        max-width: 620px;
+        margin: 0 auto;
+
+        animation: fade-up .4s ease both;
+    }
+
+    .detail-crumb {
+        font-family: 'Inter', sans-serif;
+        font-size: 12.5px;
+        font-weight: 500;
+        color: #8189a8;
+    }
+
+    .form-head {
+        margin-top: 14px;
+        text-align: center;
+    }
+
+    .form-eyebrow {
+        font-family: 'Inter', sans-serif;
+        font-size: 11.5px;
+        font-weight: 700;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: #9b2cff;
+    }
+
+    .form-title {
+        margin-top: 10px;
+
+        font-family: 'Playfair Display', serif;
+        font-weight: 600;
+        font-size: 27px;
+    }
+
+    .form-sub {
+        margin-top: 8px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 13.5px;
+        color: #6b7290;
+    }
+
+    .form-section {
+        margin-top: 24px;
+        padding: 28px 30px;
+
+        border-radius: 18px;
+        background: #ffffff;
+        border: 1px solid #eaecf5;
+    }
+
+    .form-fields {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px 16px;
+    }
+
+    .form-field {
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+    }
+
+    .form-field.span-2 {
+        grid-column: span 2;
+    }
+
+    .form-field label {
+        font-family: 'Inter', sans-serif;
+        font-size: 12.5px;
+        font-weight: 600;
+        color: #2a3157;
+    }
+
+    .form-field input,
+    .form-field textarea {
+        padding: 12px 14px;
+
+        border-radius: 10px;
+        border: 1px solid #e2e5f2;
+        background: #fbfbfe;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 13.5px;
+        color: #171d3d;
+
+        outline: none;
+        transition: .2s;
+    }
+
+    .form-field textarea {
+        min-height: 90px;
+        resize: vertical;
+    }
+
+    .form-field input:focus,
+    .form-field textarea:focus {
+        border-color: #a978ff;
+        background: #ffffff;
+        box-shadow: 0 0 0 4px rgba(155,44,255,.1);
+    }
+
+    .form-actions {
+        margin-top: 24px;
+
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+    }
+
+    @@media(max-width: 600px) {
+        .form-fields { grid-template-columns: 1fr; }
+        .form-field.span-2 { grid-column: span 1; }
+    }
+
+}
+
+<div class="form-shell">
+
+    <div class="detail-crumb"><a href="/Collaborations/Detail/@collaboration?.Id">@collaboration?.InfluencerProfile.FullName</a> / Add Milestone</div>
+
+    <div class="form-head">
+        <div class="form-eyebrow">New Milestone</div>
+        <h1 class="form-title">Add a milestone</h1>
+        <p class="form-sub">Define a deliverable for @collaboration?.InfluencerProfile.FullName to complete on @collaboration?.Campaign.Title.</p>
+    </div>
+
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div class="form-errors" style="margin-top: 20px;">
+            <ul>
+                @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                {
+                    <li>@error.ErrorMessage</li>
+                }
+            </ul>
+        </div>
+    }
+
+    <form method="post" action="/Milestones/Create">
+
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="CollaborationId" value="@Model.CollaborationId" />
+
+        <div class="form-section">
+            <div class="form-fields">
+
+                <div class="form-field span-2">
+                    <label for="Title">Milestone Title</label>
+                    <input type="text" id="Title" name="Title" placeholder="e.g. Instagram Reel Post" value="@Model.Title" required />
+                </div>
+
+                <div class="form-field">
+                    <label for="Amount">Amount (৳)</label>
+                    <input type="number" id="Amount" name="Amount" min="1" step="1" placeholder="15000" value="@(Model.Amount == 0 ? "" : Model.Amount.ToString())" required />
+                </div>
+
+                <div class="form-field">
+                    <label for="DueDate">Due Date (optional)</label>
+                    <input type="date" id="DueDate" name="DueDate" value="@(Model.DueDate?.ToString("yyyy-MM-dd"))" />
+                </div>
+
+                <div class="form-field span-2">
+                    <label for="Description">Description (optional)</label>
+                    <textarea id="Description" name="Description" placeholder="What exactly should be delivered?">@Model.Description</textarea>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <a href="/Collaborations/Detail/@Model.CollaborationId" class="btn btn-ghost">Cancel</a>
+            <button type="submit" class="btn btn-primary">Add Milestone</button>
+        </div>
+
+    </form>
+
+</div>

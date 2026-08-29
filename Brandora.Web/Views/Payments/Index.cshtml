@@ -1,0 +1,180 @@
+@model Brandora.Web.Models.Payments.PaymentListViewModel
+@{
+    ViewData["Title"] = "Finance";
+    ViewData["ActiveNav"] = "Finance";
+    Layout = "_AppLayout";
+}
+
+@section Styles {
+
+    .page-head {
+        animation: fade-up .4s ease both;
+    }
+
+    .page-title {
+        font-family: 'Playfair Display', serif;
+        font-weight: 600;
+        font-size: 28px;
+    }
+
+    .page-sub {
+        margin-top: 6px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 13.5px;
+        color: #6b7290;
+    }
+
+    .finance-hero {
+        margin-top: 22px;
+        padding: 32px 36px;
+
+        border-radius: 20px;
+
+        background:
+            radial-gradient(circle at 85% 0%, rgba(255,90,190,.3), transparent 45%),
+            radial-gradient(circle at 0% 100%, rgba(0,169,255,.28), transparent 50%),
+            linear-gradient(115deg, #6a1fd6 0%, #3a3fe0 55%, #1c6cff 100%);
+
+        color: #ffffff;
+
+        display: flex;
+        gap: 50px;
+
+        animation: fade-up .45s ease both;
+    }
+
+    .finance-figure-value {
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 800;
+        font-size: 30px;
+    }
+
+    .finance-figure-label {
+        margin-top: 4px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 12px;
+        color: rgba(255,255,255,.75);
+    }
+
+    .txn-panel {
+        margin-top: 22px;
+        padding: 26px 28px;
+
+        border-radius: 18px;
+        background: #ffffff;
+        border: 1px solid #eaecf5;
+
+        animation: fade-up .5s ease both;
+    }
+
+    .txn-table {
+        margin-top: 18px;
+
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .txn-table th {
+        padding: 10px 14px;
+
+        text-align: left;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 10.5px;
+        font-weight: 700;
+        letter-spacing: .3px;
+        text-transform: uppercase;
+        color: #9096b3;
+
+        border-bottom: 1px solid #f0f1f7;
+    }
+
+    .txn-table td {
+        padding: 14px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 13px;
+        color: #2a3157;
+
+        border-bottom: 1px solid #f5f6fb;
+    }
+
+    .txn-table tr:last-child td {
+        border-bottom: none;
+    }
+
+    .txn-amount {
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 700;
+        color: #171d3d;
+    }
+
+    .txn-scroll {
+        overflow-x: auto;
+    }
+
+    @@media(max-width: 700px) {
+        .finance-hero { flex-wrap: wrap; gap: 24px; }
+    }
+
+}
+
+<div class="page-head">
+    <h1 class="page-title">Finance</h1>
+    <p class="page-sub">Milestone payments across all your campaigns.</p>
+</div>
+
+<div class="finance-hero">
+    <div>
+        <div class="finance-figure-value">৳@Model.TotalPaid.ToString("N0")</div>
+        <div class="finance-figure-label">Total Paid &middot; @Model.CompletedCount transaction@(Model.CompletedCount == 1 ? "" : "s")</div>
+    </div>
+    <div>
+        <div class="finance-figure-value">৳@Model.TotalPending.ToString("N0")</div>
+        <div class="finance-figure-label">Pending Confirmation &middot; @Model.PendingCount transaction@(Model.PendingCount == 1 ? "" : "s")</div>
+    </div>
+</div>
+
+<div class="txn-panel">
+    <div class="panel-title">Transaction History</div>
+
+    @if (Model.Payments.Count > 0)
+    {
+        <div class="txn-scroll">
+            <table class="txn-table">
+                <thead>
+                    <tr>
+                        <th>Campaign</th>
+                        <th>Creator</th>
+                        <th>Milestone</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var payment in Model.Payments)
+                    {
+                        <tr>
+                            <td><a href="/Campaigns/Detail/@payment.Collaboration.CampaignId">@payment.Collaboration.Campaign.Title</a></td>
+                            <td><a href="/Influencers/Profile/@payment.Collaboration.InfluencerProfileId">@payment.Collaboration.InfluencerProfile.FullName</a></td>
+                            <td>@(payment.Milestone?.Title ?? "—")</td>
+                            <td class="txn-amount">৳@payment.Amount.ToString("N0")</td>
+                            <td><span class="status-pill @payment.Status.ToString().ToLowerInvariant()">@payment.Status</span></td>
+                            <td>@(payment.PaidAt?.ToString("MMM d, yyyy") ?? payment.CreatedAt.ToString("MMM d, yyyy"))</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else
+    {
+        <div class="empty-block">
+            <div class="empty-title">No transactions yet</div>
+            <p class="empty-text">Once you release payment on an approved milestone, it will show up here.</p>
+        </div>
+    }
+</div>
