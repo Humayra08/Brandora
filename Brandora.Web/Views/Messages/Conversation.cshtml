@@ -1,0 +1,728 @@
+@model Brandora.Web.Models.Domain.Conversation
+@using Brandora.Web.Models.Influencers
+@inject Microsoft.AspNetCore.Identity.UserManager<Brandora.Web.Models.Domain.ApplicationUser> UserManager
+@{
+    ViewData["Title"] = "Chat with " + Model.InfluencerProfile.FullName;
+    ViewData["ActiveNav"] = "Messages";
+    Layout = "_AppLayout";
+    var creator = Model.InfluencerProfile;
+    var hue = (creator.Id * 47) % 360;
+    var hue2 = (hue + 50) % 360;
+    var currentUserId = UserManager.GetUserId(User);
+    var messages = Model.Messages.OrderBy(m => m.SentAt).ToList();
+}
+
+@section Styles {
+
+    .detail-crumb {
+        font-family: 'Inter', sans-serif;
+        font-size: 12.5px;
+        font-weight: 500;
+        color: #8189a8;
+    }
+
+    .detail-crumb a:hover {
+        color: #545b7d;
+    }
+
+    .msg-shell {
+        margin-top: 14px;
+
+        display: grid;
+        grid-template-columns: 300px 1fr;
+        gap: 20px;
+
+        height: calc(100vh - 176px);
+
+        animation: fade-up .4s ease both;
+    }
+
+    @@media(max-width: 900px) {
+        .msg-shell { grid-template-columns: 1fr; height: auto; }
+    }
+
+    /* ---- Profile panel ---- */
+
+    .profile-panel {
+        position: relative;
+        overflow: hidden;
+
+        padding: 30px 24px 26px;
+        border-radius: 22px;
+
+        background: linear-gradient(165deg, #15163f 0%, #0c0d2c 55%, #07081f 100%);
+        color: #fff;
+
+        display: flex;
+        flex-direction: column;
+
+        height: fit-content;
+        max-height: 100%;
+        overflow-y: auto;
+    }
+
+    .profile-panel::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+
+        background:
+            radial-gradient(circle at 15% 0%, hsla(@(hue), 90%, 62%, .45), transparent 46%),
+            radial-gradient(circle at 100% 20%, hsla(@(hue2), 90%, 60%, .28), transparent 42%),
+            radial-gradient(circle at 80% 100%, rgba(0,169,255,.22), transparent 48%);
+
+        animation: sidebar-glow 16s ease-in-out infinite;
+    }
+
+    .profile-panel > * {
+        position: relative;
+        z-index: 1;
+    }
+
+    .profile-avatar-wrap {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+
+    .profile-avatar-ring {
+        width: 86px;
+        height: 86px;
+        padding: 3px;
+
+        border-radius: 50%;
+        background: linear-gradient(135deg, hsl(@(hue)deg 90% 65%), hsl(@(hue2)deg 90% 60%));
+
+        box-shadow: 0 14px 34px hsla(@(hue), 80%, 55%, .35);
+    }
+
+    .profile-avatar-ring .creator-avatar {
+        width: 100%;
+        height: 100%;
+        font-size: 26px;
+        background: linear-gradient(135deg, hsl(@(hue)deg 75% 40%), hsl(@(hue2)deg 75% 30%));
+        border: 2px solid #0c0d2c;
+    }
+
+    .profile-name-row {
+        margin-top: 14px;
+
+        display: flex;
+        align-items: center;
+        gap: 6px;
+
+        font-family: 'Playfair Display', serif;
+        font-weight: 600;
+        font-size: 20px;
+    }
+
+    .profile-handle {
+        margin-top: 4px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 12.5px;
+        color: rgba(255,255,255,.55);
+    }
+
+    .profile-section {
+        margin-top: 22px;
+        padding-top: 18px;
+        border-top: 1px solid rgba(255,255,255,.1);
+    }
+
+    .profile-label {
+        font-family: 'Inter', sans-serif;
+        font-size: 10.5px;
+        font-weight: 700;
+        letter-spacing: .6px;
+        text-transform: uppercase;
+        color: rgba(255,255,255,.4);
+    }
+
+    .profile-bio {
+        margin-top: 8px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 13px;
+        line-height: 1.65;
+        color: rgba(255,255,255,.82);
+    }
+
+    .profile-tags {
+        margin-top: 10px;
+
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .profile-tag {
+        padding: 4px 11px;
+
+        border-radius: 20px;
+        background: rgba(255,255,255,.08);
+        border: 1px solid rgba(255,255,255,.14);
+
+        font-family: 'Inter', sans-serif;
+        font-size: 11px;
+        font-weight: 600;
+        color: rgba(255,255,255,.85);
+    }
+
+    .profile-rate-box {
+        margin-top: 8px;
+        padding: 12px 14px;
+
+        border-radius: 12px;
+        background: linear-gradient(120deg, hsla(@(hue), 85%, 55%, .18), hsla(@(hue2), 85%, 55%, .12));
+        border: 1px solid hsla(@(hue), 85%, 65%, .3);
+
+        font-family: 'Inter', sans-serif;
+        font-size: 12.5px;
+        line-height: 1.6;
+        color: rgba(255,255,255,.9);
+    }
+
+    .profile-figures {
+        margin-top: 12px;
+
+        display: flex;
+        justify-content: space-between;
+    }
+
+    .profile-figure-value {
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 800;
+        font-size: 17px;
+        color: #fff;
+    }
+
+    .profile-figure-label {
+        margin-top: 2px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 9.5px;
+        font-weight: 600;
+        letter-spacing: .3px;
+        text-transform: uppercase;
+        color: rgba(255,255,255,.45);
+    }
+
+    .profile-cta {
+        margin-top: 22px;
+
+        display: block;
+        text-align: center;
+
+        padding: 12px 18px;
+        border-radius: 12px;
+
+        background: linear-gradient(105deg, #d0369b, #8b2cff 35%, #4d5bff 70%, #00a9ff);
+        background-size: 220% 100%;
+
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 700;
+        font-size: 13px;
+        color: #fff;
+
+        transition: background-position .35s ease, transform .2s ease;
+    }
+
+    .profile-cta:hover {
+        background-position: 100% 0;
+        transform: translateY(-2px);
+    }
+
+    /* ---- Chat panel ---- */
+
+    .thread-panel {
+        display: flex;
+        flex-direction: column;
+
+        border-radius: 22px;
+        background: #ffffff;
+        border: 1px solid #eaecf5;
+        box-shadow: 0 24px 60px rgba(30,34,90,.08);
+
+        overflow: hidden;
+    }
+
+    .thread-header {
+        padding: 18px 24px;
+
+        background: linear-gradient(120deg, #fbf5ff, #f3f6ff);
+        border-bottom: 1px solid #eaecf5;
+
+        display: flex;
+        align-items: center;
+        gap: 14px;
+    }
+
+    .thread-name {
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 700;
+        font-size: 15.5px;
+        color: #171d3d;
+    }
+
+    .thread-sub {
+        margin-top: 2px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 12px;
+        color: #8189a8;
+    }
+
+    .thread-body {
+        flex: 1;
+        overflow-y: auto;
+
+        padding: 24px;
+
+        background:
+            radial-gradient(circle at 100% 0%, hsla(@(hue), 90%, 70%, .06), transparent 40%),
+            #fbfbfe;
+
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+    }
+
+    .msg-row {
+        display: flex;
+        align-items: flex-end;
+        gap: 8px;
+    }
+
+    .msg-row.is-mine {
+        justify-content: flex-end;
+    }
+
+    .msg-avatar {
+        width: 26px;
+        height: 26px;
+        flex-shrink: 0;
+
+        border-radius: 50%;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        background: linear-gradient(135deg, hsl(@(hue)deg 75% 58%), hsl(@(hue2)deg 75% 48%));
+
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 700;
+        font-size: 10px;
+        color: #fff;
+    }
+
+    .msg-bubble {
+        max-width: 68%;
+
+        padding: 11px 16px;
+
+        border-radius: 17px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 13.5px;
+        line-height: 1.55;
+
+        animation: fade-up .3s ease both;
+    }
+
+    .msg-row.is-mine .msg-bubble {
+        background: linear-gradient(105deg, #a326ff, #4d5bff 60%, #236eff);
+        color: #ffffff;
+        border-bottom-right-radius: 5px;
+        box-shadow: 0 10px 22px hsla(@(hue), 70%, 55%, .18);
+    }
+
+    .msg-row:not(.is-mine) .msg-bubble {
+        background: #ffffff;
+        border: 1px solid #eaecf5;
+        color: #2a3157;
+        border-bottom-left-radius: 5px;
+        box-shadow: 0 6px 16px rgba(30,34,90,.05);
+    }
+
+    .msg-time {
+        margin-top: 4px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 10.5px;
+        color: #9096b3;
+    }
+
+    .msg-row.is-mine .msg-time {
+        text-align: right;
+    }
+
+    .composer-error {
+        margin: 0 20px;
+        padding: 10px 16px;
+
+        border-radius: 10px;
+        background: #fff2f2;
+        border: 1px solid #ffd4d4;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 12.5px;
+        color: #c22b4a;
+    }
+
+    .composer-preview {
+        display: none;
+        align-items: center;
+        gap: 10px;
+
+        margin: 12px 20px 0;
+        padding: 8px 12px;
+
+        border-radius: 12px;
+        background: linear-gradient(120deg, hsla(@(hue), 85%, 55%, .1), hsla(@(hue2), 85%, 55%, .08));
+        border: 1px solid hsla(@(hue), 85%, 65%, .28);
+    }
+
+    .composer-preview-name {
+        flex: 1;
+        min-width: 0;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 12px;
+        font-weight: 600;
+        color: #3c4363;
+
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .composer-preview-remove {
+        width: 22px;
+        height: 22px;
+        flex-shrink: 0;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        border-radius: 50%;
+        border: none;
+        cursor: pointer;
+        background: rgba(0,0,0,.06);
+        color: #6b7290;
+    }
+
+    .msg-media {
+        overflow: hidden;
+        border-radius: 14px;
+        margin-bottom: 6px;
+    }
+
+    .msg-media img,
+    .msg-media video {
+        display: block;
+        width: 100%;
+        max-width: 240px;
+        max-height: 260px;
+        object-fit: cover;
+    }
+
+    .msg-bubble.has-media {
+        padding: 6px;
+    }
+
+    .msg-bubble.has-media.has-caption {
+        padding-bottom: 10px;
+    }
+
+    .msg-bubble.has-media .msg-caption {
+        padding: 4px 8px 2px;
+    }
+
+    .thread-composer {
+        padding: 16px 20px;
+
+        background: #ffffff;
+        border-top: 1px solid #eaecf5;
+
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .composer-attach {
+        flex-shrink: 0;
+        width: 42px;
+        height: 42px;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        border-radius: 50%;
+        border: 1px solid #e2e5f2;
+        background: #fbfbfe;
+        cursor: pointer;
+        color: #8b2cff;
+
+        transition: border-color .2s ease, background .2s ease, transform .2s ease;
+    }
+
+    .composer-attach:hover {
+        border-color: #a978ff;
+        background: linear-gradient(120deg, hsla(@(hue), 85%, 55%, .1), hsla(@(hue2), 85%, 55%, .08));
+        transform: translateY(-1px);
+    }
+
+    .thread-composer textarea {
+        flex: 1;
+        resize: none;
+        height: 46px;
+        padding: 12px 16px;
+
+        border-radius: 24px;
+        border: 1px solid #e2e5f2;
+        background: #fbfbfe;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 13.5px;
+        color: #171d3d;
+
+        outline: none;
+        transition: border-color .2s ease, background .2s ease;
+    }
+
+    .thread-composer textarea:focus {
+        border-color: #a978ff;
+        background: #ffffff;
+    }
+
+    .composer-send {
+        flex-shrink: 0;
+        width: 46px;
+        height: 46px;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        border-radius: 50%;
+        border: none;
+        cursor: pointer;
+
+        background: linear-gradient(135deg, #d0369b, #8b2cff 45%, #236eff);
+        background-size: 220% 220%;
+
+        box-shadow: 0 10px 24px rgba(139,44,255,.32);
+
+        transition: background-position .35s ease, transform .2s ease;
+    }
+
+    .composer-send:hover {
+        background-position: 100% 100%;
+        transform: translateY(-2px) scale(1.04);
+    }
+
+    .thread-empty {
+        margin: auto;
+        text-align: center;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 13px;
+        color: #9096b3;
+    }
+
+}
+
+<a href="/Dashboard" class="back-to-dashboard">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    Back to Dashboard
+</a>
+
+<div class="detail-crumb"><a href="/Messages">Messages</a> / @creator.FullName</div>
+
+<div class="msg-shell">
+
+    <aside class="profile-panel">
+
+        <div class="profile-avatar-wrap">
+            <div class="profile-avatar-ring">
+                <div class="creator-avatar">@FollowerFormat.InitialsOf(creator.FullName)</div>
+            </div>
+            <div class="profile-name-row">
+                @creator.FullName
+                @if (creator.Verified)
+                {
+                    <span class="verified-badge">Verified</span>
+                }
+            </div>
+            <div class="profile-handle">@creator.PrimaryPlatform &middot; @creator.PlatformUsername</div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(creator.Bio))
+        {
+            <div class="profile-section">
+                <div class="profile-label">Biography</div>
+                <p class="profile-bio">@creator.Bio</p>
+            </div>
+        }
+
+        <div class="profile-section">
+            <div class="profile-label">Focus</div>
+            <div class="profile-tags">
+                <span class="profile-tag">@creator.ContentNiche</span>
+                @if (!string.IsNullOrEmpty(creator.Location))
+                {
+                    <span class="profile-tag">@creator.Location</span>
+                }
+            </div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(creator.RateNote))
+        {
+            <div class="profile-section">
+                <div class="profile-label">Rates</div>
+                <div class="profile-rate-box">@creator.RateNote</div>
+            </div>
+        }
+
+        <div class="profile-section">
+            <div class="profile-label">Reach</div>
+            <div class="profile-figures">
+                <div>
+                    <div class="profile-figure-value">@FollowerFormat.Format(creator.Followers)</div>
+                    <div class="profile-figure-label">Followers</div>
+                </div>
+                <div>
+                    <div class="profile-figure-value">@creator.EngagementRate.ToString("0.0")%</div>
+                    <div class="profile-figure-label">Engagement</div>
+                </div>
+            </div>
+        </div>
+
+        <a href="/Influencers/Profile/@creator.Id" class="profile-cta">View Full Profile</a>
+
+    </aside>
+
+    <section class="thread-panel">
+
+        <div class="thread-header">
+            <div class="creator-avatar" style="width:42px;height:42px;font-size:14px;background: linear-gradient(135deg, hsl(@(hue)deg 75% 58%), hsl(@(hue2)deg 75% 48%));">
+                @FollowerFormat.InitialsOf(creator.FullName)
+            </div>
+            <div>
+                <div class="thread-name">@creator.FullName</div>
+                <div class="thread-sub">@(Model.Campaign is not null ? Model.Campaign.Title : "General inquiry")</div>
+            </div>
+        </div>
+
+        <div class="thread-body">
+            @if (messages.Count > 0)
+            {
+                @foreach (var message in messages)
+                {
+                    var isMine = message.SenderUserId == currentUserId;
+                    var hasMedia = !string.IsNullOrEmpty(message.MediaUrl);
+                    var hasCaption = !string.IsNullOrEmpty(message.Body);
+                    <div class="msg-row @(isMine ? "is-mine" : "")">
+                        @if (!isMine)
+                        {
+                            <div class="msg-avatar">@FollowerFormat.InitialsOf(creator.FullName)</div>
+                        }
+                        <div>
+                            <div class="msg-bubble @(hasMedia ? "has-media" : "") @(hasMedia && hasCaption ? "has-caption" : "")">
+                                @if (hasMedia)
+                                {
+                                    <div class="msg-media">
+                                        @if (message.MediaType == "video")
+                                        {
+                                            <video src="@message.MediaUrl" controls preload="metadata"></video>
+                                        }
+                                        else
+                                        {
+                                            <img src="@message.MediaUrl" alt="Shared attachment" />
+                                        }
+                                    </div>
+                                }
+                                @if (hasCaption)
+                                {
+                                    <span class="msg-caption">@message.Body</span>
+                                }
+                            </div>
+                            <div class="msg-time">@message.SentAt.ToString("MMM d, h:mm tt")</div>
+                        </div>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="thread-empty">No messages yet &mdash; say hello to @creator.FullName.</div>
+            }
+        </div>
+
+        @if (TempData["MessageError"] is string messageError)
+        {
+            <div class="composer-error">@messageError</div>
+        }
+
+        <div class="composer-preview" id="chatMediaPreview">
+            <span class="composer-preview-name" id="chatMediaName"></span>
+            <button type="button" class="composer-preview-remove" id="chatMediaRemove" aria-label="Remove attachment">&times;</button>
+        </div>
+
+        <form class="thread-composer" method="post" action="/Messages/Send" enctype="multipart/form-data">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="conversationId" value="@Model.Id" />
+            <input type="file" name="mediaFile" id="chatMediaInput" accept="image/*,video/*" hidden />
+            <button type="button" class="composer-attach" id="chatAttachBtn" aria-label="Attach image or video">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M21 11.5L12.5 20a5 5 0 0 1-7-7l8-8a3.5 3.5 0 0 1 5 5l-8 8a2 2 0 0 1-3-3l7-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <textarea name="body" placeholder="Write a message..."></textarea>
+            <button type="submit" class="composer-send" aria-label="Send message">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 12L20 4L13 20L11 13L4 12Z" stroke="#fff" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/></svg>
+            </button>
+        </form>
+
+    </section>
+
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            var input = document.getElementById('chatMediaInput');
+            var attachBtn = document.getElementById('chatAttachBtn');
+            var preview = document.getElementById('chatMediaPreview');
+            var previewName = document.getElementById('chatMediaName');
+            var removeBtn = document.getElementById('chatMediaRemove');
+            var body = document.querySelector('.thread-body');
+
+            if (!input) return;
+
+            attachBtn.addEventListener('click', function () { input.click(); });
+
+            input.addEventListener('change', function () {
+                if (input.files && input.files[0]) {
+                    previewName.textContent = input.files[0].name;
+                    preview.style.display = 'flex';
+                } else {
+                    preview.style.display = 'none';
+                }
+            });
+
+            removeBtn.addEventListener('click', function () {
+                input.value = '';
+                preview.style.display = 'none';
+            });
+
+            if (body) {
+                body.scrollTop = body.scrollHeight;
+            }
+        })();
+    </script>
+}

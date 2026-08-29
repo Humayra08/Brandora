@@ -1,0 +1,287 @@
+@model List<Brandora.Web.Models.Domain.InfluencerProfile>
+@using Brandora.Web.Models.Influencers
+@{
+    ViewData["Title"] = "Shortlist";
+    ViewData["ActiveNav"] = "Influencers";
+    Layout = "_AppLayout";
+}
+
+@section Styles {
+
+    .page-head {
+        animation: fade-up .4s ease both;
+    }
+
+    .page-title {
+        font-family: 'Playfair Display', serif;
+        font-weight: 600;
+        font-size: 28px;
+    }
+
+    .page-sub {
+        margin-top: 6px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 13.5px;
+        color: #6b7290;
+    }
+
+    .creator-grid {
+        margin-top: 26px;
+
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 18px;
+    }
+
+    .creator-card {
+        position: relative;
+        overflow: hidden;
+
+        padding: 24px 22px 22px;
+
+        border-radius: 18px;
+        background: #ffffff;
+        border: 1px solid #eaecf5;
+
+        transition: transform .45s cubic-bezier(.22,1,.36,1), box-shadow .4s ease;
+
+        opacity: 0;
+        transform: translateY(26px);
+    }
+
+    .creator-card.is-visible {
+        opacity: 1;
+        transform: translateY(0);
+        transition: opacity .6s ease, transform .6s cubic-bezier(.22,1,.36,1), box-shadow .4s ease;
+    }
+
+    .creator-card::before,
+    .creator-card::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity .35s ease;
+    }
+
+    .creator-card::before {
+        background: var(--card-wash);
+    }
+
+    .creator-card::after {
+        border-radius: inherit;
+        padding: 1.5px;
+        background: var(--card-border);
+        -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+        -webkit-mask-composite: xor;
+        mask-composite: exclude;
+    }
+
+    .creator-card:hover {
+        transform: translateY(-7px) scale(1.015);
+        box-shadow: 0 26px 46px rgba(30,34,90,.16);
+    }
+
+    .creator-card:hover::before,
+    .creator-card:hover::after {
+        opacity: 1;
+    }
+
+    .creator-card > * {
+        position: relative;
+        z-index: 1;
+    }
+
+    .creator-card:hover .creator-avatar {
+        transform: scale(1.08) rotate(-3deg);
+    }
+
+    .creator-card-head {
+        display: flex;
+        align-items: flex-start;
+        gap: 14px;
+    }
+
+    .creator-name-row {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 700;
+        font-size: 16px;
+        color: #171d3d;
+    }
+
+    .creator-handle {
+        margin-top: 2px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 12px;
+        color: #8189a8;
+    }
+
+    .creator-tags {
+        margin-top: 12px;
+
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .creator-figures {
+        margin-top: 18px;
+        padding-top: 16px;
+        border-top: 1px solid #f0f1f7;
+
+        display: flex;
+        justify-content: space-between;
+    }
+
+    .figure-value {
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 800;
+        font-size: 18px;
+        color: #171d3d;
+    }
+
+    .figure-label {
+        margin-top: 2px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: .3px;
+        text-transform: uppercase;
+        color: #9096b3;
+    }
+
+    .creator-actions {
+        margin-top: 18px;
+
+        display: flex;
+        gap: 8px;
+    }
+
+    .creator-actions .btn {
+        flex: 1;
+        height: 40px;
+        font-size: 12.5px;
+    }
+
+    .creator-actions .shortlist-btn {
+        flex: 1;
+        height: 40px;
+    }
+
+}
+
+<a href="/Dashboard" class="back-to-dashboard">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    Back to Dashboard
+</a>
+
+<div class="page-head">
+    <h1 class="page-title">Your Shortlist</h1>
+    <p class="page-sub">@Model.Count creator@(Model.Count == 1 ? "" : "s") saved for comparison.</p>
+</div>
+
+@if (Model.Count > 0)
+{
+    <div class="creator-grid">
+        @foreach (var creator in Model)
+        {
+            var hue = (creator.Id * 47) % 360;
+            var hue2 = (hue + 50) % 360;
+            <div class="creator-card" data-reveal
+                 style="--card-wash: radial-gradient(circle at 22% -10%, hsla(@(hue), 90%, 65%, .16), transparent 55%), radial-gradient(circle at 100% 110%, hsla(@(hue2), 90%, 60%, .12), transparent 55%); --card-border: linear-gradient(135deg, hsl(@(hue)deg 85% 62%), hsl(@(hue2)deg 85% 55%));">
+
+                <div class="creator-card-head">
+                    <div class="creator-avatar" style="background: linear-gradient(135deg, hsl(@(hue)deg 75% 58%), hsl(@((hue + 45) % 360)deg 75% 48%));">
+                        @FollowerFormat.InitialsOf(creator.FullName)
+                    </div>
+                    <div>
+                        <div class="creator-name-row">
+                            @creator.FullName
+                            @if (creator.Verified)
+                            {
+                                <span class="verified-badge">Verified</span>
+                            }
+                        </div>
+                        <div class="creator-handle">@creator.PrimaryPlatform &middot; @creator.PlatformUsername</div>
+                    </div>
+                </div>
+
+                <div class="creator-tags">
+                    <span class="tag">@creator.ContentNiche</span>
+                    @if (!string.IsNullOrEmpty(creator.Location))
+                    {
+                        <span class="tag">@creator.Location</span>
+                    }
+                </div>
+
+                <div class="creator-figures">
+                    <div>
+                        <div class="figure-value">@FollowerFormat.Format(creator.Followers)</div>
+                        <div class="figure-label">Followers</div>
+                    </div>
+                    <div>
+                        <div class="figure-value">@creator.EngagementRate.ToString("0.0")%</div>
+                        <div class="figure-label">Engagement</div>
+                    </div>
+                </div>
+
+                <div class="creator-actions">
+                    <a href="/Influencers/Profile/@creator.Id" class="btn btn-secondary">View Profile</a>
+
+                    <form method="post" action="/Influencers/ToggleShortlist">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="influencerId" value="@creator.Id" />
+                        <input type="hidden" name="returnUrl" value="/Influencers/Shortlist" />
+                        <button type="submit" class="shortlist-btn is-saved">Remove</button>
+                    </form>
+                </div>
+
+            </div>
+        }
+    </div>
+}
+else
+{
+    <div class="panel empty-block" style="margin-top: 24px;">
+        <div class="empty-title">Your shortlist is empty</div>
+        <p class="empty-text">Save creators you're interested in from Discovery to compare them here.</p>
+        <a href="/Influencers" class="btn btn-primary" style="margin-top: 16px;">Discover Creators</a>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        (function () {
+            var cards = document.querySelectorAll('.creator-card[data-reveal]');
+            if (!cards.length) return;
+
+            if (!('IntersectionObserver' in window)) {
+                cards.forEach(function (c) { c.classList.add('is-visible'); });
+                return;
+            }
+
+            var observer = new IntersectionObserver(function (entries) {
+                entries.forEach(function (entry) {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('is-visible');
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+
+            cards.forEach(function (card, index) {
+                card.style.transitionDelay = Math.min(index % 12, 8) * 45 + 'ms';
+                observer.observe(card);
+            });
+        })();
+    </script>
+}
