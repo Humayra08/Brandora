@@ -18,6 +18,7 @@ public abstract class BrandControllerBase(UserManager<ApplicationUser> userManag
         if (brand is not null)
         {
             ViewData["CompanyName"] = brand.CompanyName;
+            ViewData["UnreadNotifications"] = await db.Notifications.CountAsync(n => n.UserId == userId && !n.IsRead);
         }
 
         return brand;

@@ -1,0 +1,440 @@
+@model Brandora.Web.Models.Analytics.AnalyticsViewModel
+@{
+    ViewData["Title"] = "Analytics";
+    ViewData["ActiveNav"] = "Analytics";
+    Layout = "_AppLayout";
+
+    var maxSpend = Model.SpendByMonth.Count > 0 ? Model.SpendByMonth.Max(m => m.Amount) : 0;
+    var totalStatusCount = Model.StatusBreakdown.Sum(s => s.Count);
+
+    var donutStops = new List<(string Color, double Start, double End)>();
+    double cursor = 0;
+    foreach (var slice in Model.StatusBreakdown)
+    {
+        var pct = totalStatusCount == 0 ? 0 : (double)slice.Count / totalStatusCount * 100;
+        donutStops.Add((slice.Color, cursor, cursor + pct));
+        cursor += pct;
+    }
+    var donutGradient = totalStatusCount == 0
+        ? "#eef0f8"
+        : "conic-gradient(" + string.Join(", ", donutStops.Select(s => $"{s.Color} {s.Start:0.##}% {s.End:0.##}%")) + ")";
+
+    var funnelTotal = Math.Max(1, Model.ProposalsSent);
+}
+
+@section Styles {
+
+    .page-head {
+        animation: fade-up .4s ease both;
+    }
+
+    .page-title {
+        font-family: 'Playfair Display', serif;
+        font-weight: 600;
+        font-size: 28px;
+    }
+
+    .page-sub {
+        margin-top: 6px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 13.5px;
+        color: #6b7290;
+    }
+
+    .stat-grid {
+        margin-top: 24px;
+
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 18px;
+    }
+
+    .stat-card {
+        padding: 22px 22px 20px;
+
+        border-radius: 16px;
+        background: #ffffff;
+        border: 1px solid #eaecf5;
+
+        animation: fade-up .5s ease both;
+    }
+
+    .stat-accent {
+        width: 34px;
+        height: 4px;
+        border-radius: 4px;
+        margin-bottom: 16px;
+    }
+
+    .stat-card.c1 .stat-accent { background: linear-gradient(90deg, #9b2cff, #c98bff); }
+    .stat-card.c2 .stat-accent { background: linear-gradient(90deg, #2694ff, #6bb7ff); }
+    .stat-card.c3 .stat-accent { background: linear-gradient(90deg, #12c48b, #5be2b4); }
+    .stat-card.c4 .stat-accent { background: linear-gradient(90deg, #ffb648, #ff8a3d); }
+
+    .stat-value {
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 800;
+        font-size: 26px;
+        letter-spacing: -.4px;
+    }
+
+    .stat-label {
+        margin-top: 4px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 12px;
+        font-weight: 500;
+        color: #6b7290;
+    }
+
+    .split-grid {
+        margin-top: 22px;
+
+        display: grid;
+        grid-template-columns: 1.4fr 1fr;
+        gap: 18px;
+    }
+
+    .chart-bars {
+        margin-top: 24px;
+
+        display: flex;
+        align-items: flex-end;
+        gap: 14px;
+
+        height: 160px;
+    }
+
+    .chart-bar-col {
+        flex: 1;
+
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-end;
+
+        height: 100%;
+    }
+
+    .chart-bar {
+        width: 100%;
+        max-width: 34px;
+
+        border-radius: 8px 8px 3px 3px;
+        background: linear-gradient(180deg, #a326ff, #236eff);
+
+        min-height: 4px;
+
+        transition: height 1s cubic-bezier(.22,1,.36,1);
+    }
+
+    .chart-bar-label {
+        margin-top: 8px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 11px;
+        font-weight: 600;
+        color: #9096b3;
+    }
+
+    .donut-wrap {
+        margin-top: 24px;
+
+        display: flex;
+        align-items: center;
+        gap: 28px;
+    }
+
+    .donut {
+        position: relative;
+        width: 140px;
+        height: 140px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+
+    .donut-inner {
+        position: absolute;
+        inset: 22px;
+
+        border-radius: 50%;
+        background: #ffffff;
+
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .donut-inner-value {
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 800;
+        font-size: 22px;
+        color: #171d3d;
+    }
+
+    .donut-inner-label {
+        font-family: 'Inter', sans-serif;
+        font-size: 10px;
+        color: #9096b3;
+    }
+
+    .donut-legend {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .legend-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 12.5px;
+        color: #2a3157;
+    }
+
+    .legend-dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+
+    .legend-count {
+        margin-left: auto;
+        font-weight: 700;
+        color: #171d3d;
+    }
+
+    .funnel-track {
+        margin-top: 22px;
+
+        height: 14px;
+        border-radius: 20px;
+        overflow: hidden;
+
+        display: flex;
+        background: #eef0f8;
+    }
+
+    .funnel-segment.accepted { background: #12c48b; }
+    .funnel-segment.pending { background: #ffb648; }
+    .funnel-segment.rejected { background: #e0507a; }
+
+    .funnel-legend {
+        margin-top: 16px;
+
+        display: flex;
+        flex-wrap: wrap;
+        gap: 18px;
+    }
+
+    .funnel-legend-item {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 12.5px;
+        color: #2a3157;
+    }
+
+    .creators-table {
+        margin-top: 18px;
+
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .creators-table th {
+        padding: 10px 14px;
+        text-align: left;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 10.5px;
+        font-weight: 700;
+        letter-spacing: .3px;
+        text-transform: uppercase;
+        color: #9096b3;
+
+        border-bottom: 1px solid #f0f1f7;
+    }
+
+    .creators-table td {
+        padding: 13px 14px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 13px;
+        color: #2a3157;
+
+        border-bottom: 1px solid #f5f6fb;
+    }
+
+    .creators-table tr:last-child td {
+        border-bottom: none;
+    }
+
+    @@media(max-width: 1100px) {
+        .stat-grid { grid-template-columns: repeat(2, 1fr); }
+        .split-grid { grid-template-columns: 1fr; }
+    }
+
+    @@media(max-width: 560px) {
+        .donut-wrap { flex-direction: column; align-items: flex-start; }
+    }
+
+}
+
+<div class="page-head">
+    <h1 class="page-title">Analytics</h1>
+    <p class="page-sub">A real-time view of your campaign performance and spend.</p>
+</div>
+
+<div class="stat-grid">
+    <div class="stat-card c1">
+        <div class="stat-accent"></div>
+        <div class="stat-value">৳@Model.TotalSpend.ToString("N0")</div>
+        <div class="stat-label">Total Spend</div>
+    </div>
+    <div class="stat-card c2">
+        <div class="stat-accent"></div>
+        <div class="stat-value">@Model.TotalCampaigns</div>
+        <div class="stat-label">Campaigns</div>
+    </div>
+    <div class="stat-card c3">
+        <div class="stat-accent"></div>
+        <div class="stat-value">@Model.ActiveCollaborations</div>
+        <div class="stat-label">Active Collaborations</div>
+    </div>
+    <div class="stat-card c4">
+        <div class="stat-accent"></div>
+        <div class="stat-value">@(Model.DecidedProposals == 0 ? "—" : $"{Model.AcceptanceRatePercent}%")</div>
+        <div class="stat-label">Proposal Acceptance Rate</div>
+    </div>
+</div>
+
+<div class="split-grid">
+
+    <div class="panel">
+        <div class="panel-title">Spend Over Time</div>
+        <div class="panel-sub">Confirmed payments over the last 6 months.</div>
+
+        @if (maxSpend > 0)
+        {
+            <div class="chart-bars">
+                @foreach (var month in Model.SpendByMonth)
+                {
+                    var heightPct = maxSpend == 0 ? 0 : (double)(month.Amount / maxSpend * 100);
+                    <div class="chart-bar-col">
+                        <div class="chart-bar" style="height: @(Math.Max(heightPct, month.Amount > 0 ? 4 : 0))%;" title="৳@month.Amount.ToString("N0")"></div>
+                        <div class="chart-bar-label">@month.Month</div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="empty-block">
+                <div class="empty-title">No spend yet</div>
+                <p class="empty-text">Confirmed milestone payments will appear here as a monthly trend.</p>
+            </div>
+        }
+    </div>
+
+    <div class="panel">
+        <div class="panel-title">Campaign Status</div>
+        <div class="panel-sub">Where your campaigns stand today.</div>
+
+        @if (totalStatusCount > 0)
+        {
+            <div class="donut-wrap">
+                <div class="donut" style="background: @donutGradient;">
+                    <div class="donut-inner">
+                        <div class="donut-inner-value">@totalStatusCount</div>
+                        <div class="donut-inner-label">Campaigns</div>
+                    </div>
+                </div>
+                <div class="donut-legend">
+                    @foreach (var slice in Model.StatusBreakdown)
+                    {
+                        <div class="legend-row">
+                            <span class="legend-dot" style="background: @slice.Color;"></span>
+                            <span>@slice.Status</span>
+                            <span class="legend-count">@slice.Count</span>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="empty-block">
+                <div class="empty-title">No campaigns yet</div>
+                <p class="empty-text">Create a campaign to see its status here.</p>
+            </div>
+        }
+    </div>
+
+</div>
+
+<div class="panel" style="margin-top: 18px;">
+    <div class="panel-title">Proposal Funnel</div>
+    <div class="panel-sub">@Model.ProposalsSent proposal@(Model.ProposalsSent == 1 ? "" : "s") sent in total.</div>
+
+    @if (Model.ProposalsSent > 0)
+    {
+        <div class="funnel-track">
+            <div class="funnel-segment accepted" style="width: @((double)Model.ProposalsAccepted / funnelTotal * 100)%;"></div>
+            <div class="funnel-segment pending" style="width: @((double)Model.ProposalsPending / funnelTotal * 100)%;"></div>
+            <div class="funnel-segment rejected" style="width: @((double)Model.ProposalsRejected / funnelTotal * 100)%;"></div>
+        </div>
+        <div class="funnel-legend">
+            <div class="funnel-legend-item"><span class="legend-dot" style="background:#12c48b;"></span>Accepted &middot; @Model.ProposalsAccepted</div>
+            <div class="funnel-legend-item"><span class="legend-dot" style="background:#ffb648;"></span>Pending &middot; @Model.ProposalsPending</div>
+            <div class="funnel-legend-item"><span class="legend-dot" style="background:#e0507a;"></span>Rejected &middot; @Model.ProposalsRejected</div>
+        </div>
+    }
+    else
+    {
+        <div class="empty-block">
+            <div class="empty-title">No proposals sent yet</div>
+            <p class="empty-text">Invite a creator to start tracking your proposal funnel.</p>
+        </div>
+    }
+</div>
+
+<div class="panel" style="margin-top: 18px;">
+    <div class="panel-title">Top Creators by Spend</div>
+    <div class="panel-sub">Who you've paid the most so far.</div>
+
+    @if (Model.TopCreators.Count > 0)
+    {
+        <table class="creators-table">
+            <thead>
+                <tr>
+                    <th>Creator</th>
+                    <th>Total Paid</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var creator in Model.TopCreators)
+                {
+                    <tr>
+                        <td><a href="/Influencers/Profile/@creator.InfluencerProfileId">@creator.Name</a></td>
+                        <td>৳@creator.TotalPaid.ToString("N0")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <div class="empty-block">
+            <div class="empty-title">No payments yet</div>
+            <p class="empty-text">Your top-paid creators will be ranked here.</p>
+        </div>
+    }
+</div>

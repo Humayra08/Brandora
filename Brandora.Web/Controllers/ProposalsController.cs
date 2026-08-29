@@ -1,13 +1,14 @@
 using Brandora.Web.Data;
 using Brandora.Web.Models.Domain;
 using Brandora.Web.Models.Proposals;
+using Brandora.Web.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace Brandora.Web.Controllers;
 
-public class ProposalsController(UserManager<ApplicationUser> userManager, ApplicationDbContext db) : BrandControllerBase(userManager, db)
+public class ProposalsController(UserManager<ApplicationUser> userManager, ApplicationDbContext db, NotificationService notifications) : BrandControllerBase(userManager, db)
 {
     public async Task<IActionResult> Invite(int influencerId, int? campaignId)
     {
@@ -87,6 +88,14 @@ public class ProposalsController(UserManager<ApplicationUser> userManager, Appli
         db.Proposals.Add(proposal);
         await db.SaveChangesAsync();
 
+        notifications.Notify(
+            userManager.GetUserId(User)!,
+            "Proposal",
+            "Invite sent",
+            $"You invited {creator.FullName} to {campaign.Title} for ৳{model.ProposedAmount:N0}.",
+            $"/Proposals/Detail/{proposal.Id}");
+        await db.SaveChangesAsync();
+
         return RedirectToAction("Detail", new { id = proposal.Id });
     }
 
@@ -159,6 +168,7 @@ public class ProposalsController(UserManager<ApplicationUser> userManager, Appli
 
         var proposal = await db.Proposals
             .Include(p => p.Campaign)
+            .Include(p => p.InfluencerProfile)
             .FirstOrDefaultAsync(p => p.Id == id && p.Campaign.BrandProfileId == brand.Id);
 
         if (proposal is null)
@@ -195,6 +205,14 @@ public class ProposalsController(UserManager<ApplicationUser> userManager, Appli
             });
         }
 
+        await db.SaveChangesAsync();
+
+        notifications.Notify(
+            userManager.GetUserId(User)!,
+            "Collaboration",
+            "Collaboration started",
+            $"{proposal.InfluencerProfile.FullName} is now collaborating on {proposal.Campaign.Title}.",
+            $"/Collaborations/Detail/{collaboration.Id}");
         await db.SaveChangesAsync();
 
         return RedirectToAction("Detail", "Collaborations", new { id = collaboration.Id });

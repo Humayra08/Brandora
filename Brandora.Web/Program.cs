@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Brandora.Web.Data;
 using Brandora.Web.Models.Domain;
+using Brandora.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,6 +21,8 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.LoginPath = "/Account/Login";
     options.AccessDeniedPath = "/Account/Login";
 });
+
+builder.Services.AddScoped<NotificationService>();
 
 builder.Services.AddControllersWithViews();
 
