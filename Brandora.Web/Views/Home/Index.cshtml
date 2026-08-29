@@ -81,6 +81,19 @@
             color: white;
         }
 
+        .hero-wave-img {
+            position: absolute;
+            left: -5%;
+            bottom: -20px;
+
+            width: 110%;
+            height: auto;
+
+            pointer-events: none;
+            z-index: 2;
+            opacity: .55;
+        }
+
 
         /* =========================================================
            HERO CONTENT
@@ -117,6 +130,16 @@
 
             font-size: 13px;
             color: #ffffff;
+        }
+
+        .hero-badge .highlight {
+            margin-left: 4px;
+
+            background: linear-gradient(90deg, #a535ff, #2694ff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            font-weight: 600;
         }
 
         .hero-title {
@@ -800,6 +823,12 @@
                 min-height: 690px;
             }
 
+            .hero-wave-img {
+                left: -20%;
+                width: 150%;
+                bottom: -10px;
+            }
+
             .hero-content {
                 padding: 0 20px;
             }
@@ -853,6 +882,12 @@
         }
 
         @@media(max-width: 500px) {
+
+            .hero-wave-img {
+                left: -35%;
+                width: 190%;
+                bottom: 0;
+            }
 
             .trust-box {
                 margin: 0 15px;
@@ -919,7 +954,7 @@
     <div class="hero-content">
 
         <div class="hero-badge">
-            The Smarter Way to Collaborate
+            The Smarter Way to <span class="highlight">Collaborate</span>
         </div>
 
 
@@ -1042,7 +1077,7 @@
 
     </div>
 
-
+    <img src="~/images/Wave.png" alt="" class="hero-wave-img" />
 
 </section>
 
