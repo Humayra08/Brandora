@@ -11,6 +11,7 @@ public class Notification
     public string Body { get; set; } = string.Empty;
     public string? LinkUrl { get; set; }
     public bool IsRead { get; set; }
+    public string Category { get; set; } = "General";
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

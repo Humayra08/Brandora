@@ -1,0 +1,183 @@
+@model List<Brandora.Web.Models.Domain.Notification>
+@{
+    ViewData["Title"] = "Notifications";
+    ViewData["ActiveNav"] = "Notifications";
+    Layout = "_AppLayout";
+    var unreadCount = Model.Count(n => !n.IsRead);
+}
+
+@section Styles {
+
+    .page-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 20px;
+
+        animation: fade-up .4s ease both;
+    }
+
+    .page-title {
+        font-family: 'Playfair Display', serif;
+        font-weight: 600;
+        font-size: 28px;
+    }
+
+    .page-sub {
+        margin-top: 6px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 13.5px;
+        color: #6b7290;
+    }
+
+    .notif-list {
+        margin-top: 24px;
+        max-width: 720px;
+
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .notif-row {
+        display: flex;
+        align-items: flex-start;
+        gap: 14px;
+
+        padding: 18px 20px;
+
+        border-radius: 14px;
+        background: #ffffff;
+        border: 1px solid #eaecf5;
+
+        transition: transform .2s ease, box-shadow .2s ease;
+
+        animation: fade-up .45s ease both;
+    }
+
+    a.notif-row:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 26px rgba(30,34,90,.08);
+    }
+
+    .notif-row.is-unread {
+        border-color: #d9bfff;
+        background: linear-gradient(180deg, #fbf7ff, #ffffff);
+    }
+
+    .notif-dot {
+        width: 8px;
+        height: 8px;
+        margin-top: 6px;
+        border-radius: 50%;
+        background: #9b2cff;
+        flex-shrink: 0;
+        opacity: 0;
+    }
+
+    .notif-row.is-unread .notif-dot {
+        opacity: 1;
+    }
+
+    .notif-body {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .notif-top-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .notif-category {
+        padding: 2px 9px;
+
+        border-radius: 20px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: .3px;
+        text-transform: uppercase;
+    }
+
+    .notif-category.proposal { background: #fff2e2; color: #b5680a; }
+    .notif-category.collaboration { background: #e2faf1; color: #0d9c6c; }
+    .notif-category.milestone { background: #e4f0ff; color: #1265d6; }
+    .notif-category.payment { background: #f3e8ff; color: #7a1fd6; }
+    .notif-category.general { background: #f2f3fa; color: #545b7d; }
+
+    .notif-time {
+        font-family: 'Inter', sans-serif;
+        font-size: 11.5px;
+        color: #9096b3;
+    }
+
+    .notif-title {
+        margin-top: 6px;
+
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 700;
+        font-size: 14px;
+        color: #171d3d;
+    }
+
+    .notif-row:not(.is-unread) .notif-title {
+        font-weight: 600;
+        color: #545b7d;
+    }
+
+    .notif-message {
+        margin-top: 3px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 12.5px;
+        color: #6b7290;
+    }
+
+}
+
+<div class="page-head">
+    <div>
+        <h1 class="page-title">Notifications</h1>
+        <p class="page-sub">@(unreadCount > 0 ? $"{unreadCount} unread" : "You're all caught up")</p>
+    </div>
+
+    @if (unreadCount > 0)
+    {
+        <form method="post" action="/Notifications/MarkAllRead">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="btn btn-secondary">Mark All Read</button>
+        </form>
+    }
+</div>
+
+@if (Model.Count > 0)
+{
+    <div class="notif-list">
+        @foreach (var notification in Model)
+        {
+            <a href="/Notifications/Open/@notification.Id" class="notif-row @(notification.IsRead ? "" : "is-unread")">
+                <div class="notif-dot"></div>
+                <div class="notif-body">
+                    <div class="notif-top-row">
+                        <span class="notif-category @notification.Category.ToLowerInvariant()">@notification.Category</span>
+                        <span class="notif-time">@notification.CreatedAt.ToString("MMM d, h:mm tt")</span>
+                    </div>
+                    <div class="notif-title">@notification.Title</div>
+                    <div class="notif-message">@notification.Body</div>
+                </div>
+            </a>
+        }
+    </div>
+}
+else
+{
+    <div class="panel empty-block" style="margin-top: 24px; max-width: 480px;">
+        <div class="empty-title">No notifications yet</div>
+        <p class="empty-text">Activity across your campaigns, proposals, and payments will show up here.</p>
+    </div>
+}
