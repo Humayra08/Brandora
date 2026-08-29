@@ -18,6 +18,9 @@ public class Campaign
     public string? Niche { get; set; }
     public DateTime? Deadline { get; set; }
 
+    public string? MediaUrl { get; set; }
+    public string? MediaType { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public ICollection<Proposal> Proposals { get; set; } = new List<Proposal>();
