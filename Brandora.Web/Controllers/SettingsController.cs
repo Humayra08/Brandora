@@ -4,6 +4,7 @@ using Brandora.Web.Models.Settings;
 using Brandora.Web.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace Brandora.Web.Controllers;
 
@@ -29,6 +30,21 @@ public class SettingsController(UserManager<ApplicationUser> userManager, Applic
             MonthlyBudget = brand.MonthlyBudget,
             ExistingProfilePictureUrl = brand.ProfilePictureUrl
         });
+    }
+
+    public async Task<IActionResult> Profile()
+    {
+        var brand = await GetCurrentBrandAsync();
+        if (brand is null)
+        {
+            return RedirectToAction("Index", "Home");
+        }
+
+        var user = await userManager.GetUserAsync(User);
+        ViewData["Email"] = user?.Email;
+        ViewData["CampaignCount"] = await db.Campaigns.CountAsync(c => c.BrandProfileId == brand.Id);
+
+        return View(brand);
     }
 
     [HttpPost]
