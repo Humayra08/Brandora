@@ -35,6 +35,25 @@
         gap: 20px;
     }
 
+    .detail-media {
+        flex-shrink: 0;
+        width: 84px;
+        height: 112px;
+
+        border-radius: 14px;
+        overflow: hidden;
+
+        box-shadow: 0 10px 24px rgba(30,34,90,.16);
+    }
+
+    .detail-media img,
+    .detail-media video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+
     .detail-title {
         font-family: 'Playfair Display', serif;
         font-weight: 600;
@@ -154,7 +173,21 @@
     <div class="detail-crumb"><a href="/Campaigns">Campaigns</a> / @campaign.Title</div>
 
     <div class="detail-head">
-        <div>
+        @if (!string.IsNullOrEmpty(campaign.MediaUrl))
+        {
+            <div class="detail-media">
+                @if (campaign.MediaType == "video")
+                {
+                    <video src="@campaign.MediaUrl" muted loop playsinline autoplay preload="metadata"></video>
+                }
+                else
+                {
+                    <img src="@campaign.MediaUrl" alt="@campaign.Title" />
+                }
+            </div>
+        }
+
+        <div style="flex:1; min-width:0;">
             <h1 class="detail-title">@campaign.Title</h1>
             <div class="detail-tags">
                 <span class="status-pill @campaign.Status.ToString().ToLowerInvariant()">@campaign.Status</span>
