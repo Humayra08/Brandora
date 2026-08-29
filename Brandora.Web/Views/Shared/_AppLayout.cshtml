@@ -74,6 +74,7 @@
 
             background:
                 radial-gradient(circle at 15% 0%, rgba(140,60,255,.35), transparent 45%),
+                radial-gradient(circle at 90% 100%, rgba(0,169,255,.18), transparent 50%),
                 linear-gradient(180deg, #0a0b2e 0%, #06071f 100%);
 
             color: #ffffff;
@@ -86,6 +87,26 @@
             position: sticky;
             top: 82px;
             height: calc(100vh - 82px);
+
+            overflow-y: auto;
+            overflow-x: hidden;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255,255,255,.15) transparent;
+
+            transition: width .3s cubic-bezier(.22,1,.36,1), padding .3s cubic-bezier(.22,1,.36,1);
+        }
+
+        .sidebar.is-collapsed {
+            width: 92px;
+            padding-left: 14px;
+            padding-right: 14px;
+        }
+
+        .side-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
         }
 
         .side-brand {
@@ -94,17 +115,69 @@
             gap: 10px;
 
             padding: 0 6px;
+
+            min-width: 0;
         }
 
         .side-brand img {
             height: 26px;
             width: auto;
+            flex-shrink: 0;
+
+            filter: drop-shadow(0 0 8px rgba(150,100,255,.5));
         }
 
         .side-brand span {
             font-family: 'Playfair Display', serif;
             font-weight: 600;
             font-size: 19px;
+
+            white-space: nowrap;
+            overflow: hidden;
+
+            transition: opacity .2s ease, width .2s ease;
+        }
+
+        .sidebar-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+
+            width: 28px;
+            height: 28px;
+
+            border-radius: 50%;
+            border: 1px solid rgba(255,255,255,.14);
+            background: rgba(255,255,255,.04);
+
+            color: rgba(255,255,255,.7);
+            cursor: pointer;
+
+            transition: .2s;
+        }
+
+        .sidebar-toggle:hover {
+            border-color: rgba(255,255,255,.35);
+            background: rgba(255,255,255,.1);
+            color: #ffffff;
+        }
+
+        .sidebar-toggle svg {
+            transition: transform .3s cubic-bezier(.22,1,.36,1);
+        }
+
+        .sidebar.is-collapsed .sidebar-toggle svg {
+            transform: rotate(180deg);
+        }
+
+        .sidebar.is-collapsed .side-top {
+            justify-content: center;
+        }
+
+        .sidebar.is-collapsed .side-brand span,
+        .sidebar.is-collapsed .side-toggle-hide {
+            display: none;
         }
 
         .side-nav {
@@ -118,7 +191,7 @@
         .side-nav-item {
             display: flex;
             align-items: center;
-            justify-content: space-between;
+            gap: 10px;
 
             padding: 12px 14px;
 
@@ -131,12 +204,17 @@
             position: relative;
 
             color: rgba(255,255,255,.75);
-            transition: .2s;
+            transition: background .25s ease, color .25s ease, transform .2s ease;
         }
 
         a.side-nav-item:hover {
-            background: rgba(255,255,255,.05);
+            background: rgba(255,255,255,.06);
             color: #ffffff;
+            transform: translateX(3px);
+        }
+
+        a.side-nav-item:active {
+            transform: translateX(3px) scale(.97);
         }
 
         .side-nav-item.is-active {
@@ -156,10 +234,72 @@
             border-radius: 3px;
 
             background: linear-gradient(180deg, #b26bff, #4d9dff);
+            box-shadow: 0 0 10px rgba(150,100,255,.7);
         }
 
         .side-nav-item.is-soon {
             color: rgba(255,255,255,.4);
+        }
+
+        .nav-label {
+            flex: 1;
+            min-width: 0;
+
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+
+            white-space: nowrap;
+        }
+
+        .nav-letter {
+            display: none;
+            position: relative;
+            flex-shrink: 0;
+
+            width: 30px;
+            height: 30px;
+
+            align-items: center;
+            justify-content: center;
+
+            border-radius: 50%;
+            background: rgba(255,255,255,.06);
+
+            font-family: 'DM Sans', sans-serif;
+            font-weight: 700;
+            font-size: 12.5px;
+        }
+
+        .nav-dot {
+            position: absolute;
+            top: -2px;
+            right: -2px;
+
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+
+            background: linear-gradient(105deg, #a326ff, #236eff);
+            border: 2px solid #0a0b2e;
+        }
+
+        .sidebar.is-collapsed .side-nav-item {
+            justify-content: center;
+            padding: 10px;
+        }
+
+        .sidebar.is-collapsed .nav-letter {
+            display: flex;
+        }
+
+        .sidebar.is-collapsed .nav-label {
+            display: none;
+        }
+
+        .sidebar.is-collapsed .side-nav-item.is-active::before {
+            left: -14px;
         }
 
         .soon-tag {
@@ -242,6 +382,20 @@
 
             cursor: pointer;
             transition: .2s;
+        }
+
+        .logout-mark {
+            display: none;
+        }
+
+        .sidebar.is-collapsed .logout-mark {
+            display: inline;
+        }
+
+        .sidebar.is-collapsed .side-foot {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
 
         .side-logout-btn:hover {
@@ -387,12 +541,19 @@
 
         .btn-primary {
             color: #ffffff;
-            background: linear-gradient(105deg, #a326ff, #236eff, #18a9ff);
+            background: linear-gradient(100deg, #e0389f, #a326ff 35%, #236eff 70%, #18a9ff);
+            background-size: 160% 160%;
+            background-position: 0% 50%;
         }
 
         .btn-primary:hover {
             transform: translateY(-2px);
-            box-shadow: 0 10px 24px rgba(55,81,255,.28);
+            background-position: 100% 50%;
+            box-shadow: 0 10px 26px rgba(140,60,255,.35);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0) scale(.98);
         }
 
         .btn-secondary {
@@ -402,7 +563,13 @@
         }
 
         .btn-secondary:hover {
-            border-color: #b7c0e0;
+            border-color: transparent;
+            transform: translateY(-2px);
+            box-shadow: 0 0 0 1.5px #9b2cff, 0 10px 22px rgba(140,60,255,.18);
+        }
+
+        .btn-secondary:active {
+            transform: translateY(0);
         }
 
         .btn-ghost {
@@ -412,7 +579,40 @@
         }
 
         .btn-ghost:hover {
-            color: #2a3157;
+            color: #9b2cff;
+            background: rgba(155,44,255,.06);
+        }
+
+
+        /* =========================================================
+           SHARED: BACK TO DASHBOARD
+        ========================================================= */
+
+        .back-to-dashboard {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+
+            margin-bottom: 18px;
+
+            font-family: 'Inter', sans-serif;
+            font-size: 12.5px;
+            font-weight: 600;
+            color: #8189a8;
+
+            transition: color .2s ease;
+        }
+
+        .back-to-dashboard svg {
+            transition: transform .2s ease;
+        }
+
+        .back-to-dashboard:hover {
+            color: #9b2cff;
+        }
+
+        .back-to-dashboard:hover svg {
+            transform: translateX(-3px);
         }
 
 
@@ -529,49 +729,82 @@
 
 <div class="app-shell">
 
-    <aside class="sidebar">
+    <aside class="sidebar" id="brandoraSidebar">
 
-        <a href="/Dashboard" class="side-brand">
-            <img src="~/images/brandora-mark.png" alt="Brandora" />
-            <span>Brandora</span>
-        </a>
-
-        <nav class="side-nav">
-
-            <a href="/Dashboard" class="side-nav-item @(activeNav == "Dashboard" ? "is-active" : "")">Dashboard</a>
-
-            <a href="/Campaigns" class="side-nav-item @(activeNav == "Campaigns" ? "is-active" : "")">Campaigns</a>
-
-            <a href="/Influencers" class="side-nav-item @(activeNav == "Influencers" ? "is-active" : "")">Influencers</a>
-
-            <a href="/Messages" class="side-nav-item @(activeNav == "Messages" ? "is-active" : "")">Messages</a>
-
-            <a href="/Payments" class="side-nav-item @(activeNav == "Finance" ? "is-active" : "")">Finance</a>
-
-            <a href="/Analytics" class="side-nav-item @(activeNav == "Analytics" ? "is-active" : "")">Analytics</a>
-
-            <a href="/Notifications" class="side-nav-item @(activeNav == "Notifications" ? "is-active" : "")">
-                Notifications
-                @{
-                    var unread = ViewData["UnreadNotifications"] as int? ?? 0;
-                }
-                @if (unread > 0)
-                {
-                    <span class="unread-badge">@unread</span>
-                }
+        <div class="side-top">
+            <a href="/Dashboard" class="side-brand">
+                <img src="~/images/brandora-mark.png" alt="Brandora" />
+                <span>Brandora</span>
             </a>
 
-            <a href="/Settings" class="side-nav-item @(activeNav == "Settings" ? "is-active" : "")">Settings</a>
+            <button type="button" class="sidebar-toggle" id="sidebarToggle" aria-label="Collapse sidebar">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+        </div>
+
+        <nav class="side-nav">
+            @{
+                var unread = ViewData["UnreadNotifications"] as int? ?? 0;
+            }
+
+            <a href="/Dashboard" class="side-nav-item @(activeNav == "Dashboard" ? "is-active" : "")">
+                <span class="nav-letter">D</span>
+                <span class="nav-label side-toggle-hide">Dashboard</span>
+            </a>
+
+            <a href="/Campaigns" class="side-nav-item @(activeNav == "Campaigns" ? "is-active" : "")">
+                <span class="nav-letter">C</span>
+                <span class="nav-label side-toggle-hide">Campaigns</span>
+            </a>
+
+            <a href="/Influencers" class="side-nav-item @(activeNav == "Influencers" ? "is-active" : "")">
+                <span class="nav-letter">I</span>
+                <span class="nav-label side-toggle-hide">Influencers</span>
+            </a>
+
+            <a href="/Messages" class="side-nav-item @(activeNav == "Messages" ? "is-active" : "")">
+                <span class="nav-letter">M</span>
+                <span class="nav-label side-toggle-hide">Messages</span>
+            </a>
+
+            <a href="/Payments" class="side-nav-item @(activeNav == "Finance" ? "is-active" : "")">
+                <span class="nav-letter">F</span>
+                <span class="nav-label side-toggle-hide">Finance</span>
+            </a>
+
+            <a href="/Analytics" class="side-nav-item @(activeNav == "Analytics" ? "is-active" : "")">
+                <span class="nav-letter">A</span>
+                <span class="nav-label side-toggle-hide">Analytics</span>
+            </a>
+
+            <a href="/Notifications" class="side-nav-item @(activeNav == "Notifications" ? "is-active" : "")">
+                <span class="nav-letter">N@(unread > 0 ? Html.Raw("<span class=\"nav-dot\"></span>") : null)</span>
+                <span class="nav-label side-toggle-hide">
+                    Notifications
+                    @if (unread > 0)
+                    {
+                        <span class="unread-badge">@unread</span>
+                    }
+                </span>
+            </a>
+
+            <a href="/Settings" class="side-nav-item @(activeNav == "Settings" ? "is-active" : "")">
+                <span class="nav-letter">S</span>
+                <span class="nav-label side-toggle-hide">Settings</span>
+            </a>
 
         </nav>
 
         <div class="side-foot">
-            <div class="side-foot-company">@ViewData["CompanyName"]</div>
-            <div class="side-foot-role">Brand Workspace</div>
+            <div class="side-foot-company side-toggle-hide">@ViewData["CompanyName"]</div>
+            <div class="side-foot-role side-toggle-hide">Brand Workspace</div>
 
             <form method="post" action="/Account/Logout" class="side-logout-form">
                 @Html.AntiForgeryToken()
-                <button type="submit" class="side-logout-btn">Log Out</button>
+                <button type="submit" class="side-logout-btn">
+                    <span class="side-toggle-hide">Log Out</span>
+                    <span class="logout-mark">L</span>
+                </button>
             </form>
         </div>
 
@@ -610,6 +843,29 @@
                 fill.style.width = fill.dataset.fillTo + '%';
             });
         });
+
+        // Sidebar collapse / expand
+        var sidebar = document.getElementById('brandoraSidebar');
+        var toggle = document.getElementById('sidebarToggle');
+
+        if (sidebar && toggle) {
+            var STORAGE_KEY = 'brandora-sidebar-collapsed';
+
+            try {
+                if (localStorage.getItem(STORAGE_KEY) === 'true') {
+                    sidebar.classList.add('is-collapsed');
+                    toggle.setAttribute('aria-label', 'Expand sidebar');
+                }
+            } catch (e) {}
+
+            toggle.addEventListener('click', function () {
+                var collapsed = sidebar.classList.toggle('is-collapsed');
+                toggle.setAttribute('aria-label', collapsed ? 'Expand sidebar' : 'Collapse sidebar');
+                try {
+                    localStorage.setItem(STORAGE_KEY, collapsed ? 'true' : 'false');
+                } catch (e) {}
+            });
+        }
     })();
 </script>
 

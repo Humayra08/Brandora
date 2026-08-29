@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Http;
 
 namespace Brandora.Web.Models.Campaigns;
 
@@ -25,4 +26,11 @@ public class CampaignFormViewModel
 
     [DataType(DataType.Date)]
     public DateTime? Deadline { get; set; }
+
+    public IFormFile? MediaFile { get; set; }
+
+    public bool RemoveMedia { get; set; }
+
+    public string? ExistingMediaUrl { get; set; }
+    public string? ExistingMediaType { get; set; }
 }

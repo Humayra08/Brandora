@@ -1,13 +1,14 @@
 using Brandora.Web.Data;
 using Brandora.Web.Models.Campaigns;
 using Brandora.Web.Models.Domain;
+using Brandora.Web.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace Brandora.Web.Controllers;
 
-public class CampaignsController(UserManager<ApplicationUser> userManager, ApplicationDbContext db) : BrandControllerBase(userManager, db)
+public class CampaignsController(UserManager<ApplicationUser> userManager, ApplicationDbContext db, MediaUploadService mediaUploads) : BrandControllerBase(userManager, db)
 {
     public async Task<IActionResult> Index(string? search, CampaignStatus? status, string? platform, string? sort)
     {
@@ -88,6 +89,7 @@ public class CampaignsController(UserManager<ApplicationUser> userManager, Appli
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [RequestSizeLimit(100_000_000)]
     public async Task<IActionResult> Create(CampaignFormViewModel model)
     {
         var brand = await GetCurrentBrandAsync();
@@ -101,6 +103,22 @@ public class CampaignsController(UserManager<ApplicationUser> userManager, Appli
             return View(model);
         }
 
+        string? mediaUrl = null;
+        string? mediaType = null;
+
+        if (model.MediaFile is { Length: > 0 })
+        {
+            var (url, type, error) = await mediaUploads.SaveCampaignMediaAsync(model.MediaFile);
+            if (error is not null)
+            {
+                ModelState.AddModelError(string.Empty, error);
+                return View(model);
+            }
+
+            mediaUrl = url;
+            mediaType = type;
+        }
+
         var campaign = new Campaign
         {
             BrandProfileId = brand.Id,
@@ -110,7 +128,9 @@ public class CampaignsController(UserManager<ApplicationUser> userManager, Appli
             Niche = model.Niche,
             Budget = model.Budget,
             Deadline = model.Deadline,
-            Status = CampaignStatus.Draft
+            Status = CampaignStatus.Draft,
+            MediaUrl = mediaUrl,
+            MediaType = mediaType
         };
 
         db.Campaigns.Add(campaign);
@@ -141,12 +161,15 @@ public class CampaignsController(UserManager<ApplicationUser> userManager, Appli
             Platform = campaign.Platform ?? string.Empty,
             Niche = campaign.Niche ?? string.Empty,
             Budget = campaign.Budget,
-            Deadline = campaign.Deadline
+            Deadline = campaign.Deadline,
+            ExistingMediaUrl = campaign.MediaUrl,
+            ExistingMediaType = campaign.MediaType
         });
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [RequestSizeLimit(100_000_000)]
     public async Task<IActionResult> Edit(int id, CampaignFormViewModel model)
     {
         var brand = await GetCurrentBrandAsync();
@@ -155,16 +178,18 @@ public class CampaignsController(UserManager<ApplicationUser> userManager, Appli
             return RedirectToAction("Index", "Home");
         }
 
-        if (!ModelState.IsValid)
-        {
-            model.Id = id;
-            return View("Create", model);
-        }
-
         var campaign = await db.Campaigns.FirstOrDefaultAsync(c => c.Id == id && c.BrandProfileId == brand.Id);
         if (campaign is null)
         {
             return NotFound();
+        }
+
+        if (!ModelState.IsValid)
+        {
+            model.Id = id;
+            model.ExistingMediaUrl = campaign.MediaUrl;
+            model.ExistingMediaType = campaign.MediaType;
+            return View("Create", model);
         }
 
         campaign.Title = model.Title;
@@ -173,6 +198,29 @@ public class CampaignsController(UserManager<ApplicationUser> userManager, Appli
         campaign.Niche = model.Niche;
         campaign.Budget = model.Budget;
         campaign.Deadline = model.Deadline;
+
+        if (model.RemoveMedia && campaign.MediaUrl is not null)
+        {
+            mediaUploads.DeleteCampaignMedia(campaign.MediaUrl);
+            campaign.MediaUrl = null;
+            campaign.MediaType = null;
+        }
+
+        if (model.MediaFile is { Length: > 0 })
+        {
+            var (url, type, error) = await mediaUploads.SaveCampaignMediaAsync(model.MediaFile);
+            if (error is not null)
+            {
+                ModelState.AddModelError(string.Empty, error);
+                model.ExistingMediaUrl = campaign.MediaUrl;
+                model.ExistingMediaType = campaign.MediaType;
+                return View("Create", model);
+            }
+
+            mediaUploads.DeleteCampaignMedia(campaign.MediaUrl);
+            campaign.MediaUrl = url;
+            campaign.MediaType = type;
+        }
 
         await db.SaveChangesAsync();
 
