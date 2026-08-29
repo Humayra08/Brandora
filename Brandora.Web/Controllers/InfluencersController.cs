@@ -1,6 +1,7 @@
 using Brandora.Web.Data;
 using Brandora.Web.Models.Domain;
 using Brandora.Web.Models.Influencers;
+using Brandora.Web.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -160,7 +161,7 @@ public class InfluencersController(UserManager<ApplicationUser> userManager, App
         var results = creators
             .Select(c =>
             {
-                var (score, reasons) = ComputeMatch(c, campaign);
+                var (score, reasons) = SmartMatchScorer.ComputeMatch(c, campaign);
                 return new SmartMatchResult
                 {
                     Creator = c,
@@ -173,35 +174,5 @@ public class InfluencersController(UserManager<ApplicationUser> userManager, App
             .ToList();
 
         return View(new SmartMatchViewModel { Campaign = campaign, Results = results });
-    }
-
-    private static (int Score, List<string> Reasons) ComputeMatch(InfluencerProfile creator, Campaign campaign)
-    {
-        var score = 0;
-        var reasons = new List<string>();
-
-        if (!string.IsNullOrEmpty(campaign.Platform) &&
-            (string.Equals(creator.PrimaryPlatform, campaign.Platform, StringComparison.OrdinalIgnoreCase)
-             || campaign.Platform == "Multi-Platform"))
-        {
-            score += 50;
-            reasons.Add($"Active on {creator.PrimaryPlatform}, your campaign's target platform");
-        }
-
-        if (!string.IsNullOrEmpty(campaign.Niche) &&
-            string.Equals(creator.ContentNiche, campaign.Niche, StringComparison.OrdinalIgnoreCase))
-        {
-            score += 35;
-            reasons.Add($"Creates {creator.ContentNiche} content, matching your campaign niche");
-        }
-
-        var engagementPoints = (int)Math.Min(15, Math.Round(creator.EngagementRate * 3, MidpointRounding.AwayFromZero));
-        if (engagementPoints > 0)
-        {
-            score += engagementPoints;
-            reasons.Add($"{creator.EngagementRate:0.0}% engagement rate");
-        }
-
-        return (Math.Min(100, score), reasons);
     }
 }

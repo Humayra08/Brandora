@@ -1,0 +1,250 @@
+@model Brandora.Web.Models.Domain.BrandProfile
+@{
+    ViewData["Title"] = "Profile";
+    ViewData["ActiveNav"] = "Settings";
+    Layout = "_AppLayout";
+}
+
+@section Styles {
+
+    .page-head {
+        animation: fade-up .4s ease both;
+    }
+
+    .page-title {
+        font-family: 'Playfair Display', serif;
+        font-weight: 600;
+        font-size: 28px;
+    }
+
+    .page-sub {
+        margin-top: 6px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 13.5px;
+        color: #6b7290;
+    }
+
+    .profile-shell {
+        max-width: 640px;
+        margin-top: 24px;
+    }
+
+    .profile-card {
+        padding: 34px 32px;
+
+        border-radius: 20px;
+        background: #ffffff;
+        border: 1px solid #eaecf5;
+
+        animation: fade-up .5s ease both;
+    }
+
+    .profile-head {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+
+        padding-bottom: 24px;
+        border-bottom: 1px solid #f0f1f7;
+    }
+
+    .profile-avatar {
+        position: relative;
+        overflow: hidden;
+        flex-shrink: 0;
+
+        width: 84px;
+        height: 84px;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        border-radius: 50%;
+        background: linear-gradient(135deg, #a326ff, #236eff);
+
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 700;
+        font-size: 28px;
+        line-height: 1;
+        color: #ffffff;
+
+        box-shadow: 0 0 0 4px #f3e8ff;
+    }
+
+    .profile-avatar img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .profile-identity {
+        min-width: 0;
+    }
+
+    .profile-name {
+        font-family: 'Playfair Display', serif;
+        font-weight: 600;
+        font-size: 22px;
+        color: #171d3d;
+    }
+
+    .profile-role {
+        margin-top: 4px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 12.5px;
+        font-weight: 600;
+        color: #7a1fd6;
+    }
+
+    .profile-fields {
+        margin-top: 24px;
+
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+    }
+
+    .profile-fields.full {
+        grid-template-columns: 1fr;
+    }
+
+    .profile-field-label {
+        font-family: 'Inter', sans-serif;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: .3px;
+        text-transform: uppercase;
+        color: #9096b3;
+    }
+
+    .profile-field-value {
+        margin-top: 5px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 14px;
+        color: #2a3157;
+    }
+
+    .profile-field-value a {
+        color: #7a1fd6;
+        font-weight: 600;
+    }
+
+    .profile-stats {
+        margin-top: 24px;
+        padding-top: 22px;
+        border-top: 1px solid #f0f1f7;
+
+        display: flex;
+        gap: 30px;
+    }
+
+    .profile-stat-value {
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 800;
+        font-size: 20px;
+        color: #171d3d;
+    }
+
+    .profile-stat-label {
+        margin-top: 2px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 10.5px;
+        font-weight: 600;
+        letter-spacing: .3px;
+        text-transform: uppercase;
+        color: #9096b3;
+    }
+
+    .profile-actions {
+        margin-top: 24px;
+    }
+
+    @@media(max-width: 560px) {
+        .profile-fields { grid-template-columns: 1fr; }
+        .profile-head { flex-wrap: wrap; }
+    }
+
+}
+
+<a href="/Dashboard" class="back-to-dashboard">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    Back to Dashboard
+</a>
+
+<div class="page-head">
+    <h1 class="page-title">Profile</h1>
+    <p class="page-sub">Your Brandora workspace profile, as seen by your team and creators.</p>
+</div>
+
+<div class="profile-shell">
+    <div class="profile-card">
+
+        <div class="profile-head">
+            <div class="profile-avatar">
+                @if (!string.IsNullOrEmpty(Model.ProfilePictureUrl))
+                {
+                    <img src="@Model.ProfilePictureUrl" alt="@Model.CompanyName" />
+                }
+                else
+                {
+                    @(string.IsNullOrEmpty(Model.CompanyName) ? "B" : Model.CompanyName[..1].ToUpperInvariant())
+                }
+            </div>
+            <div class="profile-identity">
+                <div class="profile-name">@Model.CompanyName</div>
+                <div class="profile-role">Brand Workspace</div>
+            </div>
+        </div>
+
+        <div class="profile-fields">
+            <div>
+                <div class="profile-field-label">Contact Name</div>
+                <div class="profile-field-value">@Model.ContactFullName</div>
+            </div>
+            <div>
+                <div class="profile-field-label">Email</div>
+                <div class="profile-field-value">@ViewData["Email"]</div>
+            </div>
+            <div>
+                <div class="profile-field-label">Industry</div>
+                <div class="profile-field-value">@Model.Industry</div>
+            </div>
+            <div>
+                <div class="profile-field-label">Monthly Budget</div>
+                <div class="profile-field-value">@Model.MonthlyBudget</div>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(Model.WebsiteUrl))
+        {
+            <div class="profile-fields full">
+                <div>
+                    <div class="profile-field-label">Website</div>
+                    <div class="profile-field-value"><a href="@Model.WebsiteUrl" target="_blank" rel="noopener">@Model.WebsiteUrl</a></div>
+                </div>
+            </div>
+        }
+
+        <div class="profile-stats">
+            <div>
+                <div class="profile-stat-value">@ViewData["CampaignCount"]</div>
+                <div class="profile-stat-label">Campaigns</div>
+            </div>
+            <div>
+                <div class="profile-stat-value">@Model.CreatedAt.ToString("MMM yyyy")</div>
+                <div class="profile-stat-label">Member Since</div>
+            </div>
+        </div>
+
+        <div class="profile-actions">
+            <a href="/Settings" class="btn btn-primary">Edit Profile</a>
+        </div>
+
+    </div>
+</div>

@@ -36,9 +36,13 @@
 
         body {
             font-family: 'DM Sans', sans-serif;
-            background: #030418;
             color: #ffffff;
             overflow-x: hidden;
+
+            background:
+                radial-gradient(circle at 15% 15%, rgba(140,50,255,.22), transparent 40%),
+                radial-gradient(circle at 85% 80%, rgba(20,120,255,.18), transparent 45%),
+                linear-gradient(120deg, #030622 0%, #06072d 45%, #0a0631 100%);
         }
 
         a {
@@ -55,14 +59,6 @@
            PAGE / BACKDROP
         ========================================================= */
 
-        .auth-page {
-            min-height: 100vh;
-
-            background:
-                radial-gradient(circle at 15% 15%, rgba(140,50,255,.22), transparent 40%),
-                radial-gradient(circle at 85% 80%, rgba(20,120,255,.18), transparent 45%),
-                linear-gradient(120deg, #030622 0%, #06072d 45%, #0a0631 100%);
-        }
 
         .auth-shell {
             padding: 150px 20px 90px;
@@ -79,6 +75,7 @@
         .auth-card {
             width: 100%;
             max-width: 620px;
+            min-width: 0;
 
             padding: 44px 46px 36px;
 
@@ -592,6 +589,17 @@
 
             .platform-option {
                 flex: 1 1 30%;
+            }
+        }
+
+        @@media(max-width: 380px) {
+
+            .auth-card {
+                padding: 26px 16px 22px;
+            }
+
+            .platform-option {
+                flex: 1 1 45%;
             }
         }
 
