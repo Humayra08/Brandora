@@ -2,6 +2,12 @@
 @using Microsoft.AspNetCore.Identity
 @inject UserManager<ApplicationUser> UserManager
 @{
+    // Set ViewData["ActiveNav"] to "brands" or "influencers" to underline that
+    // link. Pages that set nothing (e.g. Home) render exactly as before.
+    var activeNav = ViewData["ActiveNav"] as string ?? "";
+    var brandsNavClass = "nav-link-underline" + (activeNav == "brands" ? " is-active" : "");
+    var influencersNavClass = "nav-link-underline" + (activeNav == "influencers" ? " is-active" : "");
+
     var dashboardUrl = "/Dashboard";
     if (User.Identity?.IsAuthenticated == true)
     {
@@ -29,11 +35,11 @@
             <svg width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </a>
 
-        <a href="/#brands">
+        <a href="/for-brands" class="@brandsNavClass">
             For Brands
         </a>
 
-        <a href="/#influencers">
+        <a href="/for-influencers" class="@influencersNavClass">
             For Influencers
         </a>
 
@@ -88,8 +94,8 @@
 <div class="nav-mobile-panel" id="navMobilePanel">
 
     <a href="/#how-it-works">Platform</a>
-    <a href="/#brands">For Brands</a>
-    <a href="/#influencers">For Influencers</a>
+    <a href="/for-brands">For Brands</a>
+    <a href="/for-influencers">For Influencers</a>
     <a href="#">Pricing</a>
     <a href="#">Resources</a>
 

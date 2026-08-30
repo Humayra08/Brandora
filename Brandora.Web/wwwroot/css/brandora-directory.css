@@ -1,0 +1,201 @@
+/* =========================================================
+   BRANDORA DIRECTORY
+   Shared foundation for the public "For Brands" and
+   "For Influencers" pages. Page-specific rules live in the
+   <style> block of each view, matching the Home page pattern.
+========================================================= */
+
+.directory-page {
+    /* Layout */
+    --dir-max: 1280px;
+    --dir-gutter: 20px;
+    --dir-grid-gap: 18px;
+
+    /* Surface */
+    --dir-ground: #f6f7fb;
+    --dir-card: #ffffff;
+    --dir-border: #e7e9f2;
+    --dir-card-radius: 10px;
+
+    /* Ink */
+    --dir-ink: #0e1533;
+    --dir-muted: #6f7891;
+    --dir-soft: #98a0b5;
+
+    /* Accent */
+    --dir-purple: #9427ff;
+    --dir-blue: #276eff;
+    --dir-accent-purple: #a535ff;
+    --dir-accent-blue: #2694ff;
+
+    /* Hero banner placeholder — replace with the real asset later */
+    --dir-banner: #1668d8;
+
+    background: var(--dir-ground);
+}
+
+
+/* =========================================================
+   HERO
+========================================================= */
+
+.directory-hero {
+    position: relative;
+
+    padding-top: 82px;
+
+    background:
+        radial-gradient(
+            circle at 18% 40%,
+            rgba(73, 45, 185, .32),
+            transparent 42%
+        ),
+        linear-gradient(
+            120deg,
+            #030622 0%,
+            #06072d 45%,
+            #0a0631 100%
+        );
+
+    color: #ffffff;
+
+    overflow: hidden;
+}
+
+/* Faint line-art at the far left, mirroring the Home hero treatment. */
+.directory-hero-wave {
+    position: absolute;
+    left: -6%;
+    top: 82px;
+
+    width: 42%;
+    height: auto;
+
+    opacity: .35;
+    pointer-events: none;
+
+    z-index: 1;
+}
+
+/*
+   Banner placeholder.
+
+   Occupies the exact footprint of the artwork in the reference: full-bleed
+   to the right edge of the viewport, angled leading edge, filling the hero
+   from just under the navbar to the hero's base. Swapping the solid fill for
+   `background: url(...) center/cover` later needs no layout change.
+*/
+.directory-hero-banner {
+    position: absolute;
+    top: 82px;
+    right: 0;
+    bottom: 0;
+
+    width: 42%;
+
+    background: var(--dir-banner);
+
+    clip-path: polygon(28% 0, 100% 0, 100% 100%, 0 100%);
+
+    z-index: 2;
+}
+
+.directory-hero-inner {
+    max-width: var(--dir-max);
+    margin: 0 auto;
+    padding: 0 var(--dir-gutter);
+
+    position: relative;
+    z-index: 5;
+}
+
+.directory-hero-copy {
+    max-width: 560px;
+
+    padding: 48px 0 96px;
+}
+
+.directory-hero-title {
+    font-family: 'Playfair Display', serif;
+
+    font-size: clamp(38px, 4.2vw, 60px);
+    line-height: 1.12;
+
+    font-weight: 500;
+
+    letter-spacing: -1.5px;
+}
+
+.directory-hero-title .purple {
+    color: var(--dir-accent-purple);
+}
+
+.directory-hero-title .blue {
+    color: var(--dir-accent-blue);
+}
+
+.directory-hero-text {
+    margin-top: 22px;
+
+    font-size: 16px;
+    line-height: 1.75;
+
+    color: rgba(255, 255, 255, .8);
+}
+
+/* Short gradient rule under the hero copy (influencer page). */
+.directory-hero-rule {
+    width: 84px;
+    height: 3px;
+
+    margin-top: 26px;
+
+    border-radius: 3px;
+
+    background:
+        linear-gradient(
+            90deg,
+            var(--dir-purple),
+            var(--dir-blue)
+        );
+}
+
+
+/* =========================================================
+   PAGE CONTAINER
+========================================================= */
+
+.directory-container {
+    max-width: var(--dir-max);
+    margin: 0 auto;
+    padding: 0 var(--dir-gutter);
+}
+
+
+/* =========================================================
+   RESPONSIVE — FOUNDATION
+========================================================= */
+
+@media (max-width: 1000px) {
+
+    .directory-hero-banner {
+        width: 46%;
+        opacity: .5;
+    }
+
+    .directory-hero-copy {
+        max-width: 100%;
+        padding: 42px 0 84px;
+    }
+}
+
+@media (max-width: 720px) {
+
+    .directory-hero-banner {
+        display: none;
+    }
+
+    .directory-hero-wave {
+        width: 80%;
+    }
+}
