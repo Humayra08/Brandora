@@ -1,0 +1,257 @@
+@model Brandora.Web.Models.Discovery.BrandDirectoryViewModel
+@{
+    ViewData["Title"] = "For Brands";
+    ViewData["ActiveNav"] = "brands";
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>@ViewData["Title"] - Brandora</title>
+
+    <link rel="icon" type="image/png" href="~/images/brandora-icon.png" />
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap"
+          rel="stylesheet">
+
+    <link rel="stylesheet" href="~/css/brandora-shared.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/brandora-directory.css" asp-append-version="true" />
+
+</head>
+<body class="directory-page">
+
+
+    <partial name="_BrandoraNavbar" />
+
+
+    <!-- =========================================================
+         HERO
+    ========================================================== -->
+
+    <section class="directory-hero">
+
+        <img src="~/images/Wave.png" alt="" class="directory-hero-wave" aria-hidden="true" />
+
+        <!-- Solid-blue stand-in for the hero artwork. -->
+        <div class="directory-hero-banner" aria-hidden="true"></div>
+
+        <div class="directory-hero-inner">
+
+            <div class="directory-hero-copy">
+
+                <h1 class="directory-hero-title">
+                    Partner with Brands
+                    <br />
+                    <span class="purple">That Inspire</span>
+                    <span class="blue">Impact</span>
+                </h1>
+
+                <p class="directory-hero-text">
+                    Explore verified brands, discover their campaigns,
+                    <br />
+                    and build collaborations that drive growth.
+                </p>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- =========================================================
+         FILTER BAR (overlaps the hero's lower edge)
+    ========================================================== -->
+
+    <section class="directory-filter-section">
+
+        <div class="directory-container">
+
+            <form class="directory-filter-bar" method="get" action="/for-brands">
+
+                <div class="filter-search">
+
+                    <label class="visually-hidden" for="brandSearch">
+                        Search brands
+                    </label>
+
+                    <input type="search"
+                           id="brandSearch"
+                           name="search"
+                           class="filter-search-input"
+                           placeholder="Search brands by name or industry"
+                           value="@Model.Search" />
+
+                    <svg class="filter-search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                         aria-hidden="true">
+                        <circle cx="11" cy="11" r="7" />
+                        <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                    </svg>
+
+                </div>
+
+                @foreach (var filter in Model.Filters)
+                {
+                    <div class="filter-field">
+
+                        <label class="filter-field-label" for="filter-@filter.Name">
+                            @filter.Label
+                        </label>
+
+                        <select class="filter-field-select" id="filter-@filter.Name" name="@filter.Name">
+                            @foreach (var option in filter.Options)
+                            {
+                                <option value="@option" selected="@(option == filter.SelectedOrDefault)">
+                                    @option
+                                </option>
+                            }
+                        </select>
+
+                    </div>
+                }
+
+                <button type="submit" class="filter-submit-btn">
+                    Search
+                </button>
+
+            </form>
+
+        </div>
+
+    </section>
+
+
+    <!-- =========================================================
+         ALL BRANDS
+    ========================================================== -->
+
+    <section class="directory-listing">
+
+        <div class="directory-container">
+
+            <header class="directory-section-head">
+
+                <div class="directory-section-heading">
+
+                    <h2 class="directory-section-title">
+                        All Brands
+                    </h2>
+
+                    <p class="directory-section-sub">
+                        Explore @Model.TotalBrandsDisplay verified brands on Brandora
+                    </p>
+
+                </div>
+
+                <div class="directory-sort">
+
+                    <label class="directory-sort-label" for="brandSort">
+                        Sort by
+                    </label>
+
+                    <select class="directory-sort-select" id="brandSort" name="sort">
+                        @foreach (var option in Model.SortOptions)
+                        {
+                            <option value="@option" selected="@(option == Model.SortOrDefault)">
+                                @option
+                            </option>
+                        }
+                    </select>
+
+                </div>
+
+            </header>
+
+
+            <div class="brand-grid">
+
+                @foreach (var brand in Model.Brands)
+                {
+                    <article class="brand-card">
+
+                        <div class="brand-card-logo" style="background: @brand.LogoBackground;">
+
+                            @if (brand.HasLogoImage)
+                            {
+                                <img src="@brand.LogoImageUrl" alt="@brand.CompanyName" class="brand-card-logo-img" />
+                            }
+                            else
+                            {
+                                <span class="brand-card-logo-text" style="color: @brand.LogoColor;">
+                                    @brand.LogoText
+                                </span>
+                            }
+
+                        </div>
+
+                        <div class="brand-card-body">
+
+                            <h3 class="brand-card-name">
+                                @brand.CompanyName
+                            </h3>
+
+                            <p class="brand-card-industry">
+                                @brand.Industry
+                            </p>
+
+                            <p class="brand-card-location">
+                                @brand.Location
+                            </p>
+
+                            <p class="brand-card-description">
+                                @brand.Description
+                            </p>
+
+                        </div>
+
+                        <footer class="brand-card-foot">
+
+                            <div class="brand-card-campaigns">
+
+                                <span class="brand-card-campaign-count">
+                                    @brand.ActiveCampaigns
+                                </span>
+
+                                <span class="brand-card-campaign-label">
+                                    Active Campaigns
+                                </span>
+
+                            </div>
+
+                            <a href="@brand.ProfileUrl" class="brand-card-btn">
+                                View Profile
+                            </a>
+
+                        </footer>
+
+                    </article>
+                }
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- =========================================================
+         STATS
+    ========================================================== -->
+
+    <partial name="_DirectoryStatsBar" model="Model.Stats" />
+
+
+    <partial name="_BrandoraFooter" />
+
+
+</body>
+</html>
