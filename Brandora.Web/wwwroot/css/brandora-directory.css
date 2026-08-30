@@ -680,7 +680,7 @@
 
     display: grid;
     grid-template-columns: repeat(6, 1fr);
-    gap: 15px;
+    gap: 14px;
 }
 
 .influencer-card {
@@ -792,7 +792,7 @@
 /* --- body --- */
 
 .influencer-card-body {
-    padding: 24px 14px 20px;
+    padding: 24px 14px 18px;
 
     flex: 1 1 auto;
 
@@ -803,14 +803,14 @@
 .influencer-card-name {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 5px;
 
     font-size: 15px;
     font-weight: 600;
 
     color: var(--dir-ink);
 
-    letter-spacing: -.2px;
+    letter-spacing: -.3px;
 }
 
 .influencer-card-verified {
@@ -846,8 +846,8 @@
 /* --- split stats --- */
 
 .influencer-card-stats {
-    margin-top: 16px;
-    margin-bottom: 19px;
+    margin-top: 15px;
+    margin-bottom: 17px;
 
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -884,7 +884,7 @@
 .influencer-card-btn {
     margin-top: auto;
 
-    height: 29px;
+    height: 28px;
 
     display: flex;
     align-items: center;
@@ -1075,6 +1075,14 @@
     .influencer-grid {
         grid-template-columns: repeat(3, 1fr);
     }
+
+    .directory-stats {
+        padding-right: 44px;
+    }
+
+    .directory-stats::after {
+        width: 22%;
+    }
 }
 
 @media (max-width: 1150px) {
@@ -1119,7 +1127,7 @@
     }
 
     .directory-stats {
-        padding: 26px 20px;
+        padding: 24px 20px;
 
         flex-wrap: wrap;
         gap: 26px 0;
