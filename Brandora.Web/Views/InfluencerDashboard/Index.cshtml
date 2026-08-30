@@ -133,7 +133,18 @@
         .brand {
             display: flex;
             align-items: center;
-            padding: 0 12px 18px;
+            padding: 0 12px 6px;
+        }
+
+        .sidebar-wave-img {
+            position: absolute;
+            left: 0;
+            bottom: 60px;
+            width: 100%;
+            height: auto;
+            pointer-events: none;
+            z-index: -1;
+            opacity: .9;
         }
 
         .brand-logo-img {
@@ -146,7 +157,7 @@
             position: relative;
             flex: 1;
             min-height: 0;
-            margin-top: 28px;
+            margin-top: 14px;
         }
 
         .sidebar-nav-wrap::before {
@@ -178,9 +189,9 @@
             overflow: hidden;
             border: 1px solid rgba(255,255,255,.12);
 
-            background: rgba(255,255,255,.06);
-            backdrop-filter: blur(18px);
-            -webkit-backdrop-filter: blur(18px);
+            background: rgba(255,255,255,.03);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
 
             box-shadow: 0 8px 30px rgba(0,0,0,.18);
         }
@@ -250,7 +261,6 @@
 
         .sidebar-bottom {
             margin-top: auto;
-            border-top: 1px solid rgba(255,255,255,.08);
             padding: 12px 8px 0;
         }
 
@@ -1138,6 +1148,8 @@
 
     <aside class="sidebar" id="dashboardSidebar">
 
+        <img src="~/images/Sidebar Wave.png" alt="" class="sidebar-wave-img" />
+
         <div class="brand">
             <img src="~/images/Brandora.png" alt="Brandora" class="brand-logo-img" />
         </div>
@@ -1178,7 +1190,7 @@
             </li>
 
             <li>
-                <a href="#">
+                <a href="/SocialAccounts">
                     <span>Social Accounts</span>
                 </a>
             </li>
