@@ -4,9 +4,42 @@
    "For Influencers" pages.
 ========================================================= */
 
+
+/* =========================================================
+   PAGE BASE
+   Shared by both directory views, which are standalone
+   documents (Layout = null) like the home page.
+
+   These selectors are intentionally unscoped so they keep the
+   same (zero) specificity the per-view reset had — scoping them
+   to .directory-page would outrank the shared navbar and footer
+   rules and break them.
+========================================================= */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+a {
+    text-decoration: none;
+    color: inherit;
+}
+
+button {
+    font-family: inherit;
+}
+
+
 .directory-page {
-    /* Layout — 1320 max with a 20px gutter yields a 1280 content
-       column, matching the navbar's own 1280 max-width. */
+    font-family: 'DM Sans', sans-serif;
+    color: #08123d;
+
+    overflow-x: hidden;
+
+    /* Layout — 1310 max with a 20px gutter yields a 1270 content
+       column, matching the reference's gutters. */
     --dir-max: 1310px;
     --dir-gutter: 20px;
     --dir-grid-gap: 18px;
