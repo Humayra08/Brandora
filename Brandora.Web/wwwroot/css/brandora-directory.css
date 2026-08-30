@@ -1,32 +1,33 @@
 /* =========================================================
    BRANDORA DIRECTORY
-   Shared foundation for the public "For Brands" and
-   "For Influencers" pages. Page-specific rules live in the
-   <style> block of each view, matching the Home page pattern.
+   Shared styling for the public "For Brands" and
+   "For Influencers" pages.
 ========================================================= */
 
 .directory-page {
-    /* Layout */
-    --dir-max: 1280px;
+    /* Layout — 1320 max with a 20px gutter yields a 1280 content
+       column, matching the navbar's own 1280 max-width. */
+    --dir-max: 1310px;
     --dir-gutter: 20px;
     --dir-grid-gap: 18px;
 
     /* Surface */
     --dir-ground: #f6f7fb;
     --dir-card: #ffffff;
-    --dir-border: #e7e9f2;
+    --dir-border: #e6e9f2;
     --dir-card-radius: 10px;
 
     /* Ink */
-    --dir-ink: #0e1533;
+    --dir-ink: #101736;
     --dir-muted: #6f7891;
-    --dir-soft: #98a0b5;
+    --dir-soft: #8b92a6;
 
     /* Accent */
     --dir-purple: #9427ff;
     --dir-blue: #276eff;
     --dir-accent-purple: #a535ff;
     --dir-accent-blue: #2694ff;
+    --dir-card-accent: #7c4dff;
 
     /* Hero banner placeholder — replace with the real asset later */
     --dir-banner: #1668d8;
@@ -46,15 +47,15 @@
 
     background:
         radial-gradient(
-            circle at 18% 40%,
-            rgba(73, 45, 185, .32),
-            transparent 42%
+            circle at 16% 46%,
+            rgba(73, 45, 185, .30),
+            transparent 44%
         ),
         linear-gradient(
-            120deg,
-            #030622 0%,
-            #06072d 45%,
-            #0a0631 100%
+            118deg,
+            #050726 0%,
+            #070830 46%,
+            #0b0733 100%
         );
 
     color: #ffffff;
@@ -65,13 +66,13 @@
 /* Faint line-art at the far left, mirroring the Home hero treatment. */
 .directory-hero-wave {
     position: absolute;
-    left: -6%;
-    top: 82px;
+    left: -3%;
+    top: 120px;
 
-    width: 42%;
+    width: 46%;
     height: auto;
 
-    opacity: .35;
+    opacity: .15;
     pointer-events: none;
 
     z-index: 1;
@@ -91,11 +92,11 @@
     right: 0;
     bottom: 0;
 
-    width: 42%;
+    width: 41%;
 
     background: var(--dir-banner);
 
-    clip-path: polygon(28% 0, 100% 0, 100% 100%, 0 100%);
+    clip-path: polygon(27% 0, 100% 0, 100% 100%, 0 100%);
 
     z-index: 2;
 }
@@ -103,27 +104,27 @@
 .directory-hero-inner {
     max-width: var(--dir-max);
     margin: 0 auto;
-    padding: 0 var(--dir-gutter);
+    padding: 0 40px;
 
     position: relative;
     z-index: 5;
 }
 
 .directory-hero-copy {
-    max-width: 560px;
+    max-width: 620px;
 
-    padding: 48px 0 96px;
+    padding: 40px 0 88px;
 }
 
 .directory-hero-title {
     font-family: 'Playfair Display', serif;
 
-    font-size: clamp(38px, 4.2vw, 60px);
-    line-height: 1.12;
+    font-size: clamp(38px, 3.32vw, 51px);
+    line-height: 1.1;
 
     font-weight: 500;
 
-    letter-spacing: -1.5px;
+    letter-spacing: -1.4px;
 }
 
 .directory-hero-title .purple {
@@ -135,10 +136,10 @@
 }
 
 .directory-hero-text {
-    margin-top: 22px;
+    margin-top: 18px;
 
-    font-size: 16px;
-    line-height: 1.75;
+    font-size: 15.5px;
+    line-height: 1.8;
 
     color: rgba(255, 255, 255, .8);
 }
@@ -173,6 +174,530 @@
 
 
 /* =========================================================
+   FILTER BAR — overlaps the hero's lower edge
+========================================================= */
+
+.directory-filter-section {
+    position: relative;
+    z-index: 20;
+
+    margin-top: -32px;
+}
+
+.directory-filter-bar {
+    background: var(--dir-card);
+
+    border-radius: var(--dir-card-radius);
+
+    box-shadow:
+        0 10px 30px rgba(14, 20, 55, .10),
+        0 2px 6px rgba(14, 20, 55, .04);
+
+    padding: 0 31px 0 22px;
+
+    height: 100px;
+
+    display: flex;
+    align-items: center;
+    gap: 23px;
+}
+
+/* --- search field --- */
+
+.filter-search {
+    position: relative;
+
+    flex: 0 0 407px;
+}
+
+.filter-search-input {
+    width: 100%;
+    height: 44px;
+
+    padding: 0 44px 0 17px;
+
+    border: 1px solid var(--dir-border);
+    border-radius: 8px;
+
+    background: #ffffff;
+
+    font-family: inherit;
+    font-size: 14px;
+    color: var(--dir-ink);
+
+    outline: none;
+}
+
+.filter-search-input::placeholder {
+    color: #9aa1b3;
+}
+
+.filter-search-input:focus {
+    border-color: #c9b4f5;
+}
+
+.filter-search-icon {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+
+    color: #9aa1b3;
+    pointer-events: none;
+}
+
+/* --- underlined select fields --- */
+
+.filter-field {
+    flex: 1 1 0;
+    min-width: 0;
+}
+
+.filter-field-label {
+    display: block;
+
+    font-size: 11.5px;
+    color: var(--dir-soft);
+}
+
+.filter-field-select {
+    width: 100%;
+    height: 32px;
+
+    margin-top: 5px;
+    padding: 0 18px 0 0;
+
+    border: none;
+    border-bottom: 1px solid var(--dir-border);
+    border-radius: 0;
+
+    background: transparent;
+
+    font-family: inherit;
+    font-size: 14px;
+    color: #2b3350;
+
+    outline: none;
+    cursor: pointer;
+
+    -webkit-appearance: none;
+    appearance: none;
+
+    background-image:
+        url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%232b3350' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 2px center;
+}
+
+/* --- submit --- */
+
+.filter-submit-btn {
+    flex: 0 0 116px;
+
+    height: 42px;
+
+    border: none;
+    border-radius: 8px;
+
+    background: #241b52;
+    color: #ffffff;
+
+    font-size: 14px;
+    font-weight: 500;
+
+    cursor: pointer;
+
+    transition: background .25s;
+}
+
+.filter-submit-btn:hover {
+    background: #2f2469;
+}
+
+
+/* =========================================================
+   LISTING SECTION
+========================================================= */
+
+.directory-listing {
+    padding-top: 18px;
+}
+
+.directory-section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+}
+
+.directory-section-title {
+    font-size: 22px;
+    font-weight: 700;
+
+    color: var(--dir-ink);
+
+    letter-spacing: -.2px;
+}
+
+.directory-section-sub {
+    margin-top: 8px;
+
+    font-size: 13px;
+
+    color: var(--dir-muted);
+}
+
+.directory-sort {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    flex-shrink: 0;
+}
+
+.directory-sort-label {
+    font-size: 13px;
+    color: #4b5468;
+}
+
+.directory-sort-select {
+    height: 40px;
+    min-width: 148px;
+
+    padding: 0 34px 0 15px;
+
+    border: 1px solid var(--dir-border);
+    border-radius: 8px;
+
+    background-color: #ffffff;
+
+    font-family: inherit;
+    font-size: 13.5px;
+    color: var(--dir-ink);
+
+    outline: none;
+    cursor: pointer;
+
+    -webkit-appearance: none;
+    appearance: none;
+
+    background-image:
+        url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%23101736' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+}
+
+
+/* =========================================================
+   BRAND CARD GRID
+========================================================= */
+
+.brand-grid {
+    margin-top: 22px;
+
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: var(--dir-grid-gap);
+}
+
+.brand-card {
+    background: var(--dir-card);
+
+    border-radius: var(--dir-card-radius);
+
+    box-shadow:
+        0 4px 16px rgba(16, 23, 54, .07),
+        0 1px 3px rgba(16, 23, 54, .04);
+
+    overflow: hidden;
+
+    display: flex;
+    flex-direction: column;
+
+    transition: transform .25s, box-shadow .25s;
+}
+
+.brand-card:hover {
+    transform: translateY(-3px);
+
+    box-shadow:
+        0 12px 28px rgba(16, 23, 54, .12),
+        0 2px 6px rgba(16, 23, 54, .05);
+}
+
+/* --- logo banner --- */
+
+.brand-card-logo {
+    height: 96px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 0 14px;
+}
+
+.brand-card-logo-img {
+    max-width: 100%;
+    max-height: 56px;
+
+    object-fit: contain;
+}
+
+.brand-card-logo-text {
+    font-size: 30px;
+    font-weight: 700;
+
+    letter-spacing: -.5px;
+
+    text-align: center;
+
+    line-height: 1.1;
+}
+
+/* --- body --- */
+
+.brand-card-body {
+    padding: 16px 15px 0;
+
+    flex: 1 1 auto;
+}
+
+.brand-card-name {
+    font-size: 15px;
+    font-weight: 600;
+
+    color: var(--dir-ink);
+
+    letter-spacing: -.1px;
+}
+
+.brand-card-industry {
+    margin-top: 7px;
+
+    font-size: 11.5px;
+    font-weight: 500;
+
+    color: var(--dir-card-accent);
+}
+
+.brand-card-location {
+    margin-top: 6px;
+
+    font-size: 11.5px;
+
+    color: #7a8296;
+}
+
+.brand-card-description {
+    margin-top: 16px;
+
+    font-size: 11.5px;
+    line-height: 1.65;
+
+    color: var(--dir-muted);
+}
+
+/* --- footer --- */
+
+.brand-card-foot {
+    /* Deep bottom padding matches the reference's 322px card height. */
+    padding: 20px 15px 38px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.brand-card-campaigns {
+    display: flex;
+    flex-direction: column;
+}
+
+.brand-card-campaign-count {
+    font-size: 16px;
+    font-weight: 700;
+
+    color: var(--dir-ink);
+
+    line-height: 1.2;
+}
+
+.brand-card-campaign-label {
+    margin-top: 3px;
+
+    font-size: 10px;
+
+    color: #7a8296;
+
+    white-space: nowrap;
+}
+
+.brand-card-btn {
+    flex-shrink: 0;
+
+    height: 29px;
+    padding: 0 11px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    border: 1px solid #c4a5f5;
+    border-radius: 6px;
+
+    font-size: 10px;
+    font-weight: 500;
+
+    color: #7c3aed;
+
+    white-space: nowrap;
+
+    transition: background .25s, border-color .25s;
+}
+
+.brand-card-btn:hover {
+    background: #f6f1ff;
+    border-color: #a97ff0;
+}
+
+
+/* =========================================================
+   STATISTICS PANEL
+========================================================= */
+
+.directory-stats-section {
+    padding: 25px 0 46px;
+}
+
+.directory-stats {
+    position: relative;
+
+    border-radius: 12px;
+
+    background:
+        radial-gradient(
+            circle at 88% 60%,
+            rgba(60, 40, 160, .35),
+            transparent 45%
+        ),
+        linear-gradient(
+            100deg,
+            #080c28 0%,
+            #0b1030 55%,
+            #0d0f36 100%
+        );
+
+    /* The reference insets the stat group from the right, leaving the
+       wave art to fill the remaining space. */
+    padding: 22px 100px 22px 24px;
+
+    display: flex;
+    align-items: center;
+
+    overflow: hidden;
+}
+
+.directory-stats::after {
+    content: "";
+
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+
+    width: 32%;
+
+    background: url('../images/Wave.png') no-repeat right center;
+    background-size: cover;
+
+    opacity: .18;
+
+    pointer-events: none;
+}
+
+.directory-stat {
+    z-index: 1;
+    flex: 1 1 0;
+    min-width: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+
+    padding: 0 12px;
+
+    position: relative;
+}
+
+.directory-stat + .directory-stat::before {
+    content: "";
+
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+
+    width: 1px;
+    height: 50px;
+
+    background: rgba(255, 255, 255, .12);
+}
+
+.directory-stat-body {
+    text-align: center;
+}
+
+.directory-stat-value {
+    /* Nirmala UI carries the Bengali taka sign, which DM Sans lacks. */
+    font-family: 'DM Sans', 'Nirmala UI', 'Noto Sans Bengali', sans-serif;
+
+    font-size: 27px;
+    font-weight: 700;
+
+    line-height: 1.15;
+    letter-spacing: -.5px;
+
+    background:
+        linear-gradient(
+            100deg,
+            #b06bff 0%,
+            #4d8bff 100%
+        );
+
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+.directory-stat-label {
+    margin-top: 8px;
+
+    font-size: 13px;
+
+    color: rgba(255, 255, 255, .75);
+}
+
+.directory-stat-icon {
+    flex-shrink: 0;
+
+    width: 46px;
+    height: 46px;
+
+    border-radius: 50%;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    background: rgba(140, 90, 255, .16);
+    color: #b98cff;
+}
+
+
+/* =========================================================
    UTILITIES
 ========================================================= */
 
@@ -197,8 +722,39 @@
 
 
 /* =========================================================
-   RESPONSIVE — FOUNDATION
+   RESPONSIVE
 ========================================================= */
+
+@media (max-width: 1250px) {
+
+    .brand-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (max-width: 1150px) {
+
+    .directory-filter-bar {
+        height: auto;
+
+        padding: 22px 22px;
+
+        flex-wrap: wrap;
+        gap: 18px;
+    }
+
+    .filter-search {
+        flex: 1 1 100%;
+    }
+
+    .filter-field {
+        flex: 1 1 180px;
+    }
+
+    .filter-submit-btn {
+        flex: 0 0 116px;
+    }
+}
 
 @media (max-width: 1000px) {
 
@@ -209,7 +765,39 @@
 
     .directory-hero-copy {
         max-width: 100%;
-        padding: 42px 0 84px;
+        padding: 36px 0 110px;
+    }
+
+    .directory-stats {
+        padding: 26px 20px;
+
+        flex-wrap: wrap;
+        gap: 26px 0;
+    }
+
+    .directory-stats::after {
+        display: none;
+    }
+
+    .directory-stat {
+        flex: 1 1 50%;
+    }
+
+    .directory-stat:nth-child(3)::before {
+        display: none;
+    }
+}
+
+@media (max-width: 760px) {
+
+    .brand-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .directory-section-head {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
     }
 }
 
@@ -220,6 +808,21 @@
     }
 
     .directory-hero-wave {
-        width: 80%;
+        width: 70%;
+    }
+}
+
+@media (max-width: 520px) {
+
+    .brand-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .directory-stat {
+        flex: 1 1 100%;
+    }
+
+    .directory-stat::before {
+        display: none;
     }
 }
