@@ -1,0 +1,626 @@
+/* =========================================================
+   BRANDORA PLATFORM PAGE
+   Public "Platform" page reached from the navbar.
+
+   Structure and section rhythm follow the home page; accents
+   use the purple side of the brand gradient.
+
+   The reset selectors below are intentionally unscoped so they
+   keep the same (zero) specificity the home page's inline reset
+   has — scoping them would outrank the shared navbar and footer
+   rules and break them.
+========================================================= */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+a {
+    text-decoration: none;
+    color: inherit;
+}
+
+button {
+    font-family: inherit;
+}
+
+.platform-page {
+    font-family: 'DM Sans', sans-serif;
+    background: #ffffff;
+    color: #08123d;
+
+    overflow-x: hidden;
+
+    --pf-max: 1280px;
+
+    --pf-ink: #081441;
+    --pf-body: #4d5a7d;
+    --pf-soft: #526080;
+    --pf-border: #e4e9f7;
+
+    --pf-purple: #8b3dff;
+    --pf-blue: #2f6bff;
+}
+
+
+/* =========================================================
+   HERO
+========================================================= */
+
+.pf-hero {
+    position: relative;
+
+    padding-top: 82px;
+
+    background:
+        radial-gradient(
+            circle at 68% 34%,
+            rgba(104, 44, 220, .34),
+            transparent 46%
+        ),
+        radial-gradient(
+            circle at 14% 30%,
+            rgba(58, 38, 160, .26),
+            transparent 42%
+        ),
+        linear-gradient(
+            118deg,
+            #050726 0%,
+            #08082f 46%,
+            #0b0733 100%
+        );
+
+    color: #ffffff;
+
+    overflow: hidden;
+}
+
+.pf-hero-wave {
+    position: absolute;
+    left: -6%;
+    bottom: -60px;
+
+    width: 112%;
+    height: auto;
+
+    pointer-events: none;
+
+    opacity: .55;
+    z-index: 2;
+}
+
+.pf-hero-inner {
+    position: relative;
+    z-index: 5;
+
+    max-width: var(--pf-max);
+    margin: 0 auto;
+    padding: 74px 32px 120px;
+
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, .85fr);
+    align-items: center;
+    gap: 40px;
+}
+
+/* --- badge --- */
+
+.pf-badge {
+    display: inline-flex;
+    align-items: center;
+
+    padding: 9px 20px;
+
+    border-radius: 30px;
+
+    border: 1px solid transparent;
+
+    background:
+        linear-gradient(#0a0930, #0a0930) padding-box,
+        linear-gradient(90deg, #9b2cff, #00a9ff) border-box;
+
+    font-size: 11px;
+    font-weight: 600;
+
+    letter-spacing: 2px;
+
+    color: #ffffff;
+}
+
+/* --- copy --- */
+
+.pf-hero-title {
+    margin-top: 26px;
+
+    font-family: 'Playfair Display', serif;
+
+    font-size: clamp(38px, 4.2vw, 58px);
+    line-height: 1.16;
+
+    font-weight: 500;
+
+    letter-spacing: -1.2px;
+}
+
+.pf-hero-title .purple {
+    color: #a535ff;
+}
+
+.pf-hero-title .blue {
+    color: #2694ff;
+}
+
+.pf-hero-text {
+    max-width: 445px;
+
+    margin-top: 24px;
+
+    font-size: 15px;
+    line-height: 1.95;
+
+    color: rgba(255, 255, 255, .78);
+}
+
+/* --- brand mark --- */
+
+.pf-hero-mark {
+    position: relative;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.pf-hero-mark-img {
+    /* Supplied artwork, used as-is: the PNG already carries its own
+       podium rings and glow, so no filters or colour changes are applied. */
+    width: 100%;
+    max-width: 460px;
+    height: auto;
+
+    display: block;
+
+    /* Soft bottom fade so the artwork's lower edge dissolves instead of
+       ending on a visible rounded cut. Multiple stops approximate an ease
+       curve, which avoids a hard line where the fade begins. The mask only
+       changes opacity — the image, its size and its position are untouched. */
+    -webkit-mask-image:
+        linear-gradient(
+            to bottom,
+            #000 0%,
+            #000 42%,
+            rgba(0, 0, 0, .90) 56%,
+            rgba(0, 0, 0, .70) 66%,
+            rgba(0, 0, 0, .45) 76%,
+            rgba(0, 0, 0, .22) 85%,
+            rgba(0, 0, 0, .07) 92%,
+            transparent 98%
+        );
+    mask-image:
+        linear-gradient(
+            to bottom,
+            #000 0%,
+            #000 42%,
+            rgba(0, 0, 0, .90) 56%,
+            rgba(0, 0, 0, .70) 66%,
+            rgba(0, 0, 0, .45) 76%,
+            rgba(0, 0, 0, .22) 85%,
+            rgba(0, 0, 0, .07) 92%,
+            transparent 98%
+        );
+
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+
+    -webkit-mask-size: 100% 100%;
+    mask-size: 100% 100%;
+}
+
+
+/* =========================================================
+   LIGHT SECTIONS
+========================================================= */
+
+.pf-main {
+    background: #ffffff;
+
+    padding: 66px 32px 78px;
+}
+
+.pf-section + .pf-section {
+    margin-top: 78px;
+}
+
+.pf-section-header {
+    max-width: 880px;
+    margin: 0 auto;
+
+    text-align: center;
+}
+
+.pf-section-label {
+    font-size: 11px;
+    font-weight: 700;
+
+    letter-spacing: 2px;
+
+    color: var(--pf-purple);
+}
+
+.pf-section-title {
+    margin-top: 12px;
+
+    font-family: 'Playfair Display', serif;
+
+    font-size: 36px;
+    line-height: 1.2;
+
+    color: var(--pf-ink);
+}
+
+.pf-section-title .blue {
+    color: #2f6bff;
+}
+
+.pf-section-description {
+    max-width: 660px;
+    margin: 11px auto 0;
+
+    font-size: 14px;
+    line-height: 1.7;
+
+    color: var(--pf-body);
+}
+
+
+/* =========================================================
+   MISSION VALUE CARDS
+========================================================= */
+
+.pf-values {
+    max-width: var(--pf-max);
+    margin: 38px auto 0;
+
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+}
+
+.pf-value {
+    background: #ffffff;
+
+    border: 1px solid var(--pf-border);
+    border-radius: 15px;
+
+    box-shadow: 0 4px 18px rgba(16, 26, 66, .04);
+
+    padding: 40px 28px 42px;
+
+    text-align: center;
+
+    transition: transform .25s, box-shadow .25s;
+}
+
+.pf-value:hover {
+    transform: translateY(-3px);
+
+    box-shadow: 0 12px 28px rgba(16, 26, 66, .09);
+}
+
+.pf-value h3 {
+    font-family: 'Playfair Display', serif;
+
+    font-size: 19px;
+    font-weight: 600;
+
+    color: #101a42;
+}
+
+.pf-value-rule {
+    width: 46px;
+    height: 3px;
+
+    margin: 15px auto 0;
+
+    border-radius: 3px;
+}
+
+.pf-value-rule--purple {
+    background: linear-gradient(90deg, #8b3dff, #b06bff);
+}
+
+.pf-value-rule--blue {
+    background: linear-gradient(90deg, #2f6bff, #46a8ff);
+}
+
+.pf-value-rule--pink {
+    background: linear-gradient(90deg, #e0349b, #ff6bc1);
+}
+
+.pf-value p {
+    max-width: 270px;
+    margin: 18px auto 0;
+
+    font-size: 13px;
+    line-height: 1.8;
+
+    color: var(--pf-soft);
+}
+
+
+/* =========================================================
+   STEPS
+========================================================= */
+
+.pf-steps {
+    max-width: var(--pf-max);
+    margin: 38px auto 0;
+
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 35px;
+}
+
+.pf-step {
+    position: relative;
+
+    min-height: 214px;
+
+    padding: 25px 22px;
+
+    background: #ffffff;
+
+    border: 1px solid var(--pf-border);
+    border-radius: 15px;
+
+    box-shadow: 0 4px 18px rgba(16, 26, 66, .04);
+}
+
+/* Dashed connector with the reference's mid-point dot. */
+.pf-step::after {
+    content: "";
+
+    position: absolute;
+    top: 45px;
+    right: -35px;
+
+    width: 34px;
+
+    border-top: 1px dashed #cbb4f5;
+}
+
+.pf-step::before {
+    content: "";
+
+    position: absolute;
+    top: 42px;
+    right: -20px;
+
+    width: 6px;
+    height: 6px;
+
+    border-radius: 50%;
+
+    background: #8b3dff;
+}
+
+.pf-step:last-child::after,
+.pf-step:last-child::before {
+    display: none;
+}
+
+.pf-step-number {
+    width: 40px;
+    height: 40px;
+
+    border-radius: 50%;
+
+    border: 1px solid #b98cf5;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    font-size: 14px;
+    font-weight: 600;
+
+    color: var(--pf-purple);
+}
+
+.pf-step h3 {
+    margin-top: 23px;
+
+    font-size: 14px;
+
+    color: #101a42;
+}
+
+.pf-step p {
+    margin-top: 12px;
+
+    font-size: 12px;
+    line-height: 1.7;
+
+    color: var(--pf-soft);
+}
+
+
+/* =========================================================
+   STATISTICS
+========================================================= */
+
+.pf-stats {
+    max-width: var(--pf-max);
+    margin: 56px auto 0;
+
+    min-height: 150px;
+
+    background: #fbfbff;
+
+    border: 1px solid var(--pf-border);
+    border-radius: 15px;
+
+    box-shadow: 0 4px 18px rgba(16, 26, 66, .04);
+
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    align-items: center;
+
+    padding: 34px 0;
+}
+
+.pf-stat {
+    text-align: center;
+
+    border-right: 1px solid var(--pf-border);
+}
+
+.pf-stat:last-child {
+    border-right: none;
+}
+
+.pf-stat strong {
+    display: block;
+
+    font-family: 'Playfair Display', serif;
+
+    font-size: 40px;
+    font-weight: 700;
+
+    line-height: 1.15;
+
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+.pf-stat--purple strong {
+    background-image: linear-gradient(100deg, #8b3dff, #c04ff0);
+}
+
+.pf-stat--blue strong {
+    background-image: linear-gradient(100deg, #2f6bff, #46a8ff);
+}
+
+.pf-stat--violet strong {
+    background-image: linear-gradient(100deg, #7a3dff, #a855f7);
+}
+
+.pf-stat--indigo strong {
+    background-image: linear-gradient(100deg, #6d3dff, #3f7bff);
+}
+
+.pf-stat span {
+    display: block;
+
+    margin-top: 8px;
+
+    font-size: 12.5px;
+    line-height: 1.55;
+
+    color: #344267;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 1100px) {
+
+    .pf-steps {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 24px;
+    }
+
+    .pf-step::after,
+    .pf-step::before {
+        display: none;
+    }
+}
+
+@media (max-width: 960px) {
+
+    .pf-hero-inner {
+        grid-template-columns: 1fr;
+        gap: 44px;
+
+        padding: 60px 32px 130px;
+    }
+
+    .pf-hero-mark {
+        order: -1;
+    }
+
+    .pf-hero-mark-img {
+        max-width: 330px;
+    }
+
+    .pf-values {
+        grid-template-columns: 1fr;
+        gap: 18px;
+    }
+
+    .pf-stats {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 26px 0;
+    }
+
+    .pf-stat:nth-child(2) {
+        border-right: none;
+    }
+}
+
+@media (max-width: 800px) {
+
+    .pf-main {
+        padding-left: 20px;
+        padding-right: 20px;
+    }
+
+    .pf-hero-inner {
+        padding-left: 20px;
+        padding-right: 20px;
+    }
+
+    .pf-steps {
+        grid-template-columns: 1fr;
+    }
+
+    .pf-hero-wave {
+        left: -20%;
+        width: 150%;
+    }
+}
+
+@media (max-width: 560px) {
+
+    .pf-section-title {
+        font-size: 27px;
+    }
+
+    .pf-hero-wave {
+        left: -35%;
+        width: 190%;
+    }
+}
+
+@media (max-width: 420px) {
+
+    .pf-stats {
+        grid-template-columns: 1fr;
+    }
+
+    .pf-stat {
+        border-right: none;
+        border-bottom: 1px solid var(--pf-border);
+
+        padding: 14px 0;
+    }
+
+    .pf-stat:last-child {
+        border-bottom: none;
+    }
+}
