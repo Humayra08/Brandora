@@ -101,6 +101,12 @@
     z-index: 2;
 }
 
+/* The influencer hero's artwork spans a wider footprint than the
+   brand hero's, so its placeholder is widened to match. */
+.directory-hero-banner--wide {
+    width: 50%;
+}
+
 .directory-hero-inner {
     max-width: var(--dir-max);
     margin: 0 auto;
@@ -114,6 +120,12 @@
     max-width: 620px;
 
     padding: 40px 0 88px;
+}
+
+/* The accent rule adds 25px, so trim the same amount to keep this
+   hero's base aligned with the brand hero's. */
+.directory-hero-copy--with-rule {
+    padding-bottom: 63px;
 }
 
 .directory-hero-title {
@@ -146,10 +158,10 @@
 
 /* Short gradient rule under the hero copy (influencer page). */
 .directory-hero-rule {
-    width: 84px;
+    width: 50px;
     height: 3px;
 
-    margin-top: 26px;
+    margin-top: 22px;
 
     border-radius: 3px;
 
@@ -564,6 +576,338 @@
 
 
 /* =========================================================
+   INFLUENCER-SPECIFIC CONTROLS
+========================================================= */
+
+/* Outlined "More Filters" control replaces the brand page's solid
+   Search button on the influencer directory. */
+.filter-more-btn {
+    flex: 0 0 auto;
+
+    height: 34px;
+    padding: 0 14px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+
+    border: 1px solid #b98cf5;
+    border-radius: 8px;
+
+    background: #ffffff;
+    color: #7c3aed;
+
+    font-size: 12.5px;
+    font-weight: 500;
+
+    white-space: nowrap;
+    cursor: pointer;
+
+    transition: background .25s, border-color .25s;
+}
+
+.filter-more-btn:hover {
+    background: #f6f1ff;
+    border-color: #a97ff0;
+}
+
+/* Sort control and view toggle sit side by side in the section header. */
+.directory-section-controls {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+
+    flex-shrink: 0;
+}
+
+.directory-view-toggle {
+    display: flex;
+    align-items: stretch;
+
+    border: 1px solid var(--dir-border);
+    border-radius: 8px;
+
+    background: #ffffff;
+
+    overflow: hidden;
+}
+
+.view-toggle-btn {
+    width: 45px;
+    height: 38px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    border: none;
+    background: transparent;
+
+    color: #97a0b5;
+
+    cursor: pointer;
+
+    transition: background .25s, color .25s;
+}
+
+.view-toggle-btn + .view-toggle-btn {
+    border-left: 1px solid var(--dir-border);
+}
+
+.view-toggle-btn:hover {
+    color: #6a7288;
+}
+
+.view-toggle-btn.is-active {
+    background:
+        linear-gradient(
+            120deg,
+            #7d3ff2,
+            #6c34e0
+        );
+
+    color: #ffffff;
+}
+
+
+/* =========================================================
+   INFLUENCER CARD GRID
+========================================================= */
+
+.influencer-grid {
+    margin-top: 22px;
+
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 15px;
+}
+
+.influencer-card {
+    background: var(--dir-card);
+
+    border-radius: var(--dir-card-radius);
+
+    box-shadow:
+        0 4px 16px rgba(16, 23, 54, .07),
+        0 1px 3px rgba(16, 23, 54, .04);
+
+    overflow: hidden;
+
+    display: flex;
+    flex-direction: column;
+
+    transition: transform .25s, box-shadow .25s;
+}
+
+.influencer-card:hover {
+    transform: translateY(-3px);
+
+    box-shadow:
+        0 12px 28px rgba(16, 23, 54, .12),
+        0 2px 6px rgba(16, 23, 54, .05);
+}
+
+/* --- cover --- */
+
+.influencer-card-cover {
+    position: relative;
+
+    height: 101px;
+}
+
+.influencer-card-platform {
+    position: absolute;
+    top: 11px;
+    left: 11px;
+
+    width: 35px;
+    height: 35px;
+
+    border-radius: 9px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    color: #ffffff;
+}
+
+.influencer-card-platform--facebook {
+    background: #1877f2;
+}
+
+.influencer-card-platform--tiktok {
+    background: #0b0b0f;
+}
+
+.influencer-card-platform--instagram {
+    background:
+        linear-gradient(
+            135deg,
+            #7b2ff7 0%,
+            #f107a3 55%,
+            #f9a03f 100%
+        );
+}
+
+/* Avatar straddles the cover's lower edge. */
+.influencer-card-avatar {
+    position: absolute;
+    left: 50%;
+    bottom: -11px;
+    transform: translateX(-50%);
+
+    width: 54px;
+    height: 54px;
+
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, .92);
+
+    background: #11162e;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    overflow: hidden;
+}
+
+.influencer-card-avatar-img {
+    width: 100%;
+    height: 100%;
+
+    object-fit: cover;
+}
+
+.influencer-card-initials {
+    font-size: 19px;
+    font-weight: 600;
+
+    color: #ffffff;
+
+    letter-spacing: .3px;
+}
+
+/* --- body --- */
+
+.influencer-card-body {
+    padding: 24px 14px 20px;
+
+    flex: 1 1 auto;
+
+    display: flex;
+    flex-direction: column;
+}
+
+.influencer-card-name {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    font-size: 15px;
+    font-weight: 600;
+
+    color: var(--dir-ink);
+
+    letter-spacing: -.2px;
+}
+
+.influencer-card-verified {
+    display: inline-flex;
+    align-items: center;
+
+    color: #2b9bf4;
+
+    flex-shrink: 0;
+}
+
+.influencer-card-niche {
+    margin-top: 7px;
+
+    font-size: 12px;
+    font-weight: 500;
+
+    color: var(--dir-card-accent);
+}
+
+.influencer-card-location {
+    margin-top: 6px;
+
+    display: flex;
+    align-items: center;
+    gap: 4px;
+
+    font-size: 11px;
+
+    color: #7a8296;
+}
+
+/* --- split stats --- */
+
+.influencer-card-stats {
+    margin-top: 16px;
+    margin-bottom: 19px;
+
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+}
+
+.influencer-card-stat {
+    display: flex;
+    flex-direction: column;
+}
+
+.influencer-card-stat + .influencer-card-stat {
+    padding-left: 16px;
+
+    border-left: 1px solid var(--dir-border);
+}
+
+.influencer-card-stat-value {
+    font-size: 16px;
+    font-weight: 700;
+
+    color: var(--dir-ink);
+
+    line-height: 1.2;
+}
+
+.influencer-card-stat-label {
+    margin-top: 3px;
+
+    font-size: 10.5px;
+
+    color: #7a8296;
+}
+
+.influencer-card-btn {
+    margin-top: auto;
+
+    height: 29px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border: 1px solid #c4a5f5;
+    border-radius: 7px;
+
+    font-size: 12px;
+    font-weight: 500;
+
+    color: #7c3aed;
+
+    transition: background .25s, border-color .25s;
+}
+
+.influencer-card-btn:hover {
+    background: #f6f1ff;
+    border-color: #a97ff0;
+}
+
+
+/* =========================================================
    STATISTICS PANEL
 ========================================================= */
 
@@ -625,7 +969,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 16px;
+    gap: 20px;
 
     padding: 0 12px;
 
@@ -683,8 +1027,8 @@
 .directory-stat-icon {
     flex-shrink: 0;
 
-    width: 46px;
-    height: 46px;
+    width: 52px;
+    height: 52px;
 
     border-radius: 50%;
 
@@ -727,7 +1071,8 @@
 
 @media (max-width: 1250px) {
 
-    .brand-grid {
+    .brand-grid,
+    .influencer-grid {
         grid-template-columns: repeat(3, 1fr);
     }
 }
@@ -753,6 +1098,11 @@
 
     .filter-submit-btn {
         flex: 0 0 116px;
+    }
+
+    .filter-more-btn {
+        flex: 0 0 auto;
+        margin-left: auto;
     }
 }
 
@@ -790,7 +1140,8 @@
 
 @media (max-width: 760px) {
 
-    .brand-grid {
+    .brand-grid,
+    .influencer-grid {
         grid-template-columns: repeat(2, 1fr);
     }
 
@@ -798,6 +1149,11 @@
         flex-direction: column;
         align-items: flex-start;
         gap: 16px;
+    }
+
+    .directory-section-controls {
+        width: 100%;
+        justify-content: space-between;
     }
 }
 
@@ -814,7 +1170,8 @@
 
 @media (max-width: 520px) {
 
-    .brand-grid {
+    .brand-grid,
+    .influencer-grid {
         grid-template-columns: 1fr;
     }
 
