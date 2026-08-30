@@ -1,0 +1,107 @@
+@model Brandora.Web.Models.Discovery.InfluencerDirectoryViewModel
+@{
+    ViewData["Title"] = "For Influencers";
+    ViewData["ActiveNav"] = "influencers";
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>@ViewData["Title"] - Brandora</title>
+
+    <link rel="icon" type="image/png" href="~/images/brandora-icon.png" />
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap"
+          rel="stylesheet">
+
+    <link rel="stylesheet" href="~/css/brandora-shared.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/brandora-directory.css" asp-append-version="true" />
+
+    <style>
+
+        /* =========================================================
+           GLOBAL
+        ========================================================= */
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: #ffffff;
+            color: #08123d;
+            overflow-x: hidden;
+        }
+
+        a {
+            text-decoration: none;
+            color: inherit;
+        }
+
+        button {
+            font-family: inherit;
+        }
+
+    </style>
+
+</head>
+<body class="directory-page">
+
+
+    <partial name="_BrandoraNavbar" />
+
+
+    <!-- =========================================================
+         HERO
+    ========================================================== -->
+
+    <section class="directory-hero">
+
+        <img src="~/images/Wave.png" alt="" class="directory-hero-wave" aria-hidden="true" />
+
+        <!-- Solid-blue stand-in for the hero analytics artwork. -->
+        <div class="directory-hero-banner" aria-hidden="true"></div>
+
+        <div class="directory-hero-inner">
+
+            <div class="directory-hero-copy">
+
+                <h1 class="directory-hero-title">
+                    Find Influencers.
+                    <br />
+                    Fuel Your
+                    <span class="purple">Brand</span>
+                    <span class="blue">Growth.</span>
+                </h1>
+
+                <p class="directory-hero-text">
+                    Explore verified influencers across platforms and niches.
+                    <br />
+                    Connect with creators who align with your brand and audience.
+                </p>
+
+                <div class="directory-hero-rule"></div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <partial name="_BrandoraFooter" />
+
+
+</body>
+</html>

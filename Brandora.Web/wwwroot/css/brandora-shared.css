@@ -71,6 +71,45 @@
     color: #8bbdff;
 }
 
+
+/* Full-height link boxes let the active underline sit flush with the
+   navbar's bottom edge. Links stay vertically centred, so pages that
+   set no active item look exactly as they did before. */
+
+.nav-link-underline {
+    position: relative;
+
+    display: inline-flex;
+    align-items: center;
+
+    height: 82px;
+}
+
+.nav-link-underline.is-active {
+    color: #ffffff;
+    font-weight: 500;
+}
+
+.nav-link-underline.is-active::after {
+    content: "";
+
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+
+    height: 3px;
+
+    border-radius: 3px 3px 0 0;
+
+    background:
+        linear-gradient(
+            90deg,
+            #9427ff,
+            #276eff
+        );
+}
+
 .nav-link-caret {
     display: inline-flex;
     align-items: center;
