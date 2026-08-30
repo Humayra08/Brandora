@@ -12,6 +12,12 @@ public class HomeController : Controller
         return View();
     }
 
+    [HttpGet("platform")]
+    public IActionResult Platform()
+    {
+        return View();
+    }
+
     [HttpGet("for-brands")]
     public IActionResult ForBrands()
     {
