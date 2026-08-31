@@ -1,0 +1,78 @@
+@using Brandora.Web.Models.Influencers
+@{
+    // Single source of truth for the influencer side navigation.
+    // Every influencer-facing page renders this partial, so the nav can never
+    // drift between pages. Pages pick their highlighted entry with
+    //   ViewData["ActiveNav"] = "<key>";
+    // using the keys below. The signed-in creator's name comes from
+    // InfluencerControllerBase, which sets ViewData["CompanyName"].
+
+    var activeNav = ViewData["ActiveNav"] as string ?? "";
+    var influencerName = ViewData["CompanyName"] as string ?? "";
+
+    var navItems = new (string Key, string Label, string Url)[]
+    {
+        ("Dashboard",      "Dashboard",        "/InfluencerDashboard"),
+        ("Campaigns",      "Campaigns",        "/InfluencerCampaigns"),
+        ("Proposals",      "My Proposals",     "#"),
+        ("Chat",           "Chat",             "/InfluencerMessages"),
+        ("Earnings",       "Earnings",         "#"),
+        ("SocialAccounts", "Social Accounts",  "/SocialAccounts"),
+        ("UploadProof",    "Upload Proof",     "/UploadProof"),
+        ("Payments",       "Payments",         "#"),
+        ("Settings",       "Profile Settings", "/InfluencerSettings")
+    };
+}
+
+<aside class="sidebar" id="dashboardSidebar">
+
+    <img src="~/images/Sidebar Wave.png" alt="" class="sidebar-wave-img" />
+
+    <div class="brand">
+        <img src="~/images/Brandora.png" alt="Brandora" class="brand-logo-img" />
+    </div>
+
+    <div class="sidebar-nav-wrap">
+        <div class="sidebar-nav-glass">
+            <ul class="sidebar-menu">
+                @foreach (var item in navItems)
+                {
+                    var isActive = activeNav == item.Key;
+                    <li>
+                        <a href="@item.Url" class="@(isActive ? "active" : "")">
+                            <span>@item.Label</span>
+                            @if (isActive)
+                            {
+                                <i class="bi bi-chevron-right nav-chevron"></i>
+                            }
+                        </a>
+                    </li>
+                }
+            </ul>
+        </div>
+    </div>
+
+    <!-- Bottom User Profile -->
+
+    <div class="sidebar-bottom">
+
+        <div class="sidebar-user">
+            <div class="avatar-circle small">@FollowerFormat.InitialsOf(influencerName)</div>
+
+            <div>
+                <h6>@influencerName</h6>
+                <span>Influencer</span>
+            </div>
+        </div>
+
+        <form method="post" action="/Account/Logout">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="logout-btn">
+                <i class="bi bi-box-arrow-right"></i>
+                <span>Logout</span>
+            </button>
+        </form>
+
+    </div>
+
+</aside>

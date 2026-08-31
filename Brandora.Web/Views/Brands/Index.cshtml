@@ -1,0 +1,926 @@
+@model Brandora.Web.Models.Brands.BrandListViewModel
+@using Brandora.Web.Models.Influencers
+@{
+    ViewData["Title"] = "Browse Brands";
+    ViewData["ActiveNav"] = "Chat";
+    Layout = null;
+
+    var influencerName = ViewData["CompanyName"] as string ?? "";
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>@ViewData["Title"] - Brandora</title>
+
+    <link rel="icon" type="image/png" href="~/images/brandora-icon.png" />
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+          rel="stylesheet">
+
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Playfair+Display:wght@500;600;700&display=swap"
+          rel="stylesheet">
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+
+        ::-webkit-scrollbar-button,
+        ::-webkit-scrollbar-button:single-button,
+        ::-webkit-scrollbar-button:vertical:start,
+        ::-webkit-scrollbar-button:vertical:end,
+        ::-webkit-scrollbar-button:horizontal:start,
+        ::-webkit-scrollbar-button:horizontal:end,
+        ::-webkit-scrollbar-button:increment,
+        ::-webkit-scrollbar-button:decrement {
+            display: none !important;
+            width: 0 !important;
+            height: 0 !important;
+            background: transparent !important;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #d3d9ec;
+            border-radius: 10px;
+            border: 2px solid transparent;
+            background-clip: padding-box;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #b7c0e0;
+            background-clip: padding-box;
+        }
+
+        html {
+            scrollbar-width: thin;
+            scrollbar-color: #d3d9ec transparent;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'DM Sans', sans-serif;
+            background: #ffffff;
+            color: #20283a;
+            overflow-x: hidden;
+        }
+
+        /* ==============================
+           SIDEBAR (shared with dashboard)
+        ============================== */
+
+        .sidebar {
+            position: fixed;
+            width: 230px;
+            height: 100vh;
+            left: 0;
+            top: 0;
+            padding: 16px 12px;
+            background:
+                radial-gradient(circle at 0% 30%, rgba(139, 34, 255, .18), transparent 30%),
+                linear-gradient(180deg, #070c22 0%, #0a1028 100%);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid rgba(255,255,255,.06);
+            z-index: 1000;
+
+            overflow-y: auto;
+            overflow-x: hidden;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255,255,255,.15) transparent;
+
+            transition: transform .25s ease;
+        }
+
+        .sidebar.is-hidden {
+            transform: translateX(-100%);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            padding: 0 12px 6px;
+        }
+
+        .sidebar-wave-img {
+            position: absolute;
+            left: 0;
+            bottom: 60px;
+            width: 100%;
+            height: auto;
+            pointer-events: none;
+            z-index: -1;
+            opacity: .9;
+        }
+
+        .brand-logo-img {
+            height: 44px;
+            width: auto;
+            display: block;
+        }
+
+        .sidebar-nav-wrap {
+            position: relative;
+            flex: 1;
+            min-height: 0;
+            margin-top: 14px;
+        }
+
+        .sidebar-nav-wrap::before {
+            content: "";
+            position: absolute;
+            top: -34px;
+            left: -34px;
+            right: -34px;
+            bottom: 0;
+            z-index: -1;
+            pointer-events: none;
+
+            background:
+                radial-gradient(circle at 12% 5%, rgba(35,110,234,.2), transparent 30%),
+                radial-gradient(circle at 88% 14%, rgba(163,38,255,.18), transparent 32%),
+                radial-gradient(circle at 18% 50%, rgba(24,169,255,.16), transparent 30%),
+                radial-gradient(circle at 85% 62%, rgba(163,38,255,.14), transparent 32%),
+                radial-gradient(circle at 30% 90%, rgba(35,110,234,.16), transparent 34%);
+
+            filter: blur(14px);
+        }
+
+        .sidebar-nav-glass {
+            position: relative;
+
+            padding: 0;
+
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,.12);
+
+            background: rgba(255,255,255,.03);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+
+            box-shadow: 0 8px 30px rgba(0,0,0,.18);
+        }
+
+        .sidebar-menu {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .sidebar-menu li {
+            margin-bottom: 2px;
+        }
+
+        .sidebar-menu a {
+            color: #d9dce8;
+            text-decoration: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 10px 14px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 400;
+            transition: background .2s ease, color .2s ease, transform .1s ease;
+        }
+
+        .sidebar-menu a:hover {
+            background: rgba(255,255,255,.06);
+            color: white;
+        }
+
+        .sidebar-menu a:active {
+            transform: scale(.98);
+            background: rgba(255,255,255,.1);
+        }
+
+        .sidebar-menu .active:hover,
+        .sidebar-menu .active:active {
+            background: linear-gradient(105deg, #a326ff, #236eff, #18a9ff);
+        }
+
+        .nav-chevron {
+            font-size: 15px;
+            opacity: 0;
+            transition: .2s ease;
+        }
+
+        .sidebar-menu .active {
+            color: white;
+            background: linear-gradient(105deg, #a326ff, #236eff, #18a9ff);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,.35),
+                inset 0 0 0 1px rgba(255,255,255,.18),
+                0 8px 25px rgba(106, 37, 213, .25);
+        }
+
+        .sidebar-menu .active .nav-chevron {
+            opacity: 1;
+        }
+
+        .sidebar-bottom {
+            margin-top: auto;
+            padding: 12px 8px 0;
+        }
+
+        .sidebar-user {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding-bottom: 10px;
+            min-width: 0;
+        }
+
+        .sidebar-user > div {
+            min-width: 0;
+        }
+
+        .avatar-circle {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            flex-shrink: 0;
+            background: linear-gradient(145deg, #c93cff, #4e38ff 55%, #159cff);
+            color: #ffffff;
+            font-family: 'DM Sans', sans-serif;
+            font-weight: 700;
+        }
+
+        .avatar-circle.small {
+            width: 36px;
+            height: 36px;
+            font-size: 12px;
+            border: 2px solid rgba(255,255,255,.12);
+        }
+
+        .sidebar-user h6 {
+            margin: 0 0 4px;
+            font-size: 14px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .sidebar-user span {
+            color: #afb4c6;
+            font-size: 13px;
+        }
+
+        .logout-btn {
+            width: 100%;
+            padding: 10px;
+            border: 0;
+            border-top: 1px solid rgba(255,255,255,.08);
+            background: transparent;
+            color: #dce0ea;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .logout-btn i {
+            margin-right: 10px;
+            font-size: 16px;
+        }
+
+        .logout-btn:hover {
+            color: white;
+        }
+
+        /* ==============================
+           MAIN CONTENT
+        ============================== */
+
+        .main-content {
+            margin-left: 230px;
+            min-height: 100vh;
+            padding: 24px 26px;
+            background: #ffffff;
+
+            transition: margin-left .25s ease;
+        }
+
+        .main-content.sidebar-hidden {
+            margin-left: 0;
+        }
+
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .menu-btn {
+            border: 0;
+            background: transparent;
+            font-size: 26px;
+            color: #20283a;
+        }
+
+        .top-actions {
+            display: flex;
+            align-items: center;
+            gap: 22px;
+        }
+
+        .bell {
+            position: relative;
+            font-size: 23px;
+            color: #20283a;
+        }
+
+        .browse-btn {
+            border: 0;
+            color: white;
+            padding: 9px 16px;
+            border-radius: 9px;
+            font-size: 13px;
+            font-weight: 600;
+            background: linear-gradient(105deg, #a326ff, #236eff, #18a9ff);
+            transition: .25s;
+        }
+
+        .browse-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .browse-btn i {
+            margin-left: 10px;
+        }
+
+        @@keyframes fade-up {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ==============================
+           PAGE
+        ============================== */
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+
+            margin-bottom: 14px;
+
+            font-size: 12.5px;
+            font-weight: 600;
+            color: #8189a8;
+            text-decoration: none;
+
+            transition: color .2s ease;
+        }
+
+        .back-link:hover {
+            color: #9b2cff;
+        }
+
+        .page-head {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 20px;
+
+            animation: fade-up .4s ease both;
+        }
+
+        .page-title {
+            font-family: 'Playfair Display', serif;
+            font-weight: 600;
+            font-size: 28px;
+            margin: 0;
+        }
+
+        .page-sub {
+            margin: 6px 0 0;
+
+            font-size: 13.5px;
+            color: #6b7290;
+        }
+
+        .filter-bar {
+            margin-top: 22px;
+
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px;
+
+            animation: fade-up .45s ease both;
+        }
+
+        .filter-input,
+        .filter-select {
+            height: 42px;
+
+            padding: 0 14px;
+
+            border-radius: 10px;
+            border: 1px solid #e2e5f2;
+            background: #ffffff;
+
+            font-family: 'DM Sans', sans-serif;
+            font-size: 13px;
+            color: #2a3157;
+
+            outline: none;
+            transition: .2s;
+        }
+
+        .filter-input:focus,
+        .filter-select:focus {
+            border-color: #a978ff;
+            box-shadow: 0 0 0 3px rgba(155,44,255,.1);
+        }
+
+        .filter-input {
+            width: 220px;
+        }
+
+        .btn-outline {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+
+            height: 42px;
+            padding: 0 18px;
+
+            border-radius: 10px;
+            border: 1px solid #dde1f0;
+            background: #ffffff;
+
+            font-family: 'DM Sans', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            color: #2a3157;
+            text-decoration: none;
+
+            cursor: pointer;
+            transition: .2s;
+        }
+
+        .btn-outline:hover {
+            border-color: transparent;
+            color: #7a1fd6;
+            transform: translateY(-2px);
+            box-shadow: 0 0 0 1.5px #9b2cff, 0 10px 22px rgba(140,60,255,.18);
+        }
+
+        .btn-gradient {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+
+            width: 100%;
+            height: 40px;
+            padding: 0 18px;
+
+            border: 0;
+            border-radius: 10px;
+
+            background: linear-gradient(105deg, #a326ff, #236eff, #18a9ff);
+            background-size: 180% 180%;
+
+            font-family: 'DM Sans', sans-serif;
+            font-size: 12.5px;
+            font-weight: 700;
+            color: #ffffff;
+            text-decoration: none;
+
+            cursor: pointer;
+            transition: background-position .35s ease, transform .2s ease, box-shadow .2s ease;
+        }
+
+        .btn-gradient:hover {
+            background-position: 100% 50%;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 26px rgba(140,60,255,.35);
+            color: #ffffff;
+        }
+
+        .brand-grid {
+            margin-top: 24px;
+
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 18px;
+        }
+
+        .brand-card {
+            position: relative;
+            overflow: hidden;
+
+            padding: 24px 22px 22px;
+
+            border-radius: 18px;
+            background: #ffffff;
+            border: 1px solid #eaecf5;
+
+            transition: transform .45s cubic-bezier(.22,1,.36,1), box-shadow .4s ease;
+
+            opacity: 0;
+            transform: translateY(26px);
+        }
+
+        .brand-card.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+            transition: opacity .6s ease, transform .6s cubic-bezier(.22,1,.36,1), box-shadow .4s ease;
+        }
+
+        .brand-card::before,
+        .brand-card::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity .35s ease;
+        }
+
+        .brand-card::before {
+            background:
+                radial-gradient(circle at 22% -10%, rgba(163,38,255,.12), transparent 55%),
+                radial-gradient(circle at 100% 110%, rgba(24,169,255,.1), transparent 55%);
+        }
+
+        .brand-card::after {
+            border-radius: inherit;
+            padding: 1.5px;
+            background: linear-gradient(135deg, #a326ff, #236eff, #18a9ff);
+            -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+        }
+
+        .brand-card:hover {
+            transform: translateY(-7px) scale(1.015);
+            box-shadow: 0 26px 46px rgba(30,34,90,.16);
+        }
+
+        .brand-card:hover::before,
+        .brand-card:hover::after {
+            opacity: 1;
+        }
+
+        .brand-card > * {
+            position: relative;
+            z-index: 1;
+        }
+
+        .brand-card:hover .avatar-circle {
+            transform: scale(1.08) rotate(-3deg);
+        }
+
+        .brand-card .avatar-circle {
+            width: 56px;
+            height: 56px;
+            font-size: 18px;
+            transition: transform .35s cubic-bezier(.22,1,.36,1);
+        }
+
+        .brand-card-head {
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+        }
+
+        .brand-name-row {
+            font-family: 'DM Sans', sans-serif;
+            font-weight: 700;
+            font-size: 16px;
+            color: #171d3d;
+        }
+
+        .brand-contact {
+            margin-top: 2px;
+
+            font-size: 12px;
+            color: #8189a8;
+        }
+
+        .brand-tags {
+            margin-top: 12px;
+
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .tag {
+            padding: 3px 10px;
+
+            border-radius: 20px;
+            background: #f2f3fa;
+
+            font-size: 11px;
+            font-weight: 600;
+            color: #545b7d;
+        }
+
+        .brand-actions {
+            margin-top: 18px;
+
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .brand-actions .btn-outline {
+            flex: 1;
+            height: 40px;
+            font-size: 12.5px;
+        }
+
+        .empty-block {
+            margin-top: 24px;
+            padding: 40px 20px;
+
+            border-radius: 16px;
+            border: 1px dashed #dde1f0;
+            background: #fafbfe;
+
+            text-align: center;
+        }
+
+        .empty-title {
+            font-family: 'DM Sans', sans-serif;
+            font-weight: 700;
+            font-size: 15px;
+            color: #2a3157;
+        }
+
+        .empty-text {
+            margin: 6px auto 0;
+            max-width: 380px;
+
+            font-size: 13px;
+            line-height: 1.6;
+            color: #8189a8;
+        }
+
+        /* ==============================
+           RESPONSIVE
+        ============================== */
+
+        @@media(max-width: 1100px) {
+            .sidebar {
+                width: 220px;
+            }
+
+            .main-content {
+                margin-left: 220px;
+            }
+        }
+
+        @@media(max-width: 900px) {
+            .sidebar {
+                transform: translateX(-100%);
+                box-shadow: 0 0 40px rgba(0,0,0,.35);
+            }
+
+            .sidebar.is-open {
+                transform: translateX(0);
+            }
+
+            .sidebar-backdrop {
+                display: none;
+                position: fixed;
+                inset: 0;
+                background: rgba(5,6,20,.5);
+                z-index: 999;
+            }
+
+            .sidebar-backdrop.is-visible {
+                display: block;
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+        }
+
+        @@media(max-width: 640px) {
+            .main-content {
+                padding: 18px 14px;
+            }
+
+            .filter-input {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+    <!-- ================= SIDEBAR ================= -->
+
+    @await Html.PartialAsync("_InfluencerSidebar")
+
+
+    <!-- ================= MAIN ================= -->
+
+    <main class="main-content" id="dashboardMain">
+
+        <!-- TOP BAR -->
+
+        <div class="topbar">
+
+            <button class="menu-btn" id="menuToggleBtn" aria-label="Toggle sidebar" type="button">
+                <i class="bi bi-list"></i>
+            </button>
+
+            <div class="top-actions">
+
+                <div class="bell">
+                    <i class="bi bi-bell"></i>
+                </div>
+
+                <a href="/InfluencerCampaigns">
+                    <button class="browse-btn">
+                        Browse Campaigns
+                        <i class="bi bi-arrow-right"></i>
+                    </button>
+                </a>
+
+            </div>
+
+        </div>
+
+
+        <a href="/InfluencerMessages" class="back-link">
+            <i class="bi bi-chevron-left"></i>
+            Back to Chat
+        </a>
+
+        <div class="page-head">
+            <div>
+                <h1 class="page-title">Browse Brands</h1>
+                <p class="page-sub">@Model.TotalCount brand@(Model.TotalCount == 1 ? "" : "s") on Brandora.</p>
+            </div>
+        </div>
+
+        <form method="get" action="/Brands" class="filter-bar">
+
+            <input type="text" name="search" class="filter-input" placeholder="Search by company name..." value="@Model.Search" />
+
+            <select name="industry" class="filter-select" onchange="this.form.submit()">
+                <option value="" selected="@(string.IsNullOrEmpty(Model.Industry))">All industries</option>
+                @foreach (var industry in new[] { "Fashion & Apparel", "Beauty & Cosmetics", "Food & Beverage", "Technology", "Health & Fitness", "Travel & Tourism", "Finance", "Education", "Home & Lifestyle", "Other" })
+                {
+                    <option selected="@(Model.Industry == industry)">@industry</option>
+                }
+            </select>
+
+            <button type="submit" class="btn-outline">Search</button>
+
+        </form>
+
+        @if (Model.Brands.Count > 0)
+        {
+            <div class="brand-grid">
+                @foreach (var brand in Model.Brands)
+                {
+                    <div class="brand-card" data-reveal>
+
+                        <div class="brand-card-head">
+                            <div class="avatar-circle">
+                                @FollowerFormat.InitialsOf(brand.CompanyName)
+                            </div>
+                            <div>
+                                <div class="brand-name-row">@brand.CompanyName</div>
+                                <div class="brand-contact">@brand.ContactFullName</div>
+                            </div>
+                        </div>
+
+                        <div class="brand-tags">
+                            <span class="tag">@brand.Industry</span>
+                            <span class="tag">@brand.MonthlyBudget</span>
+                        </div>
+
+                        <div class="brand-actions">
+                            @if (!string.IsNullOrEmpty(brand.WebsiteUrl))
+                            {
+                                <a href="@brand.WebsiteUrl" target="_blank" rel="noopener" class="btn-outline">Website</a>
+                            }
+
+                            <form method="post" action="/InfluencerMessages/StartWithBrand" style="flex:1;">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="brandId" value="@brand.Id" />
+                                <button type="submit" class="btn-gradient">Message</button>
+                            </form>
+                        </div>
+
+                    </div>
+                }
+            </div>
+        }
+        else if (Model.TotalCount == 0)
+        {
+            <div class="empty-block">
+                <div class="empty-title">No brands yet</div>
+                <p class="empty-text">Once brands join Brandora, they'll appear here for you to discover and message.</p>
+            </div>
+        }
+        else
+        {
+            <div class="empty-block">
+                <div class="empty-title">No brands match these filters</div>
+                <p class="empty-text">Try a different search term or clear your filters.</p>
+                <a href="/Brands" class="btn-outline" style="margin-top:16px;">Clear Filters</a>
+            </div>
+        }
+
+    </main>
+
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        (function () {
+            var menuBtn = document.getElementById('menuToggleBtn');
+            var sidebar = document.getElementById('dashboardSidebar');
+            var main = document.getElementById('dashboardMain');
+            var backdrop = document.getElementById('sidebarBackdrop');
+            var mobileQuery = window.matchMedia('(max-width: 900px)');
+
+            if (menuBtn && sidebar && main) {
+                function closeMobile() {
+                    sidebar.classList.remove('is-open');
+                    if (backdrop) backdrop.classList.remove('is-visible');
+                }
+
+                menuBtn.addEventListener('click', function () {
+                    if (mobileQuery.matches) {
+                        sidebar.classList.toggle('is-open');
+                        if (backdrop) backdrop.classList.toggle('is-visible');
+                    } else {
+                        sidebar.classList.toggle('is-hidden');
+                        main.classList.toggle('sidebar-hidden');
+                    }
+                });
+
+                if (backdrop) backdrop.addEventListener('click', closeMobile);
+            }
+        })();
+
+        (function () {
+            var cards = document.querySelectorAll('.brand-card[data-reveal]');
+            if (!cards.length) return;
+
+            if (!('IntersectionObserver' in window)) {
+                cards.forEach(function (c) { c.classList.add('is-visible'); });
+                return;
+            }
+
+            var observer = new IntersectionObserver(function (entries) {
+                entries.forEach(function (entry) {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('is-visible');
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+
+            cards.forEach(function (card, index) {
+                card.style.transitionDelay = Math.min(index % 12, 8) * 45 + 'ms';
+                observer.observe(card);
+            });
+        })();
+    </script>
+
+</body>
+</html>

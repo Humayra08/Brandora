@@ -10,6 +10,7 @@ public class InboxViewModel
     public string? Search { get; set; }
     public int TotalCount { get; set; }
     public int TotalUnread { get; set; }
+    public Conversation? Selected { get; set; }
 
     public int UnreadFor(int conversationId) => UnreadCounts.TryGetValue(conversationId, out var count) ? count : 0;
 }
