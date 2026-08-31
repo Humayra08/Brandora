@@ -1,0 +1,1861 @@
+@model Brandora.Web.Models.Dashboard.InfluencerCampaignsViewModel
+@using Brandora.Web.Models.Domain
+@using Brandora.Web.Models.Influencers
+@{
+    ViewData["Title"] = "Campaigns";
+    Layout = null;
+
+    string PlatformIcon(string? platform) => (platform ?? "").ToLowerInvariant() switch
+    {
+        var p when p.Contains("facebook") => "bi-facebook",
+        var p when p.Contains("tiktok") => "bi-tiktok",
+        var p when p.Contains("instagram") => "bi-instagram",
+        var p when p.Contains("youtube") => "bi-youtube",
+        var p when p.Contains("twitter") || p.Contains("x") => "bi-twitter-x",
+        _ => "bi-megaphone"
+    };
+
+    string PostedAgo(DateTime createdAt)
+    {
+        var span = DateTime.UtcNow - createdAt;
+        if (span.TotalHours < 1) return "Just now";
+        if (span.TotalHours < 24) return $"{(int)span.TotalHours}h ago";
+        if (span.TotalDays < 7) return $"{(int)span.TotalDays} day{((int)span.TotalDays == 1 ? "" : "s")} ago";
+        if (span.TotalDays < 30) return $"{(int)(span.TotalDays / 7)} week{((int)(span.TotalDays / 7) == 1 ? "" : "s")} ago";
+        return $"{(int)(span.TotalDays / 30)} month{((int)(span.TotalDays / 30) == 1 ? "" : "s")} ago";
+    }
+
+    var currentTab = Model.Tab;
+
+    var tabs = new (string Key, string Label, int Count)[]
+    {
+        ("all", "All Campaigns", Model.AllCount),
+        ("applied", "Applied", Model.AppliedCount),
+        ("inreview", "In Review", Model.InReviewCount),
+        ("ongoing", "Ongoing", Model.OngoingCount),
+        ("completed", "Completed", Model.CompletedCount)
+    };
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>@ViewData["Title"] - Brandora</title>
+
+    <link rel="icon" type="image/png" href="~/images/brandora-icon.png" />
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+          rel="stylesheet">
+
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Playfair+Display:wght@500;600;700&display=swap"
+          rel="stylesheet">
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+
+        ::-webkit-scrollbar-button,
+        ::-webkit-scrollbar-button:single-button,
+        ::-webkit-scrollbar-button:vertical:start,
+        ::-webkit-scrollbar-button:vertical:end,
+        ::-webkit-scrollbar-button:horizontal:start,
+        ::-webkit-scrollbar-button:horizontal:end,
+        ::-webkit-scrollbar-button:increment,
+        ::-webkit-scrollbar-button:decrement {
+            display: none !important;
+            width: 0 !important;
+            height: 0 !important;
+            background: transparent !important;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #d3d9ec;
+            border-radius: 10px;
+            border: 2px solid transparent;
+            background-clip: padding-box;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #b7c0e0;
+            background-clip: padding-box;
+        }
+
+        html {
+            scrollbar-width: thin;
+            scrollbar-color: #d3d9ec transparent;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'DM Sans', sans-serif;
+            background: #ffffff;
+            color: #20283a;
+            overflow-x: hidden;
+        }
+
+        /* ==============================
+           SIDEBAR (shared with dashboard)
+        ============================== */
+
+        .sidebar {
+            position: fixed;
+            width: 230px;
+            height: 100vh;
+            left: 0;
+            top: 0;
+            padding: 16px 12px;
+            background:
+                radial-gradient(circle at 0% 30%, rgba(139, 34, 255, .18), transparent 30%),
+                linear-gradient(180deg, #070c22 0%, #0a1028 100%);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid rgba(255,255,255,.06);
+            z-index: 1000;
+
+            overflow-y: auto;
+            overflow-x: hidden;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255,255,255,.15) transparent;
+
+            transition: transform .25s ease;
+        }
+
+        .sidebar.is-hidden {
+            transform: translateX(-100%);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            padding: 0 12px 6px;
+        }
+
+        .sidebar-wave-img {
+            position: absolute;
+            left: 0;
+            bottom: 60px;
+            width: 100%;
+            height: auto;
+            pointer-events: none;
+            z-index: -1;
+            opacity: .9;
+        }
+
+        .brand-logo-img {
+            height: 44px;
+            width: auto;
+            display: block;
+        }
+
+        .sidebar-nav-wrap {
+            position: relative;
+            flex: 1;
+            min-height: 0;
+            margin-top: 14px;
+        }
+
+        .sidebar-nav-wrap::before {
+            content: "";
+            position: absolute;
+            top: -34px;
+            left: -34px;
+            right: -34px;
+            bottom: 0;
+            z-index: -1;
+            pointer-events: none;
+
+            background:
+                radial-gradient(circle at 12% 5%, rgba(35,110,234,.2), transparent 30%),
+                radial-gradient(circle at 88% 14%, rgba(163,38,255,.18), transparent 32%),
+                radial-gradient(circle at 18% 50%, rgba(24,169,255,.16), transparent 30%),
+                radial-gradient(circle at 85% 62%, rgba(163,38,255,.14), transparent 32%),
+                radial-gradient(circle at 30% 90%, rgba(35,110,234,.16), transparent 34%);
+
+            filter: blur(14px);
+        }
+
+        .sidebar-nav-glass {
+            position: relative;
+
+            padding: 0;
+
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,.12);
+
+            background: rgba(255,255,255,.03);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+
+            box-shadow: 0 8px 30px rgba(0,0,0,.18);
+        }
+
+        .sidebar-menu {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .sidebar-menu li {
+            margin-bottom: 2px;
+        }
+
+        .sidebar-menu a {
+            color: #d9dce8;
+            text-decoration: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 10px 14px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 400;
+            transition: background .2s ease, color .2s ease, transform .1s ease;
+        }
+
+        .sidebar-menu a:hover {
+            background: rgba(255,255,255,.06);
+            color: white;
+        }
+
+        .sidebar-menu a:active {
+            transform: scale(.98);
+            background: rgba(255,255,255,.1);
+        }
+
+        .sidebar-menu .active:hover,
+        .sidebar-menu .active:active {
+            background: linear-gradient(105deg, #a326ff, #236eff, #18a9ff);
+        }
+
+        .nav-chevron {
+            font-size: 15px;
+            opacity: 0;
+            transition: .2s ease;
+        }
+
+        .sidebar-menu .active {
+            color: white;
+            background: linear-gradient(105deg, #a326ff, #236eff, #18a9ff);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,.35),
+                inset 0 0 0 1px rgba(255,255,255,.18),
+                0 8px 25px rgba(106, 37, 213, .25);
+        }
+
+        .sidebar-menu .active .nav-chevron {
+            opacity: 1;
+        }
+
+        .sidebar-bottom {
+            margin-top: auto;
+            padding: 12px 8px 0;
+        }
+
+        .sidebar-user {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding-bottom: 10px;
+            min-width: 0;
+        }
+
+        .sidebar-user > div {
+            min-width: 0;
+        }
+
+        .avatar-circle {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            flex-shrink: 0;
+            background: linear-gradient(145deg, #c93cff, #4e38ff 55%, #159cff);
+            color: #ffffff;
+            font-family: 'DM Sans', sans-serif;
+            font-weight: 700;
+        }
+
+        .avatar-circle.small {
+            width: 36px;
+            height: 36px;
+            font-size: 12px;
+            border: 2px solid rgba(255,255,255,.12);
+        }
+
+        .sidebar-user h6 {
+            margin: 0 0 4px;
+            font-size: 14px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .sidebar-user span {
+            color: #afb4c6;
+            font-size: 13px;
+        }
+
+        .logout-btn {
+            width: 100%;
+            padding: 10px;
+            border: 0;
+            border-top: 1px solid rgba(255,255,255,.08);
+            background: transparent;
+            color: #dce0ea;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .logout-btn i {
+            margin-right: 10px;
+            font-size: 16px;
+        }
+
+        .logout-btn:hover {
+            color: white;
+        }
+
+        /* ==============================
+           MAIN CONTENT
+        ============================== */
+
+        .main-content {
+            margin-left: 230px;
+            min-height: 100vh;
+            padding: 24px 26px;
+            background: #ffffff;
+
+            transition: margin-left .25s ease;
+        }
+
+        .main-content.sidebar-hidden {
+            margin-left: 0;
+        }
+
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .menu-btn {
+            border: 0;
+            background: transparent;
+            font-size: 26px;
+            color: #20283a;
+        }
+
+        .top-actions {
+            display: flex;
+            align-items: center;
+            gap: 22px;
+        }
+
+        .bell {
+            position: relative;
+            font-size: 23px;
+        }
+
+        .bell-badge {
+            position: absolute;
+            top: -9px;
+            right: -10px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #7624d6;
+            color: white;
+            font-size: 12px;
+            display: grid;
+            place-items: center;
+        }
+
+        .browse-btn {
+            border: 0;
+            color: white;
+            padding: 9px 16px;
+            border-radius: 9px;
+            font-size: 13px;
+            font-weight: 600;
+            background: linear-gradient(105deg, #a326ff, #236eff, #18a9ff);
+            transition: .25s;
+        }
+
+        .browse-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .browse-btn i {
+            margin-left: 10px;
+        }
+
+        /* ==============================
+           PAGE HEADER
+        ============================== */
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-bottom: 22px;
+        }
+
+        .page-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 26px;
+            font-weight: 700;
+            color: #101a42;
+        }
+
+        .page-subtitle {
+            margin-top: 5px;
+            color: #56617f;
+            font-size: 13.5px;
+        }
+
+        /* ==============================
+           TABS
+        ============================== */
+
+        .campaign-tabs {
+            display: flex;
+            align-items: center;
+            gap: 26px;
+            border-bottom: 1px solid #eef0f8;
+            margin-bottom: 18px;
+            overflow-x: auto;
+        }
+
+        .campaign-tab {
+            position: relative;
+            padding: 10px 2px 14px;
+            font-size: 13.5px;
+            font-weight: 600;
+            color: #7c8ab0;
+            background: none;
+            border: 0;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: color .2s ease;
+        }
+
+        .campaign-tab:hover {
+            color: #3a4360;
+        }
+
+        .campaign-tab.is-active {
+            color: #6322d4;
+        }
+
+        .campaign-tab.is-active::after {
+            content: "";
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: -1px;
+            height: 2px;
+            background: linear-gradient(105deg, #a326ff, #236eff);
+            border-radius: 2px;
+        }
+
+        /* ==============================
+           FILTER BAR
+        ============================== */
+
+        .glass-card {
+            background: #ffffff;
+            border: 1px solid #dce7ff;
+            border-radius: 15px;
+        }
+
+        .filter-bar {
+            display: flex;
+            align-items: stretch;
+            flex-wrap: wrap;
+            gap: 14px;
+            padding: 0;
+            margin-bottom: 20px;
+            background: transparent;
+            border: none;
+        }
+
+        .search-field {
+            flex: 2 1 300px;
+        }
+
+        .filter-field {
+            flex: 1 1 170px;
+            position: relative;
+            border: 1px solid #e2e5f0;
+            border-radius: 10px;
+            padding: 15px 14px 11px;
+            background: #ffffff;
+            transition: border-color .2s ease;
+        }
+
+        .filter-field:hover {
+            border-color: #b7c0e0;
+        }
+
+        .filter-field label {
+            position: absolute;
+            top: -8px;
+            left: 13px;
+            padding: 0 6px;
+            background: #ffffff;
+            font-size: 11.5px;
+            font-weight: 600;
+            color: #8a93ad;
+            letter-spacing: .2px;
+        }
+
+        .search-field .filter-field {
+            padding: 0;
+            display: flex;
+            align-items: center;
+        }
+
+        .search-field .filter-field input {
+            flex: 1;
+            border: 0;
+            outline: 0;
+            background: transparent;
+            padding: 15px 0 15px 16px;
+            font-size: 13.5px;
+            font-family: 'DM Sans', sans-serif;
+            color: #20283a;
+            width: 100%;
+        }
+
+        .search-field .filter-field i {
+            color: #7c8ab0;
+            font-size: 15px;
+            padding-right: 14px;
+        }
+
+        .filter-field select {
+            width: 100%;
+            border: 0;
+            outline: 0;
+            background: transparent;
+            padding: 0;
+            font-size: 13.5px;
+            font-weight: 400;
+            color: #20283a;
+            font-family: 'DM Sans', sans-serif;
+            cursor: pointer;
+            appearance: none;
+            -webkit-appearance: none;
+        }
+
+        .filter-field .select-chevron {
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #8a93ad;
+            font-size: 13px;
+            pointer-events: none;
+        }
+
+        /* ==============================
+           RESULTS HEADER
+        ============================== */
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        .results-count {
+            font-size: 13px;
+            color: #56617f;
+        }
+
+        .sort-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: #56617f;
+        }
+
+        .sort-select-wrap {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .sort-select {
+            appearance: none;
+            -webkit-appearance: none;
+            border: 1px solid #dce7ff;
+            border-radius: 8px;
+            background: #ffffff;
+            padding: 7px 30px 7px 12px;
+            font-size: 13px;
+            font-weight: 400;
+            color: #20283a;
+            font-family: 'DM Sans', sans-serif;
+            cursor: pointer;
+        }
+
+        .sort-select:hover {
+            border-color: #b7c0e0;
+        }
+
+        .sort-select-wrap .select-chevron {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #8a93ad;
+            font-size: 12px;
+            pointer-events: none;
+        }
+
+        /* ==============================
+           CAMPAIGN LIST
+        ============================== */
+
+        .campaign-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .campaign-row {
+            position: relative;
+            display: grid;
+            grid-template-columns: 200px 1fr auto 190px;
+            align-items: stretch;
+            gap: 0;
+            padding: 14px;
+            background: #ffffff;
+            border: 1px solid #dce7ff;
+            border-radius: 16px;
+            box-shadow: 0 2px 10px rgba(32,60,140,.04);
+            transition: box-shadow .2s ease, border-color .2s ease;
+        }
+
+        .campaign-row:hover {
+            box-shadow: 0 10px 26px rgba(35,72,160,.1);
+            border-color: #b7c0e0;
+        }
+
+        .campaign-thumb {
+            width: 100%;
+            height: 100%;
+            min-height: 180px;
+            border-radius: 14px;
+            object-fit: cover;
+            flex-shrink: 0;
+        }
+
+        .campaign-thumb-fallback {
+            width: 100%;
+            height: 100%;
+            min-height: 180px;
+            border-radius: 14px;
+            flex-shrink: 0;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            background: linear-gradient(135deg, #eef1ff 0%, #f1e9ff 55%, #f6ecff 100%);
+            color: #6322d4;
+            font-family: 'DM Sans', sans-serif;
+            font-weight: 700;
+            font-size: 26px;
+        }
+
+        .campaign-info {
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 10px 26px;
+        }
+
+        .campaign-category-tag {
+            display: inline-flex;
+            align-self: flex-start;
+            align-items: center;
+            width: fit-content;
+            height: auto;
+            line-height: 1.4;
+            padding: 4px 12px;
+            border-radius: 20px;
+            background: #e6edff;
+            color: #3355e0;
+            font-size: 11px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .campaign-title-row {
+            display: block;
+        }
+
+        .campaign-title {
+            font-weight: 700;
+            font-size: 19px;
+            color: #101a42;
+            line-height: 1.3;
+        }
+
+        .bookmark-btn {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            flex-shrink: 0;
+            border: 0;
+            background: transparent;
+            color: #b7c0e0;
+            font-size: 19px;
+            cursor: pointer;
+            transition: color .2s ease;
+        }
+
+        .bookmark-btn:hover,
+        .bookmark-btn.is-saved {
+            color: #6322d4;
+        }
+
+        .campaign-brand {
+            margin-top: 6px;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            font-size: 13.5px;
+            color: #2c3550;
+            font-weight: 600;
+        }
+
+        .campaign-brand-logo {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            object-fit: cover;
+            flex-shrink: 0;
+        }
+
+        .campaign-brand-logo-fallback {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #a326ff, #236eff, #18a9ff);
+            color: #ffffff;
+            font-size: 8px;
+            font-weight: 700;
+        }
+
+        .campaign-brand .bi-patch-check-fill {
+            color: #2596ff;
+            font-size: 13px;
+        }
+
+        .campaign-desc {
+            margin-top: 9px;
+            font-size: 13px;
+            line-height: 1.6;
+            color: #56617f;
+
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .campaign-desc.is-expanded {
+            -webkit-line-clamp: unset;
+        }
+
+        .campaign-meta-row {
+            margin-top: 12px;
+            padding-top: 0;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 12px;
+            font-size: 12.5px;
+            color: #56617f;
+        }
+
+        .campaign-meta-row span {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .campaign-meta-row span:not(:last-child)::after {
+            content: "";
+            display: inline-block;
+            width: 1px;
+            height: 13px;
+            margin-left: 12px;
+            background: #dfe3ee;
+        }
+
+        .campaign-meta-row i {
+            color: #8a93ad;
+            font-size: 13px;
+        }
+
+        .campaign-side {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-self: stretch;
+            min-width: 190px;
+            background: linear-gradient(160deg, #f5f8ff 0%, #f1f0fd 55%, #f4edfc 100%);
+            border-radius: 0;
+            padding: 16px 22px;
+            margin: -14px 14px;
+        }
+
+        .side-detail {
+            margin-bottom: 12px;
+        }
+
+        .side-detail:last-child {
+            margin-bottom: 0;
+        }
+
+        .side-detail small {
+            display: block;
+            color: #8a93ad;
+            font-size: 11.5px;
+            margin-bottom: 4px;
+        }
+
+        .side-detail strong {
+            display: block;
+            font-size: 14.5px;
+            color: #101a42;
+            font-weight: 700;
+        }
+
+        .side-detail strong.budget-value {
+            color: #6322d4;
+            font-size: 17px;
+        }
+
+        .side-actions {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            padding: 0 4px;
+        }
+
+        .view-details-btn {
+            box-sizing: border-box;
+            width: 128px;
+            height: 42px;
+            border: 0;
+            color: white;
+            padding: 0 14px;
+            border-radius: 9px;
+            font-size: 13.5px;
+            font-weight: 600;
+            background: linear-gradient(105deg, #a326ff, #236eff, #18a9ff);
+            cursor: pointer;
+            transition: .2s;
+            white-space: nowrap;
+        }
+
+        .view-details-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .apply-btn-outline {
+            box-sizing: border-box;
+            width: 128px;
+            height: 42px;
+            border: 1.5px solid #9b2cff;
+            color: #6322d4;
+            padding: 0 14px;
+            border-radius: 9px;
+            font-size: 13.5px;
+            font-weight: 600;
+            background: #ffffff;
+            cursor: pointer;
+            transition: .2s;
+            white-space: nowrap;
+        }
+
+        .apply-btn-outline:hover {
+            border-color: #9b2cff;
+            color: #6322d4;
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            padding: 10px;
+            border-radius: 9px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .status-badge.pending {
+            background: #f8f0e3;
+            color: #a05e12;
+        }
+
+        .status-badge.accepted {
+            background: #e2faf1;
+            color: #0d9c6c;
+        }
+
+        .status-badge.rejected {
+            background: #fde8ea;
+            color: #c22540;
+        }
+
+        .status-badge.collab {
+            background: #e7eef8;
+            color: #2362a9;
+        }
+
+        .status-badge.completed {
+            background: #f3e8ff;
+            color: #7a1fd6;
+        }
+
+        .empty-note {
+            padding: 60px 10px;
+            text-align: center;
+            color: #6b7290;
+            font-size: 14px;
+        }
+
+        .empty-note i {
+            display: block;
+            font-size: 32px;
+            margin-bottom: 12px;
+            color: #b7c0e0;
+        }
+
+        /* ==============================
+           PAGINATION
+        ============================== */
+
+        .pagination-row {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            margin-top: 26px;
+        }
+
+        .page-btn {
+            min-width: 36px;
+            height: 36px;
+            padding: 0 6px;
+            border: 1px solid #dce7ff;
+            border-radius: 9px;
+            background: #ffffff;
+            font-size: 13px;
+            font-weight: 600;
+            color: #485268;
+            cursor: pointer;
+            transition: .2s;
+        }
+
+        .page-btn:hover {
+            border-color: #b7c0e0;
+        }
+
+        .page-btn.is-active {
+            border-color: transparent;
+            background: linear-gradient(105deg, #a326ff, #236eff, #18a9ff);
+            color: #ffffff;
+        }
+
+        .page-btn:disabled {
+            opacity: .4;
+            cursor: not-allowed;
+        }
+
+        .page-ellipsis {
+            color: #b7c0e0;
+            padding: 0 4px;
+        }
+
+        /* ==============================
+           APPLY MODAL
+        ============================== */
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 2000;
+            background: rgba(8,10,35,.5);
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-overlay.is-open {
+            display: flex;
+        }
+
+        .modal-box {
+            width: 100%;
+            max-width: 460px;
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 26px;
+            box-shadow: 0 20px 60px rgba(10,15,60,.25);
+        }
+
+        .modal-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 19px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .modal-sub {
+            font-size: 12.5px;
+            color: #7c8ab0;
+            margin-bottom: 18px;
+        }
+
+        .form-group {
+            margin-bottom: 14px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 12.5px;
+            font-weight: 600;
+            color: #3a4360;
+            margin-bottom: 6px;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            border: 1px solid #dce7ff;
+            border-radius: 9px;
+            padding: 10px 12px;
+            font-size: 13.5px;
+            font-family: 'DM Sans', sans-serif;
+            outline: 0;
+        }
+
+        .form-group input[type="number"] {
+            -moz-appearance: textfield;
+        }
+
+        .form-group input[type="number"]::-webkit-outer-spin-button,
+        .form-group input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            border-color: #9b2cff;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 18px;
+        }
+
+        .modal-cancel {
+            flex: 1;
+            border: 1px solid #dce7ff;
+            background: #ffffff;
+            color: #485268;
+            padding: 11px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .modal-submit {
+            flex: 1;
+            border: 0;
+            color: white;
+            padding: 11px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            background: linear-gradient(105deg, #a326ff, #236eff, #18a9ff);
+            cursor: pointer;
+        }
+
+        /* ==============================
+           RESPONSIVE
+        ============================== */
+
+        @@media(max-width: 1100px) {
+            .sidebar {
+                width: 220px;
+            }
+
+            .main-content {
+                margin-left: 220px;
+            }
+        }
+
+        @@media(max-width: 900px) {
+            .sidebar {
+                transform: translateX(-100%);
+                box-shadow: 0 0 40px rgba(0,0,0,.35);
+            }
+
+            .sidebar.is-open {
+                transform: translateX(0);
+            }
+
+            .sidebar-backdrop {
+                display: none;
+                position: fixed;
+                inset: 0;
+                background: rgba(5,6,20,.5);
+                z-index: 999;
+            }
+
+            .sidebar-backdrop.is-visible {
+                display: block;
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .campaign-row {
+                grid-template-columns: 1fr;
+            }
+
+            .campaign-thumb,
+            .campaign-thumb-fallback {
+                width: 100%;
+                height: 150px;
+                min-height: 0;
+                margin-bottom: 14px;
+            }
+
+            .campaign-info {
+                padding: 0;
+            }
+
+            .campaign-side {
+                margin: 14px 0;
+                flex-direction: row;
+                flex-wrap: wrap;
+                gap: 20px;
+            }
+
+            .side-actions {
+                padding: 0;
+                flex-direction: row;
+                flex: 1;
+            }
+
+            .view-details-btn,
+            .apply-btn-outline {
+                width: auto;
+                flex: 1;
+            }
+
+            .bookmark-btn {
+                top: 12px;
+                right: 12px;
+            }
+        }
+
+        @@media(max-width: 768px) {
+            .main-content {
+                padding: 18px 14px;
+            }
+
+            .page-title {
+                font-size: 22px;
+            }
+        }
+
+        @@media(max-width: 640px) {
+            .topbar {
+                gap: 12px;
+            }
+
+            .top-actions {
+                gap: 14px;
+            }
+
+            .browse-btn {
+                padding: 8px 12px;
+                font-size: 12px;
+            }
+
+            .campaign-tabs {
+                gap: 18px;
+            }
+
+            .filter-bar {
+                gap: 10px;
+            }
+
+            .search-field {
+                flex-basis: 100%;
+            }
+
+            .filter-field {
+                flex: 1 1 130px;
+            }
+
+            .results-header {
+                align-items: flex-start;
+            }
+
+            .sort-row {
+                flex-wrap: wrap;
+            }
+
+            .campaign-side {
+                gap: 14px;
+            }
+
+            .side-detail {
+                min-width: 120px;
+            }
+
+            .side-actions {
+                flex-wrap: wrap;
+            }
+
+            .view-details-btn,
+            .apply-btn-outline {
+                min-width: 130px;
+            }
+
+            .modal-box {
+                padding: 20px;
+            }
+        }
+
+        @@media(max-width: 420px) {
+            .browse-btn span.browse-btn-label {
+                display: none;
+            }
+
+            .page-title {
+                font-size: 20px;
+            }
+
+            .campaign-thumb,
+            .campaign-thumb-fallback {
+                height: 130px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+    <!-- ================= SIDEBAR ================= -->
+
+    <aside class="sidebar" id="dashboardSidebar">
+
+        <img src="~/images/Sidebar Wave.png" alt="" class="sidebar-wave-img" />
+
+        <div class="brand">
+            <img src="~/images/Brandora.png" alt="Brandora" class="brand-logo-img" />
+        </div>
+
+        <div class="sidebar-nav-wrap">
+        <div class="sidebar-nav-glass">
+        <ul class="sidebar-menu">
+
+            <li>
+                <a href="/InfluencerDashboard">
+                    <span>Dashboard</span>
+                </a>
+            </li>
+
+            <li>
+                <a href="/InfluencerCampaigns" class="active">
+                    <span>Campaigns</span>
+                    <i class="bi bi-chevron-right nav-chevron"></i>
+                </a>
+            </li>
+
+            <li>
+                <a href="#">
+                    <span>My Proposals</span>
+                </a>
+            </li>
+
+            <li>
+                <a href="#">
+                    <span>Chat</span>
+                </a>
+            </li>
+
+            <li>
+                <a href="#">
+                    <span>Earnings</span>
+                </a>
+            </li>
+
+            <li>
+                <a href="/SocialAccounts">
+                    <span>Social Accounts</span>
+                </a>
+            </li>
+
+            <li>
+                <a href="#">
+                    <span>Upload Proof</span>
+                </a>
+            </li>
+
+            <li>
+                <a href="#">
+                    <span>Payments</span>
+                </a>
+            </li>
+
+            <li>
+                <a href="#">
+                    <span>Profile Settings</span>
+                </a>
+            </li>
+
+        </ul>
+        </div>
+        </div>
+
+
+        <!-- Bottom User Profile -->
+
+        <div class="sidebar-bottom">
+
+            <div class="sidebar-user">
+                <div class="avatar-circle small">@FollowerFormat.InitialsOf(Model.Profile.FullName)</div>
+
+                <div>
+                    <h6>@Model.Profile.FullName</h6>
+                    <span>Influencer</span>
+                </div>
+            </div>
+
+            <form method="post" action="/Account/Logout">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="logout-btn">
+                    <i class="bi bi-box-arrow-right"></i>
+                    <span>Logout</span>
+                </button>
+            </form>
+
+        </div>
+
+    </aside>
+
+
+    <!-- ================= MAIN ================= -->
+
+    <main class="main-content" id="dashboardMain">
+
+        <!-- TOP BAR -->
+
+        <div class="topbar">
+
+            <button class="menu-btn" id="menuToggleBtn" aria-label="Toggle sidebar" type="button">
+                <i class="bi bi-list"></i>
+            </button>
+
+            <div class="top-actions">
+                <div class="bell">
+                    <i class="bi bi-bell"></i>
+                </div>
+
+                <a href="/InfluencerCampaigns">
+                    <button class="browse-btn">
+                        <span class="browse-btn-label">Browse Campaigns</span>
+                        <i class="bi bi-arrow-right"></i>
+                    </button>
+                </a>
+            </div>
+
+        </div>
+
+
+        <!-- PAGE HEADER -->
+
+        <div class="page-header">
+            <div>
+                <div class="page-title">Campaigns</div>
+                <div class="page-subtitle">Discover and apply to campaigns that match your niche and audience.</div>
+            </div>
+        </div>
+
+
+        <!-- FILTER FORM (all controls post through this) -->
+
+        <form method="get" id="filterForm">
+            <input type="hidden" name="tab" id="tabHidden" value="@currentTab" />
+            <input type="hidden" name="page" id="pageHidden" value="1" />
+
+            <!-- ================= TABS ================= -->
+
+            <nav class="campaign-tabs">
+                @foreach (var t in tabs)
+                {
+                    <button type="button" class="campaign-tab tab-trigger @(currentTab == t.Key ? "is-active" : "")" data-tab="@t.Key">
+                        @t.Label (@t.Count)
+                    </button>
+                }
+            </nav>
+
+
+            <!-- ================= FILTER BAR ================= -->
+
+            <section class="filter-bar">
+
+                <div class="search-field">
+                    <div class="filter-field">
+                        <i class="bi bi-search"></i>
+                        <input type="text" name="search" placeholder="Search campaigns by title, brand or keyword..." value="@Model.Search" />
+                    </div>
+                </div>
+
+                <div class="filter-field">
+                    <label>Category</label>
+                    <select name="category">
+                        <option value="">All Categories</option>
+                        @foreach (var cat in Model.CategoryOptions)
+                        {
+                            <option value="@cat" selected="@(Model.Category == cat)">@cat</option>
+                        }
+                    </select>
+                    <i class="bi bi-chevron-down select-chevron"></i>
+                </div>
+
+                <div class="filter-field">
+                    <label>Platform</label>
+                    <select name="platform">
+                        <option value="">All Platforms</option>
+                        @foreach (var p in Model.PlatformOptions)
+                        {
+                            <option value="@p" selected="@(Model.Platform == p)">@p</option>
+                        }
+                    </select>
+                    <i class="bi bi-chevron-down select-chevron"></i>
+                </div>
+
+                <div class="filter-field">
+                    <label>Budget</label>
+                    <select name="budget">
+                        <option value="" selected="@(string.IsNullOrEmpty(Model.Budget))">All Budgets</option>
+                        <option value="under10k" selected="@(Model.Budget == "under10k")">Under ৳10,000</option>
+                        <option value="10k-25k" selected="@(Model.Budget == "10k-25k")">৳10,000 – ৳25,000</option>
+                        <option value="25k-50k" selected="@(Model.Budget == "25k-50k")">৳25,000 – ৳50,000</option>
+                        <option value="over50k" selected="@(Model.Budget == "over50k")">Over ৳50,000</option>
+                    </select>
+                    <i class="bi bi-chevron-down select-chevron"></i>
+                </div>
+
+                <div class="filter-field">
+                    <label>Location</label>
+                    <select name="location" disabled title="Location filtering isn't available yet">
+                        <option value="">All Locations</option>
+                    </select>
+                    <i class="bi bi-chevron-down select-chevron"></i>
+                </div>
+
+            </section>
+
+
+            <!-- ================= RESULTS HEADER ================= -->
+
+            <div class="results-header">
+                <div class="results-count">Showing @Model.Campaigns.Count of @Model.TotalFilteredCount campaigns</div>
+
+                <div class="sort-row">
+                    Sort by:
+                    <div class="sort-select-wrap">
+                        <select class="sort-select" name="sort" id="sortSelect">
+                            <option value="" selected="@(string.IsNullOrEmpty(Model.Sort))">Newest First</option>
+                            <option value="budget" selected="@(Model.Sort == "budget")">Highest Budget</option>
+                            <option value="deadline" selected="@(Model.Sort == "deadline")">Deadline Soon</option>
+                        </select>
+                        <i class="bi bi-chevron-down select-chevron"></i>
+                    </div>
+                </div>
+            </div>
+
+        </form>
+
+
+        <!-- ================= CAMPAIGN LIST ================= -->
+
+        <section class="campaign-list">
+
+            @if (Model.Campaigns.Count > 0)
+            {
+                @foreach (var c in Model.Campaigns)
+                {
+                    <div class="campaign-row">
+
+                        <button type="button" class="bookmark-btn" aria-label="Save campaign">
+                            <i class="bi bi-bookmark"></i>
+                        </button>
+
+                        @if (!string.IsNullOrWhiteSpace(c.MediaUrl))
+                        {
+                            <img src="@c.MediaUrl" alt="@c.Title" class="campaign-thumb" />
+                        }
+                        else
+                        {
+                            <div class="campaign-thumb-fallback">@FollowerFormat.InitialsOf(c.BrandName)</div>
+                        }
+
+                        <div class="campaign-info">
+
+                            @if (!string.IsNullOrWhiteSpace(c.Niche))
+                            {
+                                <span class="campaign-category-tag">@c.Niche</span>
+                            }
+
+                            <div class="campaign-title-row">
+                                <div class="campaign-title">@c.Title</div>
+                                <div class="campaign-brand">
+                                    <span class="campaign-brand-logo-fallback">@FollowerFormat.InitialsOf(c.BrandName)</span>
+                                    @c.BrandName
+                                    <i class="bi bi-patch-check-fill"></i>
+                                </div>
+                            </div>
+
+                            <div class="campaign-desc" data-full="@c.Description">@c.Description</div>
+
+                            <div class="campaign-meta-row">
+                                @if (!string.IsNullOrWhiteSpace(c.Platform))
+                                {
+                                    <span><i class="bi @PlatformIcon(c.Platform)"></i>@c.Platform</span>
+                                }
+                                <span><i class="bi bi-people"></i>@c.ApplicantCount applied</span>
+                            </div>
+
+                        </div>
+
+                        <div class="campaign-side">
+
+                            <div class="side-detail">
+                                <small>Budget</small>
+                                <strong class="budget-value">৳@c.Budget.ToString("N0")</strong>
+                            </div>
+
+                            @if (c.Deadline.HasValue)
+                            {
+                                <div class="side-detail">
+                                    <small>Application Deadline</small>
+                                    <strong>@c.Deadline.Value.ToString("d MMM yyyy")</strong>
+                                </div>
+                            }
+
+                            <div class="side-detail">
+                                <small>Posted</small>
+                                <strong>@PostedAgo(c.CreatedAt)</strong>
+                            </div>
+
+                        </div>
+
+                        <div class="side-actions">
+                            <button type="button" class="view-details-btn details-trigger">
+                                View Details
+                            </button>
+
+                            @if (c.IsCollabCompleted)
+                            {
+                                <div class="status-badge completed"><i class="bi bi-check-circle"></i> Completed</div>
+                            }
+                            else if (c.IsCollaborating)
+                            {
+                                <div class="status-badge collab"><i class="bi bi-check-circle"></i> Collaborating</div>
+                            }
+                            else if (c.MyProposalStatus == ProposalStatus.Pending)
+                            {
+                                <div class="status-badge pending"><i class="bi bi-hourglass-split"></i> In Review</div>
+                            }
+                            else if (c.MyProposalStatus == ProposalStatus.Accepted)
+                            {
+                                <div class="status-badge accepted"><i class="bi bi-check-circle"></i> Accepted</div>
+                            }
+                            else if (c.MyProposalStatus == ProposalStatus.Rejected)
+                            {
+                                <div class="status-badge rejected"><i class="bi bi-x-circle"></i> Not Selected</div>
+                            }
+                            else
+                            {
+                                <button type="button" class="apply-btn-outline apply-trigger"
+                                        data-campaign-id="@c.CampaignId"
+                                        data-campaign-title="@c.Title"
+                                        data-campaign-budget="@c.Budget">
+                                    Apply Now
+                                </button>
+                            }
+                        </div>
+
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="empty-note">
+                    <i class="bi bi-inboxes"></i>
+                    No campaigns match your filters right now.
+                </div>
+            }
+
+        </section>
+
+
+        <!-- ================= PAGINATION ================= -->
+
+        @if (Model.TotalPages > 1)
+        {
+            <div class="pagination-row">
+
+                <button type="button" class="page-btn page-trigger" data-page="@(Model.PageNumber - 1)" @(Model.PageNumber <= 1 ? "disabled" : "")>
+                    <i class="bi bi-chevron-left"></i>
+                </button>
+
+                @for (var i = 1; i <= Model.TotalPages; i++)
+                {
+                    if (i == 1 || i == Model.TotalPages || Math.Abs(i - Model.PageNumber) <= 1)
+                    {
+                        <button type="button" class="page-btn page-trigger @(i == Model.PageNumber ? "is-active" : "")" data-page="@i">@i</button>
+                    }
+                    else if (Math.Abs(i - Model.PageNumber) == 2)
+                    {
+                        <span class="page-ellipsis">...</span>
+                    }
+                }
+
+                <button type="button" class="page-btn page-trigger" data-page="@(Model.PageNumber + 1)" @(Model.PageNumber >= Model.TotalPages ? "disabled" : "")>
+                    <i class="bi bi-chevron-right"></i>
+                </button>
+
+            </div>
+        }
+
+    </main>
+
+
+    <!-- ================= APPLY MODAL ================= -->
+
+    <div class="modal-overlay" id="applyModal">
+        <div class="modal-box">
+
+            <div class="modal-title" id="applyModalTitle">Apply to Campaign</div>
+            <div class="modal-sub">Send your proposal to the brand for review.</div>
+
+            <form method="post" action="/InfluencerCampaigns/Apply" id="applyForm">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="campaignId" id="applyCampaignId" />
+
+                <div class="form-group">
+                    <label>Proposed Amount (৳)</label>
+                    <input type="number" name="proposedAmount" id="applyAmount" min="0" step="1" />
+                </div>
+
+                <div class="form-group">
+                    <label>Deliverables</label>
+                    <textarea name="deliverables" rows="3" placeholder="e.g. 2 Instagram reels + 1 story" required></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Message to Brand (optional)</label>
+                    <textarea name="message" rows="2" placeholder="Introduce yourself..."></textarea>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="modal-cancel" id="applyModalCancel">Cancel</button>
+                    <button type="submit" class="modal-submit">Send Proposal</button>
+                </div>
+            </form>
+
+        </div>
+    </div>
+
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        (function () {
+            var menuBtn = document.getElementById('menuToggleBtn');
+            var sidebar = document.getElementById('dashboardSidebar');
+            var main = document.getElementById('dashboardMain');
+            var backdrop = document.getElementById('sidebarBackdrop');
+            var mobileQuery = window.matchMedia('(max-width: 900px)');
+
+            if (!menuBtn || !sidebar || !main) return;
+
+            function closeMobile() {
+                sidebar.classList.remove('is-open');
+                if (backdrop) backdrop.classList.remove('is-visible');
+            }
+
+            menuBtn.addEventListener('click', function () {
+                if (mobileQuery.matches) {
+                    sidebar.classList.toggle('is-open');
+                    if (backdrop) backdrop.classList.toggle('is-visible');
+                } else {
+                    sidebar.classList.toggle('is-hidden');
+                    main.classList.toggle('sidebar-hidden');
+                }
+            });
+
+            if (backdrop) backdrop.addEventListener('click', closeMobile);
+        })();
+
+        (function () {
+            var form = document.getElementById('filterForm');
+            var tabHidden = document.getElementById('tabHidden');
+            var pageHidden = document.getElementById('pageHidden');
+            var sortSelect = document.getElementById('sortSelect');
+
+            document.querySelectorAll('.tab-trigger').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    tabHidden.value = btn.dataset.tab;
+                    pageHidden.value = 1;
+                    form.submit();
+                });
+            });
+
+            document.querySelectorAll('.page-trigger').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    if (btn.disabled) return;
+                    pageHidden.value = btn.dataset.page;
+                    form.submit();
+                });
+            });
+
+            sortSelect.addEventListener('change', function () {
+                pageHidden.value = 1;
+                form.submit();
+            });
+
+            form.querySelectorAll('select[name="category"], select[name="platform"], select[name="budget"]').forEach(function (sel) {
+                sel.addEventListener('change', function () {
+                    pageHidden.value = 1;
+                    form.submit();
+                });
+            });
+
+            var searchInput = form.querySelector('input[name="search"]');
+            if (searchInput) {
+                searchInput.addEventListener('keydown', function (e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        pageHidden.value = 1;
+                        form.submit();
+                    }
+                });
+            }
+        })();
+
+        (function () {
+            document.querySelectorAll('.details-trigger').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    var desc = btn.closest('.campaign-row').querySelector('.campaign-desc');
+                    desc.classList.toggle('is-expanded');
+                    btn.textContent = desc.classList.contains('is-expanded') ? 'Hide Details' : 'View Details';
+                });
+            });
+        })();
+
+        (function () {
+            document.querySelectorAll('.bookmark-btn').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    btn.classList.toggle('is-saved');
+                    var icon = btn.querySelector('i');
+                    icon.classList.toggle('bi-bookmark');
+                    icon.classList.toggle('bi-bookmark-fill');
+                });
+            });
+        })();
+
+        (function () {
+            var modal = document.getElementById('applyModal');
+            var titleEl = document.getElementById('applyModalTitle');
+            var idInput = document.getElementById('applyCampaignId');
+            var amountInput = document.getElementById('applyAmount');
+            var cancelBtn = document.getElementById('applyModalCancel');
+
+            document.querySelectorAll('.apply-trigger').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    idInput.value = btn.dataset.campaignId;
+                    amountInput.value = btn.dataset.campaignBudget;
+                    titleEl.textContent = 'Apply to "' + btn.dataset.campaignTitle + '"';
+                    modal.classList.add('is-open');
+                });
+            });
+
+            function closeModal() { modal.classList.remove('is-open'); }
+
+            cancelBtn.addEventListener('click', closeModal);
+            modal.addEventListener('click', function (e) {
+                if (e.target === modal) closeModal();
+            });
+        })();
+    </script>
+
+</body>
+</html>

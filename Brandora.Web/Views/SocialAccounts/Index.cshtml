@@ -1,0 +1,1404 @@
+@model Brandora.Web.Models.Dashboard.SocialAccountsViewModel
+@using Brandora.Web.Models.Domain
+@using Brandora.Web.Models.Influencers
+@{
+    ViewData["Title"] = "Social Accounts";
+    Layout = null;
+
+    const int chartW = 700;
+    const int chartH = 150;
+    var maxVal = Model.ReachSeries.Count > 0 ? Model.ReachSeries.Max(p => p.Value) : 0;
+
+    var points = new List<(double X, double Y, decimal Value, string Label)>();
+    for (var i = 0; i < Model.ReachSeries.Count; i++)
+    {
+        var pt = Model.ReachSeries[i];
+        var x = Model.ReachSeries.Count == 1 ? 0 : chartW * i / (double)(Model.ReachSeries.Count - 1);
+        var y = maxVal == 0 ? chartH - 10 : chartH - 10 - (double)(pt.Value / maxVal) * (chartH - 20);
+        points.Add((x, y, pt.Value, pt.Label));
+    }
+
+    var linePath = points.Count == 0 ? "" : "M " + string.Join(" L ", points.Select(p => $"{p.X:0.##},{p.Y:0.##}"));
+    var areaPath = points.Count == 0 ? "" : linePath + $" L {points[^1].X:0.##},{chartH} L {points[0].X:0.##},{chartH} Z";
+
+    var yAxisLabels = new[] { "75K", "50K", "25K", "0" };
+    var lastPoint = points.Count > 0 ? points[^1] : (X: 0d, Y: 0d, Value: 0m, Label: "");
+
+    string FormatK(decimal v) => v <= 0 ? "0" : v >= 1000 ? (v / 1000m).ToString("0.#") + "K" : v.ToString("0");
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>@ViewData["Title"] - Brandora</title>
+
+    <link rel="icon" type="image/png" href="~/images/brandora-icon.png" />
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+          rel="stylesheet">
+
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Playfair+Display:wght@500;600;700&display=swap"
+          rel="stylesheet">
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+
+        ::-webkit-scrollbar-button,
+        ::-webkit-scrollbar-button:single-button,
+        ::-webkit-scrollbar-button:vertical:start,
+        ::-webkit-scrollbar-button:vertical:end,
+        ::-webkit-scrollbar-button:horizontal:start,
+        ::-webkit-scrollbar-button:horizontal:end,
+        ::-webkit-scrollbar-button:increment,
+        ::-webkit-scrollbar-button:decrement {
+            display: none !important;
+            width: 0 !important;
+            height: 0 !important;
+            background: transparent !important;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #d3d9ec;
+            border-radius: 10px;
+            border: 2px solid transparent;
+            background-clip: padding-box;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #b7c0e0;
+            background-clip: padding-box;
+        }
+
+        html {
+            scrollbar-width: thin;
+            scrollbar-color: #d3d9ec transparent;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'DM Sans', sans-serif;
+            background: #ffffff;
+            color: #20283a;
+            overflow-x: hidden;
+        }
+
+        /* ==============================
+           SIDEBAR (shared with dashboard)
+        ============================== */
+
+        .sidebar {
+            position: fixed;
+            width: 230px;
+            height: 100vh;
+            left: 0;
+            top: 0;
+            padding: 16px 12px;
+            background:
+                radial-gradient(circle at 0% 30%, rgba(139, 34, 255, .18), transparent 30%),
+                linear-gradient(180deg, #070c22 0%, #0a1028 100%);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid rgba(255,255,255,.06);
+            z-index: 1000;
+
+            overflow-y: auto;
+            overflow-x: hidden;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255,255,255,.15) transparent;
+
+            transition: transform .25s ease;
+        }
+
+        .sidebar.is-hidden {
+            transform: translateX(-100%);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            padding: 0 12px 6px;
+        }
+
+        .sidebar-wave-img {
+            position: absolute;
+            left: 0;
+            bottom: 60px;
+            width: 100%;
+            height: auto;
+            pointer-events: none;
+            z-index: -1;
+            opacity: .9;
+        }
+
+        .brand-logo-img {
+            height: 44px;
+            width: auto;
+            display: block;
+        }
+
+        .sidebar-nav-wrap {
+            position: relative;
+            flex: 1;
+            min-height: 0;
+            margin-top: 14px;
+        }
+
+        .sidebar-nav-wrap::before {
+            content: "";
+            position: absolute;
+            top: -34px;
+            left: -34px;
+            right: -34px;
+            bottom: 0;
+            z-index: -1;
+            pointer-events: none;
+
+            background:
+                radial-gradient(circle at 12% 5%, rgba(35,110,234,.2), transparent 30%),
+                radial-gradient(circle at 88% 14%, rgba(163,38,255,.18), transparent 32%),
+                radial-gradient(circle at 18% 50%, rgba(24,169,255,.16), transparent 30%),
+                radial-gradient(circle at 85% 62%, rgba(163,38,255,.14), transparent 32%),
+                radial-gradient(circle at 30% 90%, rgba(35,110,234,.16), transparent 34%);
+
+            filter: blur(14px);
+        }
+
+        .sidebar-nav-glass {
+            position: relative;
+
+            padding: 0;
+
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,.12);
+
+            background: rgba(255,255,255,.03);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+
+            box-shadow: 0 8px 30px rgba(0,0,0,.18);
+        }
+
+        .sidebar-menu {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .sidebar-menu li {
+            margin-bottom: 2px;
+        }
+
+        .sidebar-menu a {
+            color: #d9dce8;
+            text-decoration: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 10px 14px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 400;
+            transition: background .2s ease, color .2s ease, transform .1s ease;
+        }
+
+        .sidebar-menu a:hover {
+            background: rgba(255,255,255,.06);
+            color: white;
+        }
+
+        .sidebar-menu a:active {
+            transform: scale(.98);
+            background: rgba(255,255,255,.1);
+        }
+
+        .sidebar-menu .active:hover,
+        .sidebar-menu .active:active {
+            background: linear-gradient(105deg, #a326ff, #236eff, #18a9ff);
+        }
+
+        .nav-chevron {
+            font-size: 15px;
+            opacity: 0;
+            transition: .2s ease;
+        }
+
+        .sidebar-menu .active {
+            color: white;
+            background: linear-gradient(105deg, #a326ff, #236eff, #18a9ff);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,.35),
+                inset 0 0 0 1px rgba(255,255,255,.18),
+                0 8px 25px rgba(106, 37, 213, .25);
+        }
+
+        .sidebar-menu .active .nav-chevron {
+            opacity: 1;
+        }
+
+        .sidebar-bottom {
+            margin-top: auto;
+            padding: 12px 8px 0;
+        }
+
+        .sidebar-user {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding-bottom: 10px;
+            min-width: 0;
+        }
+
+        .sidebar-user > div {
+            min-width: 0;
+        }
+
+        .avatar-circle {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            flex-shrink: 0;
+            background: linear-gradient(145deg, #c93cff, #4e38ff 55%, #159cff);
+            color: #ffffff;
+            font-family: 'DM Sans', sans-serif;
+            font-weight: 700;
+        }
+
+        .avatar-circle.small {
+            width: 36px;
+            height: 36px;
+            font-size: 12px;
+            border: 2px solid rgba(255,255,255,.12);
+        }
+
+        .sidebar-user h6 {
+            margin: 0 0 4px;
+            font-size: 14px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .sidebar-user span {
+            color: #afb4c6;
+            font-size: 13px;
+        }
+
+        .logout-btn {
+            width: 100%;
+            padding: 10px;
+            border: 0;
+            border-top: 1px solid rgba(255,255,255,.08);
+            background: transparent;
+            color: #dce0ea;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .logout-btn i {
+            margin-right: 10px;
+            font-size: 16px;
+        }
+
+        .logout-btn:hover {
+            color: white;
+        }
+
+        /* ==============================
+           MAIN CONTENT
+        ============================== */
+
+        .main-content {
+            margin-left: 230px;
+            min-height: 100vh;
+            padding: 24px 26px;
+            background: #ffffff;
+
+            transition: margin-left .25s ease;
+        }
+
+        .main-content.sidebar-hidden {
+            margin-left: 0;
+        }
+
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .menu-btn {
+            border: 0;
+            background: transparent;
+            font-size: 26px;
+            color: #20283a;
+        }
+
+        .top-actions {
+            display: flex;
+            align-items: center;
+            gap: 22px;
+        }
+
+        .bell {
+            position: relative;
+            font-size: 23px;
+            color: #20283a;
+        }
+
+        .bell-badge {
+            position: absolute;
+            top: -9px;
+            right: -10px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #7624d6;
+            color: white;
+            font-size: 12px;
+            display: grid;
+            place-items: center;
+        }
+
+        .browse-btn {
+            border: 0;
+            color: white;
+            padding: 9px 16px;
+            border-radius: 9px;
+            font-size: 13px;
+            font-weight: 600;
+            background: linear-gradient(105deg, #a326ff, #236eff, #18a9ff);
+            transition: .25s;
+        }
+
+        .browse-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .browse-btn i {
+            margin-left: 10px;
+        }
+
+        /* ==============================
+           HERO BANNER
+        ============================== */
+
+        .sa-hero {
+            position: relative;
+            overflow: hidden;
+            border-radius: 20px;
+            padding: 40px 42px;
+            margin-bottom: 22px;
+            background:
+                radial-gradient(circle at 85% 15%, rgba(163,38,255,.12), transparent 40%),
+                radial-gradient(circle at 15% 90%, rgba(24,110,255,.10), transparent 40%),
+                linear-gradient(120deg, #f3f0ff 0%, #eef2ff 55%, #f2eeff 100%);
+            border: 1px solid #e7e3fb;
+        }
+
+        .sa-hero-grid {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 30px;
+        }
+
+        .sa-hero-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 32px;
+            font-weight: 700;
+            color: #14163a;
+            margin-bottom: 10px;
+        }
+
+        .sa-hero-sub {
+            font-size: 14.5px;
+            color: #4d5470;
+            max-width: 460px;
+            line-height: 1.6;
+            margin-bottom: 22px;
+        }
+
+        .sa-connect-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            border: 0;
+            color: white;
+            padding: 13px 22px;
+            border-radius: 11px;
+            font-size: 14px;
+            font-weight: 600;
+            background: linear-gradient(105deg, #a326ff, #236eff, #18a9ff);
+            cursor: pointer;
+            transition: .2s;
+        }
+
+        .sa-connect-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 24px rgba(98,34,212,.28);
+        }
+
+        .sa-hero-art {
+            position: relative;
+            width: 380px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .sa-hero-art-img {
+            width: 100%;
+            height: auto;
+            object-fit: contain;
+        }
+
+        /* ==============================
+           PLATFORM STAT CARDS
+        ============================== */
+
+        .sa-platform-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr) 170px;
+            gap: 16px;
+            margin-bottom: 22px;
+        }
+
+        .sa-platform-card {
+            background: #ffffff;
+            border: 1px solid #dce7ff;
+            border-radius: 15px;
+            padding: 18px;
+            transition: box-shadow .2s ease, border-color .2s ease;
+        }
+
+        .sa-platform-card:hover {
+            box-shadow: 0 10px 26px rgba(35,72,160,.1);
+            border-color: #b7c0e0;
+        }
+
+        .sa-platform-head {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .sa-platform-icon {
+            width: 38px;
+            height: 38px;
+            border-radius: 11px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 17px;
+            flex-shrink: 0;
+        }
+
+        .sa-platform-name {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-weight: 700;
+            font-size: 14.5px;
+            color: #101a42;
+        }
+
+        .sa-platform-name i {
+            color: #2596ff;
+            font-size: 12px;
+        }
+
+        .sa-platform-handle {
+            font-size: 12.5px;
+            color: #7c8ab0;
+            margin-top: 1px;
+        }
+
+        .sa-platform-count {
+            font-size: 22px;
+            font-weight: 800;
+            color: #101a42;
+            line-height: 1.2;
+        }
+
+        .sa-platform-label {
+            font-size: 12.5px;
+            color: #7c8ab0;
+            margin-bottom: 12px;
+        }
+
+        .sa-platform-status {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12.5px;
+            font-weight: 600;
+            color: #0d9c6c;
+        }
+
+        .sa-platform-status .dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #0d9c6c;
+        }
+
+        .sa-add-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            border: 1.5px dashed #cdd7f2;
+            border-radius: 15px;
+            background: #f9faff;
+            color: #6322d4;
+            font-size: 13px;
+            font-weight: 600;
+            text-align: center;
+            cursor: pointer;
+            transition: .2s;
+        }
+
+        .sa-add-card:hover {
+            border-color: #9b2cff;
+            background: #f6f2ff;
+        }
+
+        .sa-add-card .plus-circle {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #eef1ff;
+            color: #6322d4;
+            font-size: 18px;
+        }
+
+        /* ==============================
+           BOTTOM GRID (OVERVIEW + CONNECTED)
+        ============================== */
+
+        .sa-bottom-grid {
+            display: grid;
+            grid-template-columns: 1.7fr 1fr;
+            gap: 20px;
+            align-items: start;
+        }
+
+        .sa-panel {
+            background: #ffffff;
+            border: 1px solid #dce7ff;
+            border-radius: 16px;
+            padding: 22px;
+        }
+
+        .sa-panel-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 18px;
+        }
+
+        .sa-panel-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #101a42;
+        }
+
+        .sa-panel-link {
+            font-size: 13px;
+            font-weight: 600;
+            color: #6322d4;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .sa-panel-link:hover {
+            text-decoration: underline;
+        }
+
+        .sa-period-select {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            border: 1px solid #dce7ff;
+            border-radius: 9px;
+            padding: 7px 12px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #3a4360;
+            background: #ffffff;
+            cursor: pointer;
+        }
+
+        .sa-metric-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-bottom: 22px;
+        }
+
+        .sa-metric-tile {
+            background: #f8f9fd;
+            border: 1px solid #eef0f8;
+            border-radius: 12px;
+            padding: 13px 14px;
+        }
+
+        .sa-metric-tile-head {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            font-size: 12px;
+            color: #7c8ab0;
+            margin-bottom: 10px;
+        }
+
+        .sa-metric-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 7px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #eef1ff;
+            color: #6322d4;
+            font-size: 12px;
+            flex-shrink: 0;
+        }
+
+        .sa-metric-value-row {
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+        }
+
+        .sa-metric-value {
+            font-size: 19px;
+            font-weight: 800;
+            color: #101a42;
+        }
+
+        .sa-metric-trend {
+            font-size: 11.5px;
+            font-weight: 700;
+            color: #0d9c6c;
+            display: inline-flex;
+            align-items: center;
+            gap: 2px;
+        }
+
+        /* Chart (shared pattern) */
+
+        .chart-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .chart-yaxis {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+
+            height: 150px;
+            padding-bottom: 1px;
+
+            color: #9096b3;
+            font-size: 12px;
+            text-align: right;
+        }
+
+        .chart-area {
+            flex: 1;
+            height: 150px;
+            position: relative;
+            border-bottom: 1px solid #eef0f8;
+            margin-top: 10px;
+        }
+
+        .chart-svg {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            bottom: 0;
+        }
+
+        .chart-labels {
+            display: flex;
+            justify-content: space-between;
+            margin: 8px 0 0 44px;
+            color: #596277;
+            font-size: 12.5px;
+        }
+
+        .chart-tooltip {
+            position: absolute;
+            transform: translate(-50%, -125%);
+            background: #ffffff;
+            border: 1px solid #dce7ff;
+            border-radius: 10px;
+            padding: 8px 12px;
+            font-size: 12.5px;
+            font-weight: 700;
+            color: #101a42;
+            box-shadow: 0 10px 24px rgba(35,72,160,.14);
+            white-space: nowrap;
+            pointer-events: none;
+        }
+
+        .chart-tooltip small {
+            display: block;
+            font-size: 10.5px;
+            font-weight: 500;
+            color: #8a93ad;
+            margin-top: 1px;
+        }
+
+        /* Connected accounts list */
+
+        .sa-account-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 0;
+            border-bottom: 1px solid #f1f3fa;
+        }
+
+        .sa-account-row:last-child {
+            border-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .sa-account-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 11px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 17px;
+            flex-shrink: 0;
+        }
+
+        .sa-account-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .sa-account-name {
+            font-size: 13.5px;
+            font-weight: 700;
+            color: #101a42;
+        }
+
+        .sa-account-handle {
+            font-size: 12px;
+            color: #7c8ab0;
+            margin-top: 1px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .sa-status-pill {
+            font-size: 11.5px;
+            font-weight: 700;
+            padding: 5px 10px;
+            border-radius: 20px;
+            white-space: nowrap;
+        }
+
+        .sa-status-pill.active {
+            background: #e2faf1;
+            color: #0d9c6c;
+        }
+
+        .sa-status-pill.inactive {
+            background: #f1f3fa;
+            color: #7c8ab0;
+        }
+
+        .sa-connect-link {
+            font-size: 12.5px;
+            font-weight: 700;
+            color: #6322d4;
+            text-decoration: none;
+            margin-left: 10px;
+        }
+
+        .sa-connect-link:hover {
+            text-decoration: underline;
+        }
+
+        .sa-account-chevron {
+            color: #b7c0e0;
+            font-size: 14px;
+            margin-left: 6px;
+        }
+
+        .sa-account-kebab {
+            border: 0;
+            background: transparent;
+            color: #b7c0e0;
+            font-size: 16px;
+            cursor: pointer;
+            padding: 4px;
+        }
+
+        .sa-account-kebab:hover {
+            color: #6322d4;
+        }
+
+        /* ==============================
+           RESPONSIVE
+        ============================== */
+
+        @@media(max-width: 1300px) {
+            .sa-platform-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+
+            .sa-add-card {
+                grid-column: span 1;
+            }
+
+            .sa-hero-art {
+                display: none;
+            }
+        }
+
+        @@media(max-width: 1100px) {
+            .sidebar {
+                width: 220px;
+            }
+
+            .main-content {
+                margin-left: 220px;
+            }
+
+            .sa-bottom-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @@media(max-width: 900px) {
+            .sidebar {
+                transform: translateX(-100%);
+                box-shadow: 0 0 40px rgba(0,0,0,.35);
+            }
+
+            .sidebar.is-open {
+                transform: translateX(0);
+            }
+
+            .sidebar-backdrop {
+                display: none;
+                position: fixed;
+                inset: 0;
+                background: rgba(5,6,20,.5);
+                z-index: 999;
+            }
+
+            .sidebar-backdrop.is-visible {
+                display: block;
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .sa-platform-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .sa-metric-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @@media(max-width: 640px) {
+            .main-content {
+                padding: 18px 14px;
+            }
+
+            .sa-hero {
+                padding: 28px 22px;
+            }
+
+            .sa-hero-title {
+                font-size: 24px;
+            }
+
+            .sa-platform-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .sa-metric-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .sa-panel {
+                padding: 16px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+    <!-- ================= SIDEBAR ================= -->
+
+    <aside class="sidebar" id="dashboardSidebar">
+
+        <img src="~/images/Sidebar Wave.png" alt="" class="sidebar-wave-img" />
+
+        <div class="brand">
+            <img src="~/images/Brandora.png" alt="Brandora" class="brand-logo-img" />
+        </div>
+
+        <div class="sidebar-nav-wrap">
+        <div class="sidebar-nav-glass">
+        <ul class="sidebar-menu">
+
+            <li>
+                <a href="/InfluencerDashboard">
+                    <span>Dashboard</span>
+                </a>
+            </li>
+
+            <li>
+                <a href="/InfluencerCampaigns">
+                    <span>Campaigns</span>
+                </a>
+            </li>
+
+            <li>
+                <a href="#">
+                    <span>My Proposals</span>
+                </a>
+            </li>
+
+            <li>
+                <a href="#">
+                    <span>Chat</span>
+                </a>
+            </li>
+
+            <li>
+                <a href="#">
+                    <span>Earnings</span>
+                </a>
+            </li>
+
+            <li>
+                <a href="/SocialAccounts" class="active">
+                    <span>Social Accounts</span>
+                    <i class="bi bi-chevron-right nav-chevron"></i>
+                </a>
+            </li>
+
+            <li>
+                <a href="#">
+                    <span>Upload Proof</span>
+                </a>
+            </li>
+
+            <li>
+                <a href="#">
+                    <span>Payments</span>
+                </a>
+            </li>
+
+            <li>
+                <a href="#">
+                    <span>Profile Settings</span>
+                </a>
+            </li>
+
+        </ul>
+        </div>
+        </div>
+
+
+        <!-- Bottom User Profile -->
+
+        <div class="sidebar-bottom">
+
+            <div class="sidebar-user">
+                <div class="avatar-circle small">@FollowerFormat.InitialsOf(Model.Profile.FullName)</div>
+
+                <div>
+                    <h6>@Model.Profile.FullName</h6>
+                    <span>Influencer</span>
+                </div>
+            </div>
+
+            <form method="post" action="/Account/Logout">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="logout-btn">
+                    <i class="bi bi-box-arrow-right"></i>
+                    <span>Logout</span>
+                </button>
+            </form>
+
+        </div>
+
+    </aside>
+
+
+    <!-- ================= MAIN ================= -->
+
+    <main class="main-content" id="dashboardMain">
+
+        <!-- TOP BAR -->
+
+        <div class="topbar">
+
+            <button class="menu-btn" id="menuToggleBtn" aria-label="Toggle sidebar" type="button">
+                <i class="bi bi-list"></i>
+            </button>
+
+            <div class="top-actions">
+
+                <div class="bell">
+                    <i class="bi bi-bell"></i>
+                </div>
+
+                <a href="/InfluencerCampaigns">
+                    <button class="browse-btn">
+                        Browse Campaigns
+                        <i class="bi bi-arrow-right"></i>
+                    </button>
+                </a>
+
+            </div>
+
+        </div>
+
+
+        <!-- ================= HERO ================= -->
+
+        <section class="sa-hero">
+            <div class="sa-hero-grid">
+
+                <div>
+                    <div class="sa-hero-title">Social Accounts</div>
+                    <div class="sa-hero-sub">Connect your social platforms to showcase your reach, engagement, and credibility to brands.</div>
+
+                    <button type="button" class="sa-connect-btn">
+                        <i class="bi bi-plus-lg"></i>
+                        Connect New Account
+                    </button>
+                </div>
+
+                <div class="sa-hero-art">
+                    <img src="~/images/Social Banner.png" alt="Connect your social platforms" class="sa-hero-art-img" />
+                </div>
+
+            </div>
+        </section>
+
+
+        <!-- ================= PLATFORM STAT CARDS ================= -->
+
+        <section class="sa-platform-grid">
+
+            @foreach (var p in Model.Platforms)
+            {
+                <div class="sa-platform-card">
+                    <div class="sa-platform-head">
+                        <div class="sa-platform-icon" style="background: @p.IconGradient;"><i class="bi @p.Icon"></i></div>
+                        <div>
+                            <div class="sa-platform-name">
+                                @p.Name
+                                @if (p.Verified)
+                                {
+                                    <i class="bi bi-patch-check-fill"></i>
+                                }
+                            </div>
+                            <div class="sa-platform-handle">@(p.Handle.StartsWith("@") ? p.Handle : "@" + p.Handle)</div>
+                        </div>
+                    </div>
+
+                    <div class="sa-platform-count">@FormatK(p.Followers)</div>
+                    <div class="sa-platform-label">@p.FollowerLabel</div>
+
+                    <div class="sa-platform-status"><span class="dot"></span> Connected</div>
+                </div>
+            }
+
+            <div class="sa-add-card">
+                <div class="plus-circle"><i class="bi bi-plus-lg"></i></div>
+                Add More<br />Account
+            </div>
+
+        </section>
+
+
+        <!-- ================= OVERVIEW + CONNECTED ================= -->
+
+        <section class="sa-bottom-grid">
+
+            <!-- ACCOUNT OVERVIEW -->
+
+            <div class="sa-panel">
+                <div class="sa-panel-head">
+                    <div class="sa-panel-title">Account Overview</div>
+                    <div class="sa-period-select">
+                        <i class="bi bi-calendar3"></i>
+                        This Month
+                        <i class="bi bi-chevron-down"></i>
+                    </div>
+                </div>
+
+                <div class="sa-metric-grid">
+
+                    <div class="sa-metric-tile">
+                        <div class="sa-metric-tile-head">
+                            <span class="sa-metric-icon"><i class="bi bi-people-fill"></i></span>
+                            Total Followers
+                        </div>
+                        <div class="sa-metric-value-row">
+                            <span class="sa-metric-value">@FormatK(Model.TotalFollowers)</span>
+                            <span class="sa-metric-trend"><i class="bi bi-arrow-up-short"></i>@(Model.TotalFollowersGrowthPercent)%</span>
+                        </div>
+                    </div>
+
+                    <div class="sa-metric-tile">
+                        <div class="sa-metric-tile-head">
+                            <span class="sa-metric-icon"><i class="bi bi-eye-fill"></i></span>
+                            Total Reach
+                        </div>
+                        <div class="sa-metric-value-row">
+                            <span class="sa-metric-value">@FormatK(Model.TotalReach)</span>
+                            <span class="sa-metric-trend"><i class="bi bi-arrow-up-short"></i>@(Model.TotalReachGrowthPercent)%</span>
+                        </div>
+                    </div>
+
+                    <div class="sa-metric-tile">
+                        <div class="sa-metric-tile-head">
+                            <span class="sa-metric-icon"><i class="bi bi-graph-up-arrow"></i></span>
+                            Engagement Rate
+                        </div>
+                        <div class="sa-metric-value-row">
+                            <span class="sa-metric-value">@Model.EngagementRate.ToString("0.0")%</span>
+                            <span class="sa-metric-trend"><i class="bi bi-arrow-up-short"></i>@(Model.EngagementRateGrowthPercent)%</span>
+                        </div>
+                    </div>
+
+                    <div class="sa-metric-tile">
+                        <div class="sa-metric-tile-head">
+                            <span class="sa-metric-icon"><i class="bi bi-star-fill"></i></span>
+                            Avg. Views
+                        </div>
+                        <div class="sa-metric-value-row">
+                            <span class="sa-metric-value">@FormatK(Model.AvgViews)</span>
+                            <span class="sa-metric-trend"><i class="bi bi-arrow-up-short"></i>@(Model.AvgViewsGrowthPercent)%</span>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- SVG Chart -->
+
+                <div>
+
+                    <div class="chart-row">
+
+                        @if (maxVal > 0)
+                        {
+                            <div class="chart-yaxis">
+                                @foreach (var label in yAxisLabels)
+                                {
+                                    <span>@label</span>
+                                }
+                            </div>
+                        }
+
+                        <div class="chart-area">
+
+                            @if (maxVal > 0)
+                            {
+                                <svg class="chart-svg"
+                                     viewBox="0 0 @chartW @chartH"
+                                     preserveAspectRatio="none">
+
+                                    <defs>
+
+                                        <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="0%" stop-color="#7b25e0" stop-opacity=".28" />
+                                            <stop offset="100%" stop-color="#7b25e0" stop-opacity=".02" />
+                                        </linearGradient>
+
+                                        <linearGradient id="lineGradient" x1="0" y1="0" x2="1" y2="0">
+                                            <stop offset="0%" stop-color="#237fe0" />
+                                            <stop offset="45%" stop-color="#8c28df" />
+                                            <stop offset="100%" stop-color="#6823d2" />
+                                        </linearGradient>
+
+                                    </defs>
+
+                                    <path d="@areaPath" fill="url(#areaGradient)" />
+                                    <path d="@linePath" fill="none" stroke="url(#lineGradient)" stroke-width="3" />
+
+                                    @foreach (var p in points)
+                                    {
+                                        <circle cx="@p.X.ToString("0.##")" cy="@p.Y.ToString("0.##")" r="4" fill="#6e27d8" />
+                                    }
+
+                                </svg>
+
+                                <div class="chart-tooltip" style="left:@((lastPoint.X / chartW * 100).ToString("0.#"))%; top:@((lastPoint.Y / chartH * 100).ToString("0.#"))%;">
+                                    @FormatK(lastPoint.Value)
+                                    <small>@lastPoint.Label</small>
+                                </div>
+                            }
+
+                        </div>
+
+                    </div>
+
+                    @if (maxVal > 0)
+                    {
+                        <div class="chart-labels">
+                            @foreach (var p in points)
+                            {
+                                <span>@p.Label</span>
+                            }
+                        </div>
+                    }
+
+                </div>
+
+            </div>
+
+
+            <!-- CONNECTED ACCOUNTS -->
+
+            <div class="sa-panel">
+                <div class="sa-panel-head">
+                    <div class="sa-panel-title">Connected Accounts</div>
+                    <a href="#" class="sa-panel-link">Manage All <i class="bi bi-chevron-right"></i></a>
+                </div>
+
+                <div>
+                    @foreach (var p in Model.Platforms)
+                    {
+                        <div class="sa-account-row">
+                            <div class="sa-account-icon" style="background: @p.IconGradient;"><i class="bi @p.Icon"></i></div>
+
+                            <div class="sa-account-info">
+                                <div class="sa-account-name">@p.Name</div>
+                                <div class="sa-account-handle">@(p.Handle.StartsWith("@") ? p.Handle : p.Handle)</div>
+                            </div>
+
+                            @if (p.Connected)
+                            {
+                                <span class="sa-status-pill active">Active</span>
+                                <i class="bi bi-chevron-right sa-account-chevron"></i>
+                                <button type="button" class="sa-account-kebab" aria-label="More options"><i class="bi bi-three-dots-vertical"></i></button>
+                            }
+                            else
+                            {
+                                <span class="sa-status-pill inactive">Not Connected</span>
+                                <a href="#" class="sa-connect-link">Connect</a>
+                            }
+                        </div>
+                    }
+
+                    <div class="sa-account-row">
+                        <div class="sa-account-icon" style="background:#111;"><i class="bi bi-twitter-x"></i></div>
+
+                        <div class="sa-account-info">
+                            <div class="sa-account-name">X (Twitter)</div>
+                            <div class="sa-account-handle">@(Model.Platforms.Count > 0 ? Model.Platforms[0].Handle : "@you")</div>
+                        </div>
+
+                        <span class="sa-status-pill inactive">Not Connected</span>
+                        <a href="#" class="sa-connect-link">Connect</a>
+                    </div>
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        (function () {
+            var menuBtn = document.getElementById('menuToggleBtn');
+            var sidebar = document.getElementById('dashboardSidebar');
+            var main = document.getElementById('dashboardMain');
+            var backdrop = document.getElementById('sidebarBackdrop');
+            var mobileQuery = window.matchMedia('(max-width: 900px)');
+
+            if (!menuBtn || !sidebar || !main) return;
+
+            function closeMobile() {
+                sidebar.classList.remove('is-open');
+                if (backdrop) backdrop.classList.remove('is-visible');
+            }
+
+            menuBtn.addEventListener('click', function () {
+                if (mobileQuery.matches) {
+                    sidebar.classList.toggle('is-open');
+                    if (backdrop) backdrop.classList.toggle('is-visible');
+                } else {
+                    sidebar.classList.toggle('is-hidden');
+                    main.classList.toggle('sidebar-hidden');
+                }
+            });
+
+            if (backdrop) backdrop.addEventListener('click', closeMobile);
+        })();
+    </script>
+
+</body>
+</html>
