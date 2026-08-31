@@ -3,6 +3,7 @@
 @using Brandora.Web.Models.Influencers
 @{
     ViewData["Title"] = "Profile Settings";
+    ViewData["ActiveNav"] = "Settings";
     Layout = null;
 
     var bio = Model.Form.Bio ?? string.Empty;
@@ -966,102 +967,7 @@
 
     <!-- ================= SIDEBAR ================= -->
 
-    <aside class="sidebar" id="dashboardSidebar">
-
-        <img src="~/images/Sidebar Wave.png" alt="" class="sidebar-wave-img" />
-
-        <div class="brand">
-            <img src="~/images/Brandora.png" alt="Brandora" class="brand-logo-img" />
-        </div>
-
-        <div class="sidebar-nav-wrap">
-        <div class="sidebar-nav-glass">
-        <ul class="sidebar-menu">
-
-            <li>
-                <a href="/InfluencerDashboard">
-                    <span>Dashboard</span>
-                </a>
-            </li>
-
-            <li>
-                <a href="/InfluencerCampaigns">
-                    <span>Campaigns</span>
-                </a>
-            </li>
-
-            <li>
-                <a href="#">
-                    <span>My Proposals</span>
-                </a>
-            </li>
-
-            <li>
-                <a href="#">
-                    <span>Chat</span>
-                </a>
-            </li>
-
-            <li>
-                <a href="#">
-                    <span>Earnings</span>
-                </a>
-            </li>
-
-            <li>
-                <a href="/SocialAccounts">
-                    <span>Social Accounts</span>
-                </a>
-            </li>
-
-            <li>
-                <a href="/UploadProof">
-                    <span>Upload Proof</span>
-                </a>
-            </li>
-
-            <li>
-                <a href="#">
-                    <span>Payments</span>
-                </a>
-            </li>
-
-            <li>
-                <a href="/InfluencerSettings" class="active">
-                    <span>Profile Settings</span>
-                    <i class="bi bi-chevron-right nav-chevron"></i>
-                </a>
-            </li>
-
-        </ul>
-        </div>
-        </div>
-
-
-        <!-- Bottom User Profile -->
-
-        <div class="sidebar-bottom">
-
-            <div class="sidebar-user">
-                <div class="avatar-circle small">@FollowerFormat.InitialsOf(Model.Profile.FullName)</div>
-
-                <div>
-                    <h6>@Model.Profile.FullName</h6>
-                    <span>Influencer</span>
-                </div>
-            </div>
-
-            <form method="post" action="/Account/Logout">
-                @Html.AntiForgeryToken()
-                <button type="submit" class="logout-btn">
-                    <i class="bi bi-box-arrow-right"></i>
-                    <span>Logout</span>
-                </button>
-            </form>
-
-        </div>
-
-    </aside>
+    @await Html.PartialAsync("_InfluencerSidebar")
 
 
     <!-- ================= MAIN ================= -->

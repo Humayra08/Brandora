@@ -1,5 +1,6 @@
 @model Brandora.Web.Models.Influencers.CreatorListViewModel
 @using Brandora.Web.Models.Influencers
+
 @{
     ViewData["Title"] = "Discover Creators";
     ViewData["ActiveNav"] = "Influencers";
@@ -7,356 +8,1198 @@
 }
 
 @section Styles {
+    <style>
+        :root {
+            --brandora-purple: #8b35ff;
+            --brandora-violet: #a84dff;
+            --brandora-blue: #159cff;
+            --brandora-navy: #171d3d;
+            --brandora-muted: #737b9d;
+            --brandora-border: #e9e7f5;
+            --brandora-soft: #f8f7ff;
+        }
 
-    .page-head {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 20px;
+        .influencer-page {
+            position: relative;
+            min-height: 100%;
+            overflow: hidden;
+            padding-bottom: 40px;
+        }
 
-        animation: fade-up .4s ease both;
-    }
+        .influencer-page::before {
+            content: "";
+            position: absolute;
+            top: 10px;
+            right: -180px;
+            width: 620px;
+            height: 420px;
+            background:
+                radial-gradient(circle at 40% 40%, rgba(139,53,255,.10), transparent 42%),
+                radial-gradient(circle at 70% 60%, rgba(21,156,255,.08), transparent 45%);
+            filter: blur(8px);
+            pointer-events: none;
+        }
 
-    .page-title {
-        font-family: 'Playfair Display', serif;
-        font-weight: 600;
-        font-size: 28px;
-    }
+        .creator-stars {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            overflow: hidden;
+            z-index: 0;
+        }
 
-    .page-sub {
-        margin-top: 6px;
+        .creator-stars span {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: #a84dff;
+            opacity: .22;
+            animation: star-float 5s ease-in-out infinite;
+        }
 
-        font-family: 'Inter', sans-serif;
-        font-size: 13.5px;
-        color: #6b7290;
-    }
+        .creator-stars span:nth-child(1) { top: 9%; right: 19%; animation-delay: -.8s; }
+        .creator-stars span:nth-child(2) { top: 22%; right: 38%; width: 3px; height: 3px; animation-delay: -2s; }
+        .creator-stars span:nth-child(3) { top: 34%; right: 8%; animation-delay: -3s; }
+        .creator-stars span:nth-child(4) { top: 46%; left: 8%; width: 3px; height: 3px; animation-delay: -1.2s; }
+        .creator-stars span:nth-child(5) { top: 68%; right: 15%; width: 5px; height: 5px; animation-delay: -2.8s; }
+        .creator-stars span:nth-child(6) { top: 82%; left: 48%; width: 3px; height: 3px; animation-delay: -4s; }
 
-    .filter-bar {
-        margin-top: 26px;
+        .creator-wave {
+            position: absolute;
+            top: 24px;
+            right: -70px;
+            width: 760px;
+            height: 300px;
+            opacity: .45;
+            pointer-events: none;
+            z-index: 0;
+        }
 
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        gap: 10px;
+        .creator-wave path {
+            fill: none;
+            stroke: url(#creatorWaveGradient);
+            stroke-width: 1.2;
+            stroke-linecap: round;
+            animation: wave-drift 9s ease-in-out infinite alternate;
+        }
 
-        animation: fade-up .45s ease both;
-    }
+        .creator-shell {
+            position: relative;
+            z-index: 1;
+        }
 
-    .filter-input,
-    .filter-select {
-        height: 42px;
+        .back-to-dashboard {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            margin-bottom: 18px;
+            color: #70789a;
+            font: 600 12px 'Inter', sans-serif;
+            text-decoration: none;
+            transition: color .2s ease, transform .2s ease;
+        }
 
-        padding: 0 14px;
+        .back-to-dashboard:hover {
+            color: var(--brandora-purple);
+            transform: translateX(-2px);
+        }
 
-        border-radius: 10px;
-        border: 1px solid #e2e5f2;
-        background: #ffffff;
+        .creator-hero {
+            position: relative;
+            min-height: 300px;
+            display: grid;
+            grid-template-columns: minmax(0, 1.05fr) minmax(360px, .95fr);
+            gap: 30px;
+            align-items: center;
+            padding: 34px 38px;
+            margin-bottom: 22px;
+            overflow: hidden;
+            border: 1px solid rgba(139,53,255,.12);
+            border-radius: 28px;
+            background:
+                radial-gradient(circle at 80% 30%, rgba(139,53,255,.07), transparent 28%),
+                radial-gradient(circle at 92% 85%, rgba(21,156,255,.07), transparent 30%),
+                #fff;
+            box-shadow: 0 18px 55px rgba(35, 25, 91, .06);
+            animation: hero-enter .65s cubic-bezier(.22,1,.36,1) both;
+        }
 
-        font-family: 'Inter', sans-serif;
-        font-size: 13px;
-        color: #2a3157;
+        .creator-hero::before {
+            content: "";
+            position: absolute;
+            left: -120px;
+            bottom: -170px;
+            width: 420px;
+            height: 300px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(139,53,255,.08), transparent 68%);
+            pointer-events: none;
+        }
 
-        outline: none;
-        transition: .2s;
-    }
+        .hero-copy {
+            position: relative;
+            z-index: 2;
+            max-width: 650px;
+        }
 
-    .filter-input:focus,
-    .filter-select:focus {
-        border-color: #a978ff;
-        box-shadow: 0 0 0 3px rgba(155,44,255,.1);
-    }
+        .hero-eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 13px;
+            color: #7d35ed;
+            font: 800 10px 'Inter', sans-serif;
+            letter-spacing: .16em;
+            text-transform: uppercase;
+        }
 
-    .filter-input {
-        width: 220px;
-    }
+        .hero-eyebrow::before {
+            content: "";
+            width: 25px;
+            height: 2px;
+            border-radius: 999px;
+            background: linear-gradient(90deg, var(--brandora-purple), var(--brandora-blue));
+        }
 
-    .creator-grid {
-        margin-top: 26px;
+        .hero-title {
+            max-width: 620px;
+            margin: 0;
+            color: var(--brandora-navy);
+            font: 600 clamp(36px, 4vw, 57px)/1.03 'Playfair Display', serif;
+            letter-spacing: -.035em;
+        }
 
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-        gap: 18px;
-    }
+        .hero-title span {
+            background: linear-gradient(100deg, #762cff 15%, #a63cff 54%, #159cff 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
 
-    .creator-card {
-        position: relative;
-        overflow: hidden;
+        .hero-description {
+            max-width: 520px;
+            margin: 15px 0 20px;
+            color: #747c9d;
+            font: 400 14px/1.65 'Inter', sans-serif;
+        }
 
-        padding: 24px 22px 22px;
+        .hero-stats {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0;
+        }
 
-        border-radius: 18px;
-        background: #ffffff;
-        border: 1px solid #eaecf5;
+        .hero-stat {
+            min-width: 105px;
+            padding-right: 20px;
+            margin-right: 20px;
+            border-right: 1px solid #e9e8f2;
+        }
 
-        transition: transform .45s cubic-bezier(.22,1,.36,1), box-shadow .4s ease;
+        .hero-stat:last-child {
+            border-right: 0;
+            margin-right: 0;
+        }
 
-        opacity: 0;
-        transform: translateY(26px);
-    }
+        .hero-stat-value {
+            color: var(--brandora-navy);
+            font: 800 19px 'DM Sans', sans-serif;
+        }
 
-    .creator-card.is-visible {
-        opacity: 1;
-        transform: translateY(0);
-        transition: opacity .6s ease, transform .6s cubic-bezier(.22,1,.36,1), box-shadow .4s ease;
-    }
+        .hero-stat-label {
+            margin-top: 2px;
+            color: #9298b2;
+            font: 600 10px 'Inter', sans-serif;
+            letter-spacing: .04em;
+            text-transform: uppercase;
+        }
 
-    .creator-card::before,
-    .creator-card::after {
-        content: "";
-        position: absolute;
-        inset: 0;
-        z-index: 0;
-        pointer-events: none;
-        opacity: 0;
-        transition: opacity .35s ease;
-    }
+        .hero-visual {
+            position: relative;
+            min-height: 245px;
+            z-index: 2;
+        }
 
-    .creator-card::before {
-        background: var(--card-wash);
-    }
+        .creator-orbit {
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            border: 1px solid rgba(139,53,255,.14);
+            transform: rotate(-12deg);
+        }
 
-    .creator-card::after {
-        border-radius: inherit;
-        padding: 1.5px;
-        background: var(--card-border);
-        -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-        -webkit-mask-composite: xor;
-        mask-composite: exclude;
-    }
+        .creator-orbit::before,
+        .creator-orbit::after {
+            content: "";
+            position: absolute;
+            border-radius: 50%;
+            border: 1px solid rgba(21,156,255,.14);
+        }
 
-    .creator-card:hover {
-        transform: translateY(-7px) scale(1.015);
-        box-shadow: 0 26px 46px rgba(30,34,90,.16);
-    }
+        .creator-orbit::before {
+            inset: 18px 40px;
+            transform: rotate(22deg);
+        }
 
-    .creator-card:hover::before,
-    .creator-card:hover::after {
-        opacity: 1;
-    }
+        .creator-orbit::after {
+            inset: 45px 5px;
+            transform: rotate(-18deg);
+        }
 
-    .creator-card > * {
-        position: relative;
-        z-index: 1;
-    }
+        .hero-portrait {
+            position: absolute;
+            width: 124px;
+            height: 160px;
+            object-fit: cover;
+            border: 5px solid rgba(255,255,255,.95);
+            border-radius: 22px;
+            box-shadow: 0 20px 45px rgba(67, 33, 137, .18);
+            transition: transform .45s cubic-bezier(.22,1,.36,1);
+        }
 
-    .creator-card:hover .creator-avatar {
-        transform: scale(1.08) rotate(-3deg);
-    }
+        .hero-portrait:hover {
+            transform: translateY(-8px) rotate(0deg) scale(1.04);
+        }
 
-    .creator-card-head {
-        display: flex;
-        align-items: flex-start;
-        gap: 14px;
-    }
+        .hero-portrait-main {
+            width: 148px;
+            height: 188px;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%) rotate(-3deg);
+            z-index: 3;
+        }
 
-    .creator-name-row {
-        display: flex;
-        align-items: center;
-        gap: 7px;
+        .hero-portrait-main:hover {
+            transform: translate(-50%, -50%) rotate(0deg) scale(1.04);
+        }
 
-        font-family: 'DM Sans', sans-serif;
-        font-weight: 700;
-        font-size: 16px;
-        color: #171d3d;
-    }
+        .hero-portrait-one {
+            left: 5%;
+            top: 12%;
+            transform: rotate(-11deg);
+        }
 
-    .creator-handle {
-        margin-top: 2px;
+        .hero-portrait-two {
+            right: 3%;
+            top: 10%;
+            transform: rotate(9deg);
+        }
 
-        font-family: 'Inter', sans-serif;
-        font-size: 12px;
-        color: #8189a8;
-    }
+        .hero-portrait-three {
+            left: 11%;
+            bottom: 3%;
+            transform: rotate(8deg);
+        }
 
-    .creator-tags {
-        margin-top: 12px;
+        .hero-portrait-four {
+            right: 10%;
+            bottom: 0;
+            transform: rotate(-8deg);
+        }
 
-        display: flex;
-        flex-wrap: wrap;
-        gap: 6px;
-    }
+        .hero-badge {
+            position: absolute;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            padding: 9px 13px;
+            border: 1px solid rgba(139,53,255,.13);
+            border-radius: 999px;
+            background: rgba(255,255,255,.94);
+            box-shadow: 0 12px 30px rgba(45, 30, 108, .11);
+            color: #4f5678;
+            font: 700 10px 'Inter', sans-serif;
+            backdrop-filter: blur(12px);
+            z-index: 5;
+        }
 
-    .creator-figures {
-        margin-top: 18px;
-        padding-top: 16px;
-        border-top: 1px solid #f0f1f7;
+        .hero-badge strong {
+            color: var(--brandora-navy);
+            font-size: 12px;
+        }
 
-        display: flex;
-        justify-content: space-between;
-    }
+        .hero-badge-engagement {
+            left: 0;
+            top: 46%;
+        }
 
-    .figure-value {
-        font-family: 'DM Sans', sans-serif;
-        font-weight: 800;
-        font-size: 18px;
-        color: #171d3d;
-    }
+        .hero-badge-followers {
+            right: 0;
+            top: 1%;
+        }
 
-    .figure-label {
-        margin-top: 2px;
+        .hero-badge-social {
+            right: 2%;
+            bottom: 7%;
+            gap: 8px;
+            color: #8a35ff;
+        }
 
-        font-family: 'Inter', sans-serif;
-        font-size: 10px;
-        font-weight: 600;
-        letter-spacing: .3px;
-        text-transform: uppercase;
-        color: #9096b3;
-    }
+        .hero-spark {
+            position: absolute;
+            color: #8b35ff;
+            font-size: 20px;
+            animation: sparkle 2.8s ease-in-out infinite;
+        }
 
-    .creator-actions {
-        margin-top: 18px;
+        .hero-spark.one { top: 3%; left: 42%; }
+        .hero-spark.two { right: 26%; top: 32%; font-size: 13px; animation-delay: -.8s; }
+        .hero-spark.three { left: 24%; bottom: 12%; font-size: 12px; animation-delay: -1.6s; }
 
-        display: flex;
-        gap: 8px;
-    }
+        .shortlist-top {
+            position: absolute;
+            right: 28px;
+            bottom: 26px;
+            z-index: 8;
+        }
 
-    .creator-actions .btn {
-        flex: 1;
-        height: 40px;
-        font-size: 12.5px;
-    }
+        .shortlist-top .btn {
+            min-height: 42px;
+            border-radius: 13px;
+            padding: 0 18px;
+            border: 1px solid rgba(139,53,255,.35);
+            color: #7a2df3;
+            background: rgba(255,255,255,.94);
+            box-shadow: 0 9px 24px rgba(109, 45, 203, .08);
+        }
 
-    .creator-actions .shortlist-btn {
-        flex: 1;
-        height: 40px;
-    }
+        .discovery-toolbar {
+            position: relative;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 9px;
+            padding: 11px;
+            margin-bottom: 24px;
+            border: 1px solid #e8e7f3;
+            border-radius: 18px;
+            background: rgba(255,255,255,.94);
+            box-shadow: 0 12px 35px rgba(35, 25, 91, .06);
+            backdrop-filter: blur(14px);
+            animation: hero-enter .7s .08s cubic-bezier(.22,1,.36,1) both;
+        }
 
-    @@media(max-width: 560px) {
-        .page-head { flex-direction: column; }
-        .filter-input { width: 100%; }
-    }
+        .filter-input,
+        .filter-select {
+            height: 42px;
+            border: 1px solid #e5e4ef;
+            border-radius: 12px;
+            background: #fff;
+            color: #2a3157;
+            font: 500 12px 'Inter', sans-serif;
+            outline: none;
+            transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
+        }
 
+        .filter-input {
+            flex: 1 1 245px;
+            min-width: 210px;
+            padding: 0 15px;
+        }
+
+        .filter-select {
+            min-width: 145px;
+            padding: 0 12px;
+        }
+
+        .filter-input:focus,
+        .filter-select:focus {
+            border-color: #a978ff;
+            box-shadow: 0 0 0 4px rgba(139,53,255,.08);
+        }
+
+        .filter-input:hover,
+        .filter-select:hover {
+            border-color: #cfc5ef;
+        }
+
+        .discovery-toolbar .btn {
+            height: 42px;
+            border-radius: 12px;
+            padding: 0 18px;
+        }
+
+        .creator-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 18px;
+        }
+
+        .creator-card {
+            --card-accent: #8b35ff;
+            position: relative;
+            overflow: hidden;
+            min-width: 0;
+            border: 1px solid #e8e7f2;
+            border-radius: 22px;
+            background: #fff;
+            box-shadow: 0 10px 30px rgba(32, 24, 82, .055);
+            opacity: 0;
+            transform: translateY(28px);
+            transition:
+                opacity .65s ease,
+                transform .65s cubic-bezier(.22,1,.36,1),
+                box-shadow .4s ease,
+                border-color .35s ease;
+        }
+
+        .creator-card.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .creator-card:hover {
+            transform: translateY(-8px);
+            border-color: rgba(139,53,255,.28);
+            box-shadow:
+                0 25px 55px rgba(49, 31, 119, .12),
+                0 0 0 1px rgba(139,53,255,.04);
+        }
+
+        .creator-card::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(circle at 0 0, rgba(139,53,255,.11), transparent 34%),
+                radial-gradient(circle at 100% 100%, rgba(21,156,255,.07), transparent 35%);
+            opacity: .35;
+            pointer-events: none;
+            transition: opacity .35s ease;
+        }
+
+        .creator-card:hover::before {
+            opacity: .8;
+        }
+
+        .creator-media {
+            position: relative;
+            height: 185px;
+            overflow: hidden;
+            background: linear-gradient(135deg, #eee9ff, #e9f7ff);
+        }
+
+        .creator-media::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(180deg, transparent 45%, rgba(17, 19, 47, .7) 100%);
+            pointer-events: none;
+        }
+
+        .creator-cover {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform .65s cubic-bezier(.22,1,.36,1), filter .45s ease;
+        }
+
+        .creator-card:hover .creator-cover {
+            transform: scale(1.055);
+            filter: saturate(1.06);
+        }
+
+        .platform-badge,
+        .availability-badge,
+        .creator-bookmark {
+            position: absolute;
+            z-index: 3;
+            top: 12px;
+            border: 1px solid rgba(255,255,255,.68);
+            background: rgba(255,255,255,.91);
+            box-shadow: 0 8px 22px rgba(20, 20, 60, .10);
+            backdrop-filter: blur(12px);
+        }
+
+        .platform-badge {
+            left: 12px;
+            padding: 7px 10px;
+            border-radius: 999px;
+            color: #343a5b;
+            font: 700 10px 'Inter', sans-serif;
+        }
+
+        .availability-badge {
+            right: 45px;
+            padding: 7px 10px;
+            border-radius: 999px;
+            color: #2d7651;
+            font: 700 10px 'Inter', sans-serif;
+        }
+
+        .availability-badge::before {
+            content: "";
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            margin-right: 5px;
+            border-radius: 50%;
+            background: #45bd79;
+            box-shadow: 0 0 0 3px rgba(69,189,121,.13);
+        }
+
+        .creator-bookmark {
+            right: 12px;
+            width: 31px;
+            height: 31px;
+            display: grid;
+            place-items: center;
+            padding: 0;
+            border-radius: 10px;
+            color: #545a7c;
+            cursor: pointer;
+        }
+
+        .creator-overlay {
+            position: absolute;
+            left: 14px;
+            right: 14px;
+            bottom: 12px;
+            z-index: 4;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #fff;
+        }
+
+        .creator-avatar {
+            width: 47px;
+            height: 47px;
+            flex: 0 0 47px;
+            overflow: hidden;
+            border: 3px solid rgba(255,255,255,.92);
+            border-radius: 50%;
+            background: linear-gradient(135deg, #8b35ff, #159cff);
+            box-shadow: 0 8px 20px rgba(20,20,50,.22);
+            transition: transform .45s cubic-bezier(.22,1,.36,1);
+        }
+
+        .creator-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .creator-card:hover .creator-avatar {
+            transform: scale(1.06);
+        }
+
+        .creator-name {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin: 0;
+            color: #fff;
+            font: 750 15px 'DM Sans', sans-serif;
+        }
+
+        .creator-handle {
+            margin-top: 2px;
+            color: rgba(255,255,255,.77);
+            font: 500 10px 'Inter', sans-serif;
+        }
+
+        .verified-mark {
+            width: 15px;
+            height: 15px;
+            display: inline-grid;
+            place-items: center;
+            border-radius: 50%;
+            color: #fff;
+            background: linear-gradient(135deg, #8b35ff, #159cff);
+            font-size: 9px;
+        }
+
+        .creator-body {
+            position: relative;
+            z-index: 2;
+            padding: 16px 17px 17px;
+        }
+
+        .creator-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 14px;
+        }
+
+        .creator-tags .tag {
+            padding: 6px 8px;
+            border: 1px solid #ebe8f7;
+            border-radius: 999px;
+            background: #faf9ff;
+            color: #656c8c;
+            font: 650 9.5px 'Inter', sans-serif;
+        }
+
+        .creator-figures {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 7px;
+            padding: 12px 0;
+            border-top: 1px solid #eeeef5;
+            border-bottom: 1px solid #eeeef5;
+        }
+
+        .figure {
+            min-width: 0;
+            padding-right: 8px;
+            border-right: 1px solid #eeeef5;
+        }
+
+        .figure:last-child {
+            border-right: 0;
+        }
+
+        .figure-value {
+            color: var(--brandora-navy);
+            font: 800 16px 'DM Sans', sans-serif;
+        }
+
+        .figure-label {
+            margin-top: 2px;
+            color: #969bb3;
+            font: 650 8.5px 'Inter', sans-serif;
+            letter-spacing: .05em;
+            text-transform: uppercase;
+        }
+
+        .engagement-meter {
+            position: relative;
+            width: 38px;
+            height: 38px;
+            margin-left: auto;
+            border-radius: 50%;
+            background: conic-gradient(var(--card-accent) 0deg 220deg, #ecebf4 220deg 360deg);
+        }
+
+        .engagement-meter::after {
+            content: "";
+            position: absolute;
+            inset: 5px;
+            border-radius: 50%;
+            background: #fff;
+        }
+
+        .engagement-meter span {
+            position: absolute;
+            inset: 0;
+            z-index: 1;
+            display: grid;
+            place-items: center;
+            color: var(--brandora-navy);
+            font: 800 8px 'DM Sans', sans-serif;
+        }
+
+        .creator-audience {
+            margin: 12px 0 13px;
+        }
+
+        .audience-title {
+            margin-bottom: 5px;
+            color: #252b4b;
+            font: 750 10px 'Inter', sans-serif;
+        }
+
+        .audience-list {
+            color: #777e9d;
+            font: 500 9.5px 'Inter', sans-serif;
+        }
+
+        .creator-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .creator-actions .btn,
+        .creator-actions .shortlist-btn {
+            width: 100%;
+            min-height: 39px;
+            border-radius: 11px;
+            font: 700 11px 'Inter', sans-serif;
+            cursor: pointer;
+            transition: transform .2s ease, box-shadow .25s ease, background .25s ease, color .25s ease;
+        }
+
+        .creator-actions .btn:hover,
+        .creator-actions .shortlist-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .creator-actions .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #e3e1ed;
+            color: #444b6b;
+            background: #fff;
+            text-decoration: none;
+        }
+
+        .creator-actions .btn:hover {
+            border-color: #bba2ef;
+            color: #762cff;
+        }
+
+        .creator-actions .shortlist-btn {
+            border: 1px solid rgba(139,53,255,.32);
+            color: #7c2df2;
+            background: linear-gradient(180deg, #fff, #fbf9ff);
+        }
+
+        .creator-actions .shortlist-btn.is-saved {
+            border-color: transparent;
+            color: #fff;
+            background: linear-gradient(110deg, #812fff, #159cff);
+            box-shadow: 0 8px 20px rgba(117, 44, 239, .18);
+        }
+
+        .creator-actions form {
+            margin: 0;
+        }
+
+        .empty-block {
+            border-radius: 22px;
+            border: 1px solid #e9e7f3;
+            background: #fff;
+            box-shadow: 0 12px 35px rgba(35,25,91,.05);
+        }
+
+        @@keyframes hero-enter {
+            from { opacity: 0; transform: translateY(18px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @@keyframes star-float {
+            0%, 100% { transform: translateY(0) scale(1); opacity: .18; }
+            50% { transform: translateY(-8px) scale(1.25); opacity: .55; }
+        }
+
+        @@keyframes sparkle {
+            0%, 100% { transform: scale(.8) rotate(0deg); opacity: .35; }
+            50% { transform: scale(1.15) rotate(12deg); opacity: .9; }
+        }
+
+        @@keyframes wave-drift {
+            from { transform: translateX(-15px); }
+            to { transform: translateX(15px); }
+        }
+
+        @@media (max-width: 1180px) {
+            .creator-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .creator-hero {
+                grid-template-columns: 1fr .8fr;
+            }
+        }
+
+        @@media (max-width: 850px) {
+            .creator-hero {
+                grid-template-columns: 1fr;
+                padding: 28px;
+            }
+
+            .hero-visual {
+                min-height: 255px;
+            }
+
+            .shortlist-top {
+                position: static;
+                margin-top: 20px;
+            }
+
+            .shortlist-top .btn {
+                width: 100%;
+            }
+        }
+
+        @@media (max-width: 650px) {
+            .creator-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .creator-hero {
+                border-radius: 20px;
+            }
+
+            .hero-title {
+                font-size: 38px;
+            }
+
+            .hero-stats {
+                gap: 12px 0;
+            }
+
+            .hero-stat {
+                min-width: 90px;
+                margin-right: 12px;
+                padding-right: 12px;
+            }
+
+            .discovery-toolbar {
+                align-items: stretch;
+            }
+
+            .filter-input,
+            .filter-select,
+            .discovery-toolbar .btn {
+                width: 100%;
+                flex-basis: 100%;
+            }
+
+            .hero-portrait-main {
+                width: 125px;
+                height: 165px;
+            }
+
+            .hero-portrait {
+                width: 95px;
+                height: 125px;
+            }
+
+            .hero-badge {
+                transform: scale(.88);
+            }
+
+            .hero-badge-engagement {
+                left: -7px;
+            }
+
+            .hero-badge-followers {
+                right: -8px;
+            }
+        }
+
+        @@media (prefers-reduced-motion: reduce) {
+            .creator-card,
+            .creator-card.is-visible {
+                opacity: 1;
+                transform: none;
+            }
+
+            .creator-stars span,
+            .creator-wave path,
+            .hero-spark {
+                animation: none;
+            }
+
+            .creator-cover,
+            .creator-avatar,
+            .hero-portrait {
+                transition: none;
+            }
+        }
+    </style>
 }
 
-<a href="/Dashboard" class="back-to-dashboard">
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    Back to Dashboard
-</a>
-
-<div class="page-head">
-    <div>
-        <h1 class="page-title">Discover Creators</h1>
-        <p class="page-sub">@Model.TotalCount creator@(Model.TotalCount == 1 ? "" : "s") on Brandora.</p>
+<div class="influencer-page">
+    <div class="creator-stars" aria-hidden="true">
+        <span></span><span></span><span></span><span></span><span></span><span></span>
     </div>
-    <a href="/Influencers/Shortlist" class="btn btn-secondary">View Shortlist (@Model.ShortlistedIds.Count)</a>
-</div>
 
-<form method="get" action="/Influencers" class="filter-bar">
+    <svg class="creator-wave" viewBox="0 0 760 300" aria-hidden="true">
+        <defs>
+            <linearGradient id="creatorWaveGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#8b35ff" stop-opacity=".05" />
+                <stop offset="50%" stop-color="#8b35ff" stop-opacity=".42" />
+                <stop offset="100%" stop-color="#159cff" stop-opacity=".08" />
+            </linearGradient>
+        </defs>
+        <path d="M0 170 C150 40 230 290 380 155 S610 40 760 135" />
+        <path d="M0 205 C150 75 240 315 390 185 S620 70 760 165" />
+        <path d="M0 235 C150 105 250 335 410 215 S630 105 760 195" />
+        <path d="M0 135 C140 10 225 255 370 125 S600 20 760 105" />
+    </svg>
 
-    <input type="text" name="search" class="filter-input" placeholder="Search by name or handle..." value="@Model.Search" />
+    <div class="creator-shell">
+        <a href="/Dashboard" class="back-to-dashboard">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                <path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Back to Dashboard
+        </a>
 
-    <select name="platform" class="filter-select" onchange="this.form.submit()">
-        <option value="" selected="@(string.IsNullOrEmpty(Model.Platform))">All platforms</option>
-        @foreach (var platform in new[] { "Instagram", "TikTok", "YouTube", "Facebook", "X", "LinkedIn" })
-        {
-            <option selected="@(Model.Platform == platform)">@platform</option>
-        }
-    </select>
+        <section class="creator-hero">
+            <div class="hero-copy">
+                <div class="hero-eyebrow">Brandora Creator Network</div>
 
-    <select name="niche" class="filter-select" onchange="this.form.submit()">
-        <option value="" selected="@(string.IsNullOrEmpty(Model.Niche))">All niches</option>
-        @foreach (var niche in new[] { "Fashion & Style", "Beauty & Skincare", "Food & Cooking", "Travel & Lifestyle", "Fitness & Health", "Gaming", "Tech & Gadgets", "Education", "Comedy & Entertainment", "Home & Lifestyle", "Finance", "Other" })
-        {
-            <option selected="@(Model.Niche == niche)">@niche</option>
-        }
-    </select>
+                <h1 class="hero-title">
+                    Discover creators<br />
+                    <span>who move culture.</span>
+                </h1>
 
-    <select name="sort" class="filter-select" onchange="this.form.submit()">
-        <option value="" selected="@(string.IsNullOrEmpty(Model.Sort))">Newest first</option>
-        <option value="followers" selected="@(Model.Sort == "followers")">Most followers</option>
-        <option value="engagement" selected="@(Model.Sort == "engagement")">Highest engagement</option>
-    </select>
+                <p class="hero-description">
+                    Explore, evaluate and connect with creators who align with your brand,
+                    audience and campaign goals.
+                </p>
 
-    <button type="submit" class="btn btn-secondary">Search</button>
-
-</form>
-
-@if (Model.Creators.Count > 0)
-{
-    <div class="creator-grid">
-        @foreach (var creator in Model.Creators)
-        {
-            var hue = (creator.Id * 47) % 360;
-            var hue2 = (hue + 50) % 360;
-            <div class="creator-card" data-reveal
-                 style="--card-wash: radial-gradient(circle at 22% -10%, hsla(@(hue), 90%, 65%, .16), transparent 55%), radial-gradient(circle at 100% 110%, hsla(@(hue2), 90%, 60%, .12), transparent 55%); --card-border: linear-gradient(135deg, hsl(@(hue)deg 85% 62%), hsl(@(hue2)deg 85% 55%));">
-
-                <div class="creator-card-head">
-                    <div class="creator-avatar" style="background: linear-gradient(135deg, hsl(@(hue)deg 75% 58%), hsl(@((hue + 45) % 360)deg 75% 48%));">
-                        @FollowerFormat.InitialsOf(creator.FullName)
+                <div class="hero-stats">
+                    <div class="hero-stat">
+                        <div class="hero-stat-value">@Model.TotalCount</div>
+                        <div class="hero-stat-label">Creators</div>
                     </div>
-                    <div>
-                        <div class="creator-name-row">
-                            @creator.FullName
-                            @if (creator.Verified)
-                            {
-                                <span class="verified-badge">Verified</span>
-                            }
-                        </div>
-                        <div class="creator-handle">@creator.PrimaryPlatform &middot; @creator.PlatformUsername</div>
+                    <div class="hero-stat">
+                        <div class="hero-stat-value">4.5%</div>
+                        <div class="hero-stat-label">Avg Engagement</div>
+                    </div>
+                    <div class="hero-stat">
+                        <div class="hero-stat-value">6</div>
+                        <div class="hero-stat-label">Platforms</div>
                     </div>
                 </div>
+            </div>
 
-                <div class="creator-tags">
-                    <span class="tag">@creator.ContentNiche</span>
-                    @if (!string.IsNullOrEmpty(creator.Location))
+            <div class="hero-visual" aria-hidden="true">
+                <div class="creator-orbit"></div>
+
+                <img class="hero-portrait hero-portrait-one"
+                     src="https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=300&q=80"
+                     alt="" />
+
+                <img class="hero-portrait hero-portrait-main"
+                     src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=85"
+                     alt="" />
+
+                <img class="hero-portrait hero-portrait-two"
+                     src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80"
+                     alt="" />
+
+                <img class="hero-portrait hero-portrait-three"
+                     src="https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?auto=format&fit=crop&w=300&q=80"
+                     alt="" />
+
+                <img class="hero-portrait hero-portrait-four"
+                     src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=300&q=80"
+                     alt="" />
+
+                <div class="hero-badge hero-badge-engagement">
+                    <span>♡</span>
+                    <span><strong>4.5%</strong><br />Engagement</span>
+                </div>
+
+                <div class="hero-badge hero-badge-followers">
+                    <span>✦</span>
+                    <span><strong>25K</strong><br />Followers</span>
+                </div>
+
+                <div class="hero-badge hero-badge-social">
+                    <span>Instagram</span>
+                    <span>•</span>
+                    <span>TikTok</span>
+                    <span>•</span>
+                    <span>YouTube</span>
+                </div>
+
+                <span class="hero-spark one">✦</span>
+                <span class="hero-spark two">✦</span>
+                <span class="hero-spark three">✦</span>
+            </div>
+
+            <div class="shortlist-top">
+                <a href="/Influencers/Shortlist" class="btn btn-secondary">
+                    ✦ &nbsp; View Shortlist (@Model.ShortlistedIds.Count)
+                </a>
+            </div>
+        </section>
+
+        <form method="get" action="/Influencers" class="discovery-toolbar">
+            <input type="text"
+                   name="search"
+                   class="filter-input"
+                   placeholder="Search creators, niches, locations or handles..."
+                   value="@Model.Search" />
+
+            <select name="platform" class="filter-select" onchange="this.form.submit()">
+                <option value="" selected="@(string.IsNullOrEmpty(Model.Platform))">All platforms</option>
+                @foreach (var platform in new[] { "Instagram", "TikTok", "YouTube", "Facebook", "X", "LinkedIn" })
+                {
+                    <option value="@platform" selected="@(Model.Platform == platform)">@platform</option>
+                }
+            </select>
+
+            <select name="niche" class="filter-select" onchange="this.form.submit()">
+                <option value="" selected="@(string.IsNullOrEmpty(Model.Niche))">All niches</option>
+                @foreach (var niche in new[] { "Fashion & Style", "Beauty & Skincare", "Food & Cooking", "Travel & Lifestyle", "Fitness & Health", "Gaming", "Tech & Gadgets", "Education", "Comedy & Entertainment", "Home & Lifestyle", "Finance", "Other" })
+                {
+                    <option value="@niche" selected="@(Model.Niche == niche)">@niche</option>
+                }
+            </select>
+
+            <select name="sort" class="filter-select" onchange="this.form.submit()">
+                <option value="" selected="@(string.IsNullOrEmpty(Model.Sort))">Newest first</option>
+                <option value="followers" selected="@(Model.Sort == "followers")">Most followers</option>
+                <option value="engagement" selected="@(Model.Sort == "engagement")">Highest engagement</option>
+            </select>
+
+            <button type="submit" class="btn btn-secondary">Search</button>
+        </form>
+
+        @if (Model.Creators.Count > 0)
+        {
+            <div class="creator-grid">
+                @foreach (var creator in Model.Creators)
+                {
+                    var hue = (creator.Id * 47) % 360;
+                    var imageIndex = (creator.Id % 6) + 1;
+
+                    var creatorImage = imageIndex switch
                     {
-                        <span class="tag">@creator.Location</span>
-                    }
-                </div>
+                        1 => "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=700&q=82",
+                        2 => "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=700&q=82",
+                        3 => "https://images.unsplash.com/photo-1531123897727-8f129e1688ce?auto=format&fit=crop&w=700&q=82",
+                        4 => "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=700&q=82",
+                        5 => "https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?auto=format&fit=crop&w=700&q=82",
+                        _ => "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=700&q=82"
+                    };
 
-                <div class="creator-figures">
-                    <div>
-                        <div class="figure-value">@FollowerFormat.Format(creator.Followers)</div>
-                        <div class="figure-label">Followers</div>
-                    </div>
-                    <div>
-                        <div class="figure-value">@creator.EngagementRate.ToString("0.0")%</div>
-                        <div class="figure-label">Engagement</div>
-                    </div>
-                </div>
+                    <article class="creator-card"
+                             data-reveal
+                             style="--card-accent: hsl(@(hue)deg 85% 58%);">
 
-                <div class="creator-actions">
-                    <a href="/Influencers/Profile/@creator.Id" class="btn btn-secondary">View Profile</a>
+                        <div class="creator-media">
+                            <img class="creator-cover"
+                                 src="@creatorImage"
+                                 alt="@creator.FullName creator profile"
+                                 loading="lazy" />
 
-                    <form method="post" action="/Influencers/ToggleShortlist">
-                        @Html.AntiForgeryToken()
-                        <input type="hidden" name="influencerId" value="@creator.Id" />
-                        <input type="hidden" name="returnUrl" value="@Context.Request.Path@Context.Request.QueryString" />
-                        <button type="submit" class="shortlist-btn @(Model.IsShortlisted(creator.Id) ? "is-saved" : "")">
-                            @(Model.IsShortlisted(creator.Id) ? "Shortlisted" : "+ Shortlist")
-                        </button>
-                    </form>
-                </div>
+                            <div class="platform-badge">
+                                @creator.PrimaryPlatform
+                            </div>
 
+                            <div class="availability-badge">
+                                Available
+                            </div>
+
+                            <button class="creator-bookmark"
+                                    type="button"
+                                    aria-label="Save @creator.FullName visually"
+                                    tabindex="-1">
+                                ♡
+                            </button>
+
+                            <div class="creator-overlay">
+                                <div class="creator-avatar">
+                                    <img src="@creatorImage"
+                                         alt=""
+                                         loading="lazy" />
+                                </div>
+
+                                <div>
+                                    <h2 class="creator-name">
+                                        @creator.FullName
+                                        @if (creator.Verified)
+                                        {
+                                            <span class="verified-mark" title="Verified">✓</span>
+                                        }
+                                    </h2>
+                                    <div class="creator-handle">
+                                        @creator.PlatformUsername
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="creator-body">
+                            <div class="creator-tags">
+                                <span class="tag">@creator.ContentNiche</span>
+                                @if (!string.IsNullOrEmpty(creator.Location))
+                                {
+                                    <span class="tag">@creator.Location</span>
+                                }
+                            </div>
+
+                            <div class="creator-figures">
+                                <div class="figure">
+                                    <div class="figure-value">@FollowerFormat.Format(creator.Followers)</div>
+                                    <div class="figure-label">Followers</div>
+                                </div>
+
+                                <div class="figure">
+                                    <div class="figure-value">@creator.EngagementRate.ToString("0.0")%</div>
+                                    <div class="figure-label">Engagement</div>
+                                </div>
+
+                                <div class="figure">
+                                    <div class="engagement-meter"
+                                         aria-label="@creator.EngagementRate.ToString("0.0") percent engagement">
+                                        <span>@creator.EngagementRate.ToString("0.0")%</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="creator-audience">
+                                <div class="audience-title">Creator profile</div>
+                                <div class="audience-list">
+                                    @creator.ContentNiche
+                                    @if (!string.IsNullOrEmpty(creator.Location))
+                                    {
+                                        <span> • @creator.Location</span>
+                                    }
+                                </div>
+                            </div>
+
+                            <div class="creator-actions">
+                                <a href="/Influencers/Profile/@creator.Id"
+                                   class="btn btn-secondary">
+                                    View Profile
+                                </a>
+
+                                <form method="post" action="/Influencers/ToggleShortlist">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="influencerId" value="@creator.Id" />
+                                    <input type="hidden"
+                                           name="returnUrl"
+                                           value="@Context.Request.Path@Context.Request.QueryString" />
+
+                                    <button type="submit"
+                                            class="shortlist-btn @(Model.IsShortlisted(creator.Id) ? "is-saved" : "")">
+                                        @(Model.IsShortlisted(creator.Id) ? "✓ Shortlisted" : "+ Shortlist")
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </article>
+                }
+            </div>
+        }
+        else if (Model.TotalCount == 0)
+        {
+            <div class="panel empty-block" style="margin-top: 24px;">
+                <div class="empty-title">No creators yet</div>
+                <p class="empty-text">
+                    Once influencers join Brandora, they'll appear here for you to discover and shortlist.
+                </p>
+            </div>
+        }
+        else
+        {
+            <div class="panel empty-block" style="margin-top: 24px;">
+                <div class="empty-title">No creators match these filters</div>
+                <p class="empty-text">Try a different search term or clear your filters.</p>
+                <a href="/Influencers" class="btn btn-secondary" style="margin-top: 16px;">
+                    Clear Filters
+                </a>
             </div>
         }
     </div>
-}
-else if (Model.TotalCount == 0)
-{
-    <div class="panel empty-block" style="margin-top: 24px;">
-        <div class="empty-title">No creators yet</div>
-        <p class="empty-text">Once influencers join Brandora, they'll appear here for you to discover and shortlist.</p>
-    </div>
-}
-else
-{
-    <div class="panel empty-block" style="margin-top: 24px;">
-        <div class="empty-title">No creators match these filters</div>
-        <p class="empty-text">Try a different search term or clear your filters.</p>
-        <a href="/Influencers" class="btn btn-secondary" style="margin-top: 16px;">Clear Filters</a>
-    </div>
-}
+</div>
 
 @section Scripts {
     <script>
         (function () {
             var cards = document.querySelectorAll('.creator-card[data-reveal]');
+
             if (!cards.length) return;
 
             if (!('IntersectionObserver' in window)) {
-                cards.forEach(function (c) { c.classList.add('is-visible'); });
+                cards.forEach(function (card) {
+                    card.classList.add('is-visible');
+                });
                 return;
             }
 
@@ -367,10 +1210,15 @@ else
                         observer.unobserve(entry.target);
                     }
                 });
-            }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+            }, {
+                threshold: 0.12,
+                rootMargin: '0px 0px -40px 0px'
+            });
 
             cards.forEach(function (card, index) {
-                card.style.transitionDelay = Math.min(index % 12, 8) * 45 + 'ms';
+                card.style.transitionDelay =
+                    Math.min(index % 12, 8) * 45 + 'ms';
+
                 observer.observe(card);
             });
         })();
