@@ -27,6 +27,7 @@ public class MediaUploadService(IWebHostEnvironment env)
     private const long MaxImageBytes = 15L * 1024 * 1024;
     private const long MaxVideoBytes = 80L * 1024 * 1024;
     private const long MaxDocumentBytes = 100L * 1024 * 1024;
+    private const long MaxProfilePictureBytes = 5L * 1024 * 1024;
 
     public async Task<(string? Url, string? Type, string? Error)> SaveMediaAsync(IFormFile file, string folder)
     {
