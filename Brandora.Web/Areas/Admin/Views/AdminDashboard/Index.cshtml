@@ -1,0 +1,69 @@
+@model Brandora.Web.Areas.Admin.Controllers.AdminDashboardViewModel
+
+<div class="kpi-grid">
+
+    <a href="/Admin/AdminUserVerification/Index" class="kpi-card">
+        <div class="kpi-label">Total Users</div>
+        <div class="kpi-value">@Model.TotalUsers</div>
+    </a>
+
+    <a href="/Admin/AdminUserVerification/Index?status=Pending" class="kpi-card">
+        <div class="kpi-label">Pending Verifications</div>
+        <div class="kpi-value">@Model.PendingVerifications</div>
+    </a>
+
+    <a href="/Admin/AdminProofReview/Index?status=Submitted" class="kpi-card">
+        <div class="kpi-label">Pending Proof Reviews</div>
+        <div class="kpi-value">@Model.PendingProofReviews</div>
+    </a>
+
+    <a href="/Admin/AdminDisputes/Index?status=Open" class="kpi-card">
+        <div class="kpi-label">Open Disputes</div>
+        <div class="kpi-value">@Model.OpenDisputes</div>
+    </a>
+
+    <a href="/Admin/AdminPayments/Index" class="kpi-card">
+        <div class="kpi-label">Total Transaction Volume</div>
+        <div class="kpi-value">৳@Model.TotalTransactionVolume.ToString("N0")</div>
+    </a>
+
+</div>
+
+<div class="panel">
+    <div class="panel-title">Recent Activity</div>
+    <div class="panel-sub">Latest verification requests, proof uploads, and disputes</div>
+
+    @if (Model.RecentActivity.Count == 0)
+    {
+        <div class="empty-block">
+            <div class="empty-title">No recent activity</div>
+            <div class="empty-text">New verification requests, proof submissions, and disputes will show up here.</div>
+        </div>
+    }
+    else
+    {
+        <div class="admin-table-wrap" style="margin-top: 18px;">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Activity</th>
+                        <th>Type</th>
+                        <th>Status</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.RecentActivity)
+                    {
+                        <tr onclick="window.location='@item.Url'" style="cursor:pointer;">
+                            <td>@item.Title</td>
+                            <td>@item.Category</td>
+                            <td><span class="status-pill @item.StatusColor">@item.StatusLabel</span></td>
+                            <td>@item.CreatedAt.ToString("MMM d, yyyy h:mm tt")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

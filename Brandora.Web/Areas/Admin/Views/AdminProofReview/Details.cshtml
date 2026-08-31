@@ -1,0 +1,67 @@
+@model Brandora.Web.Models.Domain.Milestone
+@{
+    static string PillColor(Brandora.Web.Models.Domain.MilestoneStatus s) => s switch
+    {
+        Brandora.Web.Models.Domain.MilestoneStatus.Approved or Brandora.Web.Models.Domain.MilestoneStatus.Paid => "green",
+        Brandora.Web.Models.Domain.MilestoneStatus.Submitted => "blue",
+        Brandora.Web.Models.Domain.MilestoneStatus.RevisionRequested => "red",
+        _ => "gray"
+    };
+}
+
+<a href="/Admin/AdminProofReview/Index" class="back-to-dashboard">&larr; Back to Proof-of-Post Review</a>
+
+<div class="panel">
+
+    <div class="panel-title">@Model.Title</div>
+    <div class="panel-sub">
+        @Model.Collaboration.Campaign.Title &middot; @Model.Collaboration.Campaign.BrandProfile.CompanyName &middot; by @Model.Collaboration.InfluencerProfile.FullName
+    </div>
+
+    <div style="margin-top:16px;">
+        <span class="status-pill @PillColor(Model.Status)">@Model.Status</span>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.ProofUrl))
+    {
+        <div style="margin-top:20px;">
+            <img src="@Model.ProofUrl" alt="Proof of work" style="max-width:100%; border-radius:14px; border:1px solid #dce7ff;" />
+        </div>
+    }
+
+    <div style="margin-top:20px; display:grid; grid-template-columns: repeat(2, 1fr); gap:16px;">
+        <div><strong>Milestone Amount</strong><div class="panel-sub">৳@Model.Amount.ToString("N0")</div></div>
+        <div><strong>Due Date</strong><div class="panel-sub">@(Model.DueDate?.ToString("MMM d, yyyy") ?? "-")</div></div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.Description))
+    {
+        <div style="margin-top:16px;"><strong>Description</strong><div class="panel-sub">@Model.Description</div></div>
+    }
+
+    @if (!string.IsNullOrEmpty(Model.ProofNotes))
+    {
+        <div style="margin-top:16px;"><strong>Notes</strong><div class="panel-sub">@Model.ProofNotes</div></div>
+    }
+
+    @if (Model.Status == Brandora.Web.Models.Domain.MilestoneStatus.Submitted)
+    {
+        <div style="display:flex; gap:10px; margin-top:24px;">
+            <form method="post" action="/Admin/AdminProofReview/Approve">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@Model.Id" />
+                <button type="submit" class="btn btn-primary">Approve</button>
+            </form>
+
+            <button type="button" class="btn btn-danger" onclick="document.getElementById('rejectForm').style.display='block'">Reject</button>
+        </div>
+
+        <form id="rejectForm" method="post" action="/Admin/AdminProofReview/Reject" style="display:none; margin-top:16px;">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" value="@Model.Id" />
+            <textarea name="comment" required placeholder="Comment for the influencer (required)" style="width:100%; min-height:80px; padding:12px; border-radius:10px; border:1px solid #dde1f0; font-family:'Inter',sans-serif; font-size:13px;"></textarea>
+            <button type="submit" class="btn btn-danger btn-sm" style="margin-top:10px;">Confirm Reject</button>
+        </form>
+    }
+
+</div>

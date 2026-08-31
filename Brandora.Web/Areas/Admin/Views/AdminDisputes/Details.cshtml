@@ -1,0 +1,115 @@
+@model Brandora.Web.Models.Domain.Dispute
+@{
+    var conversation = ViewData["Conversation"] as Brandora.Web.Models.Domain.Conversation;
+    var payment = ViewData["Payment"] as Brandora.Web.Models.Domain.Payment;
+
+    static string PillColor(Brandora.Web.Models.Domain.DisputeStatus s) => s switch
+    {
+        Brandora.Web.Models.Domain.DisputeStatus.Resolved => "green",
+        Brandora.Web.Models.Domain.DisputeStatus.UnderReview => "blue",
+        _ => "gray"
+    };
+}
+
+<a href="/Admin/AdminDisputes/Index" class="back-to-dashboard">&larr; Back to Dispute Resolution</a>
+
+<div class="panel">
+    <div class="panel-title">Dispute #@Model.Id &mdash; @Model.Collaboration.Campaign.Title</div>
+    <div class="panel-sub">@Model.BrandProfile.CompanyName vs @Model.InfluencerProfile.FullName</div>
+    <div style="margin-top:10px;"><span class="status-pill @PillColor(Model.Status)">@Model.Status</span></div>
+    <div style="margin-top:16px;"><strong>Reason</strong><div class="panel-sub">@Model.Reason</div></div>
+</div>
+
+<div class="panel" style="margin-top:20px;">
+    <div class="panel-title">Chat History</div>
+    @if (conversation is null || conversation.Messages.Count == 0)
+    {
+        <div class="empty-block"><div class="empty-title">No messages</div></div>
+    }
+    else
+    {
+        <div style="margin-top:14px; max-height:320px; overflow-y:auto; display:flex; flex-direction:column; gap:10px;">
+            @foreach (var msg in conversation.Messages.OrderBy(m => m.SentAt))
+            {
+                <div style="padding:10px 14px; border-radius:10px; background:#f6f7fb;">
+                    <div class="panel-sub" style="margin-bottom:4px;">@msg.SentAt.ToString("MMM d, h:mm tt")</div>
+                    <div>@msg.Body</div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+<div class="panel" style="margin-top:20px;">
+    <div class="panel-title">Proof of Post</div>
+    @if (Model.Milestone is null)
+    {
+        <div class="empty-block"><div class="empty-title">No milestone linked</div></div>
+    }
+    else if (string.IsNullOrEmpty(Model.Milestone.ProofUrl))
+    {
+        <div class="empty-block"><div class="empty-title">No proof uploaded yet</div></div>
+    }
+    else
+    {
+        <div style="margin-top:14px;">
+            <img src="@Model.Milestone.ProofUrl" alt="Proof" style="max-width:320px; border-radius:12px; border:1px solid #dce7ff;" />
+            <div class="panel-sub" style="margin-top:8px;">Status: @Model.Milestone.Status</div>
+        </div>
+    }
+</div>
+
+<div class="panel" style="margin-top:20px;">
+    <div class="panel-title">Payment Record</div>
+    @if (payment is null)
+    {
+        <div class="empty-block"><div class="empty-title">No payment record</div></div>
+    }
+    else
+    {
+        <div style="margin-top:14px; display:grid; grid-template-columns: repeat(3, 1fr); gap:16px;">
+            <div><strong>Amount</strong><div class="panel-sub">৳@payment.Amount.ToString("N0")</div></div>
+            <div><strong>Status</strong><div class="panel-sub">@payment.Status</div></div>
+            <div><strong>Paid At</strong><div class="panel-sub">@(payment.PaidAt?.ToString("MMM d, yyyy") ?? "-")</div></div>
+        </div>
+    }
+</div>
+
+@if (Model.Status != Brandora.Web.Models.Domain.DisputeStatus.Resolved)
+{
+    <div class="panel" style="margin-top:20px;">
+        <div class="panel-title">Resolve Dispute</div>
+
+        <form method="post" action="/Admin/AdminDisputes/Resolve" style="margin-top:14px;">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" value="@Model.Id" />
+
+            <label class="panel-sub" style="display:block; margin-bottom:6px;">Outcome</label>
+            <select name="outcome" required style="width:100%; height:44px; padding:0 12px; border-radius:10px; border:1px solid #dde1f0; font-family:'Inter',sans-serif; font-size:13px; margin-bottom:14px;">
+                <option value="ReleasePayment">Release Payment</option>
+                <option value="RefundBrand">Refund Brand</option>
+                <option value="NoAction">No Action</option>
+            </select>
+
+            <label class="panel-sub" style="display:block; margin-bottom:6px;">Resolution Notes</label>
+            <textarea name="notes" required placeholder="Explain the resolution" style="width:100%; min-height:90px; padding:12px; border-radius:10px; border:1px solid #dde1f0; font-family:'Inter',sans-serif; font-size:13px;"></textarea>
+
+            <button type="submit" class="btn btn-primary" style="margin-top:14px;">Resolve Dispute</button>
+        </form>
+
+        <div style="margin-top:20px; padding-top:16px; border-top:1px solid #f0f1f7;">
+            <button type="button" class="btn btn-danger btn-sm" onclick="document.getElementById('suspendForm').style.display='block'">Suspend Account</button>
+
+            <form id="suspendForm" method="post" action="/Admin/AdminDisputes/Suspend" style="display:none; margin-top:14px;">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@Model.Id" />
+                <label class="panel-sub" style="display:block; margin-bottom:6px;">Suspend which party?</label>
+                <select name="party" required style="width:100%; height:44px; padding:0 12px; border-radius:10px; border:1px solid #dde1f0; font-family:'Inter',sans-serif; font-size:13px; margin-bottom:14px;">
+                    <option value="Brand">Brand &mdash; @Model.BrandProfile.CompanyName</option>
+                    <option value="Influencer">Influencer &mdash; @Model.InfluencerProfile.FullName</option>
+                </select>
+                <button type="submit" class="btn btn-danger btn-sm">Confirm Suspend</button>
+            </form>
+        </div>
+    </div>
+}

@@ -1,0 +1,67 @@
+@model List<Brandora.Web.Models.Domain.Milestone>
+@{
+    var statusFilter = ViewData["StatusFilter"] as Brandora.Web.Models.Domain.MilestoneStatus?;
+
+    static string PillColor(Brandora.Web.Models.Domain.MilestoneStatus s) => s switch
+    {
+        Brandora.Web.Models.Domain.MilestoneStatus.Approved or Brandora.Web.Models.Domain.MilestoneStatus.Paid => "green",
+        Brandora.Web.Models.Domain.MilestoneStatus.Submitted => "blue",
+        Brandora.Web.Models.Domain.MilestoneStatus.RevisionRequested => "red",
+        _ => "gray"
+    };
+}
+
+<div class="panel">
+    <div class="panel-title">Proof-of-Post Review</div>
+    <div class="panel-sub">@Model.Count(m => m.Status == Brandora.Web.Models.Domain.MilestoneStatus.Submitted) pending</div>
+
+    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:18px;">
+        <a href="/Admin/AdminProofReview/Index" class="btn btn-sm @(statusFilter is null ? "btn-primary" : "btn-secondary")">All</a>
+        <a href="/Admin/AdminProofReview/Index?status=Submitted" class="btn btn-sm @(statusFilter == Brandora.Web.Models.Domain.MilestoneStatus.Submitted ? "btn-primary" : "btn-secondary")">Submitted</a>
+        <a href="/Admin/AdminProofReview/Index?status=Approved" class="btn btn-sm @(statusFilter == Brandora.Web.Models.Domain.MilestoneStatus.Approved ? "btn-primary" : "btn-secondary")">Approved</a>
+        <a href="/Admin/AdminProofReview/Index?status=RevisionRequested" class="btn btn-sm @(statusFilter == Brandora.Web.Models.Domain.MilestoneStatus.RevisionRequested ? "btn-primary" : "btn-secondary")">Revision Requested</a>
+    </div>
+
+    @if (Model.Count == 0)
+    {
+        <div class="empty-block">
+            <div class="empty-title">No proof submissions found</div>
+            <div class="empty-text">Milestones with uploaded proof will show up here.</div>
+        </div>
+    }
+    else
+    {
+        <div class="admin-table-wrap" style="margin-top: 18px;">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Campaign</th>
+                        <th>Milestone</th>
+                        <th>Influencer</th>
+                        <th>Proof</th>
+                        <th>Submitted</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var m in Model)
+                    {
+                        <tr onclick="window.location='/Admin/AdminProofReview/Details/@m.Id'" style="cursor:pointer;">
+                            <td>@m.Collaboration.Campaign.Title</td>
+                            <td>@m.Title</td>
+                            <td>@m.Collaboration.InfluencerProfile.FullName</td>
+                            <td>
+                                @if (!string.IsNullOrEmpty(m.ProofUrl))
+                                {
+                                    <img src="@m.ProofUrl" alt="Proof" style="width:48px; height:48px; object-fit:cover; border-radius:8px;" />
+                                }
+                            </td>
+                            <td>@m.CreatedAt.ToString("MMM d, yyyy")</td>
+                            <td><span class="status-pill @PillColor(m.Status)">@m.Status</span></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
