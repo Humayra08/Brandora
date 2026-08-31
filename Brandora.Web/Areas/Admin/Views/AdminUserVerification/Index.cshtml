@@ -1,0 +1,74 @@
+@model List<Brandora.Web.Areas.Admin.Controllers.VerificationRow>
+@{
+    var roleFilter = ViewData["RoleFilter"] as string ?? "All";
+    var statusFilter = ViewData["StatusFilter"] as string ?? "All";
+    var pendingCount = Model.Count(r => !r.Verified);
+}
+
+@if (TempData["VerificationMessage"] is string msg)
+{
+    <div class="form-success">@msg</div>
+}
+
+<div class="panel">
+    <div class="panel-title">User Verification</div>
+    <div class="panel-sub">@pendingCount pending out of @Model.Count total</div>
+
+    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:18px;">
+        @{
+            (string Label, string? Role, string? Status)[] filters =
+            [
+                ("All", null, null),
+                ("Brand", "Brand", null),
+                ("Influencer", "Influencer", null),
+                ("Pending", null, "Pending"),
+                ("Verified", null, "Verified")
+            ];
+        }
+        @foreach (var f in filters)
+        {
+            var isActive = (f.Role == roleFilter || (f.Role is null && roleFilter == "All" && f.Status is null))
+                            && (f.Status == statusFilter || (f.Status is null && f.Role is not null));
+            var url = "/Admin/AdminUserVerification/Index?" +
+                (f.Role is not null ? "role=" + f.Role : "") +
+                (f.Status is not null ? "status=" + f.Status : "");
+            <a href="@url" class="btn btn-sm @(isActive ? "btn-primary" : "btn-secondary")">@f.Label</a>
+        }
+    </div>
+
+    @if (Model.Count == 0)
+    {
+        <div class="empty-block">
+            <div class="empty-title">No users found</div>
+            <div class="empty-text">Try a different filter.</div>
+        </div>
+    }
+    else
+    {
+        <div class="admin-table-wrap" style="margin-top: 18px;">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Role</th>
+                        <th>Submitted Date</th>
+                        <th>Status</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in Model)
+                    {
+                        <tr>
+                            <td>@row.Name</td>
+                            <td><span class="status-pill @(row.Type == "Brand" ? "blue" : "gray")">@row.Type</span></td>
+                            <td>@row.SubmittedDate.ToString("MMM d, yyyy")</td>
+                            <td><span class="status-pill @(row.Verified ? "green" : "gray")">@(row.Verified ? "Verified" : "Pending")</span></td>
+                            <td><a href="/Admin/AdminUserVerification/Details?type=@row.Type.ToLower()&id=@row.Id" class="btn btn-sm btn-secondary">View</a></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

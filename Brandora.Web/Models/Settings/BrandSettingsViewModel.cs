@@ -1,4 +1,6 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
 
 namespace Brandora.Web.Models.Settings;
 
@@ -20,4 +22,10 @@ public class BrandSettingsViewModel
 
     [Required]
     public string MonthlyBudget { get; set; } = string.Empty;
+
+    public IFormFile? ProfilePictureFile { get; set; }
+    public bool RemoveProfilePicture { get; set; }
+
+    [ValidateNever]
+    public string? ExistingProfilePictureUrl { get; set; }
 }
