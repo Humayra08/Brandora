@@ -1,0 +1,80 @@
+@model object
+@{
+    var type = ViewData["Type"] as string ?? "";
+    var influencer = type == "Influencer" ? Model as Brandora.Web.Models.Domain.InfluencerProfile : null;
+    var brand = type == "Brand" ? Model as Brandora.Web.Models.Domain.BrandProfile : null;
+}
+
+<a href="/Admin/AdminUserVerification/Index" class="back-to-dashboard">&larr; Back to User Verification</a>
+
+<div class="panel">
+
+    @if (influencer is not null)
+    {
+        <div class="panel-title">@influencer.FullName</div>
+        <div class="panel-sub">Influencer &middot; @influencer.ContentNiche</div>
+
+        <div style="margin-top:20px; display:grid; grid-template-columns: repeat(2, 1fr); gap:16px;">
+            <div><strong>Primary Platform</strong><div class="panel-sub">@influencer.PrimaryPlatform (@influencer.PlatformUsername)</div></div>
+            <div><strong>Audience Size</strong><div class="panel-sub">@influencer.AudienceSize (@influencer.Followers followers)</div></div>
+            <div><strong>Engagement Rate</strong><div class="panel-sub">@influencer.EngagementRate%</div></div>
+            <div><strong>Location</strong><div class="panel-sub">@(influencer.Location ?? "-")</div></div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(influencer.Bio))
+        {
+            <div style="margin-top:16px;"><strong>Bio</strong><div class="panel-sub">@influencer.Bio</div></div>
+        }
+
+        <div style="margin-top:16px;">
+            <strong>Status</strong>
+            <div style="margin-top:6px;">
+                <span class="status-pill @(influencer.Verified ? "green" : "gray")">@(influencer.Verified ? "Verified" : "Pending")</span>
+            </div>
+        </div>
+
+        @if (!influencer.Verified)
+        {
+            <div style="display:flex; gap:10px; margin-top:24px;">
+                <form method="post" action="/Admin/AdminUserVerification/Approve">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="type" value="influencer" />
+                    <input type="hidden" name="id" value="@influencer.Id" />
+                    <button type="submit" class="btn btn-primary">Approve</button>
+                </form>
+
+                <button type="button" class="btn btn-danger" onclick="document.getElementById('rejectForm').style.display='block'">Reject</button>
+            </div>
+
+            <form id="rejectForm" method="post" action="/Admin/AdminUserVerification/Reject" style="display:none; margin-top:16px;">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="type" value="influencer" />
+                <input type="hidden" name="id" value="@influencer.Id" />
+                <textarea name="reason" required placeholder="Reason for rejection (required)" style="width:100%; min-height:80px; padding:12px; border-radius:10px; border:1px solid #dde1f0; font-family:'Inter',sans-serif; font-size:13px;"></textarea>
+                <button type="submit" class="btn btn-danger btn-sm" style="margin-top:10px;">Confirm Reject</button>
+            </form>
+        }
+    }
+    else if (brand is not null)
+    {
+        <div class="panel-title">@brand.CompanyName</div>
+        <div class="panel-sub">Brand &middot; @brand.Industry</div>
+
+        <div style="margin-top:20px; display:grid; grid-template-columns: repeat(2, 1fr); gap:16px;">
+            <div><strong>Contact</strong><div class="panel-sub">@brand.ContactFullName</div></div>
+            <div><strong>Website</strong><div class="panel-sub">@(brand.WebsiteUrl ?? "-")</div></div>
+            <div><strong>Monthly Budget</strong><div class="panel-sub">@brand.MonthlyBudget</div></div>
+        </div>
+
+        <div class="form-errors" style="margin-top:20px;">
+            Brand verification isn't wired to a real status field yet — <code>BrandProfile</code> has no <code>Verified</code> column in the database.
+            This needs a schema change (add <code>BrandProfile.Verified</code>) which requires approval before Approve/Reject can persist for Brands.
+        </div>
+
+        <div style="display:flex; gap:10px; margin-top:16px;">
+            <button type="button" class="btn btn-primary" disabled title="Pending: BrandProfile.Verified column approval">Approve (TODO)</button>
+            <button type="button" class="btn btn-danger" disabled title="Pending: BrandProfile.Verified column approval">Reject (TODO)</button>
+        </div>
+    }
+
+</div>

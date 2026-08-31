@@ -1,0 +1,52 @@
+@model Brandora.Web.Models.Domain.Payment
+@{
+    var dispute = ViewData["LinkedDispute"] as Brandora.Web.Models.Domain.Dispute;
+
+    static string PillColor(Brandora.Web.Models.Domain.PaymentStatus s) => s switch
+    {
+        Brandora.Web.Models.Domain.PaymentStatus.Completed => "green",
+        Brandora.Web.Models.Domain.PaymentStatus.Failed => "red",
+        _ => "gray"
+    };
+}
+
+<a href="/Admin/AdminPayments/Index" class="back-to-dashboard">&larr; Back to Payment Oversight</a>
+
+<div class="panel">
+    <div class="panel-title">Transaction #@Model.Id</div>
+    <div class="panel-sub">@Model.Collaboration.Campaign.BrandProfile.CompanyName &rarr; @Model.Collaboration.InfluencerProfile.FullName</div>
+
+    <div style="margin-top:10px;"><span class="status-pill @PillColor(Model.Status)">@Model.Status</span></div>
+
+    <div style="margin-top:20px; display:grid; grid-template-columns: repeat(2, 1fr); gap:16px;">
+        <div><strong>Amount</strong><div class="panel-sub">৳@Model.Amount.ToString("N0")</div></div>
+        <div><strong>Campaign</strong><div class="panel-sub">@Model.Collaboration.Campaign.Title</div></div>
+        <div><strong>Created</strong><div class="panel-sub">@Model.CreatedAt.ToString("MMM d, yyyy h:mm tt")</div></div>
+        <div><strong>Paid At</strong><div class="panel-sub">@(Model.PaidAt?.ToString("MMM d, yyyy h:mm tt") ?? "-")</div></div>
+    </div>
+
+    <div style="display:flex; gap:16px; margin-top:24px; flex-wrap:wrap;">
+        @if (Model.Milestone is not null)
+        {
+            <a href="/Admin/AdminProofReview/Details/@Model.Milestone.Id" class="btn btn-sm btn-secondary">View Milestone / Proof</a>
+        }
+        @if (dispute is not null)
+        {
+            <a href="/Admin/AdminDisputes/Details/@dispute.Id" class="btn btn-sm btn-secondary">View Dispute</a>
+        }
+        @if (Model.Status == Brandora.Web.Models.Domain.PaymentStatus.Failed)
+        {
+            <button type="button" class="btn btn-sm btn-danger" disabled title="TODO: connect to bKash/Nagad retry once gateway integration exists">
+                Retry Payment (Manual Override)
+            </button>
+        }
+    </div>
+
+    @if (Model.Status == Brandora.Web.Models.Domain.PaymentStatus.Failed)
+    {
+        <div class="form-errors" style="margin-top:20px;">
+            This payment failed at the gateway. Per the system design, a failed payment should be retried with exponential backoff and escalated to Admin for a manual override.
+            <code>PaymentsController</code> has no bKash/Nagad gateway integration yet, so the override button above is a UI placeholder only &mdash; no retry logic is wired up.
+        </div>
+    }
+</div>

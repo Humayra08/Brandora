@@ -50,3 +50,10 @@ public enum PaymentStatus
     Completed,
     Failed
 }
+
+public enum DisputeStatus
+{
+    Open,
+    UnderReview,
+    Resolved
+}
