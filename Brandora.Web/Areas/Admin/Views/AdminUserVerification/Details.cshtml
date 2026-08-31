@@ -1,80 +1,311 @@
 @model object
 @{
+    // NOTE: real InfluencerProfile fields are used below wherever a real column exists.
+    // Fields the mockup shows that have NO real column yet (phone number, account type,
+    // profile photo, per-platform social breakdown beyond the one PrimaryPlatform tracked,
+    // admin notes storage, content quality score, multi-step submission timeline) render
+    // as "Not provided" / a simplified real equivalent rather than invented data — see
+    // feedback_backend_wiring_scope memory. No schema changes were made for this pass.
     var type = ViewData["Type"] as string ?? "";
     var influencer = type == "Influencer" ? Model as Brandora.Web.Models.Domain.InfluencerProfile : null;
     var brand = type == "Brand" ? Model as Brandora.Web.Models.Domain.BrandProfile : null;
+    var actionId = influencer?.Id ?? brand?.Id ?? 0;
+    var actionType = type.ToLowerInvariant();
+    var previousCollaborations = ViewData["PreviousCollaborationsCount"] as int? ?? 0;
+
+    string Initials(string name) => string.IsNullOrWhiteSpace(name)
+        ? "?"
+        : string.Join("", name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(w => w[0])).ToUpperInvariant();
+
+    string FormatFollowers(int followers) => followers >= 1000 ? (followers / 1000m).ToString("0.#") + "K" : followers.ToString();
 }
 
-<a href="/Admin/AdminUserVerification/Index" class="back-to-dashboard">&larr; Back to User Verification</a>
-
-<div class="panel">
-
-    @if (influencer is not null)
-    {
-        <div class="panel-title">@influencer.FullName</div>
-        <div class="panel-sub">Influencer &middot; @influencer.ContentNiche</div>
-
-        <div style="margin-top:20px; display:grid; grid-template-columns: repeat(2, 1fr); gap:16px;">
-            <div><strong>Primary Platform</strong><div class="panel-sub">@influencer.PrimaryPlatform (@influencer.PlatformUsername)</div></div>
-            <div><strong>Audience Size</strong><div class="panel-sub">@influencer.AudienceSize (@influencer.Followers followers)</div></div>
-            <div><strong>Engagement Rate</strong><div class="panel-sub">@influencer.EngagementRate%</div></div>
-            <div><strong>Location</strong><div class="panel-sub">@(influencer.Location ?? "-")</div></div>
-        </div>
-
-        @if (!string.IsNullOrEmpty(influencer.Bio))
-        {
-            <div style="margin-top:16px;"><strong>Bio</strong><div class="panel-sub">@influencer.Bio</div></div>
-        }
-
-        <div style="margin-top:16px;">
-            <strong>Status</strong>
-            <div style="margin-top:6px;">
-                <span class="status-pill @(influencer.Verified ? "green" : "gray")">@(influencer.Verified ? "Verified" : "Pending")</span>
-            </div>
-        </div>
-
-        @if (!influencer.Verified)
-        {
-            <div style="display:flex; gap:10px; margin-top:24px;">
-                <form method="post" action="/Admin/AdminUserVerification/Approve">
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" name="type" value="influencer" />
-                    <input type="hidden" name="id" value="@influencer.Id" />
-                    <button type="submit" class="btn btn-primary">Approve</button>
-                </form>
-
-                <button type="button" class="btn btn-danger" onclick="document.getElementById('rejectForm').style.display='block'">Reject</button>
-            </div>
-
-            <form id="rejectForm" method="post" action="/Admin/AdminUserVerification/Reject" style="display:none; margin-top:16px;">
-                @Html.AntiForgeryToken()
-                <input type="hidden" name="type" value="influencer" />
-                <input type="hidden" name="id" value="@influencer.Id" />
-                <textarea name="reason" required placeholder="Reason for rejection (required)" style="width:100%; min-height:80px; padding:12px; border-radius:10px; border:1px solid #dde1f0; font-family:'Inter',sans-serif; font-size:13px;"></textarea>
-                <button type="submit" class="btn btn-danger btn-sm" style="margin-top:10px;">Confirm Reject</button>
-            </form>
-        }
+<style>
+    .detail-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+    .detail-identity { display: flex; align-items: center; gap: 16px; }
+    .detail-avatar {
+        width: 64px; height: 64px; border-radius: 50%; flex-shrink: 0;
+        display: flex; align-items: center; justify-content: center;
+        background: linear-gradient(145deg, #c93cff, #4e38ff 55%, #159cff); color: #ffffff;
+        font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 20px;
     }
-    else if (brand is not null)
-    {
+    .detail-name-row { display: flex; align-items: center; gap: 10px; }
+    .detail-name { font-family: 'DM Sans', sans-serif; font-weight: 800; font-size: 20px; color: #171d3d; }
+    .detail-id { margin-top: 4px; font-family: 'Inter', sans-serif; font-size: 12.5px; color: #8189a8; }
+    .detail-submitted { margin-top: 4px; display: flex; align-items: center; gap: 6px; font-family: 'Inter', sans-serif; font-size: 12.5px; color: #8189a8; }
+
+    .detail-header-actions { display: flex; gap: 12px; }
+    .btn-reject-outline {
+        display: inline-flex; align-items: center; gap: 8px;
+        height: 44px; padding: 0 18px; border-radius: 10px;
+        background: #fde3e3; color: #d92d2d; border: none;
+        font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 700;
+    }
+    .btn-approve-outline {
+        display: inline-flex; align-items: center; gap: 8px;
+        height: 44px; padding: 0 18px; border-radius: 10px;
+        background: #dff7ec; color: #0d9c6c; border: none;
+        font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 700;
+    }
+
+    .detail-grid { display: grid; grid-template-columns: 210px 1.6fr 1fr; gap: 20px; margin-top: 20px; align-items: start; }
+    @@media(max-width: 1200px) { .detail-grid { grid-template-columns: 1fr; } }
+
+    .detail-side-nav { display: flex; flex-direction: column; gap: 4px; }
+    .detail-side-nav a {
+        padding: 12px 14px; border-radius: 10px;
+        font-family: 'Inter', sans-serif; font-size: 13.5px; font-weight: 600; color: #545b7d;
+    }
+    .detail-side-nav a.is-active { background: #f1e6ff; color: #7a1fd6; }
+
+    .info-grid { display: grid; grid-template-columns: 150px 1fr; row-gap: 16px; column-gap: 12px; }
+    .info-label { font-family: 'Inter', sans-serif; font-size: 12.5px; color: #8189a8; }
+    .info-value { font-family: 'Inter', sans-serif; font-size: 13.5px; font-weight: 600; color: #2a3157; }
+
+    .profile-info-layout { display: flex; gap: 24px; flex-wrap: wrap; }
+    .profile-info-layout .info-grid { flex: 1; min-width: 260px; }
+    .profile-photo-box { flex-shrink: 0; }
+    .profile-photo-box img { width: 130px; height: 130px; border-radius: 12px; object-fit: cover; }
+
+    .social-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 16px; }
+    @@media(max-width: 900px) { .social-grid { grid-template-columns: 1fr 1fr; } }
+    .social-card { padding: 16px; border-radius: 12px; border: 1px solid #eaecf5; }
+    .social-card-head { display: flex; align-items: center; gap: 10px; }
+    .social-card-icon { width: 32px; height: 32px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 15px; color: #ffffff; flex-shrink: 0; }
+    .social-card-platform { font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 700; color: #2a3157; }
+    .social-card-handle { font-family: 'Inter', sans-serif; font-size: 11.5px; color: #8189a8; }
+    .social-card-stats { display: flex; gap: 18px; margin-top: 12px; }
+    .social-stat-value { font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 15px; color: #171d3d; }
+    .social-stat-label { font-family: 'Inter', sans-serif; font-size: 11px; color: #8189a8; }
+    .social-view-btn {
+        display: block; text-align: center; margin-top: 14px;
+        padding: 8px; border-radius: 8px; background: #f1e6ff; color: #7a1fd6;
+        font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 700;
+    }
+
+    .notes-textarea, .reason-textarea {
+        width: 100%; min-height: 90px; padding: 12px; margin-top: 12px;
+        border-radius: 10px; border: 1px solid #dde1f0;
+        font-family: 'Inter', sans-serif; font-size: 13px; color: #2a3157;
+        resize: vertical;
+    }
+    .char-counter { margin-top: 6px; text-align: right; font-family: 'Inter', sans-serif; font-size: 11px; color: #b7bdd6; }
+
+    .summary-row { display: flex; align-items: center; justify-content: space-between; padding: 11px 0; border-bottom: 1px solid #f2f3fa; }
+    .summary-row:last-child { border-bottom: none; }
+    .summary-label { display: flex; align-items: center; gap: 8px; font-family: 'Inter', sans-serif; font-size: 12.5px; color: #8189a8; }
+    .summary-value { font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 700; color: #2a3157; display: flex; align-items: center; gap: 8px; }
+    .platform-icons-inline { display: flex; gap: 4px; }
+    .platform-icons-inline span {
+        width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+        font-size: 10px; color: #ffffff;
+    }
+
+    .timeline-item { display: flex; gap: 12px; position: relative; padding-bottom: 22px; }
+    .timeline-item:last-child { padding-bottom: 0; }
+    .timeline-item::before {
+        content: ""; position: absolute; left: 9px; top: 22px; bottom: 0; width: 2px; background: #eaecf5;
+    }
+    .timeline-item:last-child::before { display: none; }
+    .timeline-dot {
+        width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0; z-index: 1;
+        display: flex; align-items: center; justify-content: center; font-size: 10px; color: #ffffff;
+    }
+    .timeline-dot.done { background: #7a1fd6; }
+    .timeline-dot.current { background: #ffffff; border: 2px solid #236eff; }
+    .timeline-dot.pending { background: #eaecf5; }
+    .timeline-title { font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 700; color: #2a3157; }
+    .timeline-title.current { color: #236eff; }
+    .timeline-title.pending { color: #b7bdd6; }
+    .timeline-time { margin-top: 2px; font-family: 'Inter', sans-serif; font-size: 11.5px; color: #8189a8; }
+
+    .reject-reason-panel { border: 1px solid #f6c9c9; background: #fff8f8; }
+    .reject-reason-title { color: #d92d2d; font-weight: 700; font-family: 'Inter', sans-serif; font-size: 13px; }
+
+    .bottom-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px; }
+</style>
+
+@if (influencer is not null)
+{
+    <div class="panel detail-header">
+
+        <div class="detail-identity">
+            <div class="detail-avatar">@Initials(influencer.FullName)</div>
+            <div>
+                <div class="detail-name-row">
+                    <span class="detail-name">@influencer.FullName</span>
+                    <span class="status-pill blue">Influencer</span>
+                </div>
+                <div class="detail-id">ID: INF-@influencer.Id</div>
+                <div class="detail-submitted"><i class="bi bi-calendar3"></i> Submitted: @influencer.CreatedAt.ToString("MMM d, yyyy, h:mm tt")</div>
+            </div>
+        </div>
+
+        <div class="detail-header-actions">
+            <button type="button" class="btn-reject-outline" onclick="document.getElementById('rejectPanel').scrollIntoView({behavior:'smooth'})"><i class="bi bi-x-circle-fill"></i> Reject</button>
+            <form method="post" action="/Admin/AdminUserVerification/Approve">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="type" value="@actionType" />
+                <input type="hidden" name="id" value="@actionId" />
+                <button type="submit" class="btn-approve-outline"><i class="bi bi-check-circle-fill"></i> Approve</button>
+            </form>
+        </div>
+
+    </div>
+
+    <div class="detail-grid">
+
+        <div class="panel">
+            <div class="detail-side-nav">
+                <a href="#" class="is-active">Profile Overview</a>
+                <a href="#">Social Media</a>
+                <a href="#">Submitted Documents</a>
+                <a href="#">Verification History</a>
+            </div>
+        </div>
+
+        <div>
+            <div class="panel">
+                <div class="panel-title">Profile Information</div>
+
+                <div class="profile-info-layout" style="margin-top:16px;">
+                    <div class="info-grid">
+                        <div class="info-label">Full Name</div><div class="info-value">@influencer.FullName</div>
+                        <div class="info-label">Username</div><div class="info-value">@influencer.PlatformUsername</div>
+                        <div class="info-label">Email</div><div class="info-value">@(influencer.User?.Email ?? "Not provided")</div>
+                        <div class="info-label">Phone Number</div><div class="info-value">Not provided</div>
+                        <div class="info-label">Location</div><div class="info-value">@(influencer.Location ?? "Not provided")</div>
+                        <div class="info-label">Niche / Category</div><div class="info-value"><span class="status-pill blue">@influencer.ContentNiche</span></div>
+                        <div class="info-label">Bio</div><div class="info-value">@(influencer.Bio ?? "Not provided")</div>
+                        <div class="info-label">Audience Size</div><div class="info-value">@influencer.AudienceSize</div>
+                        <div class="info-label">Account Type</div><div class="info-value">Not provided</div>
+                    </div>
+
+                    <div class="profile-photo-box">
+                        <div class="panel-sub" style="margin-bottom:8px;">Profile Photo</div>
+                        <div style="width:130px; height:130px; border-radius:12px; background:linear-gradient(145deg, #c93cff, #4e38ff 55%, #159cff); display:flex; align-items:center; justify-content:center; color:#fff; font-family:'DM Sans',sans-serif; font-weight:700; font-size:32px;">@Initials(influencer.FullName)</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel" style="margin-top:20px;">
+                <div class="panel-title">Social Media Overview</div>
+                <div class="panel-sub" style="margin-top:4px;">Only one platform is tracked on this profile today &mdash; no multi-platform linking exists yet.</div>
+
+                <div class="social-grid" style="grid-template-columns: 1fr;">
+                    <div class="social-card">
+                        <div class="social-card-head">
+                            <div class="social-card-icon" style="background:#6b52d8;"><i class="bi bi-share-fill"></i></div>
+                            <div><div class="social-card-platform">@influencer.PrimaryPlatform</div><div class="social-card-handle">@@@influencer.PlatformUsername</div></div>
+                        </div>
+                        <div class="social-card-stats">
+                            <div><div class="social-stat-value">@FormatFollowers(influencer.Followers)</div><div class="social-stat-label">Followers</div></div>
+                            <div><div class="social-stat-value">@influencer.EngagementRate%</div><div class="social-stat-label">Engagement</div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel" style="margin-top:20px;">
+                <div class="panel-title">Admin Notes (Optional)</div>
+                <div class="panel-sub" style="margin-top:4px;">Not persisted yet &mdash; there's no notes field on the profile to save this to.</div>
+                <textarea class="notes-textarea" maxlength="500" placeholder="Add any internal notes about this verification..." oninput="document.getElementById('notesCount').textContent = this.value.length"></textarea>
+                <div class="char-counter"><span id="notesCount">0</span>/500</div>
+            </div>
+        </div>
+
+        <div>
+            <div class="panel">
+                <div class="panel-title">Account Summary</div>
+                <div style="margin-top:10px;">
+                    <div class="summary-row">
+                        <span class="summary-label">Platforms Connected</span>
+                        <span class="summary-value">
+                            <span class="platform-icons-inline">
+                                <span style="background:#6b52d8;"><i class="bi bi-share-fill"></i></span>
+                            </span>
+                            @influencer.PrimaryPlatform
+                        </span>
+                    </div>
+                    <div class="summary-row"><span class="summary-label">Total Followers / Subs</span><span class="summary-value">@FormatFollowers(influencer.Followers)</span></div>
+                    <div class="summary-row"><span class="summary-label">Engagement Rate (Avg)</span><span class="summary-value">@influencer.EngagementRate%</span></div>
+                    <div class="summary-row"><span class="summary-label">Avg. Views</span><span class="summary-value">Not provided</span></div>
+                    <div class="summary-row"><span class="summary-label">Content Quality Score</span><span class="summary-value">Not provided</span></div>
+                    <div class="summary-row"><span class="summary-label">Previous Collaborations</span><span class="summary-value">@previousCollaborations</span></div>
+                    <div class="summary-row"><span class="summary-label">Account Status</span><span class="summary-value"><span class="status-pill @(influencer.Verified ? "green" : "gray")">@(influencer.Verified ? "Verified" : "Pending")</span></span></div>
+                </div>
+            </div>
+
+            <div class="panel" style="margin-top:20px;">
+                <div class="panel-title">Submission Status</div>
+                <div class="panel-sub" style="margin-top:4px;">Only "Submitted" and current status are tracked &mdash; there's no multi-step review timeline in the data model yet.</div>
+                <div style="margin-top:16px;">
+                    <div class="timeline-item">
+                        <div class="timeline-dot done"><i class="bi bi-check-lg"></i></div>
+                        <div><div class="timeline-title">Submitted</div><div class="timeline-time">@influencer.CreatedAt.ToString("MMM d, yyyy, h:mm tt")</div></div>
+                    </div>
+                    <div class="timeline-item">
+                        <div class="timeline-dot @(influencer.Verified ? "done" : "current")">@(influencer.Verified ? Html.Raw("<i class=\"bi bi-check-lg\"></i>") : null)</div>
+                        <div>
+                            <div class="timeline-title @(influencer.Verified ? "" : "current")">@(influencer.Verified ? "Verified" : "Pending Review") <span class="status-pill @(influencer.Verified ? "green" : "blue")" style="padding:2px 8px; font-size:10px; margin-left:6px;">Current</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel reject-reason-panel" id="rejectPanel" style="margin-top:20px;">
+                <div class="reject-reason-title">Reject Reason (Required)</div>
+                <form method="post" action="/Admin/AdminUserVerification/Reject">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="type" value="@actionType" />
+                    <input type="hidden" name="id" value="@actionId" />
+                    <textarea class="reason-textarea" name="reason" maxlength="500" placeholder="Provide a clear reason for rejection..." oninput="document.getElementById('reasonCount').textContent = this.value.length"></textarea>
+                    <div class="char-counter"><span id="reasonCount">0</span>/500</div>
+                    <button type="submit" class="btn-reject-outline" style="width:100%; justify-content:center; margin-top:10px;"><i class="bi bi-x-circle-fill"></i> Confirm Reject</button>
+                </form>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="bottom-actions">
+        <a href="/Admin/AdminUserVerification/Index" class="btn btn-secondary">Cancel</a>
+        <button type="button" class="btn-reject-outline" onclick="document.getElementById('rejectPanel').scrollIntoView({behavior:'smooth'})"><i class="bi bi-x-circle-fill"></i> Reject</button>
+        <form method="post" action="/Admin/AdminUserVerification/Approve">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="type" value="@actionType" />
+            <input type="hidden" name="id" value="@actionId" />
+            <button type="submit" class="btn-approve-outline"><i class="bi bi-check-circle-fill"></i> Approve</button>
+        </form>
+    </div>
+}
+else if (brand is not null)
+{
+    <a href="/Admin/AdminUserVerification/Index" class="back-to-dashboard">&larr; Back to User Verification</a>
+
+    <div class="panel">
         <div class="panel-title">@brand.CompanyName</div>
         <div class="panel-sub">Brand &middot; @brand.Industry</div>
 
-        <div style="margin-top:20px; display:grid; grid-template-columns: repeat(2, 1fr); gap:16px;">
+        <div class="form-errors" style="margin-top:20px;">
+            A dedicated Brand verification detail design hasn't been provided yet &mdash; this is the earlier basic layout.
+            Brand verification also has no real <code>Verified</code> status field in the database yet (flagged previously).
+        </div>
+
+        <div style="margin-top:16px; display:grid; grid-template-columns: repeat(2, 1fr); gap:16px;">
             <div><strong>Contact</strong><div class="panel-sub">@brand.ContactFullName</div></div>
             <div><strong>Website</strong><div class="panel-sub">@(brand.WebsiteUrl ?? "-")</div></div>
             <div><strong>Monthly Budget</strong><div class="panel-sub">@brand.MonthlyBudget</div></div>
         </div>
-
-        <div class="form-errors" style="margin-top:20px;">
-            Brand verification isn't wired to a real status field yet — <code>BrandProfile</code> has no <code>Verified</code> column in the database.
-            This needs a schema change (add <code>BrandProfile.Verified</code>) which requires approval before Approve/Reject can persist for Brands.
+    </div>
+}
+else
+{
+    <a href="/Admin/AdminUserVerification/Index" class="back-to-dashboard">&larr; Back to User Verification</a>
+    <div class="panel">
+        <div class="empty-block">
+            <div class="empty-title">No Brand verification design yet</div>
+            <div class="empty-text">Send a reference image for the Brand detail page and I'll build it to match, same as the Influencer one.</div>
         </div>
-
-        <div style="display:flex; gap:10px; margin-top:16px;">
-            <button type="button" class="btn btn-primary" disabled title="Pending: BrandProfile.Verified column approval">Approve (TODO)</button>
-            <button type="button" class="btn btn-danger" disabled title="Pending: BrandProfile.Verified column approval">Reject (TODO)</button>
-        </div>
-    }
-
-</div>
+    </div>
+}
