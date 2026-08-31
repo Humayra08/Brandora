@@ -13,7 +13,8 @@ public class MediaUploadService(IWebHostEnvironment env)
         ["image/gif"] = ".gif",
         ["video/mp4"] = ".mp4",
         ["video/webm"] = ".webm",
-        ["video/quicktime"] = ".mov"
+        ["video/quicktime"] = ".mov",
+        ["application/pdf"] = ".pdf"
     };
 
     private static readonly Dictionary<string, string> AllowedImageTypes = new()
@@ -25,21 +26,24 @@ public class MediaUploadService(IWebHostEnvironment env)
 
     private const long MaxImageBytes = 15L * 1024 * 1024;
     private const long MaxVideoBytes = 80L * 1024 * 1024;
-    private const long MaxProfilePictureBytes = 5L * 1024 * 1024;
+    private const long MaxDocumentBytes = 100L * 1024 * 1024;
 
     public async Task<(string? Url, string? Type, string? Error)> SaveMediaAsync(IFormFile file, string folder)
     {
         if (!AllowedTypes.TryGetValue(file.ContentType, out var ext))
         {
-            return (null, null, "Upload a JPG, PNG, WEBP, GIF image or an MP4, WEBM, MOV video.");
+            return (null, null, "Upload a JPG, PNG, WEBP, GIF image, an MP4, WEBM, MOV video, or a PDF.");
         }
 
         var isVideo = file.ContentType.StartsWith("video/", StringComparison.OrdinalIgnoreCase);
-        var limit = isVideo ? MaxVideoBytes : MaxImageBytes;
+        var isDocument = file.ContentType == "application/pdf";
+        var limit = isDocument ? MaxDocumentBytes : isVideo ? MaxVideoBytes : MaxImageBytes;
 
         if (file.Length > limit)
         {
-            return (null, null, isVideo ? "Video must be 80MB or smaller." : "Image must be 15MB or smaller.");
+            var limitLabel = isDocument ? "100MB" : isVideo ? "80MB" : "15MB";
+            var kindLabel = isDocument ? "File" : isVideo ? "Video" : "Image";
+            return (null, null, $"{kindLabel} must be {limitLabel} or smaller.");
         }
 
         var dir = Path.Combine(env.WebRootPath, "uploads", folder);
@@ -53,7 +57,7 @@ public class MediaUploadService(IWebHostEnvironment env)
             await file.CopyToAsync(stream);
         }
 
-        return ($"/uploads/{folder}/{fileName}", isVideo ? "video" : "image", null);
+        return ($"/uploads/{folder}/{fileName}", isDocument ? "document" : isVideo ? "video" : "image", null);
     }
 
     public async Task<(string? Url, string? Error)> SaveProfilePictureAsync(IFormFile file)
