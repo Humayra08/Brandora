@@ -17,6 +17,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<Payment> Payments => Set<Payment>();
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<ShortlistEntry> ShortlistEntries => Set<ShortlistEntry>();
+    public DbSet<Dispute> Disputes => Set<Dispute>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -166,6 +167,29 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
                 .WithMany()
                 .HasForeignKey(e => e.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<Dispute>(entity =>
+        {
+            entity.HasOne(e => e.Collaboration)
+                .WithMany()
+                .HasForeignKey(e => e.CollaborationId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(e => e.Milestone)
+                .WithMany()
+                .HasForeignKey(e => e.MilestoneId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(e => e.BrandProfile)
+                .WithMany()
+                .HasForeignKey(e => e.BrandProfileId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(e => e.InfluencerProfile)
+                .WithMany()
+                .HasForeignKey(e => e.InfluencerProfileId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
     }
 }
