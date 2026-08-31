@@ -1,0 +1,79 @@
+@model List<Brandora.Web.Models.Discovery.DirectoryStat>
+
+@*
+    Dark statistics panel closing each directory page.
+
+    Stats whose Icon is null render as the plain, icon-less variant used on
+    the brand directory. Supplying an icon key renders the circular badge
+    variant used on the influencer directory.
+*@
+
+<section class="directory-stats-section">
+
+    <div class="directory-container">
+
+        <div class="directory-stats">
+
+            @foreach (var stat in Model)
+            {
+                <div class="directory-stat">
+
+                    @if (stat.HasIcon)
+                    {
+                        <span class="directory-stat-icon" aria-hidden="true">
+                            @switch (stat.Icon)
+                            {
+                                case "users":
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                                        <circle cx="9" cy="7" r="4" />
+                                        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                                        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                                    </svg>
+                                    break;
+
+                                case "handshake":
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                                        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                                    </svg>
+                                    break;
+
+                                case "chart":
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                        <line x1="18" y1="20" x2="18" y2="10" />
+                                        <line x1="12" y1="20" x2="12" y2="4" />
+                                        <line x1="6" y1="20" x2="6" y2="14" />
+                                    </svg>
+                                    break;
+
+                                case "shield":
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                                        <path d="m9 12 2 2 4-4" />
+                                    </svg>
+                                    break;
+                            }
+                        </span>
+                    }
+
+                    <div class="directory-stat-body">
+
+                        <div class="directory-stat-value">
+                            @stat.Value
+                        </div>
+
+                        <div class="directory-stat-label">
+                            @stat.Label
+                        </div>
+
+                    </div>
+
+                </div>
+            }
+
+        </div>
+
+    </div>
+
+</section>

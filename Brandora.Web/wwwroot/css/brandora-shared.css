@@ -71,6 +71,45 @@
     color: #8bbdff;
 }
 
+
+/* Full-height link boxes let the active underline sit flush with the
+   navbar's bottom edge. Links stay vertically centred, so pages that
+   set no active item look exactly as they did before. */
+
+.nav-link-underline {
+    position: relative;
+
+    display: inline-flex;
+    align-items: center;
+
+    height: 82px;
+}
+
+.nav-link-underline.is-active {
+    color: #ffffff;
+    font-weight: 500;
+}
+
+.nav-link-underline.is-active::after {
+    content: "";
+
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+
+    height: 3px;
+
+    border-radius: 3px 3px 0 0;
+
+    background:
+        linear-gradient(
+            90deg,
+            #9427ff,
+            #276eff
+        );
+}
+
 .nav-link-caret {
     display: inline-flex;
     align-items: center;
@@ -138,6 +177,102 @@
     font-size: 13px;
 
     white-space: nowrap;
+}
+
+
+/* =========================================================
+   MOBILE NAV (burger + slide-down panel)
+========================================================= */
+
+.nav-burger {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+
+    width: 38px;
+    height: 38px;
+
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    cursor: pointer;
+
+    flex-shrink: 0;
+}
+
+.nav-burger span {
+    display: block;
+    width: 20px;
+    height: 2px;
+
+    border-radius: 2px;
+    background: #ffffff;
+
+    transition: transform .25s ease, opacity .25s ease;
+}
+
+.nav-burger.is-open span:nth-child(1) {
+    transform: translateY(7px) rotate(45deg);
+}
+
+.nav-burger.is-open span:nth-child(2) {
+    opacity: 0;
+}
+
+.nav-burger.is-open span:nth-child(3) {
+    transform: translateY(-7px) rotate(-45deg);
+}
+
+.nav-mobile-panel {
+    display: none;
+    flex-direction: column;
+    gap: 4px;
+
+    max-height: 0;
+    overflow: hidden;
+
+    background: rgba(3, 4, 20, .96);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+
+    border-top: 1px solid rgba(255,255,255,.08);
+
+    transition: max-height .3s ease;
+}
+
+.nav-mobile-panel a {
+    padding: 14px 24px;
+
+    color: rgba(255,255,255,.88);
+    font-size: 14.5px;
+
+    border-bottom: 1px solid rgba(255,255,255,.06);
+}
+
+.nav-mobile-panel a:hover {
+    color: #8bbdff;
+}
+
+.nav-mobile-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+
+    padding: 16px 24px 22px;
+}
+
+.nav-mobile-actions .login-btn,
+.nav-mobile-actions .get-started-btn,
+.nav-mobile-actions .logout-form {
+    width: 100%;
+}
+
+.nav-mobile-actions .login-btn,
+.nav-mobile-actions .get-started-btn {
+    height: 44px;
+    width: 100%;
 }
 
 
@@ -259,6 +394,18 @@
     .nav-links {
         display: none;
     }
+
+    .nav-burger {
+        display: flex;
+    }
+
+    .nav-mobile-panel {
+        display: flex;
+    }
+
+    .nav-mobile-panel.is-open {
+        max-height: 480px;
+    }
 }
 
 @media(max-width: 1100px) {
@@ -275,21 +422,20 @@
         padding: 0 20px;
     }
 
-    .nav-links {
-        display: none;
-    }
-
     .footer-grid {
         grid-template-columns:
             1fr 1fr;
     }
 }
 
-@media(max-width: 500px) {
+@media(max-width: 700px) {
 
-    .get-started-btn {
+    .nav-actions {
         display: none;
     }
+}
+
+@media(max-width: 500px) {
 
     .brand-name {
         font-size: 21px;
@@ -303,5 +449,16 @@
         grid-template-columns:
             1fr;
         gap: 28px;
+    }
+}
+
+@media(max-width: 420px) {
+
+    .brand-mark-img {
+        height: 40px;
+    }
+
+    .navbar {
+        padding: 0 14px;
     }
 }

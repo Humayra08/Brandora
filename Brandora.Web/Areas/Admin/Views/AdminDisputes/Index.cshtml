@@ -1,0 +1,63 @@
+@model List<Brandora.Web.Models.Domain.Dispute>
+@{
+    var statusFilter = ViewData["StatusFilter"] as Brandora.Web.Models.Domain.DisputeStatus?;
+
+    static string PillColor(Brandora.Web.Models.Domain.DisputeStatus s) => s switch
+    {
+        Brandora.Web.Models.Domain.DisputeStatus.Resolved => "green",
+        Brandora.Web.Models.Domain.DisputeStatus.UnderReview => "blue",
+        _ => "gray"
+    };
+}
+
+<div class="panel">
+    <div class="panel-title">Dispute Resolution</div>
+    <div class="panel-sub">@Model.Count(d => d.Status == Brandora.Web.Models.Domain.DisputeStatus.Open) open</div>
+
+    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:18px;">
+        <a href="/Admin/AdminDisputes/Index" class="btn btn-sm @(statusFilter is null ? "btn-primary" : "btn-secondary")">All</a>
+        <a href="/Admin/AdminDisputes/Index?status=Open" class="btn btn-sm @(statusFilter == Brandora.Web.Models.Domain.DisputeStatus.Open ? "btn-primary" : "btn-secondary")">Open</a>
+        <a href="/Admin/AdminDisputes/Index?status=UnderReview" class="btn btn-sm @(statusFilter == Brandora.Web.Models.Domain.DisputeStatus.UnderReview ? "btn-primary" : "btn-secondary")">Under Review</a>
+        <a href="/Admin/AdminDisputes/Index?status=Resolved" class="btn btn-sm @(statusFilter == Brandora.Web.Models.Domain.DisputeStatus.Resolved ? "btn-primary" : "btn-secondary")">Resolved</a>
+    </div>
+
+    @if (Model.Count == 0)
+    {
+        <div class="empty-block">
+            <div class="empty-title">No disputes found</div>
+            <div class="empty-text">Disputes raised on campaigns/milestones will show up here.</div>
+        </div>
+    }
+    else
+    {
+        <div class="admin-table-wrap" style="margin-top: 18px;">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Case ID</th>
+                        <th>Brand</th>
+                        <th>Influencer</th>
+                        <th>Campaign / Milestone</th>
+                        <th>Reason</th>
+                        <th>Date Raised</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var d in Model)
+                    {
+                        <tr onclick="window.location='/Admin/AdminDisputes/Details/@d.Id'" style="cursor:pointer;">
+                            <td>#@d.Id</td>
+                            <td>@d.BrandProfile.CompanyName</td>
+                            <td>@d.InfluencerProfile.FullName</td>
+                            <td>@d.Collaboration.Campaign.Title @(d.Milestone is not null ? " / " + d.Milestone.Title : "")</td>
+                            <td>@d.Reason</td>
+                            <td>@d.CreatedAt.ToString("MMM d, yyyy")</td>
+                            <td><span class="status-pill @PillColor(d.Status)">@d.Status</span></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

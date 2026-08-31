@@ -1,0 +1,22 @@
+@{
+    var adminName = ViewData["AdminName"] as string ?? "Administrator";
+    var adminEmail = ViewData["AdminEmail"] as string ?? "";
+    var lastLogin = ViewData["LastLoginUtc"] as DateTime?;
+}
+
+<div class="panel">
+    <div class="panel-title">My Profile</div>
+    <div style="margin-top:8px;"><span class="status-pill blue">Administrator</span></div>
+
+    <div style="margin-top:24px; display:grid; grid-template-columns: repeat(2, 1fr); gap:20px;">
+        <div><strong>Admin Name</strong><div class="panel-sub">@adminName</div></div>
+        <div><strong>Email</strong><div class="panel-sub">@adminEmail</div></div>
+        <div><strong>Last Login</strong><div class="panel-sub">@(lastLogin?.ToString("MMM d, yyyy h:mm tt") + " UTC" ?? "This session")</div></div>
+    </div>
+
+    <div class="panel-sub" style="margin-top:24px;">
+        Administrator credentials are managed via the server's <code>.env</code> file, not the application database &mdash; there's no password-change form here.
+    </div>
+
+    <a href="/Admin/AdminDashboard/Index" class="back-to-dashboard" style="margin-top:24px;">&larr; Back to Dashboard</a>
+</div>
