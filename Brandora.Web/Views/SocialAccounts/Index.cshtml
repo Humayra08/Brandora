@@ -415,15 +415,36 @@
 
         .sa-hero {
             position: relative;
-            overflow: hidden;
+            overflow: visible;
             border-radius: 20px;
-            padding: 40px 42px;
+            padding: 30px 34px;
             margin-bottom: 22px;
             background:
                 radial-gradient(circle at 85% 15%, rgba(163,38,255,.12), transparent 40%),
                 radial-gradient(circle at 15% 90%, rgba(24,110,255,.10), transparent 40%),
                 linear-gradient(120deg, #f3f0ff 0%, #eef2ff 55%, #f2eeff 100%);
             border: 1px solid #e7e3fb;
+        }
+
+        .sa-hero-bg {
+            position: absolute;
+            inset: 0;
+            overflow: hidden;
+            border-radius: 20px;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .sa-hero-wave-img {
+            position: absolute;
+            top: 0;
+            right: 0;
+            height: 100%;
+            width: auto;
+            max-width: 55%;
+            object-fit: contain;
+            object-position: top right;
+            opacity: .35;
         }
 
         .sa-hero-grid {
@@ -437,18 +458,18 @@
 
         .sa-hero-title {
             font-family: 'Playfair Display', serif;
-            font-size: 32px;
+            font-size: 28px;
             font-weight: 700;
             color: #14163a;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
         }
 
         .sa-hero-sub {
-            font-size: 14.5px;
+            font-size: 13.5px;
             color: #4d5470;
-            max-width: 460px;
+            max-width: 440px;
             line-height: 1.6;
-            margin-bottom: 22px;
+            margin-bottom: 18px;
         }
 
         .sa-connect-btn {
@@ -473,17 +494,22 @@
 
         .sa-hero-art {
             position: relative;
-            width: 380px;
+            z-index: 3;
+            width: 150px;
+            height: 130px;
             flex-shrink: 0;
             display: flex;
             align-items: center;
             justify-content: center;
+            overflow: visible;
         }
 
         .sa-hero-art-img {
-            width: 100%;
-            height: auto;
+            width: 320px;
+            height: 280px;
+            max-width: none;
             object-fit: contain;
+            margin-left: -180px;
         }
 
         /* ==============================
@@ -1122,6 +1148,10 @@
         <!-- ================= HERO ================= -->
 
         <section class="sa-hero">
+            <div class="sa-hero-bg">
+                <img src="~/images/Wave2.png" alt="" class="sa-hero-wave-img" />
+            </div>
+
             <div class="sa-hero-grid">
 
                 <div>
