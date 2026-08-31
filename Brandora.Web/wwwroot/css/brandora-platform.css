@@ -80,14 +80,14 @@ button {
 .pf-hero-wave {
     position: absolute;
     left: -6%;
-    bottom: -60px;
+    bottom: -40px;
 
     width: 112%;
     height: auto;
 
     pointer-events: none;
 
-    opacity: .55;
+    opacity: .7;
     z-index: 2;
 }
 
@@ -97,7 +97,7 @@ button {
 
     max-width: var(--pf-max);
     margin: 0 auto;
-    padding: 74px 32px 120px;
+    padding: 50px 32px 80px;
 
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, .85fr);
@@ -174,10 +174,13 @@ button {
 }
 
 .pf-hero-mark-img {
+    position: relative;
+    z-index: 1;
+
     /* Supplied artwork, used as-is: the PNG already carries its own
        podium rings and glow, so no filters or colour changes are applied. */
     width: 100%;
-    max-width: 460px;
+    max-width: 380px;
     height: auto;
 
     display: block;
@@ -597,13 +600,13 @@ button {
 
 @media (max-width: 560px) {
 
-    .pf-section-title {
-        font-size: 27px;
-    }
-
     .pf-hero-wave {
         left: -35%;
         width: 190%;
+    }
+
+    .pf-section-title {
+        font-size: 27px;
     }
 }
 
