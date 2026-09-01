@@ -1,0 +1,840 @@
+/* =========================================================
+   BRANDORA CONTACT PAGE
+   Public "Contact" page reached from the footer's Contact Us link.
+
+   Follows the Platform page's structure and rhythm: dark gradient
+   hero, then light cards on a soft grey field.
+
+   The reset selectors below are intentionally unscoped so they keep
+   the same (zero) specificity the other public pages' resets have —
+   scoping them would outrank the shared navbar and footer rules and
+   break them.
+========================================================= */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+a {
+    text-decoration: none;
+    color: inherit;
+}
+
+button {
+    font-family: inherit;
+}
+
+.contact-page {
+    font-family: 'DM Sans', sans-serif;
+    background: #ffffff;
+    color: #08123d;
+
+    overflow-x: hidden;
+
+    /* 1344 = 1280 of content + the 32px gutters either side, so the
+       content column lands on the same 1280 the other pages use. */
+    --ct-max: 1344px;
+
+    --ct-ink: #101a42;
+    --ct-body: #4d5a7d;
+    --ct-soft: #6b7899;
+    --ct-muted: #8a94ad;
+    --ct-border: #e6e9f4;
+    --ct-field-border: #dfe3f0;
+
+    --ct-purple: #8b3dff;
+    --ct-blue: #2f6bff;
+    --ct-lavender: #eef0fe;
+}
+
+
+/* =========================================================
+   HERO
+========================================================= */
+
+.ct-hero {
+    padding-top: 82px;
+
+    background:
+        radial-gradient(
+            circle at 72% 40%,
+            rgba(104, 44, 220, .30),
+            transparent 48%
+        ),
+        radial-gradient(
+            circle at 12% 26%,
+            rgba(58, 38, 160, .24),
+            transparent 44%
+        ),
+        linear-gradient(
+            118deg,
+            #050726 0%,
+            #08082f 46%,
+            #0b0733 100%
+        );
+
+    color: #ffffff;
+}
+
+.ct-hero-inner {
+    max-width: var(--ct-max);
+    margin: 0 auto;
+    padding: 66px 32px 88px;
+}
+
+.ct-hero-copy {
+    max-width: 680px;
+}
+
+/* --- badge --- */
+
+.ct-badge {
+    display: inline-flex;
+    align-items: center;
+
+    padding: 9px 21px;
+
+    border-radius: 30px;
+
+    border: 1px solid transparent;
+
+    background:
+        linear-gradient(#0a0930, #0a0930) padding-box,
+        linear-gradient(90deg, #9b2cff, #00a9ff) border-box;
+
+    font-size: 12.5px;
+    font-weight: 600;
+
+    letter-spacing: 2px;
+
+    color: #ffffff;
+}
+
+/* --- title --- */
+
+.ct-hero-title {
+    margin-top: 26px;
+
+    font-family: 'Playfair Display', serif;
+
+    font-size: clamp(40px, 4.7vw, 64px);
+    line-height: 1.14;
+
+    font-weight: 500;
+
+    letter-spacing: -1.2px;
+}
+
+.ct-hero-title .purple {
+    color: #a535ff;
+}
+
+/* --- lede --- */
+
+.ct-hero-text {
+    margin-top: 22px;
+
+    font-size: 18.5px;
+    line-height: 1.85;
+
+    color: rgba(255, 255, 255, .78);
+}
+
+
+/* =========================================================
+   HERO ASSURANCES
+========================================================= */
+
+.ct-assurances {
+    /* Sized so the three items sit on one row the way the reference has
+       them, with each description breaking onto its own second line. */
+    max-width: 855px;
+
+    margin-top: 48px;
+
+    display: flex;
+    gap: 28px;
+}
+
+.ct-assurance {
+    flex: 1 1 0;
+    min-width: 0;
+
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+}
+
+.ct-assurance-icon {
+    flex-shrink: 0;
+
+    width: 50px;
+    height: 50px;
+
+    border-radius: 50%;
+
+    background: rgba(255, 255, 255, .07);
+    border: 1px solid rgba(255, 255, 255, .14);
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    color: #c9b4ff;
+}
+
+.ct-assurance h3 {
+    font-size: 15px;
+    font-weight: 700;
+
+    color: #ffffff;
+}
+
+.ct-assurance p {
+    margin-top: 5px;
+
+    font-size: 13px;
+    line-height: 1.55;
+
+    color: rgba(255, 255, 255, .62);
+}
+
+
+/* =========================================================
+   MAIN — soft grey field holding the cards
+========================================================= */
+
+.ct-main {
+    background: #f6f7fb;
+
+    padding: 34px 32px 44px;
+}
+
+.ct-grid {
+    /* .ct-main already supplies the 32px gutters, so the grid caps at the
+       1280 content column itself rather than at the gutter box. */
+    max-width: 1280px;
+    margin: 0 auto;
+
+    display: grid;
+    grid-template-columns: minmax(0, 1.48fr) minmax(0, 1fr);
+    align-items: start;
+    gap: 26px;
+}
+
+.ct-aside {
+    display: flex;
+    flex-direction: column;
+    gap: 26px;
+}
+
+
+/* =========================================================
+   CARD SHELL
+========================================================= */
+
+.ct-card {
+    background: #ffffff;
+
+    border: 1px solid var(--ct-border);
+    border-radius: 14px;
+
+    box-shadow: 0 4px 18px rgba(16, 26, 66, .04);
+
+    padding: 30px;
+}
+
+.ct-card-title {
+    font-family: 'Playfair Display', serif;
+
+    font-size: 25px;
+    font-weight: 700;
+
+    color: var(--ct-ink);
+}
+
+.ct-card-subtitle {
+    margin-top: 8px;
+
+    font-size: 13.5px;
+    line-height: 1.6;
+
+    color: var(--ct-soft);
+}
+
+
+/* =========================================================
+   REPORT AN ISSUE FORM
+========================================================= */
+
+.ct-form {
+    margin-top: 22px;
+}
+
+.ct-field + .ct-field {
+    margin-top: 15px;
+}
+
+.ct-field label {
+    display: block;
+
+    margin-bottom: 7px;
+
+    font-size: 13.5px;
+    font-weight: 500;
+
+    color: #2c3557;
+}
+
+.ct-field input[type="text"],
+.ct-field input[type="email"],
+.ct-field select,
+.ct-field textarea {
+    width: 100%;
+
+    padding: 0 14px;
+
+    font-family: inherit;
+    font-size: 14px;
+
+    color: var(--ct-ink);
+    background: #ffffff;
+
+    border: 1px solid var(--ct-field-border);
+    border-radius: 8px;
+
+    outline: none;
+
+    transition: border-color .2s, box-shadow .2s;
+}
+
+.ct-field input[type="text"],
+.ct-field input[type="email"],
+.ct-field select {
+    height: 44px;
+}
+
+.ct-field textarea {
+    min-height: 84px;
+
+    padding: 12px 14px;
+
+    line-height: 1.6;
+
+    resize: vertical;
+}
+
+.ct-field input::placeholder,
+.ct-field textarea::placeholder {
+    color: #a3abc2;
+}
+
+.ct-field input:focus,
+.ct-field select:focus,
+.ct-field textarea:focus {
+    border-color: var(--ct-purple);
+    box-shadow: 0 0 0 3px rgba(139, 61, 255, .11);
+}
+
+/* Native arrow removed so the caret matches the reference's thin chevron. */
+.ct-field select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+
+    padding-right: 38px;
+
+    color: var(--ct-ink);
+
+    background-image:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%236b7899' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+
+    cursor: pointer;
+}
+
+/* Placeholder option keeps the grey the real placeholders use. */
+.ct-field select.is-placeholder {
+    color: #a3abc2;
+}
+
+
+/* --- attachments dropzone --- */
+
+/* Scoped past `.ct-field label`, which would otherwise force this label
+   back to display:block and collapse the stacked rows onto one line. */
+.ct-field label.ct-dropzone {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    min-height: 78px;
+
+    padding: 16px;
+
+    border: 1px dashed #cfd5e8;
+    border-radius: 8px;
+
+    background: #ffffff;
+
+    text-align: center;
+
+    margin-bottom: 0;
+
+    font-size: inherit;
+    font-weight: 400;
+
+    cursor: pointer;
+
+    transition: border-color .2s, background .2s;
+}
+
+.ct-field label.ct-dropzone:hover,
+.ct-field label.ct-dropzone.is-dragging {
+    border-color: var(--ct-purple);
+    background: #faf7ff;
+}
+
+.ct-dropzone-main {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+
+    font-size: 13px;
+
+    color: #48527a;
+}
+
+.ct-dropzone-main svg {
+    color: var(--ct-soft);
+}
+
+.ct-dropzone-hint {
+    margin-top: 6px;
+
+    font-size: 11.5px;
+
+    color: var(--ct-muted);
+}
+
+.ct-dropzone-files {
+    margin-top: 8px;
+
+    font-size: 11.5px;
+    font-weight: 500;
+
+    color: var(--ct-purple);
+}
+
+
+/* --- submit --- */
+
+.ct-submit {
+    width: 100%;
+    height: 48px;
+
+    margin-top: 20px;
+
+    border: none;
+    border-radius: 8px;
+
+    background:
+        linear-gradient(
+            100deg,
+            #9427ff,
+            #276eff
+        );
+
+    color: #ffffff;
+    font-size: 14.5px;
+    font-weight: 600;
+
+    cursor: pointer;
+
+    transition: filter .2s, transform .2s;
+}
+
+.ct-submit:hover {
+    filter: brightness(1.07);
+    transform: translateY(-1px);
+}
+
+.ct-secure {
+    margin-top: 13px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+
+    font-size: 11.5px;
+
+    color: var(--ct-muted);
+}
+
+
+/* --- validation + success --- */
+
+.ct-alert {
+    margin-top: 18px;
+
+    padding: 12px 14px;
+
+    border-radius: 8px;
+
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.ct-alert--success {
+    background: #eefaf3;
+    border: 1px solid #bfe8d2;
+    color: #1c6b42;
+}
+
+.ct-alert--error {
+    background: #fdf1f3;
+    border: 1px solid #f4ccd5;
+    color: #a32741;
+}
+
+.ct-alert ul {
+    margin: 0;
+    padding-left: 18px;
+}
+
+
+/* =========================================================
+   OTHER WAYS TO REACH US
+========================================================= */
+
+.ct-channels {
+    margin-top: 6px;
+}
+
+.ct-channel {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+
+    padding: 19px 0;
+
+    border-bottom: 1px solid #eef0f7;
+}
+
+.ct-channel:last-child {
+    border-bottom: none;
+    padding-bottom: 2px;
+}
+
+.ct-channel-icon {
+    flex-shrink: 0;
+
+    width: 44px;
+    height: 44px;
+
+    border-radius: 14px;
+
+    background: var(--ct-lavender);
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    color: #5b5bd6;
+}
+
+.ct-channel-body {
+    flex: 1;
+    min-width: 0;
+}
+
+.ct-channel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.ct-channel h3 {
+    font-size: 15px;
+    font-weight: 700;
+
+    color: var(--ct-ink);
+}
+
+.ct-channel p {
+    margin-top: 4px;
+
+    font-size: 13px;
+    line-height: 1.5;
+
+    color: var(--ct-soft);
+}
+
+.ct-channel-pill {
+    flex-shrink: 0;
+
+    padding: 4px 10px;
+
+    border-radius: 20px;
+
+    background: var(--ct-lavender);
+
+    font-size: 10.5px;
+    font-weight: 500;
+
+    color: #6d5bd0;
+}
+
+.ct-channel-arrow {
+    flex-shrink: 0;
+
+    color: var(--ct-soft);
+
+    transition: transform .2s, color .2s;
+}
+
+a.ct-channel:hover .ct-channel-arrow {
+    color: var(--ct-purple);
+    transform: translateX(3px);
+}
+
+
+/* =========================================================
+   FAQ
+========================================================= */
+
+.ct-faq-list {
+    margin-top: 18px;
+
+    display: flex;
+    flex-direction: column;
+    gap: 11px;
+}
+
+.ct-faq {
+    border: 1px solid var(--ct-border);
+    border-radius: 8px;
+
+    background: #fafbfe;
+
+    overflow: hidden;
+}
+
+.ct-faq summary {
+    list-style: none;
+
+    padding: 15px 16px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+
+    font-size: 13.5px;
+    font-weight: 500;
+
+    color: #2c3557;
+
+    cursor: pointer;
+}
+
+.ct-faq summary::-webkit-details-marker {
+    display: none;
+}
+
+.ct-faq summary svg {
+    flex-shrink: 0;
+
+    color: var(--ct-soft);
+
+    transition: transform .25s;
+}
+
+.ct-faq[open] summary svg {
+    transform: rotate(180deg);
+}
+
+.ct-faq-answer {
+    padding: 0 15px 14px;
+
+    font-size: 12.5px;
+    line-height: 1.7;
+
+    color: var(--ct-soft);
+}
+
+
+/* =========================================================
+   BOTTOM CTA
+========================================================= */
+
+.ct-cta-wrap {
+    max-width: 1280px;
+    margin: 26px auto 0;
+}
+
+.ct-cta {
+    background: #f7f6fe;
+
+    border: 1px solid #e7e5fa;
+    border-radius: 14px;
+
+    padding: 26px 30px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 22px;
+}
+
+.ct-cta-copy {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+}
+
+.ct-cta-icon {
+    flex-shrink: 0;
+
+    width: 52px;
+    height: 52px;
+
+    border-radius: 50%;
+
+    background: #ece9fd;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    color: #6d5bd0;
+}
+
+.ct-cta h2 {
+    font-family: 'Playfair Display', serif;
+
+    font-size: 24px;
+    font-weight: 700;
+
+    color: var(--ct-ink);
+}
+
+.ct-cta p {
+    margin-top: 5px;
+
+    font-size: 14px;
+
+    color: var(--ct-soft);
+}
+
+.ct-cta-btn {
+    flex-shrink: 0;
+
+    height: 44px;
+    padding: 0 26px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    border: 1px solid #c9b6f5;
+    border-radius: 8px;
+
+    background: #ffffff;
+
+    font-size: 13.5px;
+    font-weight: 500;
+
+    color: #6d3ddb;
+
+    cursor: pointer;
+
+    transition: background .2s, border-color .2s;
+}
+
+.ct-cta-btn:hover {
+    background: #f3eeff;
+    border-color: var(--ct-purple);
+}
+
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 1000px) {
+
+    .ct-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .ct-hero-copy {
+        max-width: none;
+    }
+
+    .ct-assurances {
+        max-width: 640px;
+
+        flex-wrap: wrap;
+        gap: 22px 30px;
+    }
+
+    .ct-assurance {
+        flex: 1 1 250px;
+    }
+}
+
+@media (max-width: 800px) {
+
+    .ct-hero-inner {
+        padding: 54px 20px 70px;
+    }
+
+    .ct-main {
+        padding-left: 20px;
+        padding-right: 20px;
+    }
+
+    .ct-cta {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .ct-cta-btn {
+        width: 100%;
+    }
+}
+
+@media (max-width: 560px) {
+
+    .ct-card {
+        padding: 22px 18px;
+    }
+
+    .ct-card-title {
+        font-size: 20px;
+    }
+
+    .ct-assurance {
+        flex: 1 1 100%;
+    }
+
+    .ct-cta {
+        padding: 22px 18px;
+    }
+
+    .ct-cta-copy {
+        gap: 14px;
+    }
+
+    .ct-cta h2 {
+        font-size: 19px;
+    }
+
+}
