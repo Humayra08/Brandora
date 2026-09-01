@@ -2,6 +2,7 @@ using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Brandora.Web.Models;
 using Brandora.Web.Models.Discovery;
+using Brandora.Web.Models.Contact;
 
 namespace Brandora.Web.Controllers;
 
@@ -28,6 +29,28 @@ public class HomeController : Controller
     public IActionResult ForInfluencers()
     {
         return View(DirectoryData.BuildInfluencerDirectory());
+    }
+
+    [HttpGet("contact")]
+    public IActionResult Contact()
+    {
+        return View(new ContactIssueViewModel());
+    }
+
+    [HttpPost("contact")]
+    [ValidateAntiForgeryToken]
+    public IActionResult Contact(ContactIssueViewModel model)
+    {
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
+
+        // Reports are acknowledged in-page; support picks them up over the
+        // channels listed alongside the form.
+        TempData["ContactSubmitted"] = true;
+
+        return RedirectToAction(nameof(Contact));
     }
 
     public IActionResult Privacy()
