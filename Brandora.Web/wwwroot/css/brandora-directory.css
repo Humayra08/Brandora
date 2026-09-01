@@ -45,7 +45,7 @@ button {
     --dir-grid-gap: 18px;
 
     /* Surface */
-    --dir-ground: #f6f7fb;
+    --dir-ground: #ffffff;
     --dir-card: #ffffff;
     --dir-border: #e6e9f2;
     --dir-card-radius: 10px;
@@ -83,19 +83,19 @@ button {
 
     background:
         radial-gradient(
-            ellipse at 74% 48%,
-            rgba(28, 104, 216, .26),
-            transparent 58%
+            circle at 68% 34%,
+            rgba(104, 44, 220, .34),
+            transparent 46%
         ),
         radial-gradient(
-            circle at 16% 46%,
-            rgba(73, 45, 185, .30),
-            transparent 44%
+            circle at 14% 30%,
+            rgba(58, 38, 160, .26),
+            transparent 42%
         ),
         linear-gradient(
             118deg,
             #050726 0%,
-            #070830 46%,
+            #08082f 46%,
             #0b0733 100%
         );
 
@@ -163,6 +163,18 @@ button {
     width: 50%;
 }
 
+/* Real artwork swapped in for the placeholder: keeps the same angled
+   clip-path footprint, but renders as an actual image instead of the
+   gradient fill. */
+.directory-hero-banner--img {
+    box-sizing: border-box;
+    padding: 100px 90px;
+
+    object-fit: contain;
+    object-position: right center;
+    background: none;
+}
+
 .directory-hero-inner {
     max-width: var(--dir-max);
     margin: 0 auto;
@@ -175,13 +187,13 @@ button {
 .directory-hero-copy {
     max-width: 620px;
 
-    padding: 40px 0 88px;
+    padding: 70px 0 140px;
 }
 
 /* The accent rule adds 25px, so trim the same amount to keep this
    hero's base aligned with the brand hero's. */
 .directory-hero-copy--with-rule {
-    padding-bottom: 63px;
+    padding-bottom: 115px;
 }
 
 .directory-hero-title {
@@ -997,24 +1009,6 @@ button {
     align-items: center;
 
     overflow: hidden;
-}
-
-.directory-stats::after {
-    content: "";
-
-    position: absolute;
-    right: 0;
-    top: 0;
-    bottom: 0;
-
-    width: 32%;
-
-    background: url('../images/Wave.png') no-repeat right center;
-    background-size: cover;
-
-    opacity: .18;
-
-    pointer-events: none;
 }
 
 .directory-stat {
