@@ -173,6 +173,18 @@
                 0 8px 25px rgba(106, 37, 213, .25);
         }
 
+        .sidebar-menu a.is-soon { color: rgba(217,220,232,.45); cursor: default; }
+        .sidebar-menu a.is-soon:hover { background: transparent; color: rgba(217,220,232,.45); }
+
+        .soon-tag {
+            padding: 2px 8px;
+            border-radius: 20px;
+            border: 1px solid rgba(255,255,255,.14);
+            font-size: 9.5px;
+            font-weight: 600;
+            color: rgba(255,255,255,.4);
+        }
+
         .nav-count {
             display: inline-flex;
             align-items: center;
@@ -240,11 +252,21 @@
 
         .main-content.sidebar-hidden { margin-left: 0; }
 
-        .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; gap: 16px; }
+        .topbar { display: flex; align-items: center; margin-bottom: 20px; gap: 16px; }
 
-        .menu-btn { border: 0; background: transparent; font-size: 26px; color: #20283a; cursor: pointer; }
+        .menu-btn {
+            flex-shrink: 0;
+            width: 44px; height: 44px;
+            border-radius: 12px;
+            border: 1px solid #e2e5f2;
+            background: #ffffff;
+            font-size: 19px; color: #20283a; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+        }
 
-        .topbar-page-title { font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 19px; color: #171d3d; margin-right: auto; }
+        .topbar-page-title { margin-right: auto; min-width: 0; }
+        .page-heading { font-family: 'DM Sans', sans-serif; font-weight: 800; font-size: 22px; color: #171d3d; }
+        .page-subheading { margin-top: 3px; font-family: 'Inter', sans-serif; font-size: 13px; color: #8189a8; }
 
         .top-actions { display: flex; align-items: center; gap: 18px; }
 
@@ -256,12 +278,27 @@
             position: absolute; top: -8px; right: -9px;
             width: 19px; height: 19px;
             border-radius: 50%;
-            background: #7624d6;
+            background: linear-gradient(105deg, #ff3c50, #ff6a3c);
             color: white;
-            font-size: 11px;
+            font-size: 10.5px;
+            font-weight: 700;
             display: grid;
             place-items: center;
         }
+
+        .quick-action-menu {
+            padding: 8px;
+            border-radius: 12px;
+            border: 1px solid #eaecf5;
+            box-shadow: 0 20px 46px rgba(30,34,90,.16);
+        }
+        .quick-action-menu .dropdown-item {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 12px; border-radius: 9px;
+            font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 500; color: #2a3157;
+        }
+        .quick-action-menu .dropdown-item:hover { background: rgba(155,44,255,.06); color: #7a1fd6; }
+        .quick-action-menu .dropdown-item i { color: #9b2cff; }
 
         .bell-dropdown {
             position: absolute;
@@ -369,8 +406,14 @@
         /* KPI cards */
 
         .kpi-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-bottom: 24px; }
-        .kpi-card { padding: 20px; transition: transform .2s ease, box-shadow .2s ease; }
-        a.kpi-card:hover { transform: translateY(-3px); box-shadow: 0 14px 30px rgba(90,60,255,.14); border-color: transparent; }
+        .kpi-card {
+            padding: 20px;
+            transition: transform .2s ease, box-shadow .2s ease;
+            background:
+                radial-gradient(circle at 100% 0%, rgba(163,38,255,.07), transparent 55%),
+                #ffffff;
+        }
+        a.kpi-card:hover { transform: translateY(-2px); box-shadow: 0 10px 22px rgba(20,25,60,.08); }
         .kpi-label { font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; color: #8189a8; }
         .kpi-value { margin-top: 8px; font-family: 'DM Sans', sans-serif; font-weight: 800; font-size: 27px; color: #171d3d; }
 
@@ -466,6 +509,20 @@
                 </a>
             </li>
 
+            <li>
+                <a href="#" class="is-soon">
+                    <span>Reports &amp; Analytics</span>
+                    <span class="soon-tag">Soon</span>
+                </a>
+            </li>
+
+            <li>
+                <a href="#" class="is-soon">
+                    <span>System Settings</span>
+                    <span class="soon-tag">Soon</span>
+                </a>
+            </li>
+
         </ul>
         </div>
         </div>
@@ -478,7 +535,7 @@
                 <div class="avatar-circle small">@adminInitial</div>
                 <div>
                     <h6>@adminName</h6>
-                    <span>Administrator</span>
+                    <span>Administrator <i class="bi bi-chevron-down" style="font-size:10px;"></i></span>
                 </div>
             </a>
 
@@ -499,6 +556,10 @@
     <main class="main-content" id="dashboardMain">
 
         <!-- TOP BAR -->
+        @{
+            var pageHeading = ViewData["PageHeading"] as string ?? ViewData["Title"] as string ?? "";
+            var pageSubheading = ViewData["PageSubheading"] as string;
+        }
 
         <div class="topbar">
 
@@ -506,17 +567,20 @@
                 <i class="bi bi-list"></i>
             </button>
 
-            <div class="topbar-page-title">@ViewData["Title"]</div>
+            <div class="topbar-page-title">
+                <div class="page-heading">@pageHeading</div>
+                @if (!string.IsNullOrEmpty(pageSubheading))
+                {
+                    <div class="page-subheading">@pageSubheading</div>
+                }
+            </div>
 
             <div class="top-actions">
 
                 <div class="bell-wrap" id="bellMenuWrap">
                     <button type="button" class="bell" id="bellMenuBtn" aria-label="Recent alerts" aria-expanded="false">
                         <i class="bi bi-bell"></i>
-                        @if (totalAlerts > 0)
-                        {
-                            <span class="bell-badge">@(totalAlerts > 9 ? "9+" : totalAlerts.ToString())</span>
-                        }
+                        <span class="bell-badge">@(totalAlerts > 9 ? "9+" : totalAlerts.ToString())</span>
                     </button>
 
                     <div class="bell-dropdown" id="bellDropdown">
@@ -540,12 +604,17 @@
                     </div>
                 </div>
 
-                <a href="/Admin/AdminProfile/Index">
-                    <button class="browse-btn" type="button">
-                        My Profile
-                        <i class="bi bi-arrow-right"></i>
+                <div class="dropdown">
+                    <button class="browse-btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-plus-lg"></i> Quick Action
                     </button>
-                </a>
+                    <ul class="dropdown-menu dropdown-menu-end quick-action-menu">
+                        <li><a class="dropdown-item" href="/Admin/AdminUserVerification/Index?status=Pending"><i class="bi bi-person-check"></i> Verify User</a></li>
+                        <li><a class="dropdown-item" href="/Admin/AdminProofReview/Index?status=Submitted"><i class="bi bi-clipboard-check"></i> Review Proof</a></li>
+                        <li><a class="dropdown-item" href="/Admin/AdminDisputes/Index?status=Open"><i class="bi bi-shield-exclamation"></i> Resolve Dispute</a></li>
+                        <li><a class="dropdown-item" href="/Admin/AdminPayments/Index"><i class="bi bi-credit-card"></i> View Payments</a></li>
+                    </ul>
+                </div>
 
             </div>
 

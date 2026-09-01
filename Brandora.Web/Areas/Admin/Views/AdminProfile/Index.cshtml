@@ -1,22 +1,198 @@
 @{
+    // NOTE: Admin accounts live only in .env (see AdminAuthService) — there is no
+    // ApplicationUser/database row for an admin, so there's nothing to save a profile
+    // edit form to, no photo-upload storage, no activity log, and no "Admin Since"
+    // creation timestamp. Fields below show real data where a real source exists
+    // (name/email from auth claims, last login from the login claim) and are marked
+    // "Not available" / disabled where persistence would be required but doesn't
+    // exist yet — see feedback_backend_wiring_scope memory.
     var adminName = ViewData["AdminName"] as string ?? "Administrator";
     var adminEmail = ViewData["AdminEmail"] as string ?? "";
     var lastLogin = ViewData["LastLoginUtc"] as DateTime?;
+    var initials = string.IsNullOrEmpty(adminName) ? "A" : adminName[..1].ToUpperInvariant();
 }
 
-<div class="panel">
-    <div class="panel-title">My Profile</div>
-    <div style="margin-top:8px;"><span class="status-pill blue">Administrator</span></div>
+<style>
+    .profile-header-panel { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+    .profile-header-avatar {
+        width: 84px; height: 84px; border-radius: 50%; flex-shrink: 0;
+        display: flex; align-items: center; justify-content: center;
+        background: linear-gradient(145deg, #c93cff, #4e38ff 55%, #159cff); color: #ffffff;
+        font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 30px;
+        border: 3px solid #f1e6ff;
+    }
+    .profile-header-name-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .profile-header-name { font-family: 'DM Sans', sans-serif; font-weight: 800; font-size: 21px; color: #171d3d; }
+    .profile-header-sub { margin-top: 4px; font-family: 'Inter', sans-serif; font-size: 13px; color: #8189a8; }
+    .profile-header-facts { margin-top: 14px; display: flex; gap: 28px; flex-wrap: wrap; }
+    .profile-header-fact { display: flex; align-items: center; gap: 8px; }
+    .profile-header-fact-icon { width: 32px; height: 32px; border-radius: 9px; background: #f1e6ff; color: #7a1fd6; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+    .profile-header-fact-label { font-family: 'Inter', sans-serif; font-size: 11.5px; color: #8189a8; }
+    .profile-header-fact-value { font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 700; color: #2a3157; }
+    .profile-header-illustration { margin-left: auto; opacity: .9; flex-shrink: 0; }
 
-    <div style="margin-top:24px; display:grid; grid-template-columns: repeat(2, 1fr); gap:20px;">
-        <div><strong>Admin Name</strong><div class="panel-sub">@adminName</div></div>
-        <div><strong>Email</strong><div class="panel-sub">@adminEmail</div></div>
-        <div><strong>Last Login</strong><div class="panel-sub">@(lastLogin?.ToString("MMM d, yyyy h:mm tt") + " UTC" ?? "This session")</div></div>
+    .profile-content-grid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 20px; margin-top: 20px; align-items: start; }
+    @@media(max-width: 1100px) { .profile-content-grid { grid-template-columns: 1fr; } }
+
+    .field-group { margin-bottom: 18px; }
+    .field-label { font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 600; color: #2a3157; display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+    .field-input-wrap { position: relative; }
+    .field-input-wrap i.leading { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #b7bdd6; }
+    .field-input-wrap i.trailing { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); color: #b7bdd6; }
+    .field-input {
+        width: 100%; height: 46px; padding: 0 14px 0 40px;
+        border-radius: 10px; border: 1px solid #dde1f0; background: #f9fafc;
+        font-family: 'Inter', sans-serif; font-size: 13px; color: #545b7d;
+    }
+    .field-hint { margin-top: 6px; font-family: 'Inter', sans-serif; font-size: 11.5px; color: #8189a8; }
+
+    .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    @@media(max-width: 700px) { .form-grid-2 { grid-template-columns: 1fr; } }
+
+    .overview-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid #f2f3fa; }
+    .overview-row:last-child { border-bottom: none; }
+    .overview-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 15px; color: #ffffff; flex-shrink: 0; }
+    .overview-label { font-family: 'Inter', sans-serif; font-size: 12px; color: #8189a8; }
+    .overview-value { margin-top: 1px; font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 700; color: #2a3157; display: flex; align-items: center; gap: 8px; }
+
+    .security-note { margin-top: 16px; padding: 12px 14px; border-radius: 10px; background: #eef1ff; border: 1px solid #dbe0ff; display: flex; gap: 10px; font-family: 'Inter', sans-serif; font-size: 12px; color: #4a4f8a; }
+    .security-note i { color: #6b52d8; margin-top: 1px; }
+
+    .help-footer-panel { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-top: 20px; }
+    .help-footer-left { display: flex; align-items: center; gap: 14px; }
+    .help-footer-icon { width: 40px; height: 40px; border-radius: 50%; background: #f1e6ff; color: #7a1fd6; display: flex; align-items: center; justify-content: center; font-size: 17px; flex-shrink: 0; }
+</style>
+
+<div class="panel profile-header-panel">
+
+    <div class="profile-header-avatar">@initials</div>
+
+    <div>
+        <div class="profile-header-name-row">
+            <span class="profile-header-name">@adminName</span>
+            <span class="status-pill blue">Administrator</span>
+        </div>
+        <div class="profile-header-sub">Oversees platform moderation and admin operations.</div>
+
+        <div class="profile-header-facts">
+            <div class="profile-header-fact">
+                <div class="profile-header-fact-icon"><i class="bi bi-calendar3"></i></div>
+                <div><div class="profile-header-fact-label">Last Login</div><div class="profile-header-fact-value">@(lastLogin?.ToString("MMM d, yyyy, h:mm tt") + " UTC" ?? "This session")</div></div>
+            </div>
+            <div class="profile-header-fact">
+                <div class="profile-header-fact-icon"><i class="bi bi-shield-check"></i></div>
+                <div><div class="profile-header-fact-label">Role</div><div class="profile-header-fact-value">Administrator</div></div>
+            </div>
+            <div class="profile-header-fact">
+                <div class="profile-header-fact-icon"><i class="bi bi-check2-circle"></i></div>
+                <div><div class="profile-header-fact-label">Permissions</div><div class="profile-header-fact-value">Full Access</div></div>
+            </div>
+        </div>
     </div>
 
-    <div class="panel-sub" style="margin-top:24px;">
-        Administrator credentials are managed via the server's <code>.env</code> file, not the application database &mdash; there's no password-change form here.
+    <div class="profile-header-illustration">
+        <i class="bi bi-shield-lock" style="font-size:64px; color:#e6d3ff;"></i>
     </div>
 
-    <a href="/Admin/AdminDashboard/Index" class="back-to-dashboard" style="margin-top:24px;">&larr; Back to Dashboard</a>
 </div>
+
+<div class="profile-content-grid">
+
+    <div class="panel">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px;">
+            <div>
+                <div class="panel-title">Profile Information</div>
+                <div class="panel-sub" style="margin-top:4px;">Read-only &mdash; admin accounts are configured via the server's <code>.env</code> file, not stored in the database, so there's nothing here to edit or save yet.</div>
+            </div>
+        </div>
+
+        <div class="form-grid-2" style="margin-top:18px;">
+            <div class="field-group">
+                <div class="field-label">Full Name</div>
+                <div class="field-input-wrap">
+                    <i class="bi bi-person leading"></i>
+                    <input type="text" class="field-input" value="@adminName" disabled />
+                </div>
+            </div>
+
+            <div class="field-group">
+                <div class="field-label">Email Address <i class="bi bi-lock" style="font-size:11px; color:#b7bdd6;"></i></div>
+                <div class="field-input-wrap">
+                    <i class="bi bi-envelope leading"></i>
+                    <input type="text" class="field-input" value="@adminEmail" disabled />
+                </div>
+                <div class="field-hint">Email is set in <code>.env</code> and used for login &mdash; it can't be changed here.</div>
+            </div>
+
+            <div class="field-group">
+                <div class="field-label">Contact Number</div>
+                <div class="field-input-wrap">
+                    <i class="bi bi-telephone leading"></i>
+                    <input type="text" class="field-input" value="Not available" disabled />
+                </div>
+            </div>
+
+            <div class="field-group">
+                <div class="field-label">Department / Team</div>
+                <div class="field-input-wrap">
+                    <i class="bi bi-diagram-3 leading"></i>
+                    <input type="text" class="field-input" value="Not available" disabled />
+                </div>
+            </div>
+        </div>
+
+        <div class="field-hint" style="margin-top:-4px; margin-bottom:16px;">Profile photo, contact number, and department aren't tracked for env-based admin accounts &mdash; these could be added if admin accounts move to the database in the future.</div>
+
+        <button type="button" class="btn btn-secondary" disabled title="No activity log exists yet"><i class="bi bi-list-check" style="margin-right:8px;"></i> View Activity Log (Not available)</button>
+    </div>
+
+    <div>
+        <div class="panel">
+            <div class="panel-title">Account Overview</div>
+            <div class="panel-sub" style="margin-top:4px;">Overview of your admin account.</div>
+
+            <div style="margin-top:8px;">
+                <div class="overview-row">
+                    <div class="overview-icon" style="background:#6b52d8;"><i class="bi bi-envelope-fill"></i></div>
+                    <div><div class="overview-label">Email</div><div class="overview-value">@adminEmail</div></div>
+                </div>
+                <div class="overview-row">
+                    <div class="overview-icon" style="background:#d97a17;"><i class="bi bi-telephone-fill"></i></div>
+                    <div><div class="overview-label">Contact Number</div><div class="overview-value">Not provided</div></div>
+                </div>
+                <div class="overview-row">
+                    <div class="overview-icon" style="background:#0d9c6c;"><i class="bi bi-shield-fill-check"></i></div>
+                    <div><div class="overview-label">Role</div><div class="overview-value">Administrator</div></div>
+                </div>
+                <div class="overview-row">
+                    <div class="overview-icon" style="background:#1a73d8;"><i class="bi bi-calendar-check-fill"></i></div>
+                    <div><div class="overview-label">Last Login</div><div class="overview-value">@(lastLogin?.ToString("MMM d, yyyy, h:mm tt") ?? "This session")</div></div>
+                </div>
+                <div class="overview-row">
+                    <div class="overview-icon" style="background:#8b2ff2;"><i class="bi bi-person-plus-fill"></i></div>
+                    <div><div class="overview-label">Admin Since</div><div class="overview-value">Not available</div></div>
+                </div>
+                <div class="overview-row">
+                    <div class="overview-icon" style="background:#545b7d;"><i class="bi bi-gear-fill"></i></div>
+                    <div><div class="overview-label">Created By</div><div class="overview-value">.env configuration</div></div>
+                </div>
+            </div>
+
+            <div class="security-note"><i class="bi bi-info-circle-fill"></i> For security reasons, password management is handled outside this system, via the server's <code>.env</code> file.</div>
+        </div>
+    </div>
+
+</div>
+
+<div class="panel help-footer-panel">
+    <div class="help-footer-left">
+        <div class="help-footer-icon"><i class="bi bi-question-circle-fill"></i></div>
+        <div>
+            <div class="panel-title" style="font-size:14px;">Need Help?</div>
+            <div class="panel-sub">If you face any issues or need assistance, please contact the system owner or technical team.</div>
+        </div>
+    </div>
+    <a href="#" class="btn btn-secondary"><i class="bi bi-headset" style="margin-right:8px;"></i> Contact Support</a>
+</div>
+
+<a href="/Admin/AdminDashboard/Index" class="back-to-dashboard" style="margin-top:20px;">&larr; Back to Dashboard</a>

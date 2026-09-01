@@ -25,6 +25,12 @@ public class AdminDashboardController(ApplicationDbContext db) : AdminController
         ViewData["ActiveNav"] = "Dashboard";
         ViewData["Title"] = "Admin Dashboard";
 
+        var hour = DateTime.Now.Hour;
+        var greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+        var firstName = AdminName.Split(' ')[0];
+        ViewData["PageHeading"] = $"{greeting}, {firstName}! \U0001F44B";
+        ViewData["PageSubheading"] = "Here's an overview of what's happening on Brandora today.";
+
         var vm = new AdminDashboardViewModel
         {
             TotalUsers = await db.Users.CountAsync(),
