@@ -37,13 +37,15 @@ public class AdminDisputesController(ApplicationDbContext db, UserManager<Applic
     {
         await LoadAdminChromeAsync();
         ViewData["ActiveNav"] = "Disputes";
-        ViewData["Title"] = "Dispute Detail";
+        ViewData["Title"] = "Dispute Resolution Details";
         ViewData["Breadcrumb"] = new List<(string, string?)>
         {
             ("Dispute Resolution", "/Admin/AdminDisputes/Index"),
-            ("Detail", null)
+            ("Details", null)
         };
 
+        // NOTE: this page renders fully dummy content for the visual redesign pass (see
+        // feedback_backend_wiring_scope memory) — a missing dispute no longer 404s.
         var dispute = await db.Disputes
             .Include(d => d.BrandProfile)
             .Include(d => d.InfluencerProfile)
@@ -51,23 +53,24 @@ public class AdminDisputesController(ApplicationDbContext db, UserManager<Applic
             .Include(d => d.Milestone)
             .FirstOrDefaultAsync(d => d.Id == id);
 
-        if (dispute is null) return NotFound();
+        if (dispute is not null)
+        {
+            var conversation = await db.Conversations
+                .Include(c => c.Messages)
+                .FirstOrDefaultAsync(c =>
+                    c.BrandProfileId == dispute.BrandProfileId &&
+                    c.InfluencerProfileId == dispute.InfluencerProfileId);
 
-        var conversation = await db.Conversations
-            .Include(c => c.Messages)
-            .FirstOrDefaultAsync(c =>
-                c.BrandProfileId == dispute.BrandProfileId &&
-                c.InfluencerProfileId == dispute.InfluencerProfileId);
+            ViewData["Conversation"] = conversation;
 
-        ViewData["Conversation"] = conversation;
+            var payment = dispute.MilestoneId is not null
+                ? await db.Payments.FirstOrDefaultAsync(p => p.MilestoneId == dispute.MilestoneId)
+                : null;
 
-        var payment = dispute.MilestoneId is not null
-            ? await db.Payments.FirstOrDefaultAsync(p => p.MilestoneId == dispute.MilestoneId)
-            : null;
+            ViewData["Payment"] = payment;
+        }
 
-        ViewData["Payment"] = payment;
-
-        return View(dispute);
+        return View((object?)dispute);
     }
 
     [HttpPost]
