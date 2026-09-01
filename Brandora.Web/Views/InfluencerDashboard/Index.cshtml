@@ -3,6 +3,7 @@
 @using Brandora.Web.Models.Influencers
 @{
     ViewData["Title"] = "Dashboard";
+    ViewData["ActiveNav"] = "Dashboard";
     Layout = null;
 
     string[] palette = { "#e2231a", "#6a2ea0", "#e2136e", "#415fff", "#0d9c6c", "#b5680a", "#9b2cff" };
@@ -133,7 +134,18 @@
         .brand {
             display: flex;
             align-items: center;
-            padding: 0 12px 18px;
+            padding: 0 12px 6px;
+        }
+
+        .sidebar-wave-img {
+            position: absolute;
+            left: 0;
+            bottom: 60px;
+            width: 100%;
+            height: auto;
+            pointer-events: none;
+            z-index: -1;
+            opacity: .9;
         }
 
         .brand-logo-img {
@@ -146,7 +158,7 @@
             position: relative;
             flex: 1;
             min-height: 0;
-            margin-top: 28px;
+            margin-top: 14px;
         }
 
         .sidebar-nav-wrap::before {
@@ -178,9 +190,9 @@
             overflow: hidden;
             border: 1px solid rgba(255,255,255,.12);
 
-            background: rgba(255,255,255,.06);
-            backdrop-filter: blur(18px);
-            -webkit-backdrop-filter: blur(18px);
+            background: rgba(255,255,255,.03);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
 
             box-shadow: 0 8px 30px rgba(0,0,0,.18);
         }
@@ -250,7 +262,6 @@
 
         .sidebar-bottom {
             margin-top: auto;
-            border-top: 1px solid rgba(255,255,255,.08);
             padding: 12px 8px 0;
         }
 
@@ -1136,100 +1147,7 @@
 
     <!-- ================= SIDEBAR ================= -->
 
-    <aside class="sidebar" id="dashboardSidebar">
-
-        <div class="brand">
-            <img src="~/images/Brandora.png" alt="Brandora" class="brand-logo-img" />
-        </div>
-
-        <div class="sidebar-nav-wrap">
-        <div class="sidebar-nav-glass">
-        <ul class="sidebar-menu">
-
-            <li>
-                <a href="/InfluencerDashboard" class="active">
-                    <span>Dashboard</span>
-                    <i class="bi bi-chevron-right nav-chevron"></i>
-                </a>
-            </li>
-
-            <li>
-                <a href="#">
-                    <span>Campaigns</span>
-                </a>
-            </li>
-
-            <li>
-                <a href="#">
-                    <span>My Proposals</span>
-                </a>
-            </li>
-
-            <li>
-                <a href="#">
-                    <span>Chat</span>
-                </a>
-            </li>
-
-            <li>
-                <a href="#">
-                    <span>Earnings</span>
-                </a>
-            </li>
-
-            <li>
-                <a href="#">
-                    <span>Social Accounts</span>
-                </a>
-            </li>
-
-            <li>
-                <a href="#">
-                    <span>Upload Proof</span>
-                </a>
-            </li>
-
-            <li>
-                <a href="#">
-                    <span>Payments</span>
-                </a>
-            </li>
-
-            <li>
-                <a href="#">
-                    <span>Profile Settings</span>
-                </a>
-            </li>
-
-        </ul>
-        </div>
-        </div>
-
-
-        <!-- Bottom User Profile -->
-
-        <div class="sidebar-bottom">
-
-            <div class="sidebar-user">
-                <div class="avatar-circle small">@FollowerFormat.InitialsOf(Model.Profile.FullName)</div>
-
-                <div>
-                    <h6>@Model.Profile.FullName</h6>
-                    <span>Influencer</span>
-                </div>
-            </div>
-
-            <form method="post" action="/Account/Logout">
-                @Html.AntiForgeryToken()
-                <button type="submit" class="logout-btn">
-                    <i class="bi bi-box-arrow-right"></i>
-                    <span>Logout</span>
-                </button>
-            </form>
-
-        </div>
-
-    </aside>
+    @await Html.PartialAsync("_InfluencerSidebar")
 
 
     <!-- ================= MAIN ================= -->
@@ -1250,7 +1168,7 @@
                     <i class="bi bi-bell"></i>
                 </div>
 
-                <a href="#">
+                <a href="/InfluencerCampaigns">
                     <button class="browse-btn">
                         Browse Campaigns
                         <i class="bi bi-arrow-right"></i>

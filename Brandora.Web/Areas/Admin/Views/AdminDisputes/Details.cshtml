@@ -1,0 +1,272 @@
+@model object
+@{
+    // NOTE: this entire page renders fixed dummy content for the visual redesign pass
+    // (see feedback_backend_wiring_scope memory) — TODO: replace with real Dispute /
+    // Conversation / Payment fields once backend wiring is requested. Real Dispute rows
+    // can't exist yet anyway since there's no "raise a dispute" entry point on the
+    // Brand/Influencer side.
+}
+
+<style>
+    .dispute-top-panel { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; align-items: start; }
+    @@media(max-width: 1200px) { .dispute-top-panel { grid-template-columns: repeat(2, 1fr); } }
+    .top-col-label { font-family: 'Inter', sans-serif; font-size: 10.5px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase; color: #8189a8; margin-bottom: 8px; }
+    .case-id-value { font-family: 'DM Sans', sans-serif; font-weight: 800; font-size: 16px; color: #171d3d; display: flex; align-items: center; gap: 10px; }
+    .raised-meta { margin-top: 4px; font-family: 'Inter', sans-serif; font-size: 11.5px; color: #8189a8; }
+
+    .vs-row { display: flex; align-items: center; gap: 10px; }
+    .vs-party { display: flex; align-items: center; gap: 8px; }
+    .vs-logo { width: 30px; height: 30px; border-radius: 8px; background: #14103a; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 8px; font-weight: 800; text-align: center; flex-shrink: 0; }
+    .vs-avatar { width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(145deg, #c93cff, #4e38ff 55%, #159cff); flex-shrink: 0; }
+    .vs-name { font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 700; color: #2a3157; }
+    .vs-badge { font-family: 'Inter', sans-serif; font-size: 9.5px; padding: 8px; }
+    .vs-divider { width: 30px; height: 22px; border-radius: 20px; border: 1px solid #eaecf5; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: #8189a8; }
+
+    .body-grid { display: grid; grid-template-columns: 1.1fr 1.1fr 0.9fr; gap: 20px; margin-top: 20px; align-items: start; }
+    @@media(max-width: 1300px) { .body-grid { grid-template-columns: 1fr; } }
+
+    .panel-head-row { display: flex; align-items: center; justify-content: space-between; }
+    .panel-head-title { font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 14px; color: #171d3d; display: flex; align-items: center; gap: 8px; }
+    .panel-head-title i { color: #9b2cff; }
+
+    .chat-scroll { margin-top: 16px; max-height: 340px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; padding-right: 4px; }
+    .chat-msg { max-width: 82%; }
+    .chat-msg.from-brand { align-self: flex-start; }
+    .chat-msg.from-influencer { align-self: flex-end; }
+    .chat-msg-meta { font-family: 'Inter', sans-serif; font-size: 11px; color: #8189a8; margin-bottom: 4px; display: flex; gap: 6px; align-items: center; }
+    .chat-msg.from-influencer .chat-msg-meta { justify-content: flex-end; }
+    .chat-bubble { padding: 10px 14px; border-radius: 12px; font-family: 'Inter', sans-serif; font-size: 12.5px; line-height: 1.4; }
+    .chat-msg.from-brand .chat-bubble { background: #f6f7fb; color: #2a3157; border-top-left-radius: 4px; }
+    .chat-msg.from-influencer .chat-bubble { background: #f1e6ff; color: #4a2a80; border-top-right-radius: 4px; }
+    .chat-avatar-sm { width: 22px; height: 22px; border-radius: 6px; flex-shrink: 0; }
+    .chat-end-marker { text-align: center; margin-top: 6px; font-family: 'Inter', sans-serif; font-size: 11px; color: #b7bdd6; }
+
+    .proof-media { position: relative; height: 200px; border-radius: 12px; overflow: hidden; background: linear-gradient(135deg, #f3e3d3, #e9c9a8); margin-top: 12px; }
+    .proof-media-expand { position: absolute; top: 8px; right: 8px; width: 26px; height: 26px; border-radius: 7px; background: rgba(255,255,255,.85); display: flex; align-items: center; justify-content: center; color: #2a3157; }
+    .proof-header-row { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
+    .proof-avatar-sm { width: 26px; height: 26px; border-radius: 50%; background: linear-gradient(145deg, #c93cff, #4e38ff 55%, #159cff); flex-shrink: 0; }
+    .proof-username { font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 700; color: #2a3157; }
+    .proof-date { font-family: 'Inter', sans-serif; font-size: 10.5px; color: #8189a8; }
+    .proof-actions-row { display: flex; align-items: center; gap: 12px; margin-top: 10px; color: #2a3157; }
+    .proof-likes { margin-top: 8px; font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 700; color: #2a3157; }
+    .proof-caption { margin-top: 4px; font-family: 'Inter', sans-serif; font-size: 12px; color: #545b7d; }
+    .proof-ig-link { margin-top: 8px; display: inline-block; font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 700; color: #6b52d8; }
+
+    .proof-details-list { margin-top: 14px; }
+    .proof-detail-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f2f3fa; }
+    .proof-detail-row:last-child { border-bottom: none; }
+    .proof-detail-label { font-family: 'Inter', sans-serif; font-size: 11.5px; color: #8189a8; }
+    .proof-detail-value { font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; color: #2a3157; text-align: right; max-width: 55%; }
+
+    .payment-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f2f3fa; }
+    .payment-row:last-child { border-bottom: none; }
+    .payment-label { font-family: 'Inter', sans-serif; font-size: 12px; color: #8189a8; }
+    .payment-value { font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 700; color: #2a3157; display: flex; align-items: center; gap: 6px; }
+
+    .resolution-field-label { font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 700; color: #2a3157; margin-bottom: 6px; }
+    .resolution-field-hint { font-family: 'Inter', sans-serif; font-size: 11px; color: #8189a8; margin-bottom: 8px; }
+    .resolution-textarea { width: 100%; min-height: 80px; padding: 12px; border-radius: 10px; border: 1px solid #dde1f0; font-family: 'Inter', sans-serif; font-size: 13px; color: #2a3157; resize: vertical; }
+    .char-counter { margin-top: 6px; text-align: right; font-family: 'Inter', sans-serif; font-size: 11px; color: #b7bdd6; }
+    .outcome-select { width: 100%; height: 46px; padding: 0 14px; border-radius: 10px; border: 1px solid #dde1f0; font-family: 'Inter', sans-serif; font-size: 13px; color: #2a3157; margin-top: 16px; }
+    .btn-resolve { width: 100%; margin-top: 16px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 48px; border-radius: 10px; border: none; background: linear-gradient(105deg, #a326ff, #236eff, #18a9ff); color: #ffffff; font-family: 'Inter', sans-serif; font-size: 13.5px; font-weight: 700; }
+    .btn-resolve:hover { transform: translateY(-1px); box-shadow: 0 10px 22px rgba(140,60,255,.3); }
+
+    .suspend-section { margin-top: 22px; padding-top: 18px; border-top: 1px solid #f2f3fa; }
+    .btn-suspend { width: 100%; display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 46px; border-radius: 10px; border: none; background: #fde3e3; color: #d92d2d; font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 700; }
+
+    .impact-panel { padding: 20px; }
+    .impact-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f2f3fa; }
+    .impact-row:last-child { border-bottom: none; }
+    .impact-label { font-family: 'Inter', sans-serif; font-size: 12px; color: #8189a8; }
+
+    .warning-note { margin-top: 20px; padding: 12px 16px; border-radius: 10px; background: #eef1ff; border: 1px solid #dbe0ff; display: flex; gap: 10px; align-items: center; font-family: 'Inter', sans-serif; font-size: 12.5px; color: #4a4f8a; }
+    .warning-note i { color: #6b52d8; }
+</style>
+
+<div class="panel dispute-top-panel">
+
+    <div>
+        <div class="top-col-label">Case ID</div>
+        <div class="case-id-value">DSP-2025-00345 <span class="status-pill blue">Under Review</span></div>
+        <div class="raised-meta">Raised on May 28, 2025 &middot; 11:45 AM</div>
+    </div>
+
+    <div>
+        <div class="top-col-label">Dispute Between</div>
+        <div class="vs-row">
+            <div class="vs-party">
+                <div class="vs-logo">GLOW<br />UP</div>
+                <div><div class="vs-name">GlowUp Skincare Ltd.</div><span class="status-pill blue vs-badge">Brand</span></div>
+            </div>
+            <div class="vs-divider">VS</div>
+            <div class="vs-party">
+                <div class="vs-avatar"></div>
+                <div><div class="vs-name">Priya Islam</div><span class="status-pill gray vs-badge">Influencer</span></div>
+            </div>
+        </div>
+    </div>
+
+    <div>
+        <div class="top-col-label">Campaign / Milestone</div>
+        <div class="review-milestone-title" style="font-family:'Inter',sans-serif; font-size:13px; font-weight:700; color:#2a3157;">GlowUp Summer Skincare Launch</div>
+        <div class="raised-meta">Milestone 2 &ndash; Instagram Feed Post</div>
+    </div>
+
+    <div>
+        <div class="top-col-label">Current Status</div>
+        <span class="status-pill blue">Under Review</span>
+    </div>
+
+</div>
+
+<div class="body-grid">
+
+    <div>
+        <div class="panel">
+            <div class="panel-head-row">
+                <div class="panel-head-title"><i class="bi bi-chat-dots-fill"></i> 1. Conversation History</div>
+                <span class="expand-btn" style="width:30px;height:30px;border-radius:8px;border:1px solid #eaecf5;display:flex;align-items:center;justify-content:center;color:#8189a8;"><i class="bi bi-arrows-fullscreen"></i></span>
+            </div>
+
+            <div class="chat-scroll">
+                <div class="chat-msg from-brand">
+                    <div class="chat-msg-meta"><span class="chat-avatar-sm" style="background:#14103a; border-radius:6px;"></span> GlowUp Skincare Ltd. &middot; May 28, 11:45 AM</div>
+                    <div class="chat-bubble">We noticed the post doesn't include our product tag as agreed in the brief.</div>
+                </div>
+                <div class="chat-msg from-influencer">
+                    <div class="chat-msg-meta">Priya Islam &middot; May 28, 12:02 PM <span class="chat-avatar-sm" style="background:linear-gradient(145deg,#c93cff,#4e38ff 55%,#159cff);"></span></div>
+                    <div class="chat-bubble">I did include it in my story. Here's the screenshot.</div>
+                </div>
+                <div class="chat-msg from-brand">
+                    <div class="chat-msg-meta"><span class="chat-avatar-sm" style="background:#14103a; border-radius:6px;"></span> GlowUp Skincare Ltd. &middot; May 28, 12:15 PM</div>
+                    <div class="chat-bubble">Stories were not part of this milestone. We need it in the feed post.</div>
+                </div>
+                <div class="chat-msg from-influencer">
+                    <div class="chat-msg-meta">Priya Islam &middot; May 28, 12:30 PM <span class="chat-avatar-sm" style="background:linear-gradient(145deg,#c93cff,#4e38ff 55%,#159cff);"></span></div>
+                    <div class="chat-bubble">I understand. I can update the caption and add the tags.</div>
+                </div>
+                <div class="chat-msg from-brand">
+                    <div class="chat-msg-meta"><span class="chat-avatar-sm" style="background:#14103a; border-radius:6px;"></span> GlowUp Skincare Ltd. &middot; May 28, 12:45 PM</div>
+                    <div class="chat-bubble">Please do that and resubmit. Otherwise, we need a refund.</div>
+                </div>
+                <div class="chat-end-marker">&mdash; End of conversation &mdash;</div>
+            </div>
+        </div>
+
+        <div class="panel" style="margin-top:20px;">
+            <div class="panel-head-title"><i class="bi bi-file-text-fill"></i> 5. Dispute Summary</div>
+
+            <div style="margin-top:14px; display:flex; gap:10px; align-items:flex-start;">
+                <i class="bi bi-exclamation-triangle-fill" style="color:#d92d2d;"></i>
+                <div>
+                    <div style="font-family:'Inter',sans-serif; font-size:12.5px; font-weight:700; color:#2a3157;">Reason for Dispute</div>
+                    <div style="margin-top:3px; font-family:'Inter',sans-serif; font-size:12.5px; color:#545b7d; line-height:1.5;">Brand claims the influencer did not follow the brief by missing product tags in the feed post as required.</div>
+                </div>
+            </div>
+
+            <div style="margin-top:16px; display:flex; gap:10px; align-items:flex-start;">
+                <i class="bi bi-flag-fill" style="color:#6b52d8;"></i>
+                <div>
+                    <div style="font-family:'Inter',sans-serif; font-size:12.5px; font-weight:700; color:#2a3157;">Desired Resolution</div>
+                    <div style="margin-top:3px; font-family:'Inter',sans-serif; font-size:12.5px; color:#545b7d; line-height:1.5;">Brand is requesting either a corrected post with proper tags or a full refund.</div>
+                </div>
+            </div>
+
+            <div class="panel-sub" style="margin-top:18px; font-weight:700; color:#2a3157;">Dispute Impact</div>
+            <div class="impact-row"><span class="impact-label">Campaign Impact</span><span class="status-pill gray">Medium</span></div>
+            <div class="impact-row"><span class="impact-label">Brand Impact</span><span class="status-pill gray">Medium</span></div>
+            <div class="impact-row"><span class="impact-label">Influencer Impact</span><span class="status-pill green">Low</span></div>
+            <div class="impact-row"><span class="impact-label">Financial Impact</span><span style="font-family:'DM Sans',sans-serif; font-weight:700; color:#171d3d;">৳25,000</span></div>
+        </div>
+    </div>
+
+    <div>
+        <div class="panel">
+            <div class="panel-head-title"><i class="bi bi-image-fill"></i> 2. Proof-of-Post Evidence</div>
+
+            <div class="proof-header-row">
+                <div class="proof-avatar-sm"></div>
+                <div><div class="proof-username">priya.islam.official <i class="bi bi-instagram" style="color:#c13584;"></i></div><div class="proof-date">May 27, 2025</div></div>
+            </div>
+
+            <div class="proof-media">
+                <span class="proof-media-expand"><i class="bi bi-arrows-fullscreen"></i></span>
+            </div>
+
+            <div class="proof-actions-row">
+                <i class="bi bi-heart"></i>
+                <i class="bi bi-chat"></i>
+                <i class="bi bi-send"></i>
+            </div>
+
+            <div class="proof-likes">1,234 likes</div>
+            <div class="proof-caption">Excited to share my current skincare favorites&hellip;</div>
+            <a href="#" class="proof-ig-link">View on Instagram <i class="bi bi-box-arrow-up-right"></i></a>
+
+            <div class="panel-sub" style="margin-top:20px; font-weight:700; color:#2a3157;">Proof Details</div>
+            <div class="proof-details-list">
+                <div class="proof-detail-row"><span class="proof-detail-label">Platform</span><span class="proof-detail-value">Instagram</span></div>
+                <div class="proof-detail-row"><span class="proof-detail-label">Post Type</span><span class="proof-detail-value">Feed Post</span></div>
+                <div class="proof-detail-row"><span class="proof-detail-label">Submitted On</span><span class="proof-detail-value">May 29, 2025, 10:15 AM</span></div>
+                <div class="proof-detail-row"><span class="proof-detail-label">Milestone Amount</span><span class="proof-detail-value">৳25,000</span></div>
+                <div class="proof-detail-row"><span class="proof-detail-label">Proof Status</span><span class="proof-detail-value"><span class="status-pill blue">Submitted</span></span></div>
+                <div class="proof-detail-row"><span class="proof-detail-label">Notes</span><span class="proof-detail-value">Waiting for admin review</span></div>
+            </div>
+        </div>
+    </div>
+
+    <div>
+        <div class="panel">
+            <div class="panel-head-title"><i class="bi bi-credit-card-fill"></i> 3. Payment Information</div>
+            <div style="margin-top:10px;">
+                <div class="payment-row"><span class="payment-label">Transaction ID</span><span class="payment-value">TXN-2025-00876 <i class="bi bi-box-arrow-up-right" style="font-size:11px; color:#6b52d8;"></i></span></div>
+                <div class="payment-row"><span class="payment-label">Amount</span><span class="payment-value">৳25,000</span></div>
+                <div class="payment-row"><span class="payment-label">Payment Status</span><span class="payment-value"><span class="status-pill gray">On Hold</span></span></div>
+                <div class="payment-row"><span class="payment-label">Payment Date</span><span class="payment-value">May 20, 2025</span></div>
+                <div class="payment-row"><span class="payment-label">Payment Method</span><span class="payment-value">bKash</span></div>
+                <div class="payment-row"><span class="payment-label">Escrow Status</span><span class="payment-value"><span class="status-pill green">Held in Escrow</span></span></div>
+            </div>
+            <a href="/Admin/AdminPayments/Index" class="btn btn-secondary btn-sm" style="width:100%; margin-top:14px; justify-content:center;">View Payment Details <i class="bi bi-arrow-right" style="margin-left:6px;"></i></a>
+        </div>
+
+        <div class="panel" style="margin-top:20px;">
+            <div class="panel-head-title"><i class="bi bi-clipboard-check-fill"></i> 4. Resolution Panel</div>
+
+            <div style="margin-top:16px;">
+                <div class="resolution-field-label">Resolution Notes (Required)</div>
+                <div class="resolution-field-hint">Add notes about the resolution and decision.</div>
+                <form method="post" action="/Admin/AdminDisputes/Resolve" id="resolveForm">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="1" />
+                    <textarea class="resolution-textarea" name="notes" maxlength="1000" required placeholder="Type your notes here..." oninput="document.getElementById('resNotesCount').textContent = this.value.length"></textarea>
+                    <div class="char-counter"><span id="resNotesCount">0</span>/1000</div>
+
+                    <div class="resolution-field-label" style="margin-top:16px;">Select Outcome (Required)</div>
+                    <select class="outcome-select" name="outcome" required>
+                        <option value="" selected disabled>Choose an outcome</option>
+                        <option value="ReleasePayment">Release Payment to Influencer</option>
+                        <option value="RefundBrand">Refund Brand</option>
+                        <option value="NoAction">No Action</option>
+                    </select>
+
+                    <button type="submit" class="btn-resolve"><i class="bi bi-shield-check"></i> Resolve Dispute</button>
+                </form>
+            </div>
+
+            <div class="suspend-section">
+                <div class="resolution-field-label">Suspend Account (If Necessary)</div>
+                <div class="resolution-field-hint">Suspend either brand or influencer account.</div>
+
+                <form method="post" action="/Admin/AdminDisputes/Suspend" onsubmit="return confirm('Suspend the selected account? This action locks them out indefinitely.');">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="1" />
+                    <input type="hidden" name="party" value="Brand" />
+                    <button type="submit" class="btn-suspend"><i class="bi bi-person-x-fill"></i> Suspend Account</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="warning-note"><i class="bi bi-info-circle-fill"></i> Please review all evidence and communications carefully before making a resolution. Your decision will be final.</div>

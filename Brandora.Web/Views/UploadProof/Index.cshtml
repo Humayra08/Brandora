@@ -1,0 +1,1701 @@
+@model Brandora.Web.Models.Dashboard.UploadProofViewModel
+@using Brandora.Web.Models.Domain
+@using Brandora.Web.Models.Influencers
+@using System.Text.Json
+@{
+    ViewData["Title"] = "Upload Proof";
+    ViewData["ActiveNav"] = "UploadProof";
+    Layout = null;
+
+    var campaignsJson = JsonSerializer.Serialize(Model.Campaigns.Select(c => new
+    {
+        collaborationId = c.CollaborationId,
+        campaignId = c.CampaignId,
+        title = c.Title,
+        brandName = c.BrandName,
+        platform = c.Platform,
+        niche = c.Niche,
+        mediaUrl = c.MediaUrl,
+        budget = c.Budget,
+        deadline = c.Deadline.HasValue ? c.Deadline.Value.ToString("d MMM yyyy") : null,
+        milestones = c.Milestones.Select(m => new { id = m.MilestoneId, title = m.Title, amount = m.Amount })
+    }));
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>@ViewData["Title"] - Brandora</title>
+
+    <link rel="icon" type="image/png" href="~/images/brandora-icon.png" />
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+          rel="stylesheet">
+
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Playfair+Display:wght@500;600;700&display=swap"
+          rel="stylesheet">
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+
+        ::-webkit-scrollbar-button,
+        ::-webkit-scrollbar-button:single-button,
+        ::-webkit-scrollbar-button:vertical:start,
+        ::-webkit-scrollbar-button:vertical:end,
+        ::-webkit-scrollbar-button:horizontal:start,
+        ::-webkit-scrollbar-button:horizontal:end,
+        ::-webkit-scrollbar-button:increment,
+        ::-webkit-scrollbar-button:decrement {
+            display: none !important;
+            width: 0 !important;
+            height: 0 !important;
+            background: transparent !important;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #d3d9ec;
+            border-radius: 10px;
+            border: 2px solid transparent;
+            background-clip: padding-box;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #b7c0e0;
+            background-clip: padding-box;
+        }
+
+        html {
+            scrollbar-width: thin;
+            scrollbar-color: #d3d9ec transparent;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'DM Sans', sans-serif;
+            background: #ffffff;
+            color: #20283a;
+            overflow-x: hidden;
+        }
+
+        /* ==============================
+           SIDEBAR (shared with dashboard)
+        ============================== */
+
+        .sidebar {
+            position: fixed;
+            width: 230px;
+            height: 100vh;
+            left: 0;
+            top: 0;
+            padding: 16px 12px;
+            background:
+                radial-gradient(circle at 0% 30%, rgba(139, 34, 255, .18), transparent 30%),
+                linear-gradient(180deg, #070c22 0%, #0a1028 100%);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid rgba(255,255,255,.06);
+            z-index: 1000;
+
+            overflow-y: auto;
+            overflow-x: hidden;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255,255,255,.15) transparent;
+
+            transition: transform .25s ease;
+        }
+
+        .sidebar.is-hidden {
+            transform: translateX(-100%);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            padding: 0 12px 6px;
+        }
+
+        .sidebar-wave-img {
+            position: absolute;
+            left: 0;
+            bottom: 60px;
+            width: 100%;
+            height: auto;
+            pointer-events: none;
+            z-index: -1;
+            opacity: .9;
+        }
+
+        .brand-logo-img {
+            height: 44px;
+            width: auto;
+            display: block;
+        }
+
+        .sidebar-nav-wrap {
+            position: relative;
+            flex: 1;
+            min-height: 0;
+            margin-top: 14px;
+        }
+
+        .sidebar-nav-wrap::before {
+            content: "";
+            position: absolute;
+            top: -34px;
+            left: -34px;
+            right: -34px;
+            bottom: 0;
+            z-index: -1;
+            pointer-events: none;
+
+            background:
+                radial-gradient(circle at 12% 5%, rgba(35,110,234,.2), transparent 30%),
+                radial-gradient(circle at 88% 14%, rgba(163,38,255,.18), transparent 32%),
+                radial-gradient(circle at 18% 50%, rgba(24,169,255,.16), transparent 30%),
+                radial-gradient(circle at 85% 62%, rgba(163,38,255,.14), transparent 32%),
+                radial-gradient(circle at 30% 90%, rgba(35,110,234,.16), transparent 34%);
+
+            filter: blur(14px);
+        }
+
+        .sidebar-nav-glass {
+            position: relative;
+
+            padding: 0;
+
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,.12);
+
+            background: rgba(255,255,255,.03);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+
+            box-shadow: 0 8px 30px rgba(0,0,0,.18);
+        }
+
+        .sidebar-menu {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .sidebar-menu li {
+            margin-bottom: 2px;
+        }
+
+        .sidebar-menu a {
+            color: #d9dce8;
+            text-decoration: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 10px 14px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 400;
+            transition: background .2s ease, color .2s ease, transform .1s ease;
+        }
+
+        .sidebar-menu a:hover {
+            background: rgba(255,255,255,.06);
+            color: white;
+        }
+
+        .sidebar-menu a:active {
+            transform: scale(.98);
+            background: rgba(255,255,255,.1);
+        }
+
+        .sidebar-menu .active:hover,
+        .sidebar-menu .active:active {
+            background: linear-gradient(105deg, #a326ff, #236eff, #18a9ff);
+        }
+
+        .nav-chevron {
+            font-size: 15px;
+            opacity: 0;
+            transition: .2s ease;
+        }
+
+        .sidebar-menu .active {
+            color: white;
+            background: linear-gradient(105deg, #a326ff, #236eff, #18a9ff);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,.35),
+                inset 0 0 0 1px rgba(255,255,255,.18),
+                0 8px 25px rgba(106, 37, 213, .25);
+        }
+
+        .sidebar-menu .active .nav-chevron {
+            opacity: 1;
+        }
+
+        .sidebar-bottom {
+            margin-top: auto;
+            padding: 12px 8px 0;
+        }
+
+        .sidebar-user {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding-bottom: 10px;
+            min-width: 0;
+        }
+
+        .sidebar-user > div {
+            min-width: 0;
+        }
+
+        .avatar-circle {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            flex-shrink: 0;
+            background: linear-gradient(145deg, #c93cff, #4e38ff 55%, #159cff);
+            color: #ffffff;
+            font-family: 'DM Sans', sans-serif;
+            font-weight: 700;
+        }
+
+        .avatar-circle.small {
+            width: 36px;
+            height: 36px;
+            font-size: 12px;
+            border: 2px solid rgba(255,255,255,.12);
+        }
+
+        .sidebar-user h6 {
+            margin: 0 0 4px;
+            font-size: 14px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .sidebar-user span {
+            color: #afb4c6;
+            font-size: 13px;
+        }
+
+        .logout-btn {
+            width: 100%;
+            padding: 10px;
+            border: 0;
+            border-top: 1px solid rgba(255,255,255,.08);
+            background: transparent;
+            color: #dce0ea;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .logout-btn i {
+            margin-right: 10px;
+            font-size: 16px;
+        }
+
+        .logout-btn:hover {
+            color: white;
+        }
+
+        /* ==============================
+           MAIN CONTENT
+        ============================== */
+
+        .main-content {
+            margin-left: 230px;
+            min-height: 100vh;
+            padding: 24px 26px;
+            background: #ffffff;
+
+            transition: margin-left .25s ease;
+        }
+
+        .main-content.sidebar-hidden {
+            margin-left: 0;
+        }
+
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .menu-btn {
+            border: 0;
+            background: transparent;
+            font-size: 26px;
+            color: #20283a;
+        }
+
+        .top-actions {
+            display: flex;
+            align-items: center;
+            gap: 22px;
+        }
+
+        .bell {
+            position: relative;
+            font-size: 23px;
+            color: #20283a;
+        }
+
+        .browse-btn {
+            border: 0;
+            color: white;
+            padding: 9px 16px;
+            border-radius: 9px;
+            font-size: 13px;
+            font-weight: 600;
+            background: linear-gradient(105deg, #a326ff, #236eff, #18a9ff);
+            transition: .25s;
+        }
+
+        .browse-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .browse-btn i {
+            margin-left: 10px;
+        }
+
+        /* ==============================
+           HERO
+        ============================== */
+
+        .up-hero {
+            position: relative;
+            overflow: visible;
+            border-radius: 20px;
+            padding: 30px 34px;
+            margin-bottom: 22px;
+            background:
+                radial-gradient(circle at 85% 15%, rgba(163,38,255,.10), transparent 40%),
+                radial-gradient(circle at 15% 90%, rgba(24,110,255,.08), transparent 40%),
+                linear-gradient(120deg, #f3f0ff 0%, #eef2ff 55%, #f2eeff 100%);
+            border: 1px solid #e7e3fb;
+        }
+
+        .up-hero-bg {
+            position: absolute;
+            inset: 0;
+            overflow: hidden;
+            border-radius: 20px;
+            z-index: 4;
+            pointer-events: none;
+        }
+
+        .up-hero-wave-img {
+            position: absolute;
+            top: 0;
+            right: 0;
+            height: 100%;
+            width: auto;
+            max-width: 55%;
+            object-fit: contain;
+            object-position: top right;
+            opacity: .35;
+        }
+
+        .up-hero-grid {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 24px;
+        }
+
+        .up-eyebrow {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11.5px;
+            font-weight: 700;
+            letter-spacing: .4px;
+            color: #6322d4;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+
+        .up-hero-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 28px;
+            font-weight: 700;
+            color: #14163a;
+            margin-bottom: 8px;
+        }
+
+        .up-hero-sub {
+            font-size: 13.5px;
+            color: #4d5470;
+            line-height: 1.6;
+            max-width: 440px;
+        }
+
+        .up-hero-art {
+            position: relative;
+            z-index: 3;
+            width: 150px;
+            height: 130px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: visible;
+        }
+
+        .up-hero-art-img {
+            width: 190px;
+            height: 165px;
+            max-width: none;
+            object-fit: contain;
+            margin-left: -140px;
+        }
+
+        /* ==============================
+           STEP INDICATOR
+        ============================== */
+
+        .up-steps {
+            display: flex;
+            align-items: center;
+            background: #ffffff;
+            border: 1px solid #e7e9f5;
+            border-radius: 16px;
+            padding: 18px 24px;
+            margin-bottom: 24px;
+        }
+
+        .up-step {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 0 0 auto;
+        }
+
+        .up-step-connector {
+            flex: 1 1 auto;
+            height: 0;
+            border-top: 2px dashed #dce1f0;
+            margin: 0 14px;
+            align-self: center;
+        }
+
+        .up-step-badge {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 700;
+            background: linear-gradient(105deg, #a326ff, #236eff, #18a9ff);
+            color: #ffffff;
+            flex-shrink: 0;
+        }
+
+        .up-step-title {
+            font-size: 13.5px;
+            font-weight: 700;
+            color: #8a93ad;
+        }
+
+        .up-step-sub {
+            font-size: 11.5px;
+            color: #b7c0e0;
+            margin-top: 1px;
+        }
+
+        /* ==============================
+           LAYOUT
+        ============================== */
+
+        .up-grid {
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 24px;
+            align-items: start;
+        }
+
+        .up-section {
+            margin-bottom: 26px;
+        }
+
+        .up-section-title {
+            font-size: 15.5px;
+            font-weight: 700;
+            color: #101a42;
+            margin-bottom: 4px;
+        }
+
+        .up-section-sub {
+            font-size: 12.5px;
+            color: #8a93ad;
+            margin-bottom: 12px;
+        }
+
+        /* Custom dropdown */
+
+        .up-dropdown {
+            position: relative;
+        }
+
+        .up-dropdown-trigger {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            border: 1px solid #dce7ff;
+            border-radius: 10px;
+            padding: 13px 15px;
+            font-size: 13.5px;
+            font-family: 'DM Sans', sans-serif;
+            color: #20283a;
+            background: #ffffff;
+            cursor: pointer;
+            text-align: left;
+            transition: border-color .2s ease;
+        }
+
+        .up-dropdown-trigger:hover {
+            border-color: #b7c0e0;
+        }
+
+        .up-dropdown.is-disabled .up-dropdown-trigger {
+            background: #ffffff;
+            color: #b7c0e0;
+            cursor: not-allowed;
+        }
+
+        .up-dropdown.is-open .up-dropdown-trigger {
+            border-color: #9b2cff;
+        }
+
+        .up-dropdown-trigger span.is-placeholder {
+            color: #8a93ad;
+        }
+
+        .up-dropdown-trigger i {
+            color: #8a93ad;
+            font-size: 12px;
+            flex-shrink: 0;
+            transition: transform .2s ease;
+        }
+
+        .up-dropdown.is-open .up-dropdown-trigger i {
+            transform: rotate(180deg);
+            color: #6322d4;
+        }
+
+        .up-dropdown-panel {
+            display: none;
+            position: absolute;
+            top: calc(100% + 6px);
+            left: 0;
+            right: 0;
+            z-index: 20;
+            max-height: 260px;
+            overflow-y: auto;
+            background: #ffffff;
+            border: 1px solid #e7e9f5;
+            border-radius: 12px;
+            padding: 6px;
+            box-shadow: 0 16px 36px rgba(35,72,160,.14);
+        }
+
+        .up-dropdown.is-open .up-dropdown-panel {
+            display: block;
+        }
+
+        .up-dropdown-option {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 13.5px;
+            color: #3a4360;
+            cursor: pointer;
+            transition: background .15s ease;
+        }
+
+        .up-dropdown-option:hover {
+            background: #f6f7fc;
+        }
+
+        .up-dropdown-option small {
+            color: #8a93ad;
+            font-weight: 600;
+        }
+
+        .up-dropdown-option.is-selected {
+            background: linear-gradient(105deg, rgba(163,38,255,.08), rgba(24,169,255,.06));
+            color: #6322d4;
+            font-weight: 600;
+        }
+
+        /* Upload dropzone */
+
+        .up-dropzone {
+            border: 1.5px dashed #cdd7f2;
+            border-radius: 16px;
+            background: #f9faff;
+            padding: 34px 20px;
+            text-align: center;
+            transition: border-color .2s ease, background .2s ease;
+        }
+
+        .up-dropzone.is-dragover {
+            border-color: #9b2cff;
+            background: #f6f2ff;
+        }
+
+        .up-dropzone-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 42px;
+            line-height: 1;
+            margin: 0 auto 16px;
+            background: linear-gradient(135deg, #7b2ff7, #18a9ff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            color: #6322d4;
+        }
+
+        .up-dropzone-text {
+            font-size: 14px;
+            font-weight: 700;
+            color: #101a42;
+            margin-bottom: 4px;
+        }
+
+        .up-dropzone-or {
+            font-size: 12px;
+            color: #8a93ad;
+            margin-bottom: 14px;
+        }
+
+        .up-choose-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            border: 0;
+            color: white;
+            padding: 10px 22px;
+            border-radius: 9px;
+            font-size: 13px;
+            font-weight: 600;
+            background: linear-gradient(105deg, #a326ff, #236eff, #18a9ff);
+            cursor: pointer;
+        }
+
+        .up-dropzone-hint {
+            font-size: 11.5px;
+            color: #8a93ad;
+            margin-top: 14px;
+        }
+
+        .up-file-list {
+            margin-top: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .up-file-chip {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border: 1px solid #e7e9f5;
+            border-radius: 10px;
+            padding: 9px 12px;
+            font-size: 12.5px;
+            color: #3a4360;
+        }
+
+        .up-file-chip i.bi-file-earmark-check-fill {
+            color: #6322d4;
+        }
+
+        .up-file-chip span {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .up-file-remove {
+            border: 0;
+            background: transparent;
+            color: #b7c0e0;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .up-file-remove:hover {
+            color: #e0325b;
+        }
+
+        /* Text inputs */
+
+        .up-field {
+            margin-bottom: 22px;
+        }
+
+        .up-field label {
+            display: block;
+            font-size: 13px;
+            font-weight: 700;
+            color: #3a4360;
+            margin-bottom: 8px;
+        }
+
+        .up-field input,
+        .up-field textarea {
+            width: 100%;
+            border: 1px solid #dce7ff;
+            border-radius: 10px;
+            padding: 12px 14px;
+            font-size: 13.5px;
+            font-family: 'DM Sans', sans-serif;
+            color: #20283a;
+            outline: 0;
+            transition: border-color .2s ease;
+        }
+
+        .up-field input:focus,
+        .up-field textarea:focus {
+            border-color: #9b2cff;
+        }
+
+        .up-input-icon-wrap {
+            position: relative;
+        }
+
+        .up-input-icon-wrap i {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #8a93ad;
+            font-size: 14px;
+        }
+
+        .up-input-icon-wrap input {
+            padding-left: 38px;
+        }
+
+        .up-textarea-wrap {
+            position: relative;
+        }
+
+        .up-textarea-wrap textarea {
+            resize: vertical;
+            min-height: 90px;
+        }
+
+        .up-char-count {
+            position: absolute;
+            right: 13px;
+            bottom: 10px;
+            font-size: 11px;
+            color: #b7c0e0;
+            background: #ffffff;
+            padding-left: 4px;
+        }
+
+        /* Actions */
+
+        .up-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        .up-submit-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            border: 0;
+            color: white;
+            padding: 12px 26px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            background: linear-gradient(105deg, #a326ff, #236eff, #18a9ff);
+            cursor: pointer;
+            transition: .2s;
+        }
+
+        .up-submit-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .up-error-note {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #fde8ea;
+            color: #c22540;
+            border: 1px solid #f6c6cd;
+            border-radius: 10px;
+            padding: 10px 14px;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 18px;
+        }
+
+        .up-saved-note {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #e2faf1;
+            color: #0d9c6c;
+            border: 1px solid #c7f2e2;
+            border-radius: 10px;
+            padding: 10px 14px;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 18px;
+        }
+
+        /* ==============================
+           RIGHT PANEL
+        ============================== */
+
+        .up-card {
+            background: #ffffff;
+            border: 1px solid #e7e9f5;
+            border-radius: 16px;
+            padding: 18px;
+            margin-bottom: 16px;
+        }
+
+        .up-form-card {
+            padding: 28px;
+            margin-bottom: 0;
+        }
+
+        .up-form-card .up-section:last-of-type {
+            margin-bottom: 24px;
+        }
+
+        .up-card-title {
+            font-size: 13.5px;
+            font-weight: 700;
+            color: #101a42;
+            margin-bottom: 14px;
+        }
+
+        .up-empty-note {
+            font-size: 12.5px;
+            color: #8a93ad;
+            line-height: 1.6;
+        }
+
+        .up-campaign-thumb-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+
+        .up-campaign-thumb {
+            width: 52px;
+            height: 52px;
+            border-radius: 12px;
+            object-fit: cover;
+            flex-shrink: 0;
+        }
+
+        .up-campaign-thumb-fallback {
+            width: 52px;
+            height: 52px;
+            border-radius: 12px;
+            flex-shrink: 0;
+            background: linear-gradient(135deg, #eef1ff 0%, #f1e9ff 55%, #f6ecff 100%);
+            color: #6322d4;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 15px;
+        }
+
+        .up-campaign-title {
+            font-size: 13.5px;
+            font-weight: 700;
+            color: #101a42;
+        }
+
+        .up-campaign-brand {
+            font-size: 12px;
+            color: #7c8ab0;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin-top: 2px;
+        }
+
+        .up-campaign-brand i {
+            color: #2596ff;
+            font-size: 11px;
+        }
+
+        .up-tag-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 14px;
+        }
+
+        .up-tag {
+            font-size: 11px;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 20px;
+            background: #f3e8ff;
+            color: #7a1fd6;
+        }
+
+        .up-meta-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            padding-top: 14px;
+            border-top: 1px solid #eef0f8;
+            margin-bottom: 14px;
+        }
+
+        .up-meta-row small {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            color: #8a93ad;
+            font-size: 11px;
+            margin-bottom: 4px;
+        }
+
+        .up-meta-row strong {
+            font-size: 13px;
+            color: #101a42;
+        }
+
+        .up-view-campaign-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            width: 100%;
+            border: 0;
+            background: #f3e8ff;
+            color: #6322d4;
+            padding: 10px;
+            border-radius: 9px;
+            font-size: 12.5px;
+            font-weight: 700;
+            text-decoration: none;
+        }
+
+        .up-view-campaign-btn:hover {
+            background: #ecdcff;
+            color: #6322d4;
+        }
+
+        .up-checklist {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .up-checklist li {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 12.5px;
+            color: #3a4360;
+            line-height: 1.5;
+        }
+
+        .up-checklist i {
+            color: #6322d4;
+            font-size: 15px;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
+        .up-help-card {
+            background: radial-gradient(circle at 100% 0%, rgba(139,34,255,.35), transparent 55%), linear-gradient(180deg, #0d1230 0%, #141a3d 100%);
+            border: 0;
+            color: #ffffff;
+        }
+
+        .up-help-card .up-card-title {
+            color: #ffffff;
+        }
+
+        .up-help-desc {
+            font-size: 12.5px;
+            color: #b6bcd9;
+            line-height: 1.6;
+            margin-bottom: 16px;
+        }
+
+        .up-chat-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            border: 1px solid rgba(255,255,255,.16);
+            background: rgba(255,255,255,.06);
+            color: #ffffff;
+            padding: 11px;
+            border-radius: 10px;
+            font-size: 12.5px;
+            font-weight: 700;
+            text-decoration: none;
+        }
+
+        .up-chat-btn:hover {
+            background: rgba(255,255,255,.12);
+            color: #ffffff;
+        }
+
+        /* ==============================
+           RESPONSIVE
+        ============================== */
+
+        @@media(max-width: 1100px) {
+            .sidebar {
+                width: 220px;
+            }
+
+            .main-content {
+                margin-left: 220px;
+            }
+        }
+
+        @@media(max-width: 980px) {
+            .up-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .up-hero-art {
+                display: none;
+            }
+        }
+
+        @@media(max-width: 900px) {
+            .sidebar {
+                transform: translateX(-100%);
+                box-shadow: 0 0 40px rgba(0,0,0,.35);
+            }
+
+            .sidebar.is-open {
+                transform: translateX(0);
+            }
+
+            .sidebar-backdrop {
+                display: none;
+                position: fixed;
+                inset: 0;
+                background: rgba(5,6,20,.5);
+                z-index: 999;
+            }
+
+            .sidebar-backdrop.is-visible {
+                display: block;
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .up-steps {
+                overflow-x: auto;
+            }
+
+            .up-step-sub {
+                display: none;
+            }
+        }
+
+        @@media(max-width: 640px) {
+            .main-content {
+                padding: 18px 14px;
+            }
+
+            .up-hero {
+                padding: 22px 20px;
+            }
+
+            .up-hero-title {
+                font-size: 22px;
+            }
+
+            .up-submit-btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+    <!-- ================= SIDEBAR ================= -->
+
+    @await Html.PartialAsync("_InfluencerSidebar")
+
+
+    <!-- ================= MAIN ================= -->
+
+    <main class="main-content" id="dashboardMain">
+
+        <!-- TOP BAR -->
+
+        <div class="topbar">
+
+            <button class="menu-btn" id="menuToggleBtn" aria-label="Toggle sidebar" type="button">
+                <i class="bi bi-list"></i>
+            </button>
+
+            <div class="top-actions">
+
+                <div class="bell">
+                    <i class="bi bi-bell"></i>
+                </div>
+
+                <a href="/InfluencerCampaigns">
+                    <button class="browse-btn">
+                        Browse Campaigns
+                        <i class="bi bi-arrow-right"></i>
+                    </button>
+                </a>
+
+            </div>
+
+        </div>
+
+
+        <!-- ================= HERO ================= -->
+
+        <section class="up-hero">
+            <div class="up-hero-bg">
+                <img src="~/images/Wave2.png" alt="" class="up-hero-wave-img" />
+            </div>
+
+            <div class="up-hero-grid">
+
+                <div>
+                    <div class="up-eyebrow">Upload Proof</div>
+                    <div class="up-hero-title">Submit Proof, Get Paid</div>
+                    <div class="up-hero-sub">Upload your proof of work for the milestone you've completed. Make sure it meets the campaign requirements.</div>
+                </div>
+
+                <div class="up-hero-art">
+                    <img src="~/images/Proof Logo.png" alt="Upload proof" class="up-hero-art-img" />
+                </div>
+
+            </div>
+        </section>
+
+
+        <!-- ================= STEP INDICATOR ================= -->
+
+        <div class="up-steps" id="stepIndicator">
+
+            <div class="up-step is-active" data-step="1">
+                <div class="up-step-badge">1</div>
+                <div>
+                    <div class="up-step-title">Select Campaign</div>
+                    <div class="up-step-sub">Choose your campaign</div>
+                </div>
+            </div>
+
+            <div class="up-step-connector"></div>
+
+            <div class="up-step" data-step="2">
+                <div class="up-step-badge">2</div>
+                <div>
+                    <div class="up-step-title">Select Milestone</div>
+                    <div class="up-step-sub">Choose completed milestone</div>
+                </div>
+            </div>
+
+            <div class="up-step-connector"></div>
+
+            <div class="up-step" data-step="3">
+                <div class="up-step-badge">3</div>
+                <div>
+                    <div class="up-step-title">Upload Proof</div>
+                    <div class="up-step-sub">Add your files</div>
+                </div>
+            </div>
+
+            <div class="up-step-connector"></div>
+
+            <div class="up-step" data-step="4">
+                <div class="up-step-badge">4</div>
+                <div>
+                    <div class="up-step-title">Review &amp; Submit</div>
+                    <div class="up-step-sub">Final review</div>
+                </div>
+            </div>
+
+        </div>
+
+
+        @if (TempData["ProofError"] is not null)
+        {
+            <div class="up-error-note"><i class="bi bi-exclamation-circle-fill"></i> @TempData["ProofError"]</div>
+        }
+
+        @if (TempData["ProofSubmitted"] is not null)
+        {
+            <div class="up-saved-note"><i class="bi bi-check-circle-fill"></i> Proof submitted! The brand has been notified and will review it shortly.</div>
+        }
+
+        <!-- ================= LAYOUT ================= -->
+
+            <form method="post" action="/UploadProof/Submit" enctype="multipart/form-data" id="proofForm">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="milestoneId" id="milestoneIdInput" />
+
+                <div class="up-grid">
+
+                    <!-- LEFT: FORM -->
+
+                    <div class="up-card up-form-card">
+
+                        <div class="up-section">
+                            <div class="up-section-title">Step 1: Select Campaign</div>
+                            <div class="up-section-sub">Choose the campaign you're working on.</div>
+
+                            <div class="up-dropdown" id="campaignDropdown">
+                                <button type="button" class="up-dropdown-trigger" id="campaignTrigger">
+                                    <span id="campaignTriggerLabel" class="is-placeholder">Search and select a campaign...</span>
+                                    <i class="bi bi-chevron-down"></i>
+                                </button>
+
+                                <div class="up-dropdown-panel" id="campaignOptions">
+                                    @foreach (var c in Model.Campaigns)
+                                    {
+                                        <div class="up-dropdown-option" data-collab-id="@c.CollaborationId">@c.Title <small>@c.BrandName</small></div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="up-section">
+                            <div class="up-section-title">Step 2: Select Milestone</div>
+                            <div class="up-section-sub">Select the milestone you've completed and want to submit proof for.</div>
+
+                            <div class="up-dropdown is-disabled" id="milestoneDropdown">
+                                <button type="button" class="up-dropdown-trigger" id="milestoneTrigger" disabled>
+                                    <span id="milestoneTriggerLabel" class="is-placeholder">Search and select a milestone...</span>
+                                    <i class="bi bi-chevron-down"></i>
+                                </button>
+
+                                <div class="up-dropdown-panel" id="milestoneOptions"></div>
+                            </div>
+                        </div>
+
+                        <div class="up-section">
+                            <div class="up-section-title">Step 3: Upload Your Proof</div>
+                            <div class="up-section-sub">Upload clear and valid proof as per the campaign guidelines.</div>
+
+                            <div class="up-dropzone" id="dropzone">
+                                <div class="up-dropzone-icon"><i class="bi bi-cloud-arrow-up"></i></div>
+                                <div class="up-dropzone-text">Drag &amp; drop your files here</div>
+                                <div class="up-dropzone-or">or</div>
+                                <button type="button" class="up-choose-btn" id="chooseFilesBtn">Choose Files</button>
+                                <div class="up-dropzone-hint">Supports: Images, Videos, PDFs (Max 100MB per file)</div>
+                                <input type="file" name="proofFile" id="proofFileInput" accept="image/*,video/*,application/pdf" hidden />
+                            </div>
+
+                            <div class="up-file-list" id="fileList"></div>
+                        </div>
+
+                        <div class="up-field">
+                            <label for="proofUrl">Post Link (if applicable)</label>
+                            <div class="up-input-icon-wrap">
+                                <i class="bi bi-link-45deg"></i>
+                                <input type="url" id="proofUrl" name="proofUrl" placeholder="https://" />
+                            </div>
+                        </div>
+
+                        <div class="up-field">
+                            <label for="proofNotes">Additional Notes (optional)</label>
+                            <div class="up-textarea-wrap">
+                                <textarea id="proofNotes" name="proofNotes" maxlength="500" placeholder="Add any additional information about your submission..." oninput="document.getElementById('notesCount').textContent = this.value.length"></textarea>
+                                <span class="up-char-count"><span id="notesCount">0</span>/500</span>
+                            </div>
+                        </div>
+
+                        <div class="up-actions">
+                            <button type="submit" class="up-submit-btn" id="submitBtn" disabled>Continue <i class="bi bi-arrow-right"></i></button>
+                        </div>
+
+                    </div>
+
+
+                    <!-- RIGHT: SIDE PANEL -->
+
+                    <div>
+
+                        <div class="up-card" id="campaignDetailsCard">
+                            <div class="up-card-title">Campaign Details</div>
+                            <div class="up-empty-note" id="campaignDetailsEmpty">Select a campaign to see its details here.</div>
+
+                            <div id="campaignDetailsBody" style="display:none;">
+                                <div class="up-campaign-thumb-row">
+                                    <img id="cdThumbImg" class="up-campaign-thumb" style="display:none;" />
+                                    <div id="cdThumbFallback" class="up-campaign-thumb-fallback"></div>
+                                    <div>
+                                        <div class="up-campaign-title" id="cdTitle"></div>
+                                        <div class="up-campaign-brand"><i class="bi bi-patch-check-fill"></i> <span id="cdBrand"></span></div>
+                                    </div>
+                                </div>
+
+                                <div class="up-tag-row" id="cdTags"></div>
+
+                                <div class="up-meta-row">
+                                    <div>
+                                        <small><i class="bi bi-calendar3"></i> Deadline</small>
+                                        <strong id="cdDeadline">—</strong>
+                                    </div>
+                                    <div>
+                                        <small><i class="bi bi-cash-coin"></i> Total Budget</small>
+                                        <strong id="cdBudget">—</strong>
+                                    </div>
+                                </div>
+
+                                <a href="/InfluencerCampaigns" class="up-view-campaign-btn">View Campaign Details <i class="bi bi-arrow-right"></i></a>
+                            </div>
+                        </div>
+
+                        <div class="up-card">
+                            <div class="up-card-title">What to upload?</div>
+                            <ul class="up-checklist">
+                                <li><i class="bi bi-check-circle-fill"></i> Screenshot or link to your post</li>
+                                <li><i class="bi bi-check-circle-fill"></i> Make sure the post is public</li>
+                                <li><i class="bi bi-check-circle-fill"></i> Follow all campaign requirements</li>
+                                <li><i class="bi bi-check-circle-fill"></i> Include any additional proof if needed</li>
+                            </ul>
+                        </div>
+
+                        <div class="up-card up-help-card">
+                            <div class="up-card-title">Need Help?</div>
+                            <div class="up-help-desc">If you face any issue while uploading your proof, feel free to contact our support team.</div>
+                            <a href="#" class="up-chat-btn">Go to Chat <i class="bi bi-arrow-right"></i></a>
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </form>
+
+    </main>
+
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        var CAMPAIGNS = @Html.Raw(campaignsJson);
+
+        (function () {
+            var menuBtn = document.getElementById('menuToggleBtn');
+            var sidebar = document.getElementById('dashboardSidebar');
+            var main = document.getElementById('dashboardMain');
+            var backdrop = document.getElementById('sidebarBackdrop');
+            var mobileQuery = window.matchMedia('(max-width: 900px)');
+
+            if (!menuBtn || !sidebar || !main) return;
+
+            function closeMobile() {
+                sidebar.classList.remove('is-open');
+                if (backdrop) backdrop.classList.remove('is-visible');
+            }
+
+            menuBtn.addEventListener('click', function () {
+                if (mobileQuery.matches) {
+                    sidebar.classList.toggle('is-open');
+                    if (backdrop) backdrop.classList.toggle('is-visible');
+                } else {
+                    sidebar.classList.toggle('is-hidden');
+                    main.classList.toggle('sidebar-hidden');
+                }
+            });
+
+            if (backdrop) backdrop.addEventListener('click', closeMobile);
+        })();
+
+        (function () {
+            var form = document.getElementById('proofForm');
+            if (!form) return;
+
+            var campaignDropdown = document.getElementById('campaignDropdown');
+            var campaignTrigger = document.getElementById('campaignTrigger');
+            var campaignLabel = document.getElementById('campaignTriggerLabel');
+            var campaignOptions = document.getElementById('campaignOptions');
+
+            var milestoneDropdown = document.getElementById('milestoneDropdown');
+            var milestoneTrigger = document.getElementById('milestoneTrigger');
+            var milestoneLabel = document.getElementById('milestoneTriggerLabel');
+            var milestoneOptions = document.getElementById('milestoneOptions');
+
+            var milestoneIdInput = document.getElementById('milestoneIdInput');
+            var submitBtn = document.getElementById('submitBtn');
+
+            var steps = document.querySelectorAll('.up-step');
+
+            var cdEmpty = document.getElementById('campaignDetailsEmpty');
+            var cdBody = document.getElementById('campaignDetailsBody');
+            var cdThumbImg = document.getElementById('cdThumbImg');
+            var cdThumbFallback = document.getElementById('cdThumbFallback');
+            var cdTitle = document.getElementById('cdTitle');
+            var cdBrand = document.getElementById('cdBrand');
+            var cdTags = document.getElementById('cdTags');
+            var cdDeadline = document.getElementById('cdDeadline');
+            var cdBudget = document.getElementById('cdBudget');
+
+            var selectedCampaign = null;
+            var selectedMilestoneId = null;
+            var hasFileOrLink = false;
+
+            function setStep(n) {
+                steps.forEach(function (s) {
+                    var step = parseInt(s.dataset.step, 10);
+                    s.classList.remove('is-active', 'is-done');
+                    if (step < n) s.classList.add('is-done');
+                    if (step === n) s.classList.add('is-active');
+                });
+            }
+
+            function closeDropdown(dd) { dd.classList.remove('is-open'); }
+
+            function toggleDropdown(dd) {
+                if (dd.classList.contains('is-disabled')) return;
+                dd.classList.toggle('is-open');
+            }
+
+            campaignTrigger.addEventListener('click', function (e) {
+                e.stopPropagation();
+                closeDropdown(milestoneDropdown);
+                toggleDropdown(campaignDropdown);
+            });
+
+            milestoneTrigger.addEventListener('click', function (e) {
+                e.stopPropagation();
+                closeDropdown(campaignDropdown);
+                toggleDropdown(milestoneDropdown);
+            });
+
+            document.addEventListener('click', function (e) {
+                if (!campaignDropdown.contains(e.target)) closeDropdown(campaignDropdown);
+                if (!milestoneDropdown.contains(e.target)) closeDropdown(milestoneDropdown);
+            });
+
+            function initialsOf(name) {
+                return (name || '').split(' ').filter(Boolean).slice(0, 2).map(function (p) { return p[0].toUpperCase(); }).join('');
+            }
+
+            function renderCampaignDetails(c) {
+                cdEmpty.style.display = 'none';
+                cdBody.style.display = 'block';
+
+                if (c.mediaUrl) {
+                    cdThumbImg.src = c.mediaUrl;
+                    cdThumbImg.style.display = 'block';
+                    cdThumbFallback.style.display = 'none';
+                } else {
+                    cdThumbImg.style.display = 'none';
+                    cdThumbFallback.style.display = 'flex';
+                    cdThumbFallback.textContent = initialsOf(c.brandName);
+                }
+
+                cdTitle.textContent = c.title;
+                cdBrand.textContent = c.brandName;
+
+                cdTags.innerHTML = '';
+                [c.platform, c.niche].filter(Boolean).forEach(function (t) {
+                    var span = document.createElement('span');
+                    span.className = 'up-tag';
+                    span.textContent = t;
+                    cdTags.appendChild(span);
+                });
+
+                cdDeadline.textContent = c.deadline || 'No deadline';
+                cdBudget.textContent = '৳' + Number(c.budget).toLocaleString('en-US');
+            }
+
+            campaignOptions.querySelectorAll('.up-dropdown-option').forEach(function (opt) {
+                opt.addEventListener('click', function () {
+                    var collabId = parseInt(opt.dataset.collabId, 10);
+                    selectedCampaign = CAMPAIGNS.find(function (c) { return c.collaborationId === collabId; });
+                    if (!selectedCampaign) return;
+
+                    campaignOptions.querySelectorAll('.up-dropdown-option').forEach(function (o) { o.classList.remove('is-selected'); });
+                    opt.classList.add('is-selected');
+
+                    campaignLabel.textContent = selectedCampaign.title;
+                    campaignLabel.classList.remove('is-placeholder');
+                    closeDropdown(campaignDropdown);
+
+                    renderCampaignDetails(selectedCampaign);
+
+                    milestoneOptions.innerHTML = '';
+                    selectedCampaign.milestones.forEach(function (m) {
+                        var div = document.createElement('div');
+                        div.className = 'up-dropdown-option';
+                        div.dataset.milestoneId = m.id;
+                        div.innerHTML = m.title + ' <small>৳' + Number(m.amount).toLocaleString('en-US') + '</small>';
+                        div.addEventListener('click', function () {
+                            selectedMilestoneId = m.id;
+                            milestoneIdInput.value = m.id;
+
+                            milestoneOptions.querySelectorAll('.up-dropdown-option').forEach(function (o) { o.classList.remove('is-selected'); });
+                            div.classList.add('is-selected');
+
+                            milestoneLabel.textContent = m.title;
+                            milestoneLabel.classList.remove('is-placeholder');
+                            closeDropdown(milestoneDropdown);
+
+                            setStep(3);
+                            updateSubmitState();
+                        });
+                        milestoneOptions.appendChild(div);
+                    });
+
+                    milestoneDropdown.classList.remove('is-disabled');
+                    milestoneTrigger.disabled = false;
+
+                    selectedMilestoneId = null;
+                    milestoneIdInput.value = '';
+                    milestoneLabel.textContent = 'Search and select a milestone...';
+                    milestoneLabel.classList.add('is-placeholder');
+
+                    setStep(2);
+                    updateSubmitState();
+                });
+            });
+
+            function updateSubmitState() {
+                submitBtn.disabled = !(selectedMilestoneId && hasFileOrLink);
+                if (selectedMilestoneId && hasFileOrLink) setStep(4);
+            }
+
+            // Drag & drop / file picker
+
+            var dropzone = document.getElementById('dropzone');
+            var fileInput = document.getElementById('proofFileInput');
+            var chooseBtn = document.getElementById('chooseFilesBtn');
+            var fileList = document.getElementById('fileList');
+            var proofUrlInput = document.getElementById('proofUrl');
+
+            chooseBtn.addEventListener('click', function () { fileInput.click(); });
+
+            ['dragenter', 'dragover'].forEach(function (evt) {
+                dropzone.addEventListener(evt, function (e) {
+                    e.preventDefault();
+                    dropzone.classList.add('is-dragover');
+                });
+            });
+
+            ['dragleave', 'drop'].forEach(function (evt) {
+                dropzone.addEventListener(evt, function (e) {
+                    e.preventDefault();
+                    dropzone.classList.remove('is-dragover');
+                });
+            });
+
+            dropzone.addEventListener('drop', function (e) {
+                if (e.dataTransfer.files.length) {
+                    fileInput.files = e.dataTransfer.files;
+                    renderFile();
+                }
+            });
+
+            fileInput.addEventListener('change', renderFile);
+
+            function renderFile() {
+                fileList.innerHTML = '';
+                var file = fileInput.files[0];
+
+                if (file) {
+                    var chip = document.createElement('div');
+                    chip.className = 'up-file-chip';
+                    chip.innerHTML = '<i class="bi bi-file-earmark-check-fill"></i><span>' + file.name + '</span>';
+
+                    var removeBtn = document.createElement('button');
+                    removeBtn.type = 'button';
+                    removeBtn.className = 'up-file-remove';
+                    removeBtn.innerHTML = '<i class="bi bi-x-lg"></i>';
+                    removeBtn.addEventListener('click', function () {
+                        fileInput.value = '';
+                        checkProofSource();
+                    });
+
+                    chip.appendChild(removeBtn);
+                    fileList.appendChild(chip);
+                }
+
+                checkProofSource();
+            }
+
+            function checkProofSource() {
+                hasFileOrLink = !!(fileInput.files.length || proofUrlInput.value.trim());
+                updateSubmitState();
+            }
+
+            proofUrlInput.addEventListener('input', checkProofSource);
+        })();
+    </script>
+
+</body>
+</html>
