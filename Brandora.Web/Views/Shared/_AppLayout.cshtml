@@ -115,25 +115,15 @@
             pointer-events: none;
         }
 
-        .sidebar::before {
-            content: "";
+        .sidebar-wave-img {
             position: absolute;
-            inset: 0;
-            z-index: -1;
+            left: 0;
+            bottom: 60px;
+            width: 100%;
+            height: auto;
             pointer-events: none;
-
-            background:
-                radial-gradient(circle at 18% 8%, rgba(175,60,255,.45), transparent 42%),
-                radial-gradient(circle at 88% 22%, rgba(255,60,190,.24), transparent 38%),
-                radial-gradient(circle at 75% 96%, rgba(0,169,255,.3), transparent 48%),
-                radial-gradient(circle at 10% 70%, rgba(120,80,255,.2), transparent 40%);
-
-            animation: sidebar-glow 14s ease-in-out infinite;
-        }
-
-        @@keyframes sidebar-glow {
-            0%, 100% { opacity: .8; transform: scale(1) rotate(0deg); }
-            50% { opacity: 1; transform: scale(1.12) rotate(4deg); }
+            z-index: -1;
+            opacity: .9;
         }
 
         .side-top {
@@ -168,18 +158,38 @@
             margin-top: 22px;
         }
 
+        .side-nav-wrap::before {
+            content: "";
+            position: absolute;
+            top: -34px;
+            left: -34px;
+            right: -34px;
+            bottom: 0;
+            z-index: -1;
+            pointer-events: none;
+
+            background:
+                radial-gradient(circle at 12% 5%, rgba(35,110,234,.2), transparent 30%),
+                radial-gradient(circle at 88% 14%, rgba(163,38,255,.18), transparent 32%),
+                radial-gradient(circle at 18% 50%, rgba(24,169,255,.16), transparent 30%),
+                radial-gradient(circle at 85% 62%, rgba(163,38,255,.14), transparent 32%),
+                radial-gradient(circle at 30% 90%, rgba(35,110,234,.16), transparent 34%);
+
+            filter: blur(14px);
+        }
+
         .side-nav-glass {
             position: relative;
 
             padding: 8px;
 
-            border-radius: 14px;
+            border-radius: 12px;
             overflow: hidden;
             border: 1px solid rgba(255,255,255,.12);
 
-            background: rgba(255,255,255,.05);
-            backdrop-filter: blur(18px);
-            -webkit-backdrop-filter: blur(18px);
+            background: rgba(255,255,255,.03);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
 
             box-shadow: 0 8px 30px rgba(0,0,0,.18);
         }
@@ -1055,6 +1065,8 @@
 <div class="app-shell">
 
     <aside class="sidebar" id="brandoraSidebar">
+
+        <img src="~/images/Sidebar Wave.png" alt="" class="sidebar-wave-img" />
 
         <div class="side-top">
             <a href="@homeAppUrl" class="side-brand">

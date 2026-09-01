@@ -8,17 +8,17 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Brandora.Web.Controllers;
 
-public class MessagesController(UserManager<ApplicationUser> userManager, ApplicationDbContext db, MediaUploadService mediaUploads) : BrandControllerBase(userManager, db)
+public class InfluencerMessagesController(UserManager<ApplicationUser> userManager, ApplicationDbContext db, MediaUploadService mediaUploads) : InfluencerControllerBase(userManager, db)
 {
     public async Task<IActionResult> Index(int? open, int? campaignId, string? search)
     {
-        var brand = await GetCurrentBrandAsync();
-        if (brand is null)
+        var influencer = await GetCurrentInfluencerAsync();
+        if (influencer is null)
         {
             return RedirectToAction("Index", "Home");
         }
 
-        var query = db.Conversations.Where(c => c.BrandProfileId == brand.Id);
+        var query = db.Conversations.Where(c => c.InfluencerProfileId == influencer.Id);
 
         if (campaignId.HasValue)
         {
@@ -26,7 +26,7 @@ public class MessagesController(UserManager<ApplicationUser> userManager, Applic
         }
 
         var conversations = await query
-            .Include(c => c.InfluencerProfile)
+            .Include(c => c.BrandProfile)
             .Include(c => c.Campaign)
             .Include(c => c.Messages)
             .ToListAsync();
@@ -34,7 +34,7 @@ public class MessagesController(UserManager<ApplicationUser> userManager, Applic
         if (!string.IsNullOrWhiteSpace(search))
         {
             conversations = conversations.Where(c =>
-                c.InfluencerProfile.FullName.Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                c.BrandProfile.CompanyName.Contains(search, StringComparison.OrdinalIgnoreCase) ||
                 (c.Campaign != null && c.Campaign.Title.Contains(search, StringComparison.OrdinalIgnoreCase))
             ).ToList();
         }
@@ -61,10 +61,10 @@ public class MessagesController(UserManager<ApplicationUser> userManager, Applic
         if (targetId.HasValue)
         {
             var selected = await db.Conversations
-                .Include(c => c.InfluencerProfile)
+                .Include(c => c.BrandProfile)
                 .Include(c => c.Campaign)
                 .Include(c => c.Messages).ThenInclude(m => m.SenderUser)
-                .FirstOrDefaultAsync(c => c.Id == targetId.Value && c.BrandProfileId == brand.Id);
+                .FirstOrDefaultAsync(c => c.Id == targetId.Value && c.InfluencerProfileId == influencer.Id);
 
             if (selected is not null)
             {
@@ -99,13 +99,13 @@ public class MessagesController(UserManager<ApplicationUser> userManager, Applic
     [RequestSizeLimit(100_000_000)]
     public async Task<IActionResult> Send(int conversationId, string? body, IFormFile? mediaFile)
     {
-        var brand = await GetCurrentBrandAsync();
-        if (brand is null)
+        var influencer = await GetCurrentInfluencerAsync();
+        if (influencer is null)
         {
             return RedirectToAction("Index", "Home");
         }
 
-        var conversation = await db.Conversations.FirstOrDefaultAsync(c => c.Id == conversationId && c.BrandProfileId == brand.Id);
+        var conversation = await db.Conversations.FirstOrDefaultAsync(c => c.Id == conversationId && c.InfluencerProfileId == influencer.Id);
         if (conversation is null)
         {
             return NotFound();
@@ -148,29 +148,29 @@ public class MessagesController(UserManager<ApplicationUser> userManager, Applic
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> StartWithCreator(int influencerId, int? campaignId)
+    public async Task<IActionResult> StartWithBrand(int brandId, int? campaignId)
     {
-        var brand = await GetCurrentBrandAsync();
-        if (brand is null)
+        var influencer = await GetCurrentInfluencerAsync();
+        if (influencer is null)
         {
             return RedirectToAction("Index", "Home");
         }
 
-        var creatorExists = await db.InfluencerProfiles.AnyAsync(i => i.Id == influencerId);
-        if (!creatorExists)
+        var brandExists = await db.BrandProfiles.AnyAsync(b => b.Id == brandId);
+        if (!brandExists)
         {
             return NotFound();
         }
 
         var conversation = await db.Conversations.FirstOrDefaultAsync(c =>
-            c.BrandProfileId == brand.Id && c.InfluencerProfileId == influencerId && c.CampaignId == campaignId);
+            c.BrandProfileId == brandId && c.InfluencerProfileId == influencer.Id && c.CampaignId == campaignId);
 
         if (conversation is null)
         {
             conversation = new Conversation
             {
-                BrandProfileId = brand.Id,
-                InfluencerProfileId = influencerId,
+                BrandProfileId = brandId,
+                InfluencerProfileId = influencer.Id,
                 CampaignId = campaignId
             };
 
