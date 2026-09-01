@@ -1,177 +1,212 @@
 @model Brandora.Web.Models.Messages.InboxViewModel
 @using Brandora.Web.Models.Influencers
+@inject Microsoft.AspNetCore.Identity.UserManager<Brandora.Web.Models.Domain.ApplicationUser> UserManager
 @{
     ViewData["Title"] = "Messages";
     ViewData["ActiveNav"] = "Messages";
     Layout = "_AppLayout";
+    var currentUserId = UserManager.GetUserId(User);
+    var selected = Model.Selected;
+    var selectedMessages = selected?.Messages.OrderBy(m => m.SentAt).ToList() ?? new List<Brandora.Web.Models.Domain.Message>();
 }
 
 @section Styles {
 
-    .page-head {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
+    .detail-crumb {
+        font-family: 'Inter', sans-serif;
+        font-size: 12.5px;
+        font-weight: 500;
+        color: #8189a8;
+    }
+
+    .messages-shell {
+        margin-top: 14px;
+
+        display: grid;
+        grid-template-columns: 340px 1fr;
         gap: 20px;
+
+        height: calc(100vh - 150px);
 
         animation: fade-up .4s ease both;
     }
 
-    .page-title {
-        font-family: 'Playfair Display', serif;
-        font-weight: 600;
-        font-size: 28px;
+    @@media(max-width: 900px) {
+        .messages-shell { grid-template-columns: 1fr; height: auto; }
     }
 
-    .page-sub {
-        margin-top: 6px;
+    /* ---- List panel ---- */
 
-        font-family: 'Inter', sans-serif;
-        font-size: 13.5px;
-        color: #6b7290;
+    .list-panel {
+        display: flex;
+        flex-direction: column;
+
+        border-radius: 22px;
+        background: #ffffff;
+        border: 1px solid #eaecf5;
+        box-shadow: 0 24px 60px rgba(30,34,90,.06);
+
+        overflow: hidden;
     }
 
-    .unread-pill {
-        margin-left: 8px;
-        padding: 2px 9px;
-
-        border-radius: 20px;
-        background: linear-gradient(105deg, #d0369b, #8b2cff 55%, #236eff);
-
-        font-family: 'DM Sans', sans-serif;
-        font-weight: 700;
-        font-size: 11px;
-        color: #fff;
-    }
-
-    .search-bar {
-        margin-top: 24px;
+    .list-head {
+        padding: 20px 20px 16px;
+        border-bottom: 1px solid #f0f1f7;
 
         display: flex;
         align-items: center;
+        justify-content: space-between;
         gap: 10px;
-
-        animation: fade-up .45s ease both;
     }
 
-    .search-input-wrap {
-        position: relative;
-        width: 320px;
+    .list-head-title {
+        font-family: 'Playfair Display', serif;
+        font-weight: 600;
+        font-size: 20px;
+        color: #171d3d;
     }
 
-    .search-input-wrap svg {
-        position: absolute;
-        left: 14px;
-        top: 50%;
-        transform: translateY(-50%);
-        color: #a3a8c3;
-        pointer-events: none;
+    .list-head-sub {
+        margin-top: 2px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 12px;
+        color: #8189a8;
     }
 
-    .search-input {
-        width: 100%;
-        height: 44px;
+    .list-filter-btn {
+        flex-shrink: 0;
 
-        padding: 0 16px 0 40px;
+        width: 38px;
+        height: 38px;
 
-        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        border-radius: 10px;
         border: 1px solid #e2e5f2;
         background: #ffffff;
 
+        color: #545b7d;
+        cursor: pointer;
+
+        transition: .2s;
+    }
+
+    .list-filter-btn:hover,
+    .list-filter-btn.is-active {
+        border-color: #9b2cff;
+        color: #9b2cff;
+        background: linear-gradient(105deg, rgba(163,38,255,.08), rgba(35,110,234,.08));
+    }
+
+    .list-search-wrap {
+        max-height: 0;
+        overflow: hidden;
+
+        transition: max-height .3s cubic-bezier(.22,1,.36,1);
+    }
+
+    .list-search-wrap.is-open {
+        max-height: 70px;
+    }
+
+    .list-search {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        padding: 12px 20px;
+        border-bottom: 1px solid #f0f1f7;
+    }
+
+    .list-search input {
+        flex: 1;
+        height: 38px;
+
+        padding: 0 14px;
+
+        border-radius: 10px;
+        border: 1px solid #e2e5f2;
+        background: #fbfbfe;
+
         font-family: 'Inter', sans-serif;
-        font-size: 13.5px;
+        font-size: 13px;
         color: #2a3157;
 
         outline: none;
         transition: border-color .2s ease, box-shadow .2s ease;
     }
 
-    .search-input:focus {
+    .list-search input:focus {
         border-color: #a978ff;
         box-shadow: 0 0 0 3px rgba(155,44,255,.1);
     }
 
-    .inbox-list {
-        margin-top: 22px;
+    .list-rows {
+        flex: 1;
+        overflow-y: auto;
 
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
+        padding: 8px;
 
-        max-width: 760px;
+        scroll-behavior: smooth;
     }
 
     .inbox-row {
         position: relative;
-        overflow: hidden;
 
         display: flex;
         align-items: center;
-        gap: 16px;
+        gap: 12px;
 
-        padding: 18px 22px;
+        padding: 12px 12px;
+        margin-bottom: 4px;
 
-        border-radius: 18px;
-        background: #ffffff;
-        border: 1px solid #eaecf5;
+        border-radius: 14px;
 
-        transition: transform .4s cubic-bezier(.22,1,.36,1), box-shadow .4s ease;
+        transition: background .25s ease, transform .2s ease;
 
         opacity: 0;
-        transform: translateY(22px);
+        transform: translateY(14px);
     }
 
     .inbox-row.is-visible {
         opacity: 1;
         transform: translateY(0);
-        transition: opacity .55s ease, transform .55s cubic-bezier(.22,1,.36,1), box-shadow .4s ease;
-    }
-
-    .inbox-row.has-unread {
-        border-color: hsla(var(--row-hue), 80%, 60%, .35);
-    }
-
-    .inbox-row::before,
-    .inbox-row::after {
-        content: "";
-        position: absolute;
-        inset: 0;
-        z-index: 0;
-        pointer-events: none;
-        opacity: 0;
-        transition: opacity .35s ease;
-    }
-
-    .inbox-row::before {
-        background: var(--row-wash);
-    }
-
-    .inbox-row::after {
-        border-radius: inherit;
-        padding: 1.5px;
-        background: var(--row-border);
-        -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-        -webkit-mask-composite: xor;
-        mask-composite: exclude;
+        transition: opacity .45s ease, transform .45s cubic-bezier(.22,1,.36,1), background .25s ease;
     }
 
     a.inbox-row:hover {
-        transform: translateY(-4px) scale(1.008);
-        box-shadow: 0 22px 42px rgba(30,34,90,.12);
+        background: #f7f5ff;
     }
 
-    a.inbox-row:hover::before,
-    a.inbox-row:hover::after {
-        opacity: 1;
+    .inbox-row.is-selected {
+        background: linear-gradient(105deg, rgba(163,38,255,.1), rgba(35,110,234,.08) 60%, rgba(24,169,255,.08));
     }
 
-    .inbox-row > * {
-        position: relative;
-        z-index: 1;
+    .inbox-avatar {
+        width: 44px;
+        height: 44px;
+        flex-shrink: 0;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        border-radius: 50%;
+        background: linear-gradient(135deg, #a326ff, #236eff, #18a9ff);
+        color: #ffffff;
+
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 700;
+        font-size: 14px;
+
+        transition: transform .3s cubic-bezier(.22,1,.36,1);
     }
 
-    .inbox-row:hover .creator-avatar {
-        transform: scale(1.08) rotate(-3deg);
+    a.inbox-row:hover .inbox-avatar {
+        transform: scale(1.06) rotate(-3deg);
     }
 
     .inbox-body {
@@ -183,18 +218,18 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 10px;
+        gap: 8px;
 
         font-family: 'DM Sans', sans-serif;
         font-weight: 700;
-        font-size: 15px;
+        font-size: 14px;
         color: #171d3d;
     }
 
     .inbox-name-left {
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 6px;
         min-width: 0;
     }
 
@@ -202,6 +237,38 @@
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+    }
+
+    .inbox-time {
+        font-family: 'Inter', sans-serif;
+        font-size: 11px;
+        font-weight: 500;
+        color: #9096b3;
+        flex-shrink: 0;
+    }
+
+    .inbox-snippet-row {
+        margin-top: 2px;
+
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+    }
+
+    .inbox-snippet {
+        font-family: 'Inter', sans-serif;
+        font-size: 12.5px;
+        color: #8189a8;
+
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .inbox-snippet.is-unread {
+        color: #2a3157;
+        font-weight: 600;
     }
 
     .inbox-unread-dot {
@@ -215,7 +282,7 @@
         justify-content: center;
 
         border-radius: 10px;
-        background: linear-gradient(105deg, #d0369b, #8b2cff 55%, #236eff);
+        background: linear-gradient(105deg, #a326ff, #236eff, #18a9ff);
 
         font-family: 'DM Sans', sans-serif;
         font-weight: 700;
@@ -223,44 +290,625 @@
         color: #fff;
     }
 
-    .inbox-time {
-        font-family: 'Inter', sans-serif;
-        font-size: 11.5px;
-        font-weight: 500;
-        color: #9096b3;
+    .list-empty {
+        margin: auto;
+        padding: 30px 20px;
+        text-align: center;
 
-        flex-shrink: 0;
+        font-family: 'Inter', sans-serif;
+        font-size: 13px;
+        color: #9096b3;
     }
 
-    .inbox-campaign {
+    .start-convo-card {
+        margin: 8px;
+        padding: 22px 16px;
+
+        border-radius: 16px;
+        background: linear-gradient(165deg, #f6f1ff, #eef2ff);
+        border: 1px solid #e6e1ff;
+
+        text-align: center;
+    }
+
+    .start-convo-icon {
+        width: 40px;
+        height: 40px;
+        margin: 0 auto 12px;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        border-radius: 50%;
+        background: linear-gradient(135deg, #a326ff, #236eff, #18a9ff);
+        color: #ffffff;
+    }
+
+    .start-convo-title {
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 700;
+        font-size: 13.5px;
+        color: #171d3d;
+    }
+
+    .start-convo-text {
+        margin: 5px auto 0;
+        max-width: 240px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 12px;
+        line-height: 1.55;
+        color: #6b7290;
+    }
+
+    .start-convo-card .btn {
+        margin-top: 14px;
+        width: 100%;
+        height: 40px;
+        font-size: 12.5px;
+    }
+
+    /* ---- Thread panel ---- */
+
+    .thread-panel {
+        position: relative;
+        overflow: hidden;
+
+        display: flex;
+        flex-direction: column;
+
+        border-radius: 22px;
+        background: #ffffff;
+        border: 1px solid #eaecf5;
+        box-shadow: 0 24px 60px rgba(30,34,90,.08);
+    }
+
+    .thread-header {
+        padding: 18px 24px;
+
+        background: linear-gradient(120deg, #fbf5ff, #f3f6ff);
+        border-bottom: 1px solid #eaecf5;
+
+        display: flex;
+        align-items: center;
+        gap: 14px;
+    }
+
+    .thread-name {
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 700;
+        font-size: 15.5px;
+        color: #171d3d;
+    }
+
+    .thread-sub {
         margin-top: 2px;
 
         font-family: 'Inter', sans-serif;
-        font-size: 11.5px;
-        font-weight: 600;
-        color: #8b2cff;
+        font-size: 12px;
+        color: #8189a8;
     }
 
-    .inbox-snippet {
+    .thread-header-actions {
+        margin-left: auto;
+        flex-shrink: 0;
+
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .thread-icon-btn {
+        width: 38px;
+        height: 38px;
+        flex-shrink: 0;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        border-radius: 10px;
+        border: 1px solid #e2e5f2;
+        background: #ffffff;
+
+        color: #545b7d;
+        cursor: pointer;
+
+        transition: .2s;
+    }
+
+    .thread-icon-btn:hover,
+    .thread-icon-btn.is-active {
+        border-color: #9b2cff;
+        color: #9b2cff;
+    }
+
+    .thread-icon-btn:disabled {
+        cursor: not-allowed;
+        opacity: .5;
+    }
+
+    .thread-icon-btn:disabled:hover {
+        border-color: #e2e5f2;
+        color: #545b7d;
+    }
+
+    .thread-body {
+        flex: 1;
+        overflow-y: auto;
+        scroll-behavior: smooth;
+
+        padding: 24px;
+
+        background: #fbfbfe;
+
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+    }
+
+    .msg-row {
+        display: flex;
+        align-items: flex-end;
+        gap: 8px;
+    }
+
+    .msg-row.is-mine {
+        justify-content: flex-end;
+    }
+
+    .msg-avatar {
+        width: 26px;
+        height: 26px;
+        flex-shrink: 0;
+
+        border-radius: 50%;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        background: linear-gradient(135deg, #a326ff, #236eff, #18a9ff);
+
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 700;
+        font-size: 10px;
+        color: #fff;
+    }
+
+    .msg-bubble {
+        max-width: 68%;
+
+        padding: 11px 16px;
+
+        border-radius: 17px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 13.5px;
+        line-height: 1.55;
+
+        animation: fade-up .3s ease both;
+    }
+
+    .msg-row.is-mine .msg-bubble {
+        background: linear-gradient(105deg, #a326ff, #236eff 60%, #18a9ff);
+        color: #ffffff;
+        border-bottom-right-radius: 5px;
+        box-shadow: 0 10px 22px rgba(139,44,255,.18);
+    }
+
+    .msg-row:not(.is-mine) .msg-bubble {
+        background: #ffffff;
+        border: 1px solid #eaecf5;
+        color: #2a3157;
+        border-bottom-left-radius: 5px;
+        box-shadow: 0 6px 16px rgba(30,34,90,.05);
+    }
+
+    .msg-time {
         margin-top: 4px;
 
         font-family: 'Inter', sans-serif;
+        font-size: 10.5px;
+        color: #9096b3;
+    }
+
+    .msg-row.is-mine .msg-time {
+        text-align: right;
+    }
+
+    .composer-error {
+        margin: 0 20px;
+        padding: 10px 16px;
+
+        border-radius: 10px;
+        background: #fff2f2;
+        border: 1px solid #ffd4d4;
+
+        font-family: 'Inter', sans-serif;
         font-size: 12.5px;
-        color: #6b7290;
+        color: #c22b4a;
+    }
+
+    .composer-preview {
+        display: none;
+        align-items: center;
+        gap: 10px;
+
+        margin: 12px 20px 0;
+        padding: 8px 12px;
+
+        border-radius: 12px;
+        background: linear-gradient(120deg, rgba(163,38,255,.1), rgba(24,169,255,.08));
+        border: 1px solid rgba(163,38,255,.28);
+    }
+
+    .composer-preview-name {
+        flex: 1;
+        min-width: 0;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 12px;
+        font-weight: 600;
+        color: #3c4363;
 
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
     }
 
-    .inbox-snippet.is-unread {
-        color: #2a3157;
-        font-weight: 600;
+    .composer-preview-remove {
+        width: 22px;
+        height: 22px;
+        flex-shrink: 0;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        border-radius: 50%;
+        border: none;
+        cursor: pointer;
+        background: rgba(0,0,0,.06);
+        color: #6b7290;
     }
 
-    @@media(max-width: 560px) {
-        .page-head { flex-direction: column; }
-        .search-input-wrap { width: 100%; }
+    .msg-media {
+        overflow: hidden;
+        border-radius: 14px;
+        margin-bottom: 6px;
+    }
+
+    .msg-media img,
+    .msg-media video {
+        display: block;
+        width: 100%;
+        max-width: 240px;
+        max-height: 260px;
+        object-fit: cover;
+    }
+
+    .msg-bubble.has-media {
+        padding: 6px;
+    }
+
+    .msg-bubble.has-media.has-caption {
+        padding-bottom: 10px;
+    }
+
+    .msg-bubble.has-media .msg-caption {
+        padding: 4px 8px 2px;
+    }
+
+    .thread-composer {
+        padding: 16px 20px;
+
+        background: #ffffff;
+        border-top: 1px solid #eaecf5;
+
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .composer-attach {
+        flex-shrink: 0;
+        width: 42px;
+        height: 42px;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        border-radius: 50%;
+        border: 1px solid #e2e5f2;
+        background: #fbfbfe;
+        cursor: pointer;
+        color: #8b2cff;
+
+        transition: border-color .2s ease, background .2s ease, transform .2s ease;
+    }
+
+    .composer-attach:hover {
+        border-color: #a978ff;
+        background: linear-gradient(120deg, rgba(163,38,255,.1), rgba(24,169,255,.08));
+        transform: translateY(-1px);
+    }
+
+    .thread-composer textarea {
+        flex: 1;
+        resize: none;
+        height: 46px;
+        padding: 12px 16px;
+
+        border-radius: 24px;
+        border: 1px solid #e2e5f2;
+        background: #fbfbfe;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 13.5px;
+        color: #171d3d;
+
+        outline: none;
+        transition: border-color .2s ease, background .2s ease;
+    }
+
+    .thread-composer textarea:focus {
+        border-color: #a978ff;
+        background: #ffffff;
+    }
+
+    .composer-send {
+        flex-shrink: 0;
+        width: 46px;
+        height: 46px;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        border-radius: 50%;
+        border: none;
+        cursor: pointer;
+
+        background: linear-gradient(135deg, #a326ff, #236eff, #18a9ff);
+        background-size: 220% 220%;
+
+        box-shadow: 0 10px 24px rgba(139,44,255,.32);
+
+        transition: background-position .35s ease, transform .2s ease;
+    }
+
+    .composer-send:hover {
+        background-position: 100% 100%;
+        transform: translateY(-2px) scale(1.04);
+    }
+
+    .thread-empty {
+        margin: auto;
+        text-align: center;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 13px;
+        color: #9096b3;
+    }
+
+    /* ---- Profile drawer ---- */
+
+    .profile-drawer {
+        position: absolute;
+        inset: 0;
+        z-index: 20;
+
+        display: flex;
+        flex-direction: column;
+
+        padding: 30px 24px 26px;
+
+        background: linear-gradient(165deg, #15163f 0%, #0c0d2c 55%, #07081f 100%);
+        color: #fff;
+
+        overflow-y: auto;
+
+        transform: translateX(100%);
+        transition: transform .35s cubic-bezier(.22,1,.36,1);
+    }
+
+    .profile-drawer.is-open {
+        transform: translateX(0);
+    }
+
+    .profile-drawer::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+
+        background:
+            radial-gradient(circle at 15% 0%, rgba(163,38,255,.4), transparent 46%),
+            radial-gradient(circle at 100% 20%, rgba(35,110,234,.28), transparent 42%),
+            radial-gradient(circle at 80% 100%, rgba(24,169,255,.22), transparent 48%);
+    }
+
+    .profile-drawer > * {
+        position: relative;
+        z-index: 1;
+    }
+
+    .profile-drawer-close {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        z-index: 2;
+
+        width: 32px;
+        height: 32px;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        border-radius: 50%;
+        border: 1px solid rgba(255,255,255,.2);
+        background: rgba(255,255,255,.06);
+        color: #fff;
+        cursor: pointer;
+    }
+
+    .profile-avatar-wrap {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+
+    .profile-avatar-ring {
+        width: 86px;
+        height: 86px;
+        padding: 3px;
+
+        border-radius: 50%;
+        background: linear-gradient(135deg, #a326ff, #236eff, #18a9ff);
+
+        box-shadow: 0 14px 34px rgba(139,44,255,.35);
+    }
+
+    .profile-avatar-ring .inbox-avatar {
+        width: 100%;
+        height: 100%;
+        font-size: 26px;
+        border: 2px solid #0c0d2c;
+    }
+
+    .profile-name-row {
+        margin-top: 14px;
+
+        display: flex;
+        align-items: center;
+        gap: 6px;
+
+        font-family: 'Playfair Display', serif;
+        font-weight: 600;
+        font-size: 20px;
+    }
+
+    .profile-handle {
+        margin-top: 4px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 12.5px;
+        color: rgba(255,255,255,.55);
+    }
+
+    .profile-section {
+        margin-top: 22px;
+        padding-top: 18px;
+        border-top: 1px solid rgba(255,255,255,.1);
+    }
+
+    .profile-label {
+        font-family: 'Inter', sans-serif;
+        font-size: 10.5px;
+        font-weight: 700;
+        letter-spacing: .6px;
+        text-transform: uppercase;
+        color: rgba(255,255,255,.4);
+    }
+
+    .profile-bio {
+        margin-top: 8px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 13px;
+        line-height: 1.65;
+        color: rgba(255,255,255,.82);
+    }
+
+    .profile-tags {
+        margin-top: 10px;
+
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .profile-tag {
+        padding: 4px 11px;
+
+        border-radius: 20px;
+        background: rgba(255,255,255,.08);
+        border: 1px solid rgba(255,255,255,.14);
+
+        font-family: 'Inter', sans-serif;
+        font-size: 11px;
+        font-weight: 600;
+        color: rgba(255,255,255,.85);
+    }
+
+    .profile-rate-box {
+        margin-top: 8px;
+        padding: 12px 14px;
+
+        border-radius: 12px;
+        background: linear-gradient(120deg, rgba(163,38,255,.18), rgba(24,169,255,.12));
+        border: 1px solid rgba(163,38,255,.3);
+
+        font-family: 'Inter', sans-serif;
+        font-size: 12.5px;
+        line-height: 1.6;
+        color: rgba(255,255,255,.9);
+    }
+
+    .profile-figures {
+        margin-top: 12px;
+
+        display: flex;
+        justify-content: space-between;
+    }
+
+    .profile-figure-value {
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 800;
+        font-size: 17px;
+        color: #fff;
+    }
+
+    .profile-figure-label {
+        margin-top: 2px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 9.5px;
+        font-weight: 600;
+        letter-spacing: .3px;
+        text-transform: uppercase;
+        color: rgba(255,255,255,.45);
+    }
+
+    .profile-cta {
+        margin-top: 22px;
+
+        display: block;
+        text-align: center;
+
+        padding: 12px 18px;
+        border-radius: 12px;
+
+        background: linear-gradient(105deg, #a326ff, #236eff, #18a9ff);
+        background-size: 220% 100%;
+
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 700;
+        font-size: 13px;
+        color: #fff;
+
+        transition: background-position .35s ease, transform .2s ease;
+    }
+
+    .profile-cta:hover {
+        background-position: 100% 0;
+        transform: translateY(-2px);
     }
 
 }
@@ -270,116 +918,343 @@
     Back to Dashboard
 </a>
 
-<div class="page-head">
-    <div>
-        <h1 class="page-title">
-            Messages
-            @if (Model.TotalUnread > 0)
+<div class="messages-shell">
+
+    <div class="list-panel">
+
+        <div class="list-head">
+            <div>
+                <div class="list-head-title">Conversations</div>
+                <div class="list-head-sub">@Model.TotalCount conversation@(Model.TotalCount == 1 ? "" : "s")@(Model.TotalUnread > 0 ? $" · {Model.TotalUnread} new" : "")</div>
+            </div>
+            <button type="button" class="list-filter-btn" id="messagesFilterBtn" aria-label="Search conversations" title="Search">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M4 6h16M7 12h10M10 18h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </button>
+        </div>
+
+        <div class="list-search-wrap" id="messagesSearchWrap">
+            <form method="get" action="/Messages" class="list-search">
+                <input type="text" name="search" placeholder="Search creators or campaigns..." value="@Model.Search" />
+                @if (selected is not null)
+                {
+                    <input type="hidden" name="open" value="@selected.Id" />
+                }
+            </form>
+        </div>
+
+        <div class="list-rows">
+            @if (Model.TotalCount > 0)
             {
-                <span class="unread-pill">@Model.TotalUnread new</span>
-            }
-        </h1>
-        <p class="page-sub">@Model.TotalCount conversation@(Model.TotalCount == 1 ? "" : "s") with creators.</p>
-    </div>
-    <a href="/Influencers" class="btn btn-primary">New Message</a>
-</div>
+                @foreach (var conversation in Model.Conversations)
+                {
+                    var lastMessage = conversation.Messages.OrderByDescending(m => m.SentAt).FirstOrDefault();
+                    var unread = Model.UnreadFor(conversation.Id);
+                    var isSelected = selected is not null && conversation.Id == selected.Id;
+                    var snippet = lastMessage is null
+                        ? "No messages yet — say hello."
+                        : (!string.IsNullOrEmpty(lastMessage.MediaUrl) && string.IsNullOrEmpty(lastMessage.Body)
+                            ? (lastMessage.MediaType == "video" ? "Sent a video" : "Sent a photo")
+                            : lastMessage.Body);
+                    <a href="/Messages?open=@conversation.Id" class="inbox-row @(isSelected ? "is-selected" : "")" data-reveal>
 
-<form method="get" action="/Messages" class="search-bar">
-    <div class="search-input-wrap">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-        <input type="text" name="search" class="search-input" placeholder="Search creators or campaigns..." value="@Model.Search" />
-    </div>
-    <button type="submit" class="btn btn-secondary">Search</button>
-    @if (!string.IsNullOrEmpty(Model.Search))
-    {
-        <a href="/Messages" class="btn btn-ghost">Clear</a>
-    }
-</form>
-
-@if (Model.TotalCount > 0)
-{
-    <div class="inbox-list">
-        @foreach (var conversation in Model.Conversations)
-        {
-            var hue = (conversation.InfluencerProfile.Id * 47) % 360;
-            var hue2 = (hue + 50) % 360;
-            var lastMessage = conversation.Messages.OrderByDescending(m => m.SentAt).FirstOrDefault();
-            var unread = Model.UnreadFor(conversation.Id);
-            var snippet = lastMessage is null
-                ? "No messages yet — say hello."
-                : (!string.IsNullOrEmpty(lastMessage.MediaUrl) && string.IsNullOrEmpty(lastMessage.Body)
-                    ? (lastMessage.MediaType == "video" ? "Sent a video" : "Sent a photo")
-                    : lastMessage.Body);
-            <a href="/Messages/Conversation/@conversation.Id" class="inbox-row @(unread > 0 ? "has-unread" : "")" data-reveal
-               style="--row-hue: @hue; --row-wash: radial-gradient(circle at 15% -10%, hsla(@(hue), 90%, 65%, .14), transparent 55%), radial-gradient(circle at 100% 110%, hsla(@(hue2), 90%, 60%, .1), transparent 55%); --row-border: linear-gradient(135deg, hsl(@(hue)deg 85% 62%), hsl(@(hue2)deg 85% 55%));">
-
-                <div class="creator-avatar" style="width:46px;height:46px;font-size:15px;background: linear-gradient(135deg, hsl(@(hue)deg 75% 58%), hsl(@(hue2)deg 75% 48%));">
-                    @FollowerFormat.InitialsOf(conversation.InfluencerProfile.FullName)
-                </div>
-
-                <div class="inbox-body">
-                    <div class="inbox-name-row">
-                        <div class="inbox-name-left">
-                            <span>@conversation.InfluencerProfile.FullName</span>
-                            @if (unread > 0)
-                            {
-                                <span class="inbox-unread-dot">@unread</span>
-                            }
+                        <div class="inbox-avatar">
+                            @FollowerFormat.InitialsOf(conversation.InfluencerProfile.FullName)
                         </div>
-                        <span class="inbox-time">@(lastMessage?.SentAt.ToString("MMM d") ?? conversation.CreatedAt.ToString("MMM d"))</span>
+
+                        <div class="inbox-body">
+                            <div class="inbox-name-row">
+                                <div class="inbox-name-left">
+                                    <span>@conversation.InfluencerProfile.FullName</span>
+                                    @if (conversation.InfluencerProfile.Verified)
+                                    {
+                                        <span class="verified-badge">Verified</span>
+                                    }
+                                </div>
+                                <span class="inbox-time">@(lastMessage?.SentAt.ToString("MMM d") ?? conversation.CreatedAt.ToString("MMM d"))</span>
+                            </div>
+                            <div class="inbox-snippet-row">
+                                <div class="inbox-snippet @(unread > 0 ? "is-unread" : "")">@snippet</div>
+                                @if (unread > 0)
+                                {
+                                    <span class="inbox-unread-dot">@unread</span>
+                                }
+                            </div>
+                        </div>
+
+                    </a>
+                }
+            }
+            else if (!string.IsNullOrEmpty(Model.Search))
+            {
+                <div class="list-empty">No conversations match "@Model.Search".</div>
+            }
+
+            @if (string.IsNullOrEmpty(Model.Search))
+            {
+                <div class="start-convo-card">
+                    <div class="start-convo-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/></svg>
                     </div>
-                    @if (conversation.Campaign is not null)
-                    {
-                        <div class="inbox-campaign">@conversation.Campaign.Title</div>
-                    }
-                    <div class="inbox-snippet @(unread > 0 ? "is-unread" : "")">@snippet</div>
+                    <div class="start-convo-title">Start a new conversation</div>
+                    <p class="start-convo-text">Connect with creators and collaborate on amazing campaigns.</p>
+                    <a href="/Influencers" class="btn btn-secondary">Browse Influencers</a>
+                </div>
+            }
+        </div>
+
+    </div>
+
+    <section class="thread-panel">
+
+        @if (selected is not null)
+        {
+            var creator = selected.InfluencerProfile;
+            <div class="thread-header">
+                <div class="inbox-avatar" style="width:42px;height:42px;font-size:14px;">
+                    @FollowerFormat.InitialsOf(creator.FullName)
+                </div>
+                <div>
+                    <div class="thread-name">@creator.FullName</div>
+                    <div class="thread-sub">@(selected.Campaign is not null ? selected.Campaign.Title : "General inquiry")</div>
                 </div>
 
-            </a>
+                <div class="thread-header-actions">
+                    <button type="button" class="thread-icon-btn" disabled title="Voice calling is coming soon" aria-label="Voice call">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6.6 10.8a15.6 15.6 0 0 0 6.6 6.6l2.2-2.2a1.5 1.5 0 0 1 1.5-.4 12 12 0 0 0 3.8.6 1.5 1.5 0 0 1 1.5 1.5V21a1.5 1.5 0 0 1-1.5 1.5A18.5 18.5 0 0 1 2.5 4.5 1.5 1.5 0 0 1 4 3h3.5A1.5 1.5 0 0 1 9 4.5a12 12 0 0 0 .6 3.8 1.5 1.5 0 0 1-.4 1.5L6.6 10.8Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+                    </button>
+                    <button type="button" class="thread-icon-btn" disabled title="Video calling is coming soon" aria-label="Video call">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="2.5" y="6" width="13" height="12" rx="2.5" stroke="currentColor" stroke-width="1.8"/><path d="M18.5 10.4 22 8v8l-3.5-2.4" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+                    </button>
+                    <button type="button" class="thread-icon-btn" id="profileInfoBtn" title="View profile" aria-label="View profile">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M12 11v5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="8" r=".9" fill="currentColor"/></svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="thread-body" id="threadBody">
+                @if (selectedMessages.Count > 0)
+                {
+                    @foreach (var message in selectedMessages)
+                    {
+                        var isMine = message.SenderUserId == currentUserId;
+                        var hasMedia = !string.IsNullOrEmpty(message.MediaUrl);
+                        var hasCaption = !string.IsNullOrEmpty(message.Body);
+                        <div class="msg-row @(isMine ? "is-mine" : "")">
+                            @if (!isMine)
+                            {
+                                <div class="msg-avatar">@FollowerFormat.InitialsOf(creator.FullName)</div>
+                            }
+                            <div>
+                                <div class="msg-bubble @(hasMedia ? "has-media" : "") @(hasMedia && hasCaption ? "has-caption" : "")">
+                                    @if (hasMedia)
+                                    {
+                                        <div class="msg-media">
+                                            @if (message.MediaType == "video")
+                                            {
+                                                <video src="@message.MediaUrl" controls preload="metadata"></video>
+                                            }
+                                            else
+                                            {
+                                                <img src="@message.MediaUrl" alt="Shared attachment" />
+                                            }
+                                        </div>
+                                    }
+                                    @if (hasCaption)
+                                    {
+                                        <span class="msg-caption">@message.Body</span>
+                                    }
+                                </div>
+                                <div class="msg-time">@message.SentAt.ToString("MMM d, h:mm tt")</div>
+                            </div>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="thread-empty">No messages yet &mdash; say hello to @creator.FullName.</div>
+                }
+            </div>
+
+            @if (TempData["MessageError"] is string messageError)
+            {
+                <div class="composer-error">@messageError</div>
+            }
+
+            <div class="composer-preview" id="chatMediaPreview">
+                <span class="composer-preview-name" id="chatMediaName"></span>
+                <button type="button" class="composer-preview-remove" id="chatMediaRemove" aria-label="Remove attachment">&times;</button>
+            </div>
+
+            <form class="thread-composer" method="post" action="/Messages/Send" enctype="multipart/form-data">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="conversationId" value="@selected.Id" />
+                <input type="file" name="mediaFile" id="chatMediaInput" accept="image/*,video/*" hidden />
+                <button type="button" class="composer-attach" id="chatAttachBtn" aria-label="Attach image or video">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M21 11.5L12.5 20a5 5 0 0 1-7-7l8-8a3.5 3.5 0 0 1 5 5l-8 8a2 2 0 0 1-3-3l7-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+                <textarea name="body" placeholder="Write a message..."></textarea>
+                <button type="submit" class="composer-send" aria-label="Send message">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 12L20 4L13 20L11 13L4 12Z" stroke="#fff" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/></svg>
+                </button>
+            </form>
+
+            <div class="profile-drawer" id="profileDrawer">
+                <button type="button" class="profile-drawer-close" id="profileDrawerClose" aria-label="Close profile">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                </button>
+
+                <div class="profile-avatar-wrap">
+                    <div class="profile-avatar-ring">
+                        <div class="inbox-avatar">@FollowerFormat.InitialsOf(creator.FullName)</div>
+                    </div>
+                    <div class="profile-name-row">
+                        @creator.FullName
+                        @if (creator.Verified)
+                        {
+                            <span class="verified-badge">Verified</span>
+                        }
+                    </div>
+                    <div class="profile-handle">@creator.PrimaryPlatform &middot; @creator.PlatformUsername</div>
+                </div>
+
+                @if (!string.IsNullOrEmpty(creator.Bio))
+                {
+                    <div class="profile-section">
+                        <div class="profile-label">Biography</div>
+                        <p class="profile-bio">@creator.Bio</p>
+                    </div>
+                }
+
+                <div class="profile-section">
+                    <div class="profile-label">Focus</div>
+                    <div class="profile-tags">
+                        <span class="profile-tag">@creator.ContentNiche</span>
+                        @if (!string.IsNullOrEmpty(creator.Location))
+                        {
+                            <span class="profile-tag">@creator.Location</span>
+                        }
+                    </div>
+                </div>
+
+                @if (!string.IsNullOrEmpty(creator.RateNote))
+                {
+                    <div class="profile-section">
+                        <div class="profile-label">Rates</div>
+                        <div class="profile-rate-box">@creator.RateNote</div>
+                    </div>
+                }
+
+                <div class="profile-section">
+                    <div class="profile-label">Reach</div>
+                    <div class="profile-figures">
+                        <div>
+                            <div class="profile-figure-value">@FollowerFormat.Format(creator.Followers)</div>
+                            <div class="profile-figure-label">Followers</div>
+                        </div>
+                        <div>
+                            <div class="profile-figure-value">@creator.EngagementRate.ToString("0.0")%</div>
+                            <div class="profile-figure-label">Engagement</div>
+                        </div>
+                    </div>
+                </div>
+
+                <a href="/Influencers/Profile/@creator.Id" class="profile-cta">View Full Profile</a>
+
+            </div>
         }
-    </div>
-}
-else if (string.IsNullOrEmpty(Model.Search))
-{
-    <div class="panel empty-block" style="margin-top: 24px;">
-        <div class="empty-title">No conversations yet</div>
-        <p class="empty-text">Start a conversation from a creator's profile or a collaboration to see it here.</p>
-        <a href="/Influencers" class="btn btn-primary" style="margin-top: 16px;">Discover Creators</a>
-    </div>
-}
-else
-{
-    <div class="panel empty-block" style="margin-top: 24px;">
-        <div class="empty-title">No conversations match "@Model.Search"</div>
-        <p class="empty-text">Try a different name or clear your search.</p>
-        <a href="/Messages" class="btn btn-secondary" style="margin-top: 16px;">Clear Search</a>
-    </div>
-}
+        else
+        {
+            <div class="thread-empty">Select or start a conversation to see it here.</div>
+        }
+
+    </section>
+
+</div>
 
 @section Scripts {
     <script>
         (function () {
             var rows = document.querySelectorAll('.inbox-row[data-reveal]');
-            if (!rows.length) return;
+            if (rows.length) {
+                if (!('IntersectionObserver' in window)) {
+                    rows.forEach(function (r) { r.classList.add('is-visible'); });
+                } else {
+                    var observer = new IntersectionObserver(function (entries) {
+                        entries.forEach(function (entry) {
+                            if (entry.isIntersecting) {
+                                entry.target.classList.add('is-visible');
+                                observer.unobserve(entry.target);
+                            }
+                        });
+                    }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
 
-            if (!('IntersectionObserver' in window)) {
-                rows.forEach(function (r) { r.classList.add('is-visible'); });
-                return;
+                    rows.forEach(function (row, index) {
+                        row.style.transitionDelay = Math.min(index % 12, 8) * 35 + 'ms';
+                        observer.observe(row);
+                    });
+                }
             }
 
-            var observer = new IntersectionObserver(function (entries) {
-                entries.forEach(function (entry) {
-                    if (entry.isIntersecting) {
-                        entry.target.classList.add('is-visible');
-                        observer.unobserve(entry.target);
+            var filterBtn = document.getElementById('messagesFilterBtn');
+            var searchWrap = document.getElementById('messagesSearchWrap');
+            if (filterBtn && searchWrap) {
+                var hasSearch = @(!string.IsNullOrEmpty(Model.Search) ? "true" : "false");
+                if (hasSearch) {
+                    searchWrap.classList.add('is-open');
+                    filterBtn.classList.add('is-active');
+                }
+                filterBtn.addEventListener('click', function () {
+                    var open = searchWrap.classList.toggle('is-open');
+                    filterBtn.classList.toggle('is-active', open);
+                    if (open) {
+                        var input = searchWrap.querySelector('input[name="search"]');
+                        if (input) input.focus();
                     }
                 });
-            }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+            }
 
-            rows.forEach(function (row, index) {
-                row.style.transitionDelay = Math.min(index % 12, 8) * 40 + 'ms';
-                observer.observe(row);
-            });
+            var infoBtn = document.getElementById('profileInfoBtn');
+            var drawer = document.getElementById('profileDrawer');
+            var drawerClose = document.getElementById('profileDrawerClose');
+            if (infoBtn && drawer && drawerClose) {
+                infoBtn.addEventListener('click', function () {
+                    drawer.classList.add('is-open');
+                    infoBtn.classList.add('is-active');
+                });
+                drawerClose.addEventListener('click', function () {
+                    drawer.classList.remove('is-open');
+                    infoBtn.classList.remove('is-active');
+                });
+            }
+
+            var input = document.getElementById('chatMediaInput');
+            var attachBtn = document.getElementById('chatAttachBtn');
+            var preview = document.getElementById('chatMediaPreview');
+            var previewName = document.getElementById('chatMediaName');
+            var removeBtn = document.getElementById('chatMediaRemove');
+            var threadBody = document.getElementById('threadBody');
+
+            if (input) {
+                attachBtn.addEventListener('click', function () { input.click(); });
+
+                input.addEventListener('change', function () {
+                    if (input.files && input.files[0]) {
+                        previewName.textContent = input.files[0].name;
+                        preview.style.display = 'flex';
+                    } else {
+                        preview.style.display = 'none';
+                    }
+                });
+
+                removeBtn.addEventListener('click', function () {
+                    input.value = '';
+                    preview.style.display = 'none';
+                });
+            }
+
+            if (threadBody) {
+                threadBody.scrollTop = threadBody.scrollHeight;
+            }
         })();
     </script>
 }

@@ -1,0 +1,173 @@
+@model List<Brandora.Web.Models.Domain.Dispute>
+@{
+    // NOTE: this whole page renders a fixed dummy dataset for the visual redesign pass
+    // (see feedback_backend_wiring_scope memory) — TODO: switch to Model (already wired
+    // to real Dispute data in the controller) once backend wiring is requested. Real
+    // Dispute rows can't exist yet anyway since there's no "raise a dispute" entry point
+    // on the Brand/Influencer side.
+    var statusFilter = ViewData["StatusFilter"] as Brandora.Web.Models.Domain.DisputeStatus?;
+}
+
+<style>
+    .filter-tabs { display: flex; gap: 10px; flex-wrap: wrap; }
+    .filter-tab { display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 10px; border: 1px solid #eaecf5; background: #ffffff; font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; color: #545b7d; white-space: nowrap; }
+    .filter-tab:hover { border-color: #d3b8ff; }
+    .filter-tab.is-active { background: #f1e6ff; border-color: transparent; color: #7a1fd6; }
+    .filter-tab-count { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 20px; padding: 0 6px; border-radius: 20px; background: rgba(0,0,0,.06); font-size: 11px; font-weight: 700; }
+    .filter-tab.is-active .filter-tab-count { background: rgba(122,31,214,.15); }
+
+    .table-toolbar { display: flex; justify-content: flex-end; gap: 12px; margin: 18px 0; flex-wrap: wrap; }
+    .table-search { position: relative; flex: 1; max-width: 340px; }
+    .table-search i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #b7bdd6; font-size: 14px; }
+    .table-search input { width: 100%; height: 42px; padding: 0 14px 0 38px; border-radius: 10px; border: 1px solid #dde1f0; font-family: 'Inter', sans-serif; font-size: 13px; color: #2a3157; outline: none; }
+    .table-search input:focus { border-color: #a978ff; }
+    .filter-dropdown-btn { display: inline-flex; align-items: center; gap: 8px; height: 42px; padding: 0 16px; border-radius: 10px; border: 1px solid #dde1f0; background: #ffffff; font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; color: #2a3157; }
+
+    .case-id { font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 700; color: #2a3157; }
+    .case-brand-id { margin-top: 1px; font-family: 'Inter', sans-serif; font-size: 11px; color: #8189a8; }
+
+    .brand-cell { display: flex; align-items: center; gap: 10px; }
+    .brand-logo { width: 34px; height: 34px; border-radius: 8px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; color: #ffffff; font-family: 'DM Sans', sans-serif; font-weight: 800; font-size: 9px; text-align: center; line-height: 1.05; white-space: pre-line; }
+    .brand-name { font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 600; color: #2a3157; }
+
+    .influencer-cell { display: flex; align-items: center; gap: 10px; }
+    .influencer-avatar { width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: linear-gradient(145deg, #c93cff, #4e38ff 55%, #159cff); color: #ffffff; font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 10.5px; }
+    .influencer-name { font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 600; color: #2a3157; }
+    .influencer-handle { margin-top: 1px; font-family: 'Inter', sans-serif; font-size: 11px; color: #8189a8; }
+
+    .campaign-title { font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 600; color: #2a3157; }
+    .campaign-milestone { margin-top: 1px; font-family: 'Inter', sans-serif; font-size: 11px; color: #8189a8; }
+
+    .reason-text { font-family: 'Inter', sans-serif; font-size: 12.5px; color: #2a3157; max-width: 200px; }
+
+    .row-actions-wrap { display: flex; align-items: center; gap: 8px; }
+    .btn-view-chevron { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 14px; border-radius: 9px; border: 1px solid #dde1f0; background: #ffffff; color: #6b52d8; font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 700; }
+    .btn-view-chevron:hover { border-color: #d3b8ff; background: #f9f5ff; }
+    .row-more-btn { width: 34px; height: 34px; border-radius: 9px; border: 1px solid transparent; background: transparent; color: #8189a8; display: flex; align-items: center; justify-content: center; }
+    .row-more-btn:hover { background: #f6f7fb; }
+
+    .table-pagination { display: flex; align-items: center; justify-content: space-between; margin-top: 18px; flex-wrap: wrap; gap: 12px; }
+    .page-btn { width: 34px; height: 34px; border-radius: 9px; border: 1px solid #dde1f0; background: #ffffff; font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 600; color: #545b7d; display: inline-flex; align-items: center; justify-content: center; }
+    .page-btn.is-active { background: #f1e6ff; border-color: transparent; color: #7a1fd6; }
+
+    .promo-banner { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-top: 20px; }
+    .promo-banner-left { display: flex; align-items: center; gap: 14px; }
+    .promo-banner-icon { width: 40px; height: 40px; border-radius: 50%; background: #f1e6ff; color: #7a1fd6; display: flex; align-items: center; justify-content: center; font-size: 17px; flex-shrink: 0; }
+</style>
+
+<div class="panel">
+
+    <div class="filter-tabs">
+        <a href="/Admin/AdminDisputes/Index" class="filter-tab @(statusFilter is null ? "is-active" : "")">All <span class="filter-tab-count">128</span></a>
+        <a href="/Admin/AdminDisputes/Index?status=Open" class="filter-tab @(statusFilter == Brandora.Web.Models.Domain.DisputeStatus.Open ? "is-active" : "")">Open <span class="filter-tab-count">35</span></a>
+        <a href="/Admin/AdminDisputes/Index?status=UnderReview" class="filter-tab @(statusFilter == Brandora.Web.Models.Domain.DisputeStatus.UnderReview ? "is-active" : "")">Under Review <span class="filter-tab-count">28</span></a>
+        <a href="/Admin/AdminDisputes/Index?status=Resolved" class="filter-tab @(statusFilter == Brandora.Web.Models.Domain.DisputeStatus.Resolved ? "is-active" : "")">Resolved <span class="filter-tab-count">52</span></a>
+        <a href="#" class="filter-tab">Closed <span class="filter-tab-count">13</span></a>
+    </div>
+
+    <div class="table-toolbar">
+        <div class="table-search">
+            <i class="bi bi-search"></i>
+            <input type="text" placeholder="Search by case ID, brand, influencer..." />
+        </div>
+        <button type="button" class="filter-dropdown-btn"><i class="bi bi-funnel"></i> Filter <i class="bi bi-chevron-down" style="font-size:11px;"></i></button>
+    </div>
+
+    @{
+        (string CaseId, string BrandId, string BrandLogo, string BrandLogoColor, string BrandName, string InfluencerName, string Handle, string Campaign, string Milestone, string Reason, string Date, string Time, string Status, string StatusColor)[] rows =
+        [
+            ("DSP-2025-00345", "#BR-12450", "GLOW\nUP", "#14103a", "GlowUp Skincare Ltd.", "Priya Islam", "@priya.islam.official", "GlowUp Summer Skincare Launch", "Milestone 2 &ndash; Feed Post", "Missing product tag in the post", "May 28, 2025", "11:45 AM", "Under Review", "blue"),
+            ("DSP-2025-00344", "#BR-12448", "Style\nMart", "#6b52d8", "StyleMart BD", "Tanvir Hasan", "@tanvir.hasan_", "StyleMart Eid Campaign", "Milestone 1 &ndash; Story Series", "Payment not released", "May 27, 2025", "03:20 PM", "Open", "gray"),
+            ("DSP-2025-00343", "#BR-12447", "Tech\nHaven", "#1a73d8", "TechHaven Solutions", "Nabila Sultana", "@nabii.sultsna", "TechHaven Product Review", "Milestone 3 &ndash; Reels", "Content quality not as agreed", "May 26, 2025", "02:10 PM", "Under Review", "blue"),
+            ("DSP-2025-00342", "#BR-12445", "&#127793;", "#ffffff", "Organic Bangladesh", "Munawar Moon", "@munawar.moon", "Organic Food Awareness", "Milestone 1 &ndash; Feed Post", "Incorrect information in the content", "May 25, 2025", "10:05 AM", "Resolved", "green"),
+            ("DSP-2025-00341", "#BR-12444", "FIT\nZONE", "#0d9c6c", "FitZone Gym", "Afsana Mim", "@afsana_mim", "FitZone Transformation Challenge", "Milestone 2 &ndash; Reels", "Delay in content submission", "May 24, 2025", "09:30 PM", "Closed", "gray"),
+            ("DSP-2025-00340", "#BR-12443", "Book\nNest", "#d9a91a", "BookNest BD", "Arif Mahmud", "@arif.reads", "BookNest Review Series", "Milestone 1 &ndash; Story", "Brand didn't follow the brief", "May 23, 2025", "12:40 PM", "Open", "gray"),
+            ("DSP-2025-00339", "#BR-12442", "Chic\nCloset", "#e2136e", "Chic Closet", "Jannatul Ferdaus", "@ferdaus.jannat", "Summer Fashion Collection", "Milestone 3 &ndash; Feed Post", "Disagreement on revision requests", "May 22, 2025", "04:15 PM", "Under Review", "blue"),
+            ("DSP-2025-00338", "#BR-12441", "Home\nHaven", "#d97a17", "HomeHaven Decor", "Shawon Rahman", "@shawon.life", "HomeHaven Decor Ideas", "Milestone 2 &ndash; Reels", "Payment amount dispute", "May 21, 2025", "11:00 AM", "Resolved", "green")
+        ];
+    }
+
+    <div class="admin-table-wrap" style="margin-top: 18px;">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Case ID</th>
+                    <th>Brand</th>
+                    <th>Influencer</th>
+                    <th>Campaign / Milestone</th>
+                    <th>Reason</th>
+                    <th>Date Raised</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var row in rows)
+                {
+                    var influencerInitials = string.Join("", row.InfluencerName.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(w => w[0])).ToUpperInvariant();
+                    <tr>
+                        <td>
+                            <div class="case-id">@row.CaseId</div>
+                            <div class="case-brand-id">@row.BrandId</div>
+                        </td>
+                        <td>
+                            <div class="brand-cell">
+                                <div class="brand-logo" style="background:@row.BrandLogoColor; @(row.BrandLogoColor == "#ffffff" ? "border:1px solid #eaecf5; color:#2a3157;" : "")">@Html.Raw(row.BrandLogo)</div>
+                                <span class="brand-name">@row.BrandName</span>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="influencer-cell">
+                                <div class="influencer-avatar">@influencerInitials</div>
+                                <div>
+                                    <div class="influencer-name">@row.InfluencerName</div>
+                                    <div class="influencer-handle">@row.Handle</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="campaign-title">@row.Campaign</div>
+                            <div class="campaign-milestone">@Html.Raw(row.Milestone)</div>
+                        </td>
+                        <td><span class="reason-text">@row.Reason</span></td>
+                        <td>@row.Date<div style="color:#8189a8; font-size:11.5px; margin-top:2px;">@row.Time</div></td>
+                        <td><span class="status-pill @row.StatusColor">@row.Status</span></td>
+                        <td>
+                            <div class="row-actions-wrap">
+                                <a href="/Admin/AdminDisputes/Details/1" class="btn-view-chevron">View</a>
+                                <button type="button" class="row-more-btn"><i class="bi bi-three-dots-vertical"></i></button>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <div class="table-pagination">
+        <div class="panel-sub">Showing 1 to 8 of 128 disputes (dummy data — real list to be wired in)</div>
+        <div style="display:flex; gap:6px;">
+            <span class="page-btn"><i class="bi bi-chevron-left"></i></span>
+            <span class="page-btn is-active">1</span>
+            <span class="page-btn">2</span>
+            <span class="page-btn">3</span>
+            <span class="page-btn">4</span>
+            <span class="page-btn">5</span>
+            <span class="page-btn">&hellip;</span>
+            <span class="page-btn">16</span>
+            <span class="page-btn"><i class="bi bi-chevron-right"></i></span>
+        </div>
+    </div>
+
+</div>
+
+<div class="panel promo-banner">
+    <div class="promo-banner-left">
+        <div class="promo-banner-icon"><i class="bi bi-shield-check"></i></div>
+        <div>
+            <div class="panel-title" style="font-size:14px;">Faster Resolution, Better Relationships</div>
+            <div class="panel-sub">Resolve disputes quickly and fairly to build trust with both brands and influencers.</div>
+        </div>
+    </div>
+    <a href="#" class="btn btn-secondary">View Resolution Guidelines <i class="bi bi-box-arrow-up-right" style="margin-left:8px;"></i></a>
+</div>

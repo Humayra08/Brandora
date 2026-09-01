@@ -10,7 +10,7 @@ namespace Brandora.Web.Controllers;
 
 public class MessagesController(UserManager<ApplicationUser> userManager, ApplicationDbContext db, MediaUploadService mediaUploads) : BrandControllerBase(userManager, db)
 {
-    public async Task<IActionResult> Index(int? campaignId, string? search)
+    public async Task<IActionResult> Index(int? open, int? campaignId, string? search)
     {
         var brand = await GetCurrentBrandAsync();
         if (brand is null)
@@ -48,48 +48,50 @@ public class MessagesController(UserManager<ApplicationUser> userManager, Applic
             .OrderByDescending(c => c.Messages.Count > 0 ? c.Messages.Max(m => m.SentAt) : c.CreatedAt)
             .ToList();
 
-        return View(new InboxViewModel
+        var vm = new InboxViewModel
         {
             Conversations = ordered,
             UnreadCounts = unreadCounts,
             Search = search,
             TotalCount = ordered.Count,
             TotalUnread = unreadCounts.Values.Sum()
-        });
+        };
+
+        var targetId = open ?? ordered.FirstOrDefault()?.Id;
+        if (targetId.HasValue)
+        {
+            var selected = await db.Conversations
+                .Include(c => c.InfluencerProfile)
+                .Include(c => c.Campaign)
+                .Include(c => c.Messages).ThenInclude(m => m.SenderUser)
+                .FirstOrDefaultAsync(c => c.Id == targetId.Value && c.BrandProfileId == brand.Id);
+
+            if (selected is not null)
+            {
+                var unread = selected.Messages.Where(m => m.SenderUserId != userId && m.ReadAt == null).ToList();
+                if (unread.Count > 0)
+                {
+                    foreach (var message in unread)
+                    {
+                        message.ReadAt = DateTime.UtcNow;
+                    }
+
+                    await db.SaveChangesAsync();
+
+                    vm.UnreadCounts[selected.Id] = 0;
+                    vm.TotalUnread = vm.UnreadCounts.Values.Sum();
+                }
+
+                vm.Selected = selected;
+            }
+        }
+
+        return View(vm);
     }
 
-    public async Task<IActionResult> Conversation(int id)
+    public IActionResult Conversation(int id)
     {
-        var brand = await GetCurrentBrandAsync();
-        if (brand is null)
-        {
-            return RedirectToAction("Index", "Home");
-        }
-
-        var conversation = await db.Conversations
-            .Include(c => c.InfluencerProfile)
-            .Include(c => c.Campaign)
-            .Include(c => c.Messages).ThenInclude(m => m.SenderUser)
-            .FirstOrDefaultAsync(c => c.Id == id && c.BrandProfileId == brand.Id);
-
-        if (conversation is null)
-        {
-            return NotFound();
-        }
-
-        var userId = userManager.GetUserId(User);
-        var unread = conversation.Messages.Where(m => m.SenderUserId != userId && m.ReadAt == null).ToList();
-        if (unread.Count > 0)
-        {
-            foreach (var message in unread)
-            {
-                message.ReadAt = DateTime.UtcNow;
-            }
-
-            await db.SaveChangesAsync();
-        }
-
-        return View(conversation);
+        return RedirectToAction("Index", new { open = id });
     }
 
     [HttpPost]
@@ -118,7 +120,7 @@ public class MessagesController(UserManager<ApplicationUser> userManager, Applic
             if (error is not null)
             {
                 TempData["MessageError"] = error;
-                return RedirectToAction("Conversation", new { id = conversationId });
+                return RedirectToAction("Index", new { open = conversationId });
             }
 
             mediaUrl = url;
@@ -141,7 +143,7 @@ public class MessagesController(UserManager<ApplicationUser> userManager, Applic
             await db.SaveChangesAsync();
         }
 
-        return RedirectToAction("Conversation", new { id = conversationId });
+        return RedirectToAction("Index", new { open = conversationId });
     }
 
     [HttpPost]
@@ -176,6 +178,6 @@ public class MessagesController(UserManager<ApplicationUser> userManager, Applic
             await db.SaveChangesAsync();
         }
 
-        return RedirectToAction("Conversation", new { id = conversation.Id });
+        return RedirectToAction("Index", new { open = conversation.Id });
     }
 }

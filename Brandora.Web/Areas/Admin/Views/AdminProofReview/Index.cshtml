@@ -1,0 +1,145 @@
+@model List<Brandora.Web.Models.Domain.Milestone>
+@{
+    // NOTE: this whole page renders a fixed dummy dataset for the visual redesign pass
+    // (see feedback_backend_wiring_scope memory) — TODO: switch to Model (already wired
+    // to real Milestone data in the controller) once backend wiring is requested.
+    var statusFilter = ViewData["StatusFilter"] as Brandora.Web.Models.Domain.MilestoneStatus?;
+}
+
+<style>
+    .filter-tabs { display: flex; gap: 10px; flex-wrap: wrap; }
+    .filter-tab { padding: 10px 16px; border-radius: 10px; border: 1px solid #eaecf5; background: #ffffff; font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; color: #545b7d; white-space: nowrap; }
+    .filter-tab:hover { border-color: #d3b8ff; }
+    .filter-tab.is-active { background: #f1e6ff; border-color: transparent; color: #7a1fd6; }
+
+    .table-toolbar { display: flex; justify-content: flex-end; gap: 12px; margin: 18px 0; flex-wrap: wrap; }
+    .table-search { position: relative; flex: 1; max-width: 340px; }
+    .table-search i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #b7bdd6; font-size: 14px; }
+    .table-search input { width: 100%; height: 42px; padding: 0 14px 0 38px; border-radius: 10px; border: 1px solid #dde1f0; font-family: 'Inter', sans-serif; font-size: 13px; color: #2a3157; outline: none; }
+    .table-search input:focus { border-color: #a978ff; }
+    .filter-dropdown-btn { display: inline-flex; align-items: center; gap: 8px; height: 42px; padding: 0 16px; border-radius: 10px; border: 1px solid #dde1f0; background: #ffffff; font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; color: #2a3157; }
+
+    .campaign-cell { display: flex; align-items: center; gap: 10px; }
+    .campaign-logo { width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: #14103a; color: #ffffff; font-family: 'DM Sans', sans-serif; font-weight: 800; font-size: 10px; text-align: center; line-height: 1.1; }
+    .campaign-title { font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 700; color: #2a3157; }
+    .campaign-brand { margin-top: 1px; font-family: 'Inter', sans-serif; font-size: 11.5px; color: #8189a8; }
+
+    .milestone-title { font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; color: #2a3157; }
+    .milestone-amount { margin-top: 4px; }
+
+    .influencer-cell { display: flex; align-items: center; gap: 10px; }
+    .influencer-avatar { width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: linear-gradient(145deg, #c93cff, #4e38ff 55%, #159cff); color: #ffffff; font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 11.5px; }
+    .influencer-name { font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 700; color: #2a3157; }
+    .influencer-meta { margin-top: 1px; font-family: 'Inter', sans-serif; font-size: 11px; color: #8189a8; }
+
+    .proof-thumb-wrap { position: relative; width: 54px; height: 54px; border-radius: 10px; overflow: hidden; }
+    .proof-thumb-wrap img { width: 100%; height: 100%; object-fit: cover; }
+    .proof-thumb-link { position: absolute; top: 3px; right: 3px; width: 18px; height: 18px; border-radius: 5px; background: rgba(0,0,0,.55); display: flex; align-items: center; justify-content: center; color: #ffffff; font-size: 9px; }
+
+    .btn-view-chevron { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 16px; border-radius: 9px; border: 1px solid #dde1f0; background: #ffffff; color: #6b52d8; font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 700; }
+    .btn-view-chevron:hover { border-color: #d3b8ff; background: #f9f5ff; }
+
+    .table-pagination { display: flex; align-items: center; justify-content: space-between; margin-top: 18px; flex-wrap: wrap; gap: 12px; }
+    .page-btn { width: 34px; height: 34px; border-radius: 9px; border: 1px solid #dde1f0; background: #ffffff; font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 600; color: #545b7d; display: inline-flex; align-items: center; justify-content: center; }
+    .page-btn.is-active { background: #f1e6ff; border-color: transparent; color: #7a1fd6; }
+</style>
+
+<div class="panel">
+
+    <div class="filter-tabs">
+        <a href="/Admin/AdminProofReview/Index" class="filter-tab @(statusFilter is null ? "is-active" : "")">All (128)</a>
+        <a href="/Admin/AdminProofReview/Index?status=Submitted" class="filter-tab @(statusFilter == Brandora.Web.Models.Domain.MilestoneStatus.Submitted ? "is-active" : "")">Submitted (52)</a>
+        <a href="/Admin/AdminProofReview/Index?status=Approved" class="filter-tab @(statusFilter == Brandora.Web.Models.Domain.MilestoneStatus.Approved ? "is-active" : "")">Approved (41)</a>
+        <a href="/Admin/AdminProofReview/Index?status=RevisionRequested" class="filter-tab @(statusFilter == Brandora.Web.Models.Domain.MilestoneStatus.RevisionRequested ? "is-active" : "")">Revision Requested (18)</a>
+    </div>
+
+    <div class="table-toolbar">
+        <div class="table-search">
+            <i class="bi bi-search"></i>
+            <input type="text" placeholder="Search by campaign, milestone, or influencer..." />
+        </div>
+        <button type="button" class="filter-dropdown-btn"><i class="bi bi-funnel"></i> Filter <i class="bi bi-chevron-down" style="font-size:11px;"></i></button>
+    </div>
+
+    @{
+        (string CampaignLogo, string CampaignTitle, string Brand, string MilestoneTitle, string Amount, string InfluencerName, string Handle, string Followers, string ThumbGradient, string Date, string Time, string Status, string StatusColor)[] rows =
+        [
+            ("GLOW\nUP", "GlowUp Summer Skincare Launch", "GlowUp Skincare Ltd.", "Instagram Feed Post (Milestone 2)", "৳25,000", "Priya Islam", "@priya.islam.official", "125K followers", "linear-gradient(135deg,#f6d9c4,#e8b88f)", "May 29, 2025", "10:15 AM", "Submitted", "blue"),
+            ("URBAN\nFIT", "UrbanFit Activewear Promo Campaign", "UrbanFit Bangladesh", "TikTok Video (Milestone 1)", "৳18,000", "Rifat Ahmed", "@rifat.fitness", "210K followers", "linear-gradient(135deg,#2a2f45,#4a5578)", "May 28, 2025", "04:32 PM", "Approved", "green"),
+            ("B", "BeautyBloom Skincare Routine", "BeautyBloom Ltd.", "Instagram Reel (Milestone 3)", "৳22,000", "Nabila Sultana", "@nabila.sultana", "96.2K followers", "linear-gradient(135deg,#f7d6e0,#f0a8c2)", "May 28, 2025", "11:05 AM", "Revision Requested", "gray"),
+            ("SPICE\nBITE", "SpiceBite Iftar Special Campaign", "SpiceBite Foods", "Facebook Post (Milestone 1)", "৳15,000", "Tanvir Hasan", "@tanvir.hasan", "210K followers", "linear-gradient(135deg,#e2b98a,#c97b3f)", "May 27, 2025", "09:41 PM", "Submitted", "blue"),
+            ("ECO\nHOME", "EcoHome Sustainability Drive", "EcoHome BD", "Instagram Story Series (Milestone 2)", "৳12,000", "Afsana Mim", "@afsana.mim", "84.5K followers", "linear-gradient(135deg,#dce8dc,#a9c4a9)", "May 27, 2025", "03:12 PM", "Approved", "green"),
+            ("LUXE\nWEAR", "LuxeWear Eid Collection", "LuxeWear Ltd.", "TikTok Video (Milestone 2)", "৳12,000", "Shawon Rahman", "@shawon.rahman", "310K followers", "linear-gradient(135deg,#c9b896,#8f7a52)", "May 27, 2025", "12:28 PM", "Revision Requested", "gray")
+        ];
+    }
+
+    <div class="admin-table-wrap" style="margin-top: 18px;">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Campaign</th>
+                    <th>Milestone Title</th>
+                    <th>Influencer</th>
+                    <th>Proof Thumbnail</th>
+                    <th>Submitted Date</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var row in rows)
+                {
+                    var influencerInitials = string.Join("", row.InfluencerName.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(w => w[0])).ToUpperInvariant();
+                    <tr>
+                        <td>
+                            <div class="campaign-cell">
+                                <div class="campaign-logo">@row.CampaignLogo</div>
+                                <div>
+                                    <div class="campaign-title">@row.CampaignTitle</div>
+                                    <div class="campaign-brand">@row.Brand</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="milestone-title">@row.MilestoneTitle</div>
+                            <div class="milestone-amount"><span class="status-pill blue">@row.Amount</span></div>
+                        </td>
+                        <td>
+                            <div class="influencer-cell">
+                                <div class="influencer-avatar">@influencerInitials</div>
+                                <div>
+                                    <div class="influencer-name">@row.InfluencerName</div>
+                                    <div class="influencer-meta">@row.Handle &middot; @row.Followers</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="proof-thumb-wrap" style="background:@row.ThumbGradient;">
+                                <span class="proof-thumb-link"><i class="bi bi-box-arrow-up-right"></i></span>
+                            </div>
+                        </td>
+                        <td>@row.Date<div style="color:#8189a8; font-size:11.5px; margin-top:2px;">@row.Time</div></td>
+                        <td><span class="status-pill @row.StatusColor">@row.Status</span></td>
+                        <td><a href="/Admin/AdminProofReview/Details/1" class="btn-view-chevron">View <i class="bi bi-chevron-right"></i></a></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <div class="table-pagination">
+        <div class="panel-sub">Showing 1 to 6 of 128 submissions (dummy data — real list to be wired in)</div>
+        <div style="display:flex; gap:6px;">
+            <span class="page-btn"><i class="bi bi-chevron-left"></i></span>
+            <span class="page-btn is-active">1</span>
+            <span class="page-btn">2</span>
+            <span class="page-btn">3</span>
+            <span class="page-btn">4</span>
+            <span class="page-btn">5</span>
+            <span class="page-btn">&hellip;</span>
+            <span class="page-btn">22</span>
+            <span class="page-btn"><i class="bi bi-chevron-right"></i></span>
+        </div>
+    </div>
+
+</div>

@@ -263,6 +263,55 @@ namespace Brandora.Web.Migrations
                     b.ToTable("Conversations");
                 });
 
+            modelBuilder.Entity("Brandora.Web.Models.Domain.Dispute", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BrandProfileId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("CollaborationId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("InfluencerProfileId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("MilestoneId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ResolutionNotes")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("ResolvedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BrandProfileId");
+
+                    b.HasIndex("CollaborationId");
+
+                    b.HasIndex("InfluencerProfileId");
+
+                    b.HasIndex("MilestoneId");
+
+                    b.ToTable("Disputes");
+                });
+
             modelBuilder.Entity("Brandora.Web.Models.Domain.InfluencerProfile", b =>
                 {
                     b.Property<int>("Id")
@@ -316,6 +365,9 @@ namespace Brandora.Web.Migrations
 
                     b.Property<bool>("Verified")
                         .HasColumnType("bit");
+
+                    b.Property<string>("WebsiteUrl")
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 
@@ -764,6 +816,40 @@ namespace Brandora.Web.Migrations
                     b.Navigation("Campaign");
 
                     b.Navigation("InfluencerProfile");
+                });
+
+            modelBuilder.Entity("Brandora.Web.Models.Domain.Dispute", b =>
+                {
+                    b.HasOne("Brandora.Web.Models.Domain.BrandProfile", "BrandProfile")
+                        .WithMany()
+                        .HasForeignKey("BrandProfileId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Brandora.Web.Models.Domain.Collaboration", "Collaboration")
+                        .WithMany()
+                        .HasForeignKey("CollaborationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Brandora.Web.Models.Domain.InfluencerProfile", "InfluencerProfile")
+                        .WithMany()
+                        .HasForeignKey("InfluencerProfileId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Brandora.Web.Models.Domain.Milestone", "Milestone")
+                        .WithMany()
+                        .HasForeignKey("MilestoneId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("BrandProfile");
+
+                    b.Navigation("Collaboration");
+
+                    b.Navigation("InfluencerProfile");
+
+                    b.Navigation("Milestone");
                 });
 
             modelBuilder.Entity("Brandora.Web.Models.Domain.InfluencerProfile", b =>
