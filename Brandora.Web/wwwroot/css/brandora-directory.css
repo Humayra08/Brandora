@@ -184,6 +184,38 @@ button {
     z-index: 5;
 }
 
+.directory-hero-inner--split {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 40px;
+}
+
+.directory-hero-image {
+    flex-shrink: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.directory-hero-image img {
+    max-width: 460px;
+    width: 100%;
+    height: auto;
+}
+
+@media (max-width: 1000px) {
+    .directory-hero-inner--split {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .directory-hero-image {
+        align-self: center;
+    }
+}
+
 .directory-hero-copy {
     max-width: 620px;
 
@@ -213,6 +245,13 @@ button {
 
 .directory-hero-title .blue {
     color: var(--dir-accent-blue);
+}
+
+.directory-hero-title .gradient-text {
+    background: linear-gradient(90deg, var(--dir-accent-purple), var(--dir-accent-blue));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
 }
 
 .directory-hero-text {
