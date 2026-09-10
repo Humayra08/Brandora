@@ -105,16 +105,6 @@ public static class DirectoryData
                 ActiveCampaigns = 9,
                 LogoText = "GARNIER",
                 LogoBackground = "linear-gradient(135deg, #6f9c2f 0%, #4e7a1e 100%)"
-            },
-            new()
-            {
-                CompanyName = "Lotto Bangladesh",
-                Industry = "Fashion & Lifestyle",
-                Location = "Dhaka, Bangladesh",
-                Description = "Italian sportswear brand for every lifestyle.",
-                ActiveCampaigns = 7,
-                LogoText = "lotto",
-                LogoBackground = "linear-gradient(135deg, #17181c 0%, #000000 100%)"
             }
         },
 
@@ -235,17 +225,6 @@ public static class DirectoryData
                 Verified = true,
                 Platform = "Facebook",
                 CoverBackground = "linear-gradient(135deg, #0f1c3f 0%, #1b3566 100%)"
-            },
-            new()
-            {
-                FullName = "Adnan Hridoy",
-                Niche = "Travel",
-                Location = "Sylhet, Bangladesh",
-                Followers = 723_000,
-                EngagementRate = 6.3m,
-                Verified = true,
-                Platform = "Instagram",
-                CoverBackground = "linear-gradient(135deg, #3d2a6b 0%, #6b4a9e 100%)"
             }
         },
 

@@ -56,20 +56,15 @@ button {
 
     background:
         radial-gradient(
-            circle at 68% 34%,
-            rgba(104, 44, 220, .34),
-            transparent 46%
-        ),
-        radial-gradient(
-            circle at 14% 30%,
-            rgba(58, 38, 160, .26),
-            transparent 42%
+            circle at 50% 30%,
+            rgba(73, 45, 185, 0.30),
+            transparent 35%
         ),
         linear-gradient(
-            118deg,
-            #050726 0%,
-            #08082f 46%,
-            #0b0733 100%
+            120deg,
+            #030622 0%,
+            #06072d 45%,
+            #0a0631 100%
         );
 
     color: #ffffff;
@@ -144,12 +139,13 @@ button {
     letter-spacing: -1.2px;
 }
 
-.pf-hero-title .purple {
-    color: #a535ff;
-}
-
-.pf-hero-title .blue {
-    color: #2694ff;
+.pf-hero-title .pf-brand-gradient {
+    display: inline-block;
+    background: linear-gradient(90deg, #c000ff 0%, #8000ff 35%, #164bff 65%, #00c8f5 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
 }
 
 .pf-hero-text {
@@ -625,5 +621,35 @@ button {
 
     .pf-stat:last-child {
         border-bottom: none;
+    }
+}
+
+@media (max-width: 1000px) {
+    .pf-hero-inner {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 32px;
+        padding: 40px 24px 48px;
+    }
+
+    .pf-hero-mark {
+        order: 0;
+        width: min(100%, 340px);
+        margin-inline: auto;
+    }
+
+    .pf-hero-mark-img {
+        width: 100%;
+        max-width: 340px;
+        height: auto;
+    }
+
+    .pf-hero-wave {
+        left: 50%;
+        bottom: 0;
+        width: 140%;
+        max-width: none;
+        height: auto;
+        transform: translateX(-50%);
+        opacity: .45;
     }
 }
