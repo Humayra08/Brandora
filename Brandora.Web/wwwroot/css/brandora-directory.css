@@ -34,6 +34,7 @@ button {
 
 .directory-page {
     font-family: 'DM Sans', sans-serif;
+    background: #ffffff;
     color: #08123d;
 
     overflow-x: hidden;
@@ -83,20 +84,15 @@ button {
 
     background:
         radial-gradient(
-            circle at 68% 34%,
-            rgba(104, 44, 220, .34),
-            transparent 46%
-        ),
-        radial-gradient(
-            circle at 14% 30%,
-            rgba(58, 38, 160, .26),
-            transparent 42%
+            circle at 50% 30%,
+            rgba(73, 45, 185, 0.30),
+            transparent 35%
         ),
         linear-gradient(
-            118deg,
-            #050726 0%,
-            #08082f 46%,
-            #0b0733 100%
+            120deg,
+            #030622 0%,
+            #06072d 45%,
+            #0a0631 100%
         );
 
     color: #ffffff;
@@ -248,7 +244,9 @@ button {
 }
 
 .directory-hero-title .gradient-text {
-    background: linear-gradient(90deg, var(--dir-accent-purple), var(--dir-accent-blue));
+    display: inline-block;
+    background: linear-gradient(90deg, #c000ff 0%, #8000ff 35%, #164bff 65%, #00c8f5 100%);
+    -webkit-text-fill-color: transparent;
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
@@ -512,10 +510,11 @@ button {
 ========================================================= */
 
 .brand-grid {
-    margin-top: 22px;
+    margin-top: 40px;
+    margin-bottom: 40px;
 
     display: grid;
-    grid-template-columns: repeat(6, 1fr);
+    grid-template-columns: repeat(5, 1fr);
     gap: var(--dir-grid-gap);
 }
 
@@ -783,10 +782,11 @@ button {
 ========================================================= */
 
 .influencer-grid {
-    margin-top: 22px;
+    margin-top: 40px;
+    margin-bottom: 40px;
 
     display: grid;
-    grid-template-columns: repeat(6, 1fr);
+    grid-template-columns: repeat(5, 1fr);
     gap: 14px;
 }
 
@@ -1283,5 +1283,73 @@ button {
 
     .directory-stat::before {
         display: none;
+    }
+}
+
+/* Brand artwork in the angled panel beside the hero copy. */
+.directory-hero-banner--brand {
+    background:
+        url('/images/Brand.png') right clamp(48px, 7vw, 110px) bottom -24px / auto 100% no-repeat,
+        linear-gradient(120deg, #301970, #111440 65%, #070928);
+    clip-path: polygon(32.4% 0, 100% 0, 100% 32%, 80.96% 100%, 4.4% 100%);
+}
+
+@media (max-width: 1000px) {
+    .directory-hero-banner--brand {
+        position: relative;
+        top: auto;
+        width: min(620px, 100%);
+        height: 300px;
+        margin: -70px 0 0 auto;
+        opacity: 1;
+        display: block;
+    }
+}
+/* Stack hero artwork below the copy on tablets and phones. */
+@media (max-width: 1000px) {
+    .directory-hero-inner {
+        padding: 36px 24px 0;
+    }
+
+    .directory-hero-inner--split {
+        align-items: stretch;
+        gap: 32px;
+        padding-bottom: 72px;
+    }
+
+    .directory-hero-copy,
+    .directory-hero-copy--with-rule {
+        min-width: 0;
+        padding: 0;
+    }
+
+    .directory-hero-image {
+        width: min(100%, 340px);
+        margin-inline: auto;
+    }
+
+    .directory-hero-image img {
+        display: block;
+        width: 100%;
+        height: auto;
+    }
+
+    .directory-hero-banner--brand {
+        width: min(calc(100% - 48px), 340px);
+        height: auto;
+        aspect-ratio: 1320 / 1177;
+        margin: 32px auto 0;
+        background: url('/images/Brand.png') center bottom -8px / contain no-repeat;
+        clip-path: none;
+    }
+
+    .directory-hero-wave {
+        left: 50%;
+        bottom: 0;
+        width: 140%;
+        max-width: none;
+        height: auto;
+        transform: translateX(-50%);
+        opacity: .34;
     }
 }

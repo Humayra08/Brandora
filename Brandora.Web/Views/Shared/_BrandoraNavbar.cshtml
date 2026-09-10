@@ -8,6 +8,7 @@
     var aboutNavClass = "nav-link-underline" + (activeNav == "platform" ? " is-active" : "");
     var brandsNavClass = "nav-link-underline" + (activeNav == "brands" ? " is-active" : "");
     var influencersNavClass = "nav-link-underline" + (activeNav == "influencers" ? " is-active" : "");
+    var contactNavClass = "nav-link-underline" + (activeNav == "contact" ? " is-active" : "");
 
     var dashboardUrl = "/Dashboard";
     if (User.Identity?.IsAuthenticated == true)
@@ -43,7 +44,7 @@
             Influencers
         </a>
 
-        <a href="/contact">
+        <a href="/contact" class="@contactNavClass">
             Contact
         </a>
 
