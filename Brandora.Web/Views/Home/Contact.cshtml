@@ -1,6 +1,7 @@
 @model Brandora.Web.Models.Contact.ContactIssueViewModel
 @{
     ViewData["Title"] = "Contact Us";
+    ViewData["ActiveNav"] = "contact";
     Layout = null;
 
     var submitted = TempData["ContactSubmitted"] as bool? ?? false;
@@ -113,6 +114,10 @@
 
                 </div>
 
+            </div>
+
+            <div class="ct-hero-image">
+                <img src="~/images/Contact.png" alt="Contact Brandora" />
             </div>
 
         </div>
