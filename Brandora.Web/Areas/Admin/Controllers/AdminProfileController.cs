@@ -9,7 +9,8 @@ public class AdminProfileController(ApplicationDbContext db) : AdminControllerBa
     {
         await LoadAdminChromeAsync();
         ViewData["ActiveNav"] = "";
-        ViewData["Title"] = "My Profile";
+        ViewData["Title"] = "Admin Profile";
+        ViewData["Breadcrumb"] = new List<(string, string?)> { ("Admin Profile", null) };
 
         var lastLoginClaim = User.FindFirst("LastLoginUtc")?.Value;
         ViewData["LastLoginUtc"] = lastLoginClaim is not null && DateTime.TryParse(lastLoginClaim, out var lastLogin)

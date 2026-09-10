@@ -35,21 +35,21 @@ public class AdminProofReviewController(ApplicationDbContext db, NotificationSer
     {
         await LoadAdminChromeAsync();
         ViewData["ActiveNav"] = "ProofReview";
-        ViewData["Title"] = "Proof Detail";
+        ViewData["Title"] = "Proof-of-Post Review Details";
         ViewData["Breadcrumb"] = new List<(string, string?)>
         {
             ("Proof-of-Post Review", "/Admin/AdminProofReview/Index"),
-            ("Detail", null)
+            ("Details", null)
         };
 
+        // NOTE: this page renders fully dummy content for the visual redesign pass (see
+        // feedback_backend_wiring_scope memory) — a missing/null milestone no longer 404s.
         var milestone = await db.Milestones
             .Include(m => m.Collaboration).ThenInclude(c => c.Campaign).ThenInclude(c => c.BrandProfile)
             .Include(m => m.Collaboration).ThenInclude(c => c.InfluencerProfile)
             .FirstOrDefaultAsync(m => m.Id == id);
 
-        if (milestone is null) return NotFound();
-
-        return View(milestone);
+        return View((object?)milestone);
     }
 
     [HttpPost]

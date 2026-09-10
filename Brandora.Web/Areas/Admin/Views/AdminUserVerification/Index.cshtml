@@ -2,8 +2,73 @@
 @{
     var roleFilter = ViewData["RoleFilter"] as string ?? "All";
     var statusFilter = ViewData["StatusFilter"] as string ?? "All";
-    var pendingCount = Model.Count(r => !r.Verified);
+    var totalAll = ViewData["TotalAllCount"] as int? ?? 0;
+    var totalBrand = ViewData["TotalBrandCount"] as int? ?? 0;
+    var totalInfluencer = ViewData["TotalInfluencerCount"] as int? ?? 0;
+    var totalPending = ViewData["TotalPendingCount"] as int? ?? 0;
+    var totalVerified = ViewData["TotalVerifiedCount"] as int? ?? 0;
+    var totalRejected = ViewData["TotalRejectedCount"] as int? ?? 0;
 }
+
+<style>
+    .filter-tabs { display: flex; gap: 10px; flex-wrap: wrap; }
+    .filter-tab {
+        padding: 10px 16px;
+        border-radius: 10px;
+        border: 1px solid #eaecf5;
+        background: #ffffff;
+        font-family: 'Inter', sans-serif;
+        font-size: 13px;
+        font-weight: 600;
+        color: #545b7d;
+        white-space: nowrap;
+    }
+    .filter-tab:hover { border-color: #d3b8ff; }
+    .filter-tab.is-active { background: #f1e6ff; border-color: transparent; color: #7a1fd6; }
+
+    .table-toolbar { display: flex; justify-content: flex-end; gap: 12px; margin: 18px 0; flex-wrap: wrap; }
+    .table-search { position: relative; flex: 1; max-width: 320px; }
+    .table-search i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #b7bdd6; font-size: 14px; }
+    .table-search input {
+        width: 100%; height: 42px; padding: 0 14px 0 38px;
+        border-radius: 10px; border: 1px solid #dde1f0;
+        font-family: 'Inter', sans-serif; font-size: 13px; color: #2a3157;
+        outline: none;
+    }
+    .table-search input:focus { border-color: #a978ff; }
+
+    .filter-dropdown-btn {
+        display: inline-flex; align-items: center; gap: 8px;
+        height: 42px; padding: 0 16px;
+        border-radius: 10px; border: 1px solid #dde1f0; background: #ffffff;
+        font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; color: #2a3157;
+    }
+
+    .user-cell { display: flex; align-items: center; gap: 12px; }
+    .user-avatar-square {
+        width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0;
+        display: flex; align-items: center; justify-content: center;
+        background: #14103a; color: #ffffff;
+        font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 13px;
+    }
+    .user-avatar-round {
+        width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
+        display: flex; align-items: center; justify-content: center;
+        background: linear-gradient(145deg, #c93cff, #4e38ff 55%, #159cff); color: #ffffff;
+        font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 13px;
+    }
+    .user-name { font-family: 'Inter', sans-serif; font-size: 13.5px; font-weight: 700; color: #2a3157; }
+    .user-id { margin-top: 1px; font-family: 'Inter', sans-serif; font-size: 11.5px; color: #8189a8; }
+
+    .btn-view {
+        display: inline-flex; align-items: center; justify-content: center;
+        height: 36px; padding: 0 18px;
+        border-radius: 9px; border: none;
+        background: #f1e6ff; color: #7a1fd6;
+        font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 700;
+    }
+    .btn-view:hover { background: #e6d3ff; }
+</style>
 
 @if (TempData["VerificationMessage"] is string msg)
 {
@@ -11,64 +76,77 @@
 }
 
 <div class="panel">
-    <div class="panel-title">User Verification</div>
-    <div class="panel-sub">@pendingCount pending out of @Model.Count total</div>
 
-    <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:18px;">
-        @{
-            (string Label, string? Role, string? Status)[] filters =
-            [
-                ("All", null, null),
-                ("Brand", "Brand", null),
-                ("Influencer", "Influencer", null),
-                ("Pending", null, "Pending"),
-                ("Verified", null, "Verified")
-            ];
-        }
-        @foreach (var f in filters)
-        {
-            var isActive = (f.Role == roleFilter || (f.Role is null && roleFilter == "All" && f.Status is null))
-                            && (f.Status == statusFilter || (f.Status is null && f.Role is not null));
-            var url = "/Admin/AdminUserVerification/Index?" +
-                (f.Role is not null ? "role=" + f.Role : "") +
-                (f.Status is not null ? "status=" + f.Status : "");
-            <a href="@url" class="btn btn-sm @(isActive ? "btn-primary" : "btn-secondary")">@f.Label</a>
-        }
+    <div class="filter-tabs">
+        <a href="/Admin/AdminUserVerification/Index" class="filter-tab @(roleFilter == "All" && statusFilter == "All" ? "is-active" : "")">All (@totalAll)</a>
+        <a href="/Admin/AdminUserVerification/Index?role=Brand" class="filter-tab @(roleFilter == "Brand" ? "is-active" : "")">Brand (@totalBrand)</a>
+        <a href="/Admin/AdminUserVerification/Index?role=Influencer" class="filter-tab @(roleFilter == "Influencer" ? "is-active" : "")">Influencer (@totalInfluencer)</a>
+        <a href="/Admin/AdminUserVerification/Index?status=Pending" class="filter-tab @(statusFilter == "Pending" ? "is-active" : "")">Pending (@totalPending)</a>
+        <a href="/Admin/AdminUserVerification/Index?status=Verified" class="filter-tab @(statusFilter == "Verified" ? "is-active" : "")">Verified (@totalVerified)</a>
+        <a href="/Admin/AdminUserVerification/Index?status=Rejected" class="filter-tab @(statusFilter == "Rejected" ? "is-active" : "")">Rejected (@totalRejected)</a>
     </div>
 
-    @if (Model.Count == 0)
+    <div class="table-toolbar">
+        <div class="table-search">
+            <i class="bi bi-search"></i>
+            <input type="text" placeholder="Search users, email, or ID..." />
+        </div>
+        <button type="button" class="filter-dropdown-btn"><i class="bi bi-funnel"></i> Filter <i class="bi bi-chevron-down" style="font-size:11px;"></i></button>
+    </div>
+
+    @if (statusFilter == "Rejected")
+    {
+        <div class="empty-block">
+            <div class="empty-title">No rejected accounts</div>
+            <div class="empty-text">There's no "Rejected" status on Brand/Influencer profiles yet — only Pending/Verified exist today. This tab will populate once that status is added.</div>
+        </div>
+    }
+    else if (Model.Count == 0)
     {
         <div class="empty-block">
             <div class="empty-title">No users found</div>
-            <div class="empty-text">Try a different filter.</div>
+            <div class="empty-text">Try a different filter, or register a Brand/Influencer account to see it here.</div>
         </div>
     }
     else
     {
-        <div class="admin-table-wrap" style="margin-top: 18px;">
+        <div class="admin-table-wrap">
             <table class="admin-table">
                 <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th>Role</th>
-                        <th>Submitted Date</th>
-                        <th>Status</th>
-                        <th></th>
-                    </tr>
+                    <tr><th>User</th><th>Role</th><th>Submitted Date</th><th>Followers / Size</th><th>Status</th><th>Action</th></tr>
                 </thead>
                 <tbody>
                     @foreach (var row in Model)
                     {
+                        var initials = string.Join("", row.Name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(w => w[0])).ToUpperInvariant();
                         <tr>
-                            <td>@row.Name</td>
-                            <td><span class="status-pill @(row.Type == "Brand" ? "blue" : "gray")">@row.Type</span></td>
+                            <td>
+                                <div class="user-cell">
+                                    @if (row.Type == "Brand")
+                                    {
+                                        <div class="user-avatar-square">@initials</div>
+                                    }
+                                    else
+                                    {
+                                        <div class="user-avatar-round">@initials</div>
+                                    }
+                                    <div>
+                                        <div class="user-name">@row.Name</div>
+                                        <div class="user-id">ID: @row.Id</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td><span class="status-pill @(row.Type == "Brand" ? "gray" : "blue")">@row.Type</span></td>
                             <td>@row.SubmittedDate.ToString("MMM d, yyyy")</td>
+                            <td>@row.FollowersDisplay</td>
                             <td><span class="status-pill @(row.Verified ? "green" : "gray")">@(row.Verified ? "Verified" : "Pending")</span></td>
-                            <td><a href="/Admin/AdminUserVerification/Details?type=@row.Type.ToLower()&id=@row.Id" class="btn btn-sm btn-secondary">View</a></td>
+                            <td><a href="/Admin/AdminUserVerification/Details?type=@row.Type.ToLower()&id=@row.Id" class="btn-view">View</a></td>
                         </tr>
                     }
                 </tbody>
             </table>
         </div>
+
+        <div class="panel-sub" style="margin-top:14px;">Showing @Model.Count of @totalAll users</div>
     }
 </div>

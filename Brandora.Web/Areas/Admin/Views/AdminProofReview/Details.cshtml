@@ -1,67 +1,330 @@
-@model Brandora.Web.Models.Domain.Milestone
+@model object
 @{
-    static string PillColor(Brandora.Web.Models.Domain.MilestoneStatus s) => s switch
-    {
-        Brandora.Web.Models.Domain.MilestoneStatus.Approved or Brandora.Web.Models.Domain.MilestoneStatus.Paid => "green",
-        Brandora.Web.Models.Domain.MilestoneStatus.Submitted => "blue",
-        Brandora.Web.Models.Domain.MilestoneStatus.RevisionRequested => "red",
-        _ => "gray"
-    };
+    // NOTE: this entire page renders fixed dummy content for the visual redesign pass
+    // (see feedback_backend_wiring_scope memory) — TODO: replace with real Milestone /
+    // Campaign / InfluencerProfile fields (Model, already fetched in the controller)
+    // once backend wiring is requested. The "Extracted Information" panel is illustrative
+    // only — the system design report explicitly states no OCR/automated verification is
+    // used, so this will always be admin-entered or omitted, never auto-extracted.
 }
 
-<a href="/Admin/AdminProofReview/Index" class="back-to-dashboard">&larr; Back to Proof-of-Post Review</a>
+<style>
+    .review-top-panel { display: grid; grid-template-columns: repeat(5, 1fr); gap: 20px; align-items: start; }
+    @@media(max-width: 1200px) { .review-top-panel { grid-template-columns: repeat(2, 1fr); } }
+    .review-top-col-label { font-family: 'Inter', sans-serif; font-size: 10.5px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase; color: #8189a8; margin-bottom: 8px; }
+    .review-campaign-cell { display: flex; align-items: center; gap: 10px; }
+    .review-campaign-logo { width: 44px; height: 44px; border-radius: 10px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: #14103a; color: #ffffff; font-family: 'DM Sans', sans-serif; font-weight: 800; font-size: 10px; text-align: center; line-height: 1.1; }
+    .review-campaign-title { font-family: 'Inter', sans-serif; font-size: 13.5px; font-weight: 700; color: #2a3157; }
+    .review-campaign-brand { margin-top: 2px; font-family: 'Inter', sans-serif; font-size: 11.5px; color: #8189a8; }
+    .review-milestone-title { font-family: 'Inter', sans-serif; font-size: 13.5px; font-weight: 700; color: #2a3157; }
+    .review-influencer-cell { display: flex; align-items: center; gap: 10px; }
+    .review-influencer-avatar { width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: linear-gradient(145deg, #c93cff, #4e38ff 55%, #159cff); color: #ffffff; font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 12px; }
+    .review-influencer-name { font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 700; color: #2a3157; display: flex; align-items: center; gap: 6px; }
+    .review-influencer-meta { margin-top: 2px; font-family: 'Inter', sans-serif; font-size: 11.5px; color: #8189a8; }
 
-<div class="panel">
+    .review-body-grid { display: grid; grid-template-columns: 1.2fr 1fr 0.9fr; gap: 20px; margin-top: 20px; align-items: start; }
+    @@media(max-width: 1200px) { .review-body-grid { grid-template-columns: 1fr; } }
 
-    <div class="panel-title">@Model.Title</div>
-    <div class="panel-sub">
-        @Model.Collaboration.Campaign.Title &middot; @Model.Collaboration.Campaign.BrandProfile.CompanyName &middot; by @Model.Collaboration.InfluencerProfile.FullName
-    </div>
+    .proof-preview-head { display: flex; align-items: center; justify-content: space-between; }
+    .expand-btn { width: 32px; height: 32px; border-radius: 8px; border: 1px solid #eaecf5; background: #ffffff; display: flex; align-items: center; justify-content: center; color: #8189a8; }
 
-    <div style="margin-top:16px;">
-        <span class="status-pill @PillColor(Model.Status)">@Model.Status</span>
-    </div>
+    .ig-post-card { margin-top: 14px; border: 1px solid #eaecf5; border-radius: 14px; overflow: hidden; }
+    .ig-post-head { display: flex; align-items: center; gap: 10px; padding: 12px 14px; }
+    .ig-post-avatar { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(145deg, #c93cff, #4e38ff 55%, #159cff); flex-shrink: 0; }
+    .ig-post-user { font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 700; color: #2a3157; }
+    .ig-post-loc { font-family: 'Inter', sans-serif; font-size: 11px; color: #8189a8; }
+    .ig-post-more { margin-left: auto; color: #8189a8; }
 
-    @if (!string.IsNullOrEmpty(Model.ProofUrl))
-    {
-        <div style="margin-top:20px;">
-            <img src="@Model.ProofUrl" alt="Proof of work" style="max-width:100%; border-radius:14px; border:1px solid #dce7ff;" />
+    .ig-post-media { position: relative; height: 300px; background: linear-gradient(135deg, #f3e3d3, #e9c9a8); display: flex; align-items: center; justify-content: center; }
+    .ig-post-counter { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,.5); color: #fff; font-size: 11px; padding: 2px 8px; border-radius: 20px; font-family: 'Inter', sans-serif; }
+    .ig-post-nav { position: absolute; top: 50%; transform: translateY(-50%); width: 28px; height: 28px; border-radius: 50%; background: rgba(255,255,255,.85); display: flex; align-items: center; justify-content: center; color: #2a3157; }
+    .ig-post-nav.left { left: 10px; } .ig-post-nav.right { right: 10px; }
+    .ig-post-dots { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); display: flex; gap: 5px; }
+    .ig-post-dots span { width: 5px; height: 5px; border-radius: 50%; background: rgba(255,255,255,.6); }
+    .ig-post-dots span.active { background: #fff; }
+
+    .ig-post-actions { display: flex; align-items: center; gap: 14px; padding: 12px 14px 4px; color: #2a3157; font-size: 18px; }
+    .ig-post-actions .save-icon { margin-left: auto; }
+    .ig-post-likes { padding: 4px 14px 0; font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 700; color: #2a3157; }
+    .ig-post-caption { padding: 6px 14px 0; font-family: 'Inter', sans-serif; font-size: 12.5px; color: #2a3157; line-height: 1.5; }
+    .ig-post-caption b { font-weight: 700; }
+    .ig-post-caption .tag { color: #2362a9; }
+    .ig-post-comments-link { padding: 6px 14px 0; font-family: 'Inter', sans-serif; font-size: 12px; color: #8189a8; }
+    .ig-post-time { padding: 4px 14px 14px; font-family: 'Inter', sans-serif; font-size: 10.5px; color: #b7bdd6; text-transform: uppercase; letter-spacing: .3px; }
+
+    .detail-info-row { display: flex; align-items: flex-start; gap: 10px; padding: 12px 0; border-bottom: 1px solid #f2f3fa; }
+    .detail-info-row:last-child { border-bottom: none; }
+    .detail-info-row i { color: #9b2cff; margin-top: 2px; }
+    .detail-info-label { font-family: 'Inter', sans-serif; font-size: 11.5px; color: #8189a8; }
+    .detail-info-value { margin-top: 2px; font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; color: #2a3157; }
+
+    .linked-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f2f3fa; }
+    .linked-row:last-child { border-bottom: none; }
+    .linked-label { font-family: 'Inter', sans-serif; font-size: 12.5px; color: #8189a8; }
+    .linked-value { font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 600; color: #6b52d8; display: flex; align-items: center; gap: 5px; }
+
+    .extracted-panel { border-radius: 12px; background: #f8f4ff; border: 1px solid #ecdcff; padding: 16px; }
+    .extracted-title { display: flex; align-items: center; gap: 8px; font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 700; color: #7a1fd6; }
+    .extracted-field { margin-top: 14px; }
+    .extracted-field-label { font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 700; color: #8189a8; text-transform: uppercase; letter-spacing: .3px; }
+    .extracted-field-value { margin-top: 3px; font-family: 'Inter', sans-serif; font-size: 12.5px; color: #2a3157; line-height: 1.6; }
+    .extracted-field-value .tag { color: #2362a9; }
+    .hashtag-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+    .hashtag-pill { padding: 2px 8px; border-radius: 20px; background: #ffffff; border: 1px solid #e6d3ff; color: #7a1fd6; font-size: 11px; font-family: 'Inter', sans-serif; }
+
+    .notes-textarea { width: 100%; min-height: 80px; padding: 12px; margin-top: 12px; border-radius: 10px; border: 1px solid #dde1f0; font-family: 'Inter', sans-serif; font-size: 13px; color: #2a3157; resize: vertical; }
+    .char-counter { margin-top: 6px; text-align: right; font-family: 'Inter', sans-serif; font-size: 11px; color: #b7bdd6; }
+
+    .timeline-item { display: flex; gap: 12px; position: relative; padding-bottom: 22px; }
+    .timeline-item:last-child { padding-bottom: 0; }
+    .timeline-item::before { content: ""; position: absolute; left: 9px; top: 22px; bottom: 0; width: 2px; background: #eaecf5; }
+    .timeline-item:last-child::before { display: none; }
+    .timeline-dot { width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0; z-index: 1; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #ffffff; }
+    .timeline-dot.done { background: #7a1fd6; }
+    .timeline-dot.current { background: #ffffff; border: 2px solid #236eff; }
+    .timeline-dot.pending { background: #eaecf5; }
+    .timeline-title { font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 700; color: #2a3157; }
+    .timeline-title.current { color: #236eff; }
+    .timeline-title.pending { color: #b7bdd6; }
+    .timeline-time { margin-top: 2px; font-family: 'Inter', sans-serif; font-size: 11.5px; color: #8189a8; }
+
+    .checklist-item { display: flex; align-items: center; gap: 10px; padding: 9px 0; font-family: 'Inter', sans-serif; font-size: 13px; color: #2a3157; }
+    .checklist-item i.good { color: #0d9c6c; }
+    .checklist-item i.warn { color: #d97a17; }
+    .checklist-item i.neutral { color: #b7bdd6; }
+
+    .decision-btn-row { display: flex; gap: 12px; margin-top: 14px; }
+    .btn-approve-outline, .btn-reject-outline { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 46px; border-radius: 10px; border: none; font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 700; }
+    .btn-approve-outline { background: #dff7ec; color: #0d9c6c; }
+    .btn-reject-outline { background: #fde3e3; color: #d92d2d; }
+
+    .reject-reason-panel { margin-top: 16px; padding: 16px; border-radius: 12px; background: #fff8f8; border: 1px solid #f6c9c9; }
+    .reject-reason-title { color: #d92d2d; font-weight: 700; font-family: 'Inter', sans-serif; font-size: 13px; }
+    .reason-textarea { width: 100%; min-height: 70px; padding: 10px; margin-top: 10px; border-radius: 9px; border: 1px solid #f0b8b8; font-family: 'Inter', sans-serif; font-size: 13px; resize: vertical; }
+
+    .warning-note { margin-top: 14px; padding: 12px 14px; border-radius: 10px; background: #fff7e6; border: 1px solid #f5deac; display: flex; gap: 10px; font-family: 'Inter', sans-serif; font-size: 12px; color: #93710f; }
+    .warning-note i { color: #d9a91a; margin-top: 1px; }
+</style>
+
+<div class="panel review-top-panel">
+
+    <div>
+        <div class="review-top-col-label">Campaign</div>
+        <div class="review-campaign-cell">
+            <div class="review-campaign-logo">GLOW<br />UP</div>
+            <div>
+                <div class="review-campaign-title">GlowUp Summer Skincare Launch</div>
+                <div class="review-campaign-brand">GlowUp Skincare Ltd.</div>
+            </div>
         </div>
-    }
-
-    <div style="margin-top:20px; display:grid; grid-template-columns: repeat(2, 1fr); gap:16px;">
-        <div><strong>Milestone Amount</strong><div class="panel-sub">৳@Model.Amount.ToString("N0")</div></div>
-        <div><strong>Due Date</strong><div class="panel-sub">@(Model.DueDate?.ToString("MMM d, yyyy") ?? "-")</div></div>
     </div>
 
-    @if (!string.IsNullOrEmpty(Model.Description))
-    {
-        <div style="margin-top:16px;"><strong>Description</strong><div class="panel-sub">@Model.Description</div></div>
-    }
+    <div>
+        <div class="review-top-col-label">Milestone</div>
+        <div class="review-milestone-title">Instagram Feed Post (Milestone 2)</div>
+        <div style="margin-top:8px;"><span class="status-pill blue">৳25,000</span></div>
+    </div>
 
-    @if (!string.IsNullOrEmpty(Model.ProofNotes))
-    {
-        <div style="margin-top:16px;"><strong>Notes</strong><div class="panel-sub">@Model.ProofNotes</div></div>
-    }
+    <div>
+        <div class="review-top-col-label">Influencer</div>
+        <div class="review-influencer-cell">
+            <div class="review-influencer-avatar">PS</div>
+            <div>
+                <div class="review-influencer-name">Priya Islam</div>
+                <div class="review-influencer-meta"><i class="bi bi-instagram"></i> 125K followers</div>
+            </div>
+        </div>
+    </div>
 
-    @if (Model.Status == Brandora.Web.Models.Domain.MilestoneStatus.Submitted)
-    {
-        <div style="display:flex; gap:10px; margin-top:24px;">
-            <form method="post" action="/Admin/AdminProofReview/Approve">
-                @Html.AntiForgeryToken()
-                <input type="hidden" name="id" value="@Model.Id" />
-                <button type="submit" class="btn btn-primary">Approve</button>
-            </form>
+    <div>
+        <div class="review-top-col-label">Submitted</div>
+        <div class="detail-info-value" style="margin-top:0;"><i class="bi bi-calendar3"></i> May 29, 2025</div>
+        <div class="review-influencer-meta" style="margin-top:2px;">10:15 AM</div>
+    </div>
 
-            <button type="button" class="btn btn-danger" onclick="document.getElementById('rejectForm').style.display='block'">Reject</button>
+    <div>
+        <div class="review-top-col-label">Current Status</div>
+        <span class="status-pill blue">Submitted</span>
+    </div>
+
+</div>
+
+<div class="review-body-grid">
+
+    <div>
+        <div class="panel">
+            <div class="proof-preview-head">
+                <div class="panel-title">Proof Preview</div>
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <span class="status-pill green">Instagram Feed Post</span>
+                    <span class="expand-btn"><i class="bi bi-arrows-fullscreen"></i></span>
+                </div>
+            </div>
+
+            <div style="display:flex; gap:16px; margin-top:14px; align-items:flex-start; flex-wrap:wrap;">
+
+                <div class="ig-post-card" style="flex: 1 1 260px; margin-top:0;">
+                    <div class="ig-post-head">
+                        <div class="ig-post-avatar"></div>
+                        <div>
+                            <div class="ig-post-user">priya.islam.official</div>
+                            <div class="ig-post-loc">Dhaka, Bangladesh</div>
+                        </div>
+                        <div class="ig-post-more"><i class="bi bi-three-dots"></i></div>
+                    </div>
+
+                    <div class="ig-post-media">
+                        <span class="ig-post-counter">1/3</span>
+                        <span class="ig-post-nav left"><i class="bi bi-chevron-left"></i></span>
+                        <span class="ig-post-nav right"><i class="bi bi-chevron-right"></i></span>
+                        <span class="ig-post-dots"><span class="active"></span><span></span><span></span></span>
+                    </div>
+
+                    <div class="ig-post-actions">
+                        <i class="bi bi-heart"></i>
+                        <i class="bi bi-chat"></i>
+                        <i class="bi bi-send"></i>
+                        <i class="bi bi-bookmark save-icon"></i>
+                    </div>
+
+                    <div class="ig-post-likes">1,234 likes</div>
+
+                    <div class="ig-post-caption">
+                        <b>priya.islam.official</b> Excited to share my current skincare favorites from <span class="tag">@@glowup.skincare</span> &#10024; The perfect summer glow starts with great skincare! &#128147;
+                    </div>
+
+                    <div class="ig-post-comments-link">View all 24 comments</div>
+                    <div class="ig-post-time">2 hours ago</div>
+                </div>
+
+                <div class="extracted-panel" style="flex: 1 1 200px;">
+                    <div class="extracted-title"><i class="bi bi-magic"></i> Extracted Information</div>
+                    <div class="panel-sub" style="margin-top:4px; font-size:11px;">Illustrative only &mdash; no OCR/automated extraction exists in the system design (admin review is manual by design).</div>
+
+                    <div class="extracted-field">
+                        <div class="extracted-field-label">Platform</div>
+                        <div class="extracted-field-value">Instagram</div>
+                    </div>
+                    <div class="extracted-field">
+                        <div class="extracted-field-label">Post Type</div>
+                        <div class="extracted-field-value">Feed Post</div>
+                    </div>
+                    <div class="extracted-field">
+                        <div class="extracted-field-label">Caption (Extracted)</div>
+                        <div class="extracted-field-value">Excited to share my current skincare favorites from <span class="tag">@@glowup.skincare</span> &#10024; The perfect summer glow starts with great skincare! &#128147;</div>
+                    </div>
+                    <div class="extracted-field">
+                        <div class="extracted-field-label">Hashtags</div>
+                        <div class="hashtag-list">
+                            <span class="hashtag-pill">#GlowUpSkincare</span>
+                            <span class="hashtag-pill">#SummerGlow</span>
+                            <span class="hashtag-pill">#SkincareRoutine</span>
+                            <span class="hashtag-pill">#AD</span>
+                        </div>
+                    </div>
+                    <div class="extracted-field">
+                        <div class="extracted-field-label">Mentions</div>
+                        <div class="extracted-field-value tag">@@glowup.skincare</div>
+                    </div>
+                </div>
+
+            </div>
         </div>
 
-        <form id="rejectForm" method="post" action="/Admin/AdminProofReview/Reject" style="display:none; margin-top:16px;">
-            @Html.AntiForgeryToken()
-            <input type="hidden" name="id" value="@Model.Id" />
-            <textarea name="comment" required placeholder="Comment for the influencer (required)" style="width:100%; min-height:80px; padding:12px; border-radius:10px; border:1px solid #dde1f0; font-family:'Inter',sans-serif; font-size:13px;"></textarea>
-            <button type="submit" class="btn btn-danger btn-sm" style="margin-top:10px;">Confirm Reject</button>
-        </form>
-    }
+        <div class="panel" style="margin-top:20px;">
+            <div class="panel-title">Internal Notes <span class="panel-sub" style="display:inline;">(Optional)</span></div>
+            <textarea class="notes-textarea" maxlength="1000" placeholder="Add any internal notes about this submission..." oninput="document.getElementById('notesCount').textContent = this.value.length"></textarea>
+            <div class="char-counter"><span id="notesCount">0</span>/1000</div>
+        </div>
+    </div>
+
+    <div>
+        <div class="panel">
+            <div class="panel-title">Milestone &amp; Submission Details</div>
+            <div style="margin-top:8px;">
+                <div class="detail-info-row"><i class="bi bi-check2-square"></i><div><div class="detail-info-label">Deliverable</div><div class="detail-info-value">1 Instagram Feed Post</div></div></div>
+                <div class="detail-info-row"><i class="bi bi-file-text"></i><div><div class="detail-info-label">Milestone Description</div><div class="detail-info-value">Influencer to create and post 1 feed post showcasing GlowUp skincare products with honest review.</div></div></div>
+                <div class="detail-info-row"><i class="bi bi-cash-coin"></i><div><div class="detail-info-label">Milestone Amount</div><div class="detail-info-value">৳25,000</div></div></div>
+                <div class="detail-info-row"><i class="bi bi-credit-card"></i><div><div class="detail-info-label">Payment Type</div><div class="detail-info-value">Milestone-Based</div></div></div>
+                <div class="detail-info-row"><i class="bi bi-calendar-range"></i><div><div class="detail-info-label">Campaign Period</div><div class="detail-info-value">May 1 &ndash; May 31, 2025</div></div></div>
+                <div class="detail-info-row"><i class="bi bi-clock"></i><div><div class="detail-info-label">Due Date</div><div class="detail-info-value">May 31, 2025</div></div></div>
+                <div class="detail-info-row"><i class="bi bi-chat-square-text"></i><div><div class="detail-info-label">Notes from Brand</div><div class="detail-info-value">Please ensure product tags and hashtags are included.</div></div></div>
+            </div>
+        </div>
+
+        <div class="panel" style="margin-top:20px;">
+            <div class="panel-title">Linked Information</div>
+            <div style="margin-top:8px;">
+                <div class="linked-row"><span class="linked-label">Influencer Profile</span><a href="/Admin/AdminUserVerification/Details?type=influencer&id=1" class="linked-value">Priya Islam <i class="bi bi-box-arrow-up-right"></i></a></div>
+                <div class="linked-row"><span class="linked-label">Campaign Details</span><a href="#" class="linked-value">GlowUp Summer Skincare Launch <i class="bi bi-box-arrow-up-right"></i></a></div>
+                <div class="linked-row"><span class="linked-label">Milestone in Campaign</span><a href="#" class="linked-value">Milestone 2 <i class="bi bi-box-arrow-up-right"></i></a></div>
+                <div class="linked-row"><span class="linked-label">Previous Submission</span><span class="panel-sub">&mdash;</span></div>
+                <div class="linked-row"><span class="linked-label">Related Disputes</span><span class="status-pill green" style="padding:2px 9px; font-size:11px;"><i class="bi bi-check-circle-fill"></i> No active dispute</span></div>
+            </div>
+        </div>
+    </div>
+
+    <div>
+        <div class="panel">
+            <div class="panel-title">Submission Status</div>
+            <div style="margin-top:16px;">
+                <div class="timeline-item">
+                    <div class="timeline-dot done"><i class="bi bi-check-lg"></i></div>
+                    <div><div class="timeline-title">Submitted</div><div class="timeline-time">May 29, 2025, 10:15 AM</div></div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-dot current"></div>
+                    <div><div class="timeline-title current">Under Review <span class="status-pill blue" style="padding:2px 8px; font-size:10px; margin-left:6px;">Current</span></div><div class="timeline-time">May 29, 2025, 11:02 AM</div></div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-dot pending"></div>
+                    <div><div class="timeline-title pending">Revision Requested</div><div class="timeline-time">&mdash;</div></div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-dot pending"></div>
+                    <div><div class="timeline-title pending">Approved</div><div class="timeline-time">&mdash;</div></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel" style="margin-top:20px;">
+            <div class="panel-title">Review Checklist</div>
+            <div class="panel-sub" style="margin-top:4px;">Illustrative only &mdash; no automated checks exist behind this yet.</div>
+            <div style="margin-top:8px;">
+                <div class="checklist-item"><i class="bi bi-check-circle-fill good"></i> Post is visible and public</div>
+                <div class="checklist-item"><i class="bi bi-check-circle-fill good"></i> Brand/products are clearly shown</div>
+                <div class="checklist-item"><i class="bi bi-check-circle-fill good"></i> Caption is relevant to the campaign</div>
+                <div class="checklist-item"><i class="bi bi-check-circle-fill good"></i> Hashtags are included</div>
+                <div class="checklist-item"><i class="bi bi-exclamation-circle-fill warn"></i> Disclosure / #ad / sponsored present</div>
+                <div class="checklist-item"><i class="bi bi-dash-circle-fill neutral"></i> Meets all other campaign guidelines</div>
+            </div>
+        </div>
+
+        <div class="panel" style="margin-top:20px;">
+            <div class="panel-title">Review Decision</div>
+
+            <div class="decision-btn-row">
+                <form method="post" action="/Admin/AdminProofReview/Approve" style="flex:1;">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="1" />
+                    <button type="submit" class="btn-approve-outline" style="width:100%;"><i class="bi bi-check-circle-fill"></i> Approve</button>
+                </form>
+                <button type="button" class="btn-reject-outline" onclick="document.getElementById('rejectPanel').style.display='block'"><i class="bi bi-x-circle-fill"></i> Reject</button>
+            </div>
+
+            <div class="reject-reason-panel" id="rejectPanel" style="display:none;">
+                <div class="reject-reason-title">Rejection Comment (Required)</div>
+                <form method="post" action="/Admin/AdminProofReview/Reject">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="1" />
+                    <textarea class="reason-textarea" name="comment" maxlength="500" required placeholder="Explain what needs revision..." oninput="document.getElementById('reasonCount').textContent = this.value.length"></textarea>
+                    <div class="char-counter"><span id="reasonCount">0</span>/500</div>
+                    <button type="submit" class="btn-reject-outline" style="width:100%; margin-top:10px;"><i class="bi bi-x-circle-fill"></i> Confirm Reject</button>
+                </form>
+            </div>
+
+            <div class="warning-note"><i class="bi bi-exclamation-triangle-fill"></i> Please review all details carefully before making a decision. Your action will be recorded.</div>
+        </div>
+    </div>
 
 </div>
