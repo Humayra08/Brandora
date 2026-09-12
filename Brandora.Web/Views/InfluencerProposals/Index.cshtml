@@ -1,0 +1,152 @@
+@model Brandora.Web.Models.Proposals.InfluencerProposalsViewModel
+@using Brandora.Web.Models.Domain
+@using System.Globalization
+@{
+    ViewData["Title"] = "My Proposals";
+    ViewData["ActiveNav"] = "Proposals";
+    Layout = "_AppLayout";
+    var filters = new (ProposalStatus? Status, string Label)[] {
+        (null, "All Proposals"), (ProposalStatus.Pending, "Pending"),
+        (ProposalStatus.Accepted, "Accepted"), (ProposalStatus.Rejected, "Not Selected")
+    };
+    string PageUrl(int page, ProposalStatus? status) => Url.Action("Index", new { page, status, search = Model.Search, sort = Model.Sort })!;
+    var initial = string.IsNullOrWhiteSpace(Model.InfluencerName) ? "I" : Model.InfluencerName[..1].ToUpperInvariant();
+}
+<link rel="stylesheet" href="~/css/brandora-proposals.css" asp-append-version="true" />
+<div class="proposals-page">
+    <header class="proposals-topbar">
+        <button type="button" class="proposals-icon-button" id="sidebarToggle" aria-label="Toggle sidebar">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </button>
+        <form method="get" asp-action="Index" class="proposals-search" role="search">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" stroke="currentColor" stroke-width="1.8"/><path d="m16 16 5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            <input type="search" name="search" value="@Model.Search" placeholder="Search campaigns, brands..." aria-label="Search campaigns and brands" />
+            <input type="hidden" name="status" value="@Model.Status" />
+            <input type="hidden" name="sort" value="@Model.Sort" />
+        </form>
+        <details class="proposals-notifications">
+            <summary class="proposals-icon-button" aria-label="Notifications">
+                <svg width="21" height="21" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 9a6 6 0 0 1 12 0c0 4 1.5 5.5 1.5 5.5h-15S6 13 6 9ZM10 18a2 2 0 0 0 4 0" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                @if ((ViewData["UnreadNotifications"] as int? ?? 0) > 0) { <span class="proposals-unread"></span> }
+            </summary>
+            <div class="proposals-notification-panel">
+                <h2>Recent notifications</h2>
+                @foreach (var notification in Model.Notifications)
+                {
+                    <div><strong>@notification.Title</strong><p>@notification.Body</p></div>
+                }
+                @if (Model.Notifications.Count == 0) { <p>You're all caught up.</p> }
+            </div>
+        </details>
+        <a href="/InfluencerSettings" class="proposals-profile" aria-label="Your profile settings">
+            <span class="proposals-avatar">@initial</span>
+            <span><strong>@Model.InfluencerName</strong><small>Influencer</small></span>
+            <span aria-hidden="true">⌄</span>
+        </a>
+    </header>
+    <section class="proposals-hero" aria-labelledby="proposals-title">
+        <div class="proposals-hero-copy">
+            <nav aria-label="Breadcrumb"><a href="/InfluencerDashboard">Home</a><span aria-hidden="true"> / </span><span aria-current="page">My Proposals</span></nav>
+            <h1 id="proposals-title">My <span>Proposals</span></h1>
+            <p>Track your proposals and see how they're progressing.</p>
+        </div>
+        <div class="proposals-art" aria-hidden="true">
+            <div class="proposals-glass proposals-glass-back"></div>
+            <div class="proposals-glass proposals-glass-front">Ideas<br />Collaborations<br />Real Impact<i></i></div>
+        </div>
+        <p class="proposals-motto">Consistent<br />Effort<br />Creates<br />Greater Opportunities.<i></i></p>
+        <svg class="proposals-wave" viewBox="0 0 1200 220" preserveAspectRatio="none" aria-hidden="true">
+            <defs><linearGradient id="proposal-wave-fill" x1="0" y1="0" x2="1" y2=".3"><stop stop-color="#91caff" stop-opacity="0"/><stop offset=".5" stop-color="#649dff" stop-opacity=".22"/><stop offset=".75" stop-color="#6545ff" stop-opacity=".45"/><stop offset="1" stop-color="#89baff" stop-opacity=".08"/></linearGradient></defs>
+            <path d="M0 210C230 235 285 120 425 54S550 240 708 151 826 49 906 130 1060 207 1200 115V220H0Z" fill="url(#proposal-wave-fill)"/>
+            <path d="M0 220C255 230 280 145 420 97S565 262 714 179 817 105 920 176 1070 223 1200 153" fill="none" stroke="#fff" stroke-opacity=".42"/>
+            <path d="M0 220C255 240 300 164 420 117S565 282 714 199 827 125 930 196 1070 243 1200 173" fill="none" stroke="#fff" stroke-opacity=".28"/>
+        </svg>
+    </section>
+    <div class="proposals-content">
+        <div class="proposal-toolbar">
+            <nav class="proposal-filters" aria-label="Filter proposals">
+                @foreach (var filter in filters)
+                {
+                    <a href="@PageUrl(1, filter.Status)" class="@(Model.Status == filter.Status ? "is-active" : "")" aria-current="@(Model.Status == filter.Status ? "page" : null)">@filter.Label</a>
+                }
+            </nav>
+            <form method="get" asp-action="Index" class="proposals-sort">
+                <input type="hidden" name="search" value="@Model.Search" />
+                <input type="hidden" name="status" value="@Model.Status" />
+                <label for="proposal-sort" class="proposals-sr-only">Sort proposals</label>
+                <select id="proposal-sort" name="sort">
+                    <option value="newest" selected="@(Model.Sort == "newest")">Newest First</option>
+                    <option value="oldest" selected="@(Model.Sort == "oldest")">Oldest First</option>
+                </select>
+                <button type="submit">Apply</button>
+            </form>
+        </div>
+        @if (!string.IsNullOrWhiteSpace(Model.Search))
+        {
+            <p class="proposals-search-result">Results for “@Model.Search” <a asp-action="Index" asp-route-status="@Model.Status" asp-route-sort="@Model.Sort">Clear search</a></p>
+        }
+        <div class="proposal-list">
+            @foreach (var proposal in Model.Proposals)
+            {
+                var campaign = proposal.Campaign;
+                var statusClass = proposal.Status switch { ProposalStatus.Accepted => "status-accepted", ProposalStatus.Rejected => "status-rejected", _ => "status-pending" };
+                var statusLabel = proposal.Status == ProposalStatus.Rejected ? "Not Selected" : proposal.Status.ToString();
+                var statusMessage = proposal.Status switch { ProposalStatus.Accepted => "Campaign in progress", ProposalStatus.Rejected => "Keep going!", _ => "Awaiting response" };
+                <article class="proposal-card" aria-labelledby="proposal-title-@proposal.Id">
+                    <div class="proposal-campaign">
+                        <div class="proposal-thumbnail">
+                            @if (!string.IsNullOrWhiteSpace(campaign.MediaUrl) && campaign.MediaType != "video")
+                            {
+                                <img src="@campaign.MediaUrl" alt="" loading="lazy" />
+                            }
+                            else
+                            {
+                                <span aria-hidden="true">@(string.IsNullOrWhiteSpace(campaign.Title) ? "B" : campaign.Title[..1])</span>
+                            }
+                        </div>
+                        <div class="proposal-campaign-copy">
+                            <h2 id="proposal-title-@proposal.Id">@campaign.Title</h2>
+                            <p class="proposal-brand">@campaign.BrandProfile.CompanyName</p>
+                            <div class="proposal-tags">
+                                @if (!string.IsNullOrWhiteSpace(campaign.Niche)) { <span>@campaign.Niche</span> }
+                                @if (!string.IsNullOrWhiteSpace(campaign.Platform)) { <span>@campaign.Platform</span> }
+                            </div>
+                        </div>
+                    </div>
+                    <div class="proposal-meta"><span>Proposed Rate</span><strong>৳@proposal.ProposedAmount.ToString("N0", CultureInfo.InvariantCulture)</strong></div>
+                    <div class="proposal-meta"><span>Deliverables</span><p>@proposal.Deliverables</p></div>
+                    <div class="proposal-meta"><span>Date Submitted</span><time datetime="@proposal.CreatedAt.ToString("yyyy-MM-dd")">@proposal.CreatedAt.ToString("MMM d, yyyy", CultureInfo.InvariantCulture)</time></div>
+                    <div class="proposal-status"><span class="@statusClass">@statusLabel</span><small>@statusMessage</small></div>
+                    <div class="proposal-action"><a asp-action="Detail" asp-route-id="@proposal.Id">@(proposal.Status == ProposalStatus.Accepted ? "View Details" : "View Proposal")<span class="proposals-sr-only">: @campaign.Title</span></a></div>
+                </article>
+            }
+            @if (Model.Proposals.Count == 0)
+            {
+                <div class="proposals-empty">
+                    <h2>@(Model.Status.HasValue || !string.IsNullOrWhiteSpace(Model.Search) ? "No matching proposals" : "Your next collaboration starts here")</h2>
+                    <p>@(Model.Status.HasValue || !string.IsNullOrWhiteSpace(Model.Search) ? "Try another filter or search to find your proposals." : "Once you apply to a campaign or receive an invitation, your proposals will appear here.")</p>
+                    <a href="@(Model.Status.HasValue || !string.IsNullOrWhiteSpace(Model.Search) ? Url.Action("Index") : "/InfluencerCampaigns")">@(Model.Status.HasValue || !string.IsNullOrWhiteSpace(Model.Search) ? "View all proposals" : "Explore campaigns")</a>
+                </div>
+            }
+        </div>
+        <footer class="proposals-footer">
+            <p>Showing @(Model.TotalCount == 0 ? "0" : $"{(Model.Page - 1) * Model.PageSize + 1}–{(Model.Page - 1) * Model.PageSize + Model.Proposals.Count}") of @Model.TotalCount proposals</p>
+            @if (Model.TotalPages > 1)
+            {
+                <nav class="proposals-pagination" aria-label="Proposal pages">
+                    @if (Model.Page > 1) { <a href="@PageUrl(Model.Page - 1, Model.Status)" aria-label="Previous page">‹</a> }
+                    else { <span aria-disabled="true" aria-label="Previous page">‹</span> }
+                    @for (var pageNumber = Math.Max(1, Model.Page - 2); pageNumber <= Math.Min(Model.TotalPages, Model.Page + 2); pageNumber++)
+                    {
+                        <a href="@PageUrl(pageNumber, Model.Status)" class="@(pageNumber == Model.Page ? "is-active" : "")" aria-current="@(pageNumber == Model.Page ? "page" : null)" aria-label="Page @pageNumber">@pageNumber</a>
+                    }
+                    @if (Model.Page < Model.TotalPages) { <a href="@PageUrl(Model.Page + 1, Model.Status)" aria-label="Next page">›</a> }
+                    else { <span aria-disabled="true" aria-label="Next page">›</span> }
+                </nav>
+            }
+        </footer>
+    </div>
+</div>
+@section Scripts {
+    <script src="~/js/brandora-proposals.js" asp-append-version="true"></script>
+}

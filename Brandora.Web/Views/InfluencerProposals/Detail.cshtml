@@ -1,0 +1,24 @@
+@model Brandora.Web.Models.Domain.Proposal
+@using Brandora.Web.Models.Domain
+@using System.Globalization
+@{
+    ViewData["Title"] = "Proposal Details";
+    ViewData["ActiveNav"] = "Proposals";
+    Layout = "_AppLayout";
+}
+<link rel="stylesheet" href="~/css/brandora-proposals.css" asp-append-version="true" />
+<div class="proposals-page proposals-detail">
+    <nav aria-label="Breadcrumb"><a asp-action="Index">My Proposals</a> / Proposal details</nav>
+    <h1>@Model.Campaign.Title</h1>
+    <p>@Model.Campaign.BrandProfile.CompanyName</p>
+    <dl>
+        <div><dt>Status</dt><dd>@(Model.Status == ProposalStatus.Rejected ? "Not Selected" : Model.Status.ToString())</dd></div>
+        <div><dt>Proposed rate</dt><dd>৳@Model.ProposedAmount.ToString("N0", CultureInfo.InvariantCulture)</dd></div>
+        <div><dt>Date submitted</dt><dd>@Model.CreatedAt.ToString("MMM d, yyyy", CultureInfo.InvariantCulture)</dd></div>
+        <div><dt>Deliverables</dt><dd>@Model.Deliverables</dd></div>
+        @if (!string.IsNullOrWhiteSpace(Model.Timeline)) { <div><dt>Timeline</dt><dd>@Model.Timeline</dd></div> }
+        @if (!string.IsNullOrWhiteSpace(Model.Message)) { <div><dt>Proposal message</dt><dd class="proposal-message">@Model.Message</dd></div> }
+        @if (Model.Collaboration is not null) { <div><dt>Collaboration</dt><dd>@Model.Collaboration.Status</dd></div> }
+    </dl>
+    <a class="proposal-detail-back" asp-action="Index">Back to my proposals</a>
+</div>
