@@ -61,4 +61,23 @@ public class InfluencerEarningsController : InfluencerControllerBase
             Activity = allActivity ? activity : activity.Take(4).ToList()
         });
     }
+
+    [HttpGet]
+    public async Task<IActionResult> Withdraw(bool preview = false)
+    {
+        var influencer = await GetCurrentInfluencerAsync();
+        if (influencer is null) return RedirectToAction("Index", "Home");
+        var notifications = await db.Notifications.AsNoTracking()
+            .Where(n => n.UserId == influencer.UserId)
+            .OrderByDescending(n => n.CreatedAt).Take(5).ToListAsync();
+        return View(new WithdrawalViewModel
+        {
+            IsPreview = preview,
+            Header = new InfluencerEarningsViewModel
+            {
+                InfluencerName = influencer.FullName,
+                Notifications = notifications
+            }
+        });
+    }
 }

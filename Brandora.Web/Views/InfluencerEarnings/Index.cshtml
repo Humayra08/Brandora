@@ -6,7 +6,7 @@
     ViewData["Title"] = "Your Earnings";
     ViewData["ActiveNav"] = "Earnings";
     Layout = "_AppLayout";
-    var initial = string.IsNullOrWhiteSpace(Model.InfluencerName) ? "I" : Model.InfluencerName[..1].ToUpperInvariant();
+
     string Money(decimal value) => "৳" + value.ToString("N0", CultureInfo.InvariantCulture);
     string PageUrl(string tab, bool? allActivity = null) => Url.Action("Index", new { tab, campaignId = Model.CampaignId, search = Model.Search, allActivity = allActivity ?? Model.AllActivity })!;
     string MilestoneLabel(MilestoneStatus status) => status switch {
@@ -21,36 +21,7 @@
 }
 <link rel="stylesheet" href="~/css/brandora-earnings.css" asp-append-version="true" />
 <div class="earnings-page">
-    <header class="earnings-topbar">
-        <button type="button" class="earnings-icon-button" id="sidebarToggle" aria-label="Toggle sidebar">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-        </button>
-        <form method="get" asp-action="Index" class="earnings-search" role="search">
-            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" stroke="currentColor" stroke-width="1.8"/><path d="m16 16 5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-            <input type="search" name="search" value="@Model.Search" placeholder="Search campaigns, brands..." aria-label="Search campaigns and brands" />
-            <input type="hidden" name="campaignId" value="@Model.CampaignId" />
-            <input type="hidden" name="tab" value="@Model.Tab" />
-        </form>
-        <details class="earnings-notifications">
-            <summary class="earnings-icon-button" aria-label="Notifications">
-                <svg width="21" height="21" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 9a6 6 0 0 1 12 0c0 4 1.5 5.5 1.5 5.5h-15S6 13 6 9ZM10 18a2 2 0 0 0 4 0" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                @if ((ViewData["UnreadNotifications"] as int? ?? 0) > 0) { <span class="earnings-unread"></span> }
-            </summary>
-            <div class="earnings-notification-panel">
-                <h2>Recent notifications</h2>
-                @foreach (var notification in Model.Notifications)
-                {
-                    <div><strong>@notification.Title</strong><p>@notification.Body</p></div>
-                }
-                @if (Model.Notifications.Count == 0) { <p>You're all caught up.</p> }
-            </div>
-        </details>
-        <a href="/InfluencerSettings" class="earnings-profile" aria-label="Your profile settings">
-            <span class="earnings-avatar">@initial</span>
-            <span><strong>@Model.InfluencerName</strong><small>Influencer</small></span>
-            <span aria-hidden="true">⌄</span>
-        </a>
-    </header>
+    @await Html.PartialAsync("_Topbar", Model)
     <section class="earnings-hero" aria-labelledby="earnings-title">
         <div class="earnings-hero-copy">
             <nav aria-label="Breadcrumb"><a href="/InfluencerDashboard">Home</a><span aria-hidden="true"> / </span><span aria-current="page">Earnings</span></nav>
@@ -205,7 +176,7 @@
             <aside class="earnings-rail" aria-label="Payouts and activity">
                 <section class="earnings-panel earnings-withdrawal">
                     <span class="earnings-stat-icon blue">@await Html.PartialAsync("_Icon", "card")</span>
-                    <div><h2>Available for Withdrawal</h2><strong class="earnings-unavailable" aria-label="Balance unavailable">—</strong><p>Withdrawals coming soon</p><button class="earnings-primary" disabled>Withdraw Now</button></div>
+                    <div><h2>Available for Withdrawal</h2><strong class="earnings-unavailable" aria-label="Balance unavailable">—</strong><p>Withdrawals coming soon</p><a class="earnings-primary earnings-withdraw-link" asp-action="Withdraw">Withdraw Now</a></div>
                 </section>
                 <section class="earnings-panel earnings-methods">
                     <header><h2>Payout Methods</h2><a href="@PageUrl("payout-methods")">Manage</a></header>
