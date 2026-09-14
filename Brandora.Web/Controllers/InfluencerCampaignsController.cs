@@ -163,6 +163,61 @@ public class InfluencerCampaignsController(UserManager<ApplicationUser> userMana
         return View(vm);
     }
 
+    public async Task<IActionResult> Details(int id)
+    {
+        var influencer = await GetCurrentInfluencerAsync();
+        if (influencer is null)
+        {
+            return RedirectToAction("Index", "Home");
+        }
+
+        var campaign = await db.Campaigns.Include(c => c.BrandProfile).FirstOrDefaultAsync(c => c.Id == id);
+        if (campaign is null)
+        {
+            return NotFound();
+        }
+
+        var isBrowsable = campaign.Status is CampaignStatus.Published or CampaignStatus.Active
+            || await db.Collaborations.AnyAsync(x => x.CampaignId == campaign.Id && x.InfluencerProfileId == influencer.Id);
+        if (!isBrowsable)
+        {
+            return NotFound();
+        }
+
+        var myProposalStatus = await db.Proposals.Where(p => p.CampaignId == campaign.Id && p.InfluencerProfileId == influencer.Id)
+            .OrderByDescending(p => p.CreatedAt).Select(p => (ProposalStatus?)p.Status).FirstOrDefaultAsync();
+
+        var collaboration = await db.Collaborations.FirstOrDefaultAsync(c => c.CampaignId == campaign.Id && c.InfluencerProfileId == influencer.Id);
+
+        var closed = campaign.Status is CampaignStatus.Completed or CampaignStatus.Cancelled || campaign.Deadline < DateTime.UtcNow;
+
+        var vm = new InfluencerCampaignDetailsViewModel
+        {
+            Profile = influencer,
+            Notifications = await db.Notifications.AsNoTracking().Where(n => n.UserId == influencer.UserId).OrderByDescending(n => n.CreatedAt).Take(5).ToListAsync(),
+            CampaignId = campaign.Id,
+            Title = campaign.Title,
+            Description = campaign.Description,
+            BrandName = campaign.BrandProfile.CompanyName,
+            BrandLogoUrl = campaign.BrandProfile.ProfilePictureUrl,
+            BrandIndustry = campaign.BrandProfile.Industry,
+            BrandWebsiteUrl = campaign.BrandProfile.WebsiteUrl,
+            Platform = campaign.Platform,
+            Niche = campaign.Niche,
+            Budget = campaign.Budget,
+            Deadline = campaign.Deadline,
+            CreatedAt = campaign.CreatedAt,
+            Status = campaign.Status,
+            ApplicantCount = await db.Proposals.CountAsync(p => p.CampaignId == campaign.Id),
+            MyProposalStatus = myProposalStatus,
+            IsCollaborating = collaboration?.Status == CollaborationStatus.Active,
+            IsCollabCompleted = collaboration?.Status == CollaborationStatus.Completed,
+            CanApply = !closed && !myProposalStatus.HasValue && collaboration is null
+        };
+
+        return View(vm);
+    }
+
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Apply(int campaignId, decimal proposedAmount, string deliverables, string? message)
@@ -201,6 +256,6 @@ public class InfluencerCampaignsController(UserManager<ApplicationUser> userMana
             await db.SaveChangesAsync();
         }
 
-        return RedirectToAction("Index");
+        return RedirectToAction("Details", new { id = campaignId });
     }
 }

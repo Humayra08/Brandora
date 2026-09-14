@@ -39,7 +39,7 @@
 .campaigns-page .campaigns-facts dd { font-size: 18px; font-weight: 700; overflow-wrap: anywhere; }
 .campaigns-page .campaigns-facts > div:last-child dd { font-size: 15px; }
 .campaigns-page .campaigns-actions { display: grid; gap: 6px; padding: 0 9px; text-align: center; }
-.campaigns-page .campaigns-actions button,.campaigns-page .campaigns-status { border: 1px solid #d7e8ff; background: linear-gradient(120deg,#e9f0ff,#dcedff); color: #1451ff; border-radius: 7px; padding: 7px 10px; font-size: 12px; }
+.campaigns-page .campaigns-actions a,.campaigns-page .campaigns-actions button,.campaigns-page .campaigns-status { border: 1px solid #d7e8ff; background: linear-gradient(120deg,#e9f0ff,#dcedff); color: #1451ff; border-radius: 7px; padding: 7px 10px; font-size: 12px; text-decoration: none; }
 .campaigns-page .campaigns-apply { border: 0 !important; background: linear-gradient(110deg,#8950ff,#433bff 35%,#00a8f1) !important; color: #fff !important; border-radius: 7px; padding: 9px 18px; }
 .campaigns-page .campaigns-actions small { color: #5877ac; font-size: 12px; margin-top: 2px; }
 .campaigns-page .campaigns-pagination { display: flex; justify-content: space-between; align-items: center; gap: 15px; margin-top: 22px; font-size: 12px; color: #5877ac; }

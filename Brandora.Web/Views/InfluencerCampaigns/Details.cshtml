@@ -1,0 +1,222 @@
+@model Brandora.Web.Models.Dashboard.InfluencerCampaignDetailsViewModel
+@using Brandora.Web.Models.Domain
+@using Brandora.Web.Models.Influencers
+@using System.Globalization
+@{
+    ViewData["Title"] = Model.Title;
+    ViewData["ActiveNav"] = "Campaigns";
+    Layout = null;
+    var name = Model.Profile.FullName;
+    string Money(decimal amount) => "৳" + amount.ToString("N0", CultureInfo.InvariantCulture);
+    var closed = Model.Status is CampaignStatus.Completed or CampaignStatus.Cancelled || Model.Deadline < DateTime.UtcNow;
+    var statusLabel = Model.IsCollabCompleted ? "Completed" : Model.IsCollaborating ? "In Progress" : Model.MyProposalStatus == ProposalStatus.Pending ? "In Review" : Model.MyProposalStatus == ProposalStatus.Accepted ? "Accepted" : Model.MyProposalStatus.HasValue ? "Not Selected" : closed ? "Closed" : null;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@Model.Title - Brandora</title>
+    <link rel="icon" href="~/images/brandora-icon.png" />
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/lib/dashboard-assets/bootstrap-icons.css" />
+    <link rel="stylesheet" href="~/lib/dashboard-assets/dashboard-fonts.css" />
+    <link rel="stylesheet" href="~/css/brandora-influencer-shell.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/brandora-influencer-dashboard.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/brandora-influencer-campaigns.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/brandora-campaign-details.css" asp-append-version="true" />
+</head>
+<body>
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+    @await Html.PartialAsync("_InfluencerSidebar")
+    <main class="dashboard-page campaigns-page campaign-details-page" id="dashboardMain">
+        <header class="dashboard-topbar">
+            <button class="dashboard-menu" id="menuToggleBtn" type="button" aria-label="Toggle sidebar" aria-controls="dashboardSidebar"><i class="bi bi-list" aria-hidden="true"></i></button>
+            <form class="dashboard-search" method="get" asp-controller="InfluencerCampaigns" asp-action="Index" role="search">
+                <i class="bi bi-search" aria-hidden="true"></i>
+                <input type="search" name="search" placeholder="Search campaigns, brands..." aria-label="Search campaigns and brands" />
+                <button type="submit" aria-label="Search"><i class="bi bi-search" aria-hidden="true"></i></button>
+            </form>
+            <details class="dashboard-notifications">
+                <summary aria-label="Notifications"><i class="bi bi-bell" aria-hidden="true"></i>@if ((ViewData["UnreadNotifications"] as int? ?? 0) > 0) { <span class="dashboard-unread"></span> }</summary>
+                <div class="dashboard-notification-panel">
+                    <h2>Notifications</h2>
+                    @foreach (var notification in Model.Notifications)
+                    {
+                        <article><strong>@notification.Title</strong><p>@notification.Body</p></article>
+                    }
+                    @if (Model.Notifications.Count == 0) { <p>No notifications yet.</p> }
+                </div>
+            </details>
+            <a class="dashboard-account" href="/InfluencerSettings">
+                <span class="dashboard-avatar">@FollowerFormat.InitialsOf(name)</span>
+                <span><strong>@name</strong><small>Influencer</small></span>
+                <i class="bi bi-chevron-down" aria-hidden="true"></i>
+            </a>
+        </header>
+
+        <nav class="campaign-crumb" aria-label="Breadcrumb">
+            <a href="@Url.Action("Index")">Campaigns</a>
+            <i class="bi bi-chevron-right" aria-hidden="true"></i>
+            <strong>Campaign Details</strong>
+        </nav>
+
+        <section class="dashboard-hero campaign-hero" aria-labelledby="campaign-heading">
+            @await Html.PartialAsync("~/Views/InfluencerDashboard/_Waves.cshtml", "hero")
+            <div class="campaign-hero-content">
+                <div class="campaign-hero-head">
+                    <div class="campaign-logo">
+                        <span>@FollowerFormat.InitialsOf(Model.BrandName)</span>
+                    </div>
+                    <div class="campaign-hero-copy">
+                        <div class="campaign-hero-tags">
+                            @if (!string.IsNullOrWhiteSpace(Model.Niche)) { <span>@Model.Niche</span> }
+                            @if (!string.IsNullOrWhiteSpace(Model.Platform)) { <span>@Model.Platform</span> }
+                        </div>
+                        <h1 id="campaign-heading">@Model.Title</h1>
+                        <p class="campaign-hero-description">@Model.Description</p>
+                        <div class="campaign-hero-brand">
+                            <span class="avatar-circle small">@FollowerFormat.InitialsOf(Model.BrandName)</span>
+                            <div>
+                                <h6>@Model.BrandName</h6>
+                                <span>Brand</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <dl class="campaign-hero-stats">
+                    <div><dt>Budget</dt><dd>@Money(Model.Budget)</dd></div>
+                    <div><dt>Applications</dt><dd>@Model.ApplicantCount</dd></div>
+                    <div><dt>Posted</dt><dd>@Model.CreatedAt.ToString("MMM d, yyyy", CultureInfo.InvariantCulture)</dd></div>
+                    <div><dt>Deadline</dt><dd>@(Model.Deadline?.ToString("MMM d, yyyy", CultureInfo.InvariantCulture) ?? "Not set")</dd></div>
+                </dl>
+            </div>
+            <div class="dashboard-hero-motto">Real Brands.<br />Real Opportunities.<span></span></div>
+        </section>
+
+        <div class="campaign-details-grid">
+            <div class="campaign-details-main">
+                <nav class="campaign-tabs" role="tablist" aria-label="Campaign information">
+                    <button type="button" class="is-active" data-tab="overview" role="tab" aria-selected="true">Overview</button>
+                    <button type="button" data-tab="brand" role="tab" aria-selected="false">Brand Info</button>
+                    <button type="button" data-tab="guidelines" role="tab" aria-selected="false">Guidelines</button>
+                    <button type="button" data-tab="faqs" role="tab" aria-selected="false">FAQs</button>
+                </nav>
+
+                <section class="campaign-tab-panel dashboard-card" data-panel="overview">
+                    <h2>Campaign Overview</h2>
+                    <p class="campaign-full-description">@Model.Description</p>
+
+                    <h2>Timeline</h2>
+                    <ol class="campaign-timeline">
+                        <li>
+                            <span class="campaign-timeline-dot"></span>
+                            <strong>Campaign Posted</strong>
+                            <span>@Model.CreatedAt.ToString("MMM d, yyyy", CultureInfo.InvariantCulture)</span>
+                        </li>
+                        <li>
+                            <span class="campaign-timeline-dot"></span>
+                            <strong>Application Deadline</strong>
+                            <span>@(Model.Deadline?.ToString("MMM d, yyyy", CultureInfo.InvariantCulture) ?? "Not set")</span>
+                        </li>
+                    </ol>
+                </section>
+
+                <section class="campaign-tab-panel dashboard-card" data-panel="brand" hidden>
+                    <h2>Brand Info</h2>
+                    <dl class="campaign-fact-list">
+                        <div><dt>Company</dt><dd>@Model.BrandName</dd></div>
+                        <div><dt>Industry</dt><dd>@(string.IsNullOrWhiteSpace(Model.BrandIndustry) ? "Not specified" : Model.BrandIndustry)</dd></div>
+                        @if (!string.IsNullOrWhiteSpace(Model.BrandWebsiteUrl))
+                        {
+                            <div><dt>Website</dt><dd><a href="@Model.BrandWebsiteUrl" target="_blank" rel="noopener">@Model.BrandWebsiteUrl</a></dd></div>
+                        }
+                    </dl>
+                </section>
+
+                <section class="campaign-tab-panel dashboard-card" data-panel="guidelines" hidden>
+                    <h2>Submission Guidelines</h2>
+                    <ul class="campaign-list">
+                        <li>Make sure your content matches the brand's tone and the platform requested for this campaign.</li>
+                        <li>Clearly describe your planned deliverables and timeline when you submit your proposal.</li>
+                        <li>Keep communication with the brand professional and responsive once a proposal is accepted.</li>
+                        <li>Submit proof of your published content through Upload Proof for review and payment.</li>
+                    </ul>
+                </section>
+
+                <section class="campaign-tab-panel dashboard-card" data-panel="faqs" hidden>
+                    <h2>Frequently Asked Questions</h2>
+                    <div class="campaign-faq">
+                        <h3>How do I apply to this campaign?</h3>
+                        <p>Use the Apply for Campaign panel to send the brand your proposed amount and deliverables.</p>
+                    </div>
+                    <div class="campaign-faq">
+                        <h3>When will I hear back?</h3>
+                        <p>The brand reviews proposals directly. You can track your proposal status from My Proposals.</p>
+                    </div>
+                    <div class="campaign-faq">
+                        <h3>When do I get paid?</h3>
+                        <p>Payments follow the milestones the brand sets once your proposal is accepted.</p>
+                    </div>
+                </section>
+            </div>
+
+            <aside class="campaign-details-side">
+                <div class="dashboard-card campaign-apply-card">
+                    <h2>Apply for Campaign</h2>
+                    <p>Showcase your creativity and be part of this campaign.</p>
+                    @if (Model.CanApply)
+                    {
+                        <button type="button" class="campaigns-apply campaign-apply-btn" data-dialog="apply-dialog">Apply Now <i class="bi bi-arrow-right" aria-hidden="true"></i></button>
+                        @if (Model.Deadline.HasValue)
+                        {
+                            <small>You can apply until @Model.Deadline.Value.ToString("MMM d, yyyy", CultureInfo.InvariantCulture)</small>
+                        }
+                    }
+                    else
+                    {
+                        <span class="campaigns-status campaign-apply-status">@(statusLabel ?? "Not accepting proposals")</span>
+                    }
+                </div>
+
+                <div class="dashboard-card campaign-facts-card">
+                    <h2>Campaign Details</h2>
+                    <dl class="campaign-fact-list">
+                        <div><dt>Category</dt><dd>@(Model.Niche ?? "Not specified")</dd></div>
+                        <div><dt>Platform</dt><dd>@(Model.Platform ?? "Not specified")</dd></div>
+                        <div><dt>Posted</dt><dd>@Model.CreatedAt.ToString("MMM d, yyyy", CultureInfo.InvariantCulture)</dd></div>
+                        <div><dt>Deadline</dt><dd>@(Model.Deadline?.ToString("MMM d, yyyy", CultureInfo.InvariantCulture) ?? "Not set")</dd></div>
+                    </dl>
+                </div>
+
+                <div class="dashboard-card campaign-support-card">
+                    <i class="bi bi-question-circle" aria-hidden="true"></i>
+                    <div>
+                        <h6>Have Questions?</h6>
+                        <p>Feel free to reach out to our team for any clarification regarding this campaign.</p>
+                        <a href="/InfluencerMessages">Contact Support <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+                    </div>
+                </div>
+            </aside>
+        </div>
+
+        @if (Model.CanApply)
+        {
+            <dialog id="apply-dialog" aria-labelledby="apply-dialog-title">
+                <form method="dialog"><button class="campaigns-close" aria-label="Close application">×</button></form>
+                <h2 id="apply-dialog-title">Apply to @Model.Title</h2>
+                <p>Send your proposal to the brand for review.</p>
+                <form method="post" asp-action="Apply" class="campaigns-application">
+                    <input type="hidden" name="campaignId" value="@Model.CampaignId" />
+                    <label>Proposed amount (&#2547;)<input type="number" name="proposedAmount" min="1" step="0.01" value="@Model.Budget.ToString(CultureInfo.InvariantCulture)" required /></label>
+                    <label>Deliverables<textarea name="deliverables" rows="3" required></textarea></label>
+                    <label>Message to brand (optional)<textarea name="message" rows="3"></textarea></label>
+                    <button type="submit" class="campaigns-apply">Send Proposal</button>
+                </form>
+            </dialog>
+        }
+    </main>
+    <script src="~/js/brandora-influencer-dashboard.js" asp-append-version="true"></script>
+    <script src="~/js/brandora-campaign-details.js" asp-append-version="true"></script>
+</body>
+</html>

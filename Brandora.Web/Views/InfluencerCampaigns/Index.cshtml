@@ -147,40 +147,17 @@
                         <div><dt>Deadline</dt><dd>@(campaign.Deadline?.ToString("MMM d, yyyy", CultureInfo.InvariantCulture) ?? "Not set")</dd></div>
                     </dl>
                     <div class="campaigns-actions">
-                        <button type="button" data-dialog="details-@campaign.CampaignId">View Details</button>
+                        <a href="@Url.Action("Details", new { id = campaign.CampaignId })">View Details</a>
                         @if (status is not null)
                         {
                             <span class="campaigns-status">@status</span>
                         }
                         else
                         {
-                            <button type="button" class="campaigns-apply" data-dialog="apply-@campaign.CampaignId">Apply</button>
+                            <a class="campaigns-apply" href="@Url.Action("Details", new { id = campaign.CampaignId })">Apply</a>
                         }
                         <small>@campaign.ApplicantCount applied</small>
                     </div>
-                    <dialog id="details-@campaign.CampaignId" aria-labelledby="details-title-@campaign.CampaignId">
-                        <form method="dialog"><button class="campaigns-close" aria-label="Close details">×</button></form>
-                        <h2 id="details-title-@campaign.CampaignId">@campaign.Title</h2>
-                        <p>@campaign.BrandName</p>
-                        <p class="campaigns-full-description">@campaign.Description</p>
-                        <p>Budget: @Money(campaign.Budget)</p>
-                        <p>Deadline: @(campaign.Deadline?.ToString("MMM d, yyyy") ?? "Not set")</p>
-                    </dialog>
-                    @if (status is null)
-                    {
-                        <dialog id="apply-@campaign.CampaignId" aria-labelledby="apply-title-@campaign.CampaignId">
-                            <form method="dialog"><button class="campaigns-close" aria-label="Close application">×</button></form>
-                            <h2 id="apply-title-@campaign.CampaignId">Apply to @campaign.Title</h2>
-                            <p>Send your proposal to the brand for review.</p>
-                            <form method="post" asp-action="Apply" class="campaigns-application">
-                                <input type="hidden" name="campaignId" value="@campaign.CampaignId" />
-                                <label>Proposed amount (&#2547;)<input type="number" name="proposedAmount" min="1" step="0.01" value="@campaign.Budget.ToString(CultureInfo.InvariantCulture)" required /></label>
-                                <label>Deliverables<textarea name="deliverables" rows="3" required></textarea></label>
-                                <label>Message to brand (optional)<textarea name="message" rows="3"></textarea></label>
-                                <button type="submit" class="campaigns-apply">Send Proposal</button>
-                            </form>
-                        </dialog>
-                    }
                 </article>
             }
             @if (Model.Campaigns.Count == 0)
