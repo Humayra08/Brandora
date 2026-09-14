@@ -1,0 +1,115 @@
+/* Influencer payments: hero, summary stats, payment history table, payout rail. */
+.payments-page .payments-hero { min-height: 186px; }
+.payments-page .dashboard-introduction { max-width: 46%; }
+.payments-page .payments-eyebrow { font-size: 12px; letter-spacing: 1.6px; font-weight: 600; color: #4a6099; margin-bottom: 6px; }
+.payments-page .dashboard-introduction h1 { font: 600 clamp(26px,3cqi,37px)/1.15 'Playfair Display',Georgia,serif; letter-spacing: -.8px; }
+.payments-page .payments-intro { margin-top: 9px; font-size: 14px; line-height: 1.4; color: #33477c; }
+.payments-page .payments-highlights { display: flex; flex-wrap: wrap; gap: 8px 22px; margin-top: 16px; list-style: none; }
+.payments-page .payments-highlights li { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #33477c; }
+.payments-page .payments-highlights li::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: linear-gradient(110deg,#7557ff,#009fff); flex: 0 0 auto; }
+
+.payments-page .payments-preview-note { display: flex; align-items: center; gap: 8px; margin-bottom: 13px; padding: 10px 14px; border: 1px solid #dfe9ff; border-radius: 10px; background: #eef4ffbd; font-size: 12px; color: #33477c; }
+.payments-page .payments-preview-note a { color: #1451ff; font-weight: 600; }
+
+.payments-page .payments-hero .dashboard-glass-copy { font-size: 14.5px; }
+.payments-page .payments-stats .dashboard-stat { min-height: 104px; justify-content: center; gap: 10px; }
+.payments-page .payments-stats .dashboard-icon { border-radius: 13px; width: 44px; height: 44px; font-size: 19px; }
+.payments-page .payments-stats h2 { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; color: #33477c; }
+.payments-page .payments-stats strong { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 23px; }
+.payments-page .payments-stats > article > p { margin-top: 2px; padding-left: 61px; }
+.payments-page .mint { background: #e2f7ed; color: #0d9c6c; }
+.payments-page .amber { background: #fdf0dc; color: #c07d16; }
+.payments-page .payments-trend { display: inline-flex; align-items: center; gap: 1px; padding: 2px 8px 2px 4px; border-radius: 20px; background: #e2f7ed; color: #0d9c6c; font-size: 11px; font-weight: 600; }
+.payments-page .payments-trend.is-down { background: #fde8ea; color: #c22540; }
+.payments-page .payments-chip { display: inline-flex; align-items: center; gap: 4px; padding: 2px 9px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+.payments-page .payments-chip.is-amber { background: #fdf0dc; color: #a05e12; }
+.payments-page .payments-chip.is-mint { background: #e2f7ed; color: #0d9c6c; }
+
+.payments-page .payments-grid { display: grid; grid-template-columns: minmax(0,1fr) 310px; gap: 13px; align-items: start; }
+.payments-page .payments-rail { min-width: 0; display: grid; gap: 13px; align-content: start; }
+
+.payments-page .payments-history { padding: 18px 20px 14px; }
+.payments-page .payments-history-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
+.payments-page .payments-history-head h2 { font: 600 20px/1.3 'Playfair Display',Georgia,serif; letter-spacing: -.5px; }
+.payments-page .payments-history-head p { font-size: 12px; color: #5877ac; margin-top: 3px; }
+.payments-page .payments-filters { display: flex; gap: 10px; flex-wrap: wrap; }
+.payments-page .payments-select { position: relative; display: flex; align-items: center; gap: 8px; border: 1px solid #d3e4ff; border-radius: 9px; padding: 0 30px 0 12px; min-height: 38px; background: #ffffffb8; color: #172857; }
+.payments-page .payments-select select { appearance: none; border: 0; outline: 0; background: transparent; font-size: 12px; color: #172857; padding: 8px 0; min-width: 104px; cursor: pointer; }
+.payments-page .payments-select .payments-select-lead { color: #5274b8; font-size: 14px; }
+.payments-page .payments-select > .bi-chevron-down { position: absolute; right: 11px; font-size: 11px; color: #5274b8; pointer-events: none; }
+.payments-page .payments-sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+.payments-page .payments-table-wrap { overflow-x: auto; }
+.payments-page .payments-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.payments-page .payments-table th { text-align: left; font-weight: 500; font-size: 11px; color: #5877ac; padding: 0 14px 10px 0; border-bottom: 1px solid #e1ecfa; white-space: nowrap; }
+.payments-page .payments-table td { padding: 14px 14px 14px 0; border-bottom: 1px solid #eef4fd; color: #33477c; vertical-align: middle; }
+.payments-page .payments-table tr:last-child td { border-bottom: 0; }
+.payments-page .payments-table td strong { display: block; font-size: 12px; font-weight: 600; color: #172a5c; }
+.payments-page .payments-table td small { display: block; font-size: 11px; color: #8095c4; margin-top: 2px; }
+.payments-page .payments-amount { font-weight: 700; color: #142652; white-space: nowrap; }
+.payments-page .payments-muted { color: #8095c4; }
+.payments-page .payments-badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+.payments-page .payments-badge.is-paid { background: #e2f7ed; color: #0d9c6c; }
+.payments-page .payments-badge.is-processing { background: #e7eefc; color: #2f5fd0; }
+.payments-page .payments-badge.is-failed { background: #fde8ea; color: #c22540; }
+.payments-page .payments-view { display: inline-block; border: 1px solid #d7e8ff; border-radius: 7px; padding: 6px 15px; background: #ffffffb8; color: #1451ff; font-size: 12px; font-weight: 600; }
+.payments-page .payments-view.is-static { color: #6b8ac4; }
+.payments-page a.payments-view:hover { border-color: #1451ff; }
+.payments-page .payments-note { font-size: 11px; color: #8095c4; margin-top: 12px; }
+.payments-page .payments-empty { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 34px 16px 28px; }
+.payments-page .payments-empty strong { font-size: 13px; }
+.payments-page .payments-empty p { font-size: 11px; color: #5e7bb1; line-height: 1.5; margin: 4px 0 12px; max-width: 320px; }
+.payments-page .payments-empty a { font-size: 12px; font-weight: 600; color: #1451ff; }
+
+.payments-page .payments-pagination { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin-top: 14px; padding-top: 13px; border-top: 1px solid #eef4fd; font-size: 12px; color: #5877ac; }
+.payments-page .payments-pagination nav { display: flex; gap: 5px; }
+.payments-page .payments-pagination a { display: grid; place-items: center; min-width: 31px; height: 32px; padding: 0 7px; border: 1px solid #dfebff; border-radius: 7px; background: #ffffffb8; color: #33477c; font-size: 12px; }
+.payments-page .payments-pagination a.is-active { border-color: transparent; background: linear-gradient(110deg,#7557ff,#009fff); color: #fff; }
+
+.payments-page .payments-methods { padding: 18px 18px 14px; }
+.payments-page .payments-methods-head,.payments-page .payments-faq-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.payments-page .payments-methods h2,.payments-page .payments-faq h2 { font: 600 17px/1.3 'Playfair Display',Georgia,serif; letter-spacing: -.4px; }
+.payments-page .payments-methods-head p { font-size: 11px; color: #8095c4; margin-top: 3px; }
+.payments-page .payments-add { display: inline-flex; align-items: center; gap: 5px; border: 0; border-radius: 8px; padding: 7px 13px; background: linear-gradient(110deg,#7557ff,#009fff); color: #fff; font-size: 11px; font-weight: 600; white-space: nowrap; }
+.payments-page .payments-add[disabled] { opacity: .55; }
+.payments-page .payments-method { display: flex; align-items: center; gap: 11px; padding: 11px 0; border-top: 1px solid #eef4fd; }
+.payments-page .payments-method > div { flex: 1; min-width: 0; }
+.payments-page .payments-method strong { display: block; font-size: 12.5px; color: #142652; }
+.payments-page .payments-method small { display: block; font-size: 11px; color: #8095c4; margin-top: 2px; overflow-wrap: anywhere; }
+.payments-page .payments-method-icon { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 10px; flex: 0 0 auto; font-size: 16px; }
+.payments-page .payments-method-icon.bank { background: #eef3ff; color: #2f5fd0; }
+.payments-page .payments-method-icon.bkash { background: #fdeaf2; color: #d9236b; }
+.payments-page .payments-method-more { border: 0; background: transparent; color: #8095c4; font-size: 14px; padding: 4px; }
+.payments-page .payments-methods-empty { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 14px 6px 10px; border-top: 1px solid #eef4fd; }
+.payments-page .payments-methods-empty strong { font-size: 12.5px; margin-top: 2px; }
+.payments-page .payments-methods-empty p { font-size: 11px; color: #5e7bb1; line-height: 1.5; margin-top: 4px; }
+
+.payments-page .payments-secure { display: flex; gap: 12px; padding: 18px; background: linear-gradient(135deg,#e9f1ffcc,#f2f8ff99 55%,#eaf5ffcc); }
+.payments-page .payments-secure-icon { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 10px; flex: 0 0 auto; background: #dde9ff; color: #1451ff; font-size: 17px; }
+.payments-page .payments-secure h2 { font-size: 13.5px; font-weight: 700; color: #142652; margin-bottom: 5px; }
+.payments-page .payments-secure p { font-size: 11.5px; color: #5877ac; line-height: 1.5; }
+.payments-page .payments-secure a { display: inline-flex; align-items: center; gap: 6px; margin-top: 9px; font-size: 11.5px; font-weight: 600; color: #1451ff; }
+
+.payments-page .payments-faq { padding: 18px 18px 8px; }
+.payments-page .payments-faq-head a { font-size: 11.5px; font-weight: 600; color: #1451ff; white-space: nowrap; }
+.payments-page .payments-faq details { border-top: 1px solid #eef4fd; }
+.payments-page .payments-faq summary { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 0; font-size: 12px; color: #33477c; cursor: pointer; list-style: none; }
+.payments-page .payments-faq summary::-webkit-details-marker { display: none; }
+.payments-page .payments-faq summary i { font-size: 11px; color: #8095c4; transition: transform .2s ease; }
+.payments-page .payments-faq details[open] summary i { transform: rotate(90deg); }
+.payments-page .payments-faq details p { font-size: 11.5px; color: #5877ac; line-height: 1.55; padding-bottom: 12px; }
+
+@container (max-width: 1150px) {
+    .payments-page .payments-grid { grid-template-columns: minmax(0,1fr); }
+    .payments-page .dashboard-introduction { max-width: 58%; }
+    .payments-page .payments-stats { grid-template-columns: repeat(2,minmax(0,1fr)); }
+}
+@container (max-width: 600px) {
+    .payments-page .dashboard-introduction { max-width: 100%; }
+    .payments-page .payments-stats { grid-template-columns: minmax(0,1fr); }
+    .payments-page .payments-stats > article > p { padding-left: 0; }
+    .payments-page .payments-history-head { flex-direction: column; }
+    .payments-page .payments-filters { width: 100%; }
+    .payments-page .payments-select { flex: 1; }
+    .payments-page .payments-pagination { justify-content: center; }
+}

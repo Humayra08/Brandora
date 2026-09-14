@@ -1,0 +1,325 @@
+@model Brandora.Web.Models.Dashboard.InfluencerPaymentsViewModel
+@using Brandora.Web.Models.Domain
+@using Brandora.Web.Models.Influencers
+@using System.Globalization
+@{
+    ViewData["Title"] = "Payments";
+    ViewData["ActiveNav"] = "Payments";
+    Layout = null;
+    var name = Model.Profile.FullName;
+    string Money(decimal amount) => "৳" + amount.ToString("N0", CultureInfo.InvariantCulture);
+    string PageUrl(int page) => Url.Action("Index", new { status = Model.Status, range = Model.Range, page, preview = Model.IsPreview ? "true" : null })!;
+    var statusOptions = new[] { ("all", "All Statuses"), ("paid", "Paid"), ("processing", "Processing"), ("failed", "Failed") };
+    var rangeOptions = new[] { ("all", "All Time"), ("30days", "Last 30 Days"), ("3months", "Last 3 Months"), ("year", "This Year") };
+    var faqs = new[]
+    {
+        ("When will I receive my payment?", "Payments are released by the brand once your milestone proof is approved. Processing times depend on the brand's payout schedule."),
+        ("What payment methods are available?", "Payouts are planned for bank transfer, bKash and Nagad. Payout method setup is coming soon."),
+        ("Is there a minimum withdrawal amount?", "Completed payments are transferred to you directly, so there is no withdrawal minimum to meet today."),
+        ("How can I update my payment details?", "Payout details will be managed from Profile Settings once payout methods become available."),
+    };
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Payments - Brandora</title>
+    <link rel="icon" href="~/images/brandora-icon.png" />
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/lib/dashboard-assets/bootstrap-icons.css" />
+    <link rel="stylesheet" href="~/lib/dashboard-assets/dashboard-fonts.css" />
+    <link rel="stylesheet" href="~/css/brandora-influencer-shell.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/brandora-influencer-dashboard.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/brandora-influencer-payments.css" asp-append-version="true" />
+</head>
+<body>
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+    @await Html.PartialAsync("_InfluencerSidebar")
+    <main class="dashboard-page payments-page" id="dashboardMain">
+        <header class="dashboard-topbar">
+            <button class="dashboard-menu" id="menuToggleBtn" type="button" aria-label="Toggle sidebar" aria-controls="dashboardSidebar"><i class="bi bi-list" aria-hidden="true"></i></button>
+            <form class="dashboard-search" method="get" asp-controller="InfluencerCampaigns" asp-action="Index" role="search">
+                <i class="bi bi-search" aria-hidden="true"></i>
+                <input type="search" name="search" placeholder="Search campaigns, brands..." aria-label="Search campaigns and brands" />
+                <button type="submit" aria-label="Search"><i class="bi bi-search" aria-hidden="true"></i></button>
+            </form>
+            <details class="dashboard-notifications">
+                <summary aria-label="Notifications"><i class="bi bi-bell" aria-hidden="true"></i>@if ((ViewData["UnreadNotifications"] as int? ?? 0) > 0) { <span class="dashboard-unread"></span> }</summary>
+                <div class="dashboard-notification-panel">
+                    <h2>Notifications</h2>
+                    @foreach (var notification in Model.Notifications)
+                    {
+                        <article><strong>@notification.Title</strong><p>@notification.Body</p></article>
+                    }
+                    @if (Model.Notifications.Count == 0) { <p>No notifications yet.</p> }
+                </div>
+            </details>
+            <a class="dashboard-account" href="/InfluencerSettings">
+                <span class="dashboard-avatar">@FollowerFormat.InitialsOf(name)</span>
+                <span><strong>@name</strong><small>Influencer</small></span>
+                <i class="bi bi-chevron-down" aria-hidden="true"></i>
+            </a>
+        </header>
+
+        <section class="dashboard-hero payments-hero" aria-labelledby="payments-heading">
+            @await Html.PartialAsync("~/Views/InfluencerDashboard/_Waves.cshtml", "hero")
+            <div class="dashboard-introduction">
+                <p class="payments-eyebrow">PAYMENTS</p>
+                <h1 id="payments-heading">Your Work Creates Value</h1>
+                <p class="payments-intro">Get paid securely and on time for the content you create.</p>
+                <ul class="payments-highlights">
+                    <li>Secure Transactions</li>
+                    <li>Multiple Payment Methods</li>
+                    <li>Track Your Earnings</li>
+                </ul>
+            </div>
+            <div class="dashboard-hero-art" aria-hidden="true">
+                <div class="dashboard-glass dashboard-glass-back"></div>
+                <div class="dashboard-glass dashboard-glass-front">
+                    <div class="dashboard-glass-copy">Create.<br />Collaborate.<br />Get Rewarded.<span></span></div>
+                </div>
+                <span class="dashboard-sparkle"></span>
+            </div>
+            <div class="dashboard-hero-motto">Turning<br />Content into<br />Opportunities.</div>
+        </section>
+
+        @if (Model.IsPreview)
+        {
+            <p class="payments-preview-note"><i class="bi bi-info-circle" aria-hidden="true"></i> Design preview with example values &mdash; <a href="@Url.Action("Index")">view your real payments</a></p>
+        }
+
+        <section class="dashboard-stats payments-stats" aria-label="Payment summary">
+            <article class="dashboard-card dashboard-stat">
+                <div class="dashboard-stat-main">
+                    <span class="dashboard-icon violet"><i class="bi bi-wallet2" aria-hidden="true"></i></span>
+                    <div>
+                        <h2>Total Earnings</h2>
+                        <strong>@Money(Model.TotalEarnings)@if (Model.GrowthPercent.HasValue) { <span class="payments-trend @(Model.GrowthPercent >= 0 ? "is-up" : "is-down")"><i class="bi @(Model.GrowthPercent >= 0 ? "bi-arrow-up-short" : "bi-arrow-down-short")" aria-hidden="true"></i>@Math.Abs(Model.GrowthPercent.Value)%</span> }</strong>
+                    </div>
+                </div>
+                <p>Across all campaigns</p>
+            </article>
+            <article class="dashboard-card dashboard-stat">
+                <div class="dashboard-stat-main">
+                    <span class="dashboard-icon amber"><i class="bi bi-hourglass-split" aria-hidden="true"></i></span>
+                    <div>
+                        <h2>Pending Payments</h2>
+                        <strong>@Money(Model.PendingAmount)</strong>
+                    </div>
+                </div>
+                <p><span class="payments-chip is-amber">@Model.PendingCount @(Model.PendingCount == 1 ? "payment" : "payments")</span></p>
+            </article>
+            <article class="dashboard-card dashboard-stat">
+                <div class="dashboard-stat-main">
+                    <span class="dashboard-icon mint"><i class="bi bi-check-circle-fill" aria-hidden="true"></i></span>
+                    <div>
+                        <h2>Completed Payments</h2>
+                        <strong>@Money(Model.CompletedAmount)</strong>
+                    </div>
+                </div>
+                <p><span class="payments-chip is-mint">@Model.CompletedCount @(Model.CompletedCount == 1 ? "payment" : "payments")</span></p>
+            </article>
+            <article class="dashboard-card dashboard-stat">
+                <div class="dashboard-stat-main">
+                    <span class="dashboard-icon cyan"><i class="bi bi-credit-card" aria-hidden="true"></i></span>
+                    <div>
+                        <h2>Available Balance <span class="payments-chip is-mint"><i class="bi bi-check-circle-fill" aria-hidden="true"></i>Direct</span></h2>
+                        <strong>@Money(0)</strong>
+                    </div>
+                </div>
+                <p>Payments are transferred directly to your account</p>
+            </article>
+        </section>
+
+        <div class="payments-grid">
+            <section class="dashboard-card dashboard-panel payments-history" aria-labelledby="payments-history-heading">
+                <header class="payments-history-head">
+                    <div>
+                        <h2 id="payments-history-heading">Payment History</h2>
+                        <p>Track all your payments and their status.</p>
+                    </div>
+                    <form method="get" asp-action="Index" class="payments-filters">
+                        @if (Model.IsPreview) { <input type="hidden" name="preview" value="true" /> }
+                        <label class="payments-select">
+                            <span class="payments-sr-only">Filter by status</span>
+                            <select name="status">
+                                @foreach (var option in statusOptions)
+                                {
+                                    <option value="@option.Item1" selected="@(Model.Status == option.Item1)">@option.Item2</option>
+                                }
+                            </select>
+                            <i class="bi bi-chevron-down" aria-hidden="true"></i>
+                        </label>
+                        <label class="payments-select">
+                            <span class="payments-sr-only">Filter by date range</span>
+                            <i class="bi bi-calendar4 payments-select-lead" aria-hidden="true"></i>
+                            <select name="range">
+                                @foreach (var option in rangeOptions)
+                                {
+                                    <option value="@option.Item1" selected="@(Model.Range == option.Item1)">@option.Item2</option>
+                                }
+                            </select>
+                            <i class="bi bi-chevron-down" aria-hidden="true"></i>
+                        </label>
+                        <noscript><button type="submit">Apply</button></noscript>
+                    </form>
+                </header>
+
+                <div class="payments-table-wrap">
+                    <table class="payments-table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Date</th>
+                                <th scope="col">Campaign</th>
+                                <th scope="col">Milestone</th>
+                                <th scope="col">Amount</th>
+                                <th scope="col">Status</th>
+                                <th scope="col">Payment Method</th>
+                                <th scope="col">Transaction ID</th>
+                                <th scope="col">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var payment in Model.Payments)
+                            {
+                                <tr>
+                                    <td><time datetime="@payment.Date.ToString("yyyy-MM-dd")">@payment.Date.ToString("MMM dd, yyyy", CultureInfo.InvariantCulture)</time></td>
+                                    <td><strong>@payment.CampaignTitle</strong><small>@payment.BrandName</small></td>
+                                    <td>@payment.MilestoneTitle</td>
+                                    <td class="payments-amount">@Money(payment.Amount)</td>
+                                    <td>
+                                        @if (payment.Status == PaymentStatus.Completed)
+                                        {
+                                            <span class="payments-badge is-paid"><i class="bi bi-check-circle-fill" aria-hidden="true"></i>Paid</span>
+                                        }
+                                        else if (payment.Status == PaymentStatus.Pending)
+                                        {
+                                            <span class="payments-badge is-processing"><i class="bi bi-arrow-repeat" aria-hidden="true"></i>Processing</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="payments-badge is-failed"><i class="bi bi-exclamation-circle-fill" aria-hidden="true"></i>Failed</span>
+                                        }
+                                    </td>
+                                    <td>@(payment.Method ?? "—")</td>
+                                    <td>@(payment.TransactionId ?? "—")</td>
+                                    <td>
+                                        @if (payment.Status == PaymentStatus.Completed && payment.CampaignId > 0)
+                                        {
+                                            <a class="payments-view" asp-controller="InfluencerEarnings" asp-action="Index" asp-route-campaignId="@payment.CampaignId">View</a>
+                                        }
+                                        else if (payment.Status == PaymentStatus.Completed)
+                                        {
+                                            <span class="payments-view is-static">View</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="payments-muted">—</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                    @if (Model.Payments.Count == 0)
+                    {
+                        <div class="payments-empty">
+                            <span class="dashboard-empty-icon"><i class="bi bi-wallet2" aria-hidden="true"></i></span>
+                            <strong>No payments yet</strong>
+                            <p>Payments appear here once a brand releases funds for an approved milestone.</p>
+                            <a href="/InfluencerCampaigns">Explore campaigns</a>
+                        </div>
+                    }
+                </div>
+
+                @if (!Model.IsPreview && Model.Payments.Count > 0)
+                {
+                    <p class="payments-note">Payment method and transaction ID are shown once payout gateway details are recorded for a payment.</p>
+                }
+
+                @if (Model.TotalCount > 0)
+                {
+                    <footer class="payments-pagination">
+                        <p>Showing @Model.FirstRowNumber to @Model.LastRowNumber of @Model.TotalCount @(Model.TotalCount == 1 ? "payment" : "payments")</p>
+                        <nav aria-label="Payment history pages">
+                            @if (Model.Page > 1)
+                            {
+                                <a href="@PageUrl(Model.Page - 1)" aria-label="Previous page"><i class="bi bi-chevron-left" aria-hidden="true"></i></a>
+                            }
+                            @for (var pageNumber = 1; pageNumber <= Model.TotalPages; pageNumber++)
+                            {
+                                <a href="@PageUrl(pageNumber)" class="@(pageNumber == Model.Page ? "is-active" : "")" aria-current="@(pageNumber == Model.Page ? "page" : null)">@pageNumber</a>
+                            }
+                            @if (Model.Page < Model.TotalPages)
+                            {
+                                <a href="@PageUrl(Model.Page + 1)" aria-label="Next page"><i class="bi bi-chevron-right" aria-hidden="true"></i></a>
+                            }
+                        </nav>
+                    </footer>
+                }
+            </section>
+
+            <aside class="payments-rail" aria-label="Payment methods and help">
+                <section class="dashboard-card dashboard-panel payments-methods" aria-labelledby="payments-methods-heading">
+                    <header class="payments-methods-head">
+                        <div>
+                            <h2 id="payments-methods-heading">Payment Methods</h2>
+                            <p>Manage your payout methods.</p>
+                        </div>
+                        <button type="button" class="payments-add" disabled title="Adding payout methods is coming soon"><i class="bi bi-plus-lg" aria-hidden="true"></i> Add New</button>
+                    </header>
+                    @foreach (var method in Model.PayoutMethods)
+                    {
+                        <div class="payments-method">
+                            <span class="payments-method-icon @method.Kind"><i class="bi @(method.Kind == "bank" ? "bi-bank" : "bi-send-fill")" aria-hidden="true"></i></span>
+                            <div>
+                                <strong>@method.Name</strong>
+                                <small>@method.Detail</small>
+                            </div>
+                            @if (method.IsPrimary)
+                            {
+                                <span class="payments-badge is-paid"><i class="bi bi-check-circle-fill" aria-hidden="true"></i>Primary</span>
+                            }
+                            <button type="button" class="payments-method-more" aria-label="Options for @method.Name" disabled><i class="bi bi-three-dots-vertical" aria-hidden="true"></i></button>
+                        </div>
+                    }
+                    @if (Model.PayoutMethods.Count == 0)
+                    {
+                        <div class="payments-methods-empty">
+                            <span class="dashboard-empty-icon"><i class="bi bi-credit-card" aria-hidden="true"></i></span>
+                            <strong>No payout methods yet</strong>
+                            <p>Bank transfer, bKash and Nagad payout methods are coming soon.</p>
+                        </div>
+                    }
+                </section>
+
+                <section class="dashboard-card payments-secure" aria-labelledby="payments-secure-heading">
+                    <span class="payments-secure-icon"><i class="bi bi-shield-check" aria-hidden="true"></i></span>
+                    <div>
+                        <h2 id="payments-secure-heading">Your Payments Are Secure</h2>
+                        <p>We use industry-standard encryption to ensure your payments are safe and secure.</p>
+                        <a href="/InfluencerMessages">Learn more <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+                    </div>
+                </section>
+
+                <section class="dashboard-card dashboard-panel payments-faq" aria-labelledby="payments-faq-heading">
+                    <header class="payments-faq-head">
+                        <h2 id="payments-faq-heading">Frequently Asked Questions</h2>
+                        <a href="/InfluencerMessages">View All</a>
+                    </header>
+                    @foreach (var faq in faqs)
+                    {
+                        <details>
+                            <summary>@faq.Item1<i class="bi bi-chevron-right" aria-hidden="true"></i></summary>
+                            <p>@faq.Item2</p>
+                        </details>
+                    }
+                </section>
+            </aside>
+        </div>
+    </main>
+    <script src="~/js/brandora-influencer-dashboard.js" asp-append-version="true"></script>
+    <script src="~/js/brandora-influencer-payments.js" asp-append-version="true"></script>
+</body>
+</html>
