@@ -4,6 +4,7 @@ namespace Brandora.Web.Models.Dashboard;
 
 public class ActiveCampaignRow
 {
+    public int CampaignId { get; set; }
     public int CollaborationId { get; set; }
     public string CampaignTitle { get; set; } = string.Empty;
     public string BrandName { get; set; } = string.Empty;
@@ -16,6 +17,7 @@ public class ActiveCampaignRow
 
 public class UpcomingMilestoneRow
 {
+    public int CampaignId { get; set; }
     public int MilestoneId { get; set; }
     public string CampaignTitle { get; set; } = string.Empty;
     public string BrandName { get; set; } = string.Empty;
@@ -33,6 +35,11 @@ public class EarningsPoint
 
 public class InfluencerDashboardViewModel
 {
+    public string Period { get; set; } = "month";
+    public string PeriodLabel { get; set; } = "";
+    public bool AllActivity { get; set; }
+    public List<DashboardActivity> Activity { get; set; } = new();
+    public List<Notification> Notifications { get; set; } = new();
     public InfluencerProfile Profile { get; set; } = null!;
 
     public int ActiveCampaignCount { get; set; }
@@ -50,3 +57,5 @@ public class InfluencerDashboardViewModel
     public List<UpcomingMilestoneRow> UpcomingMilestones { get; set; } = new();
     public List<EarningsPoint> EarningsSeries { get; set; } = new();
 }
+
+public record DashboardActivity(string Title, string Description, DateTime Date);

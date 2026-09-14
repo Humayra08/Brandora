@@ -47,7 +47,7 @@ public class InfluencerCampaignsController(UserManager<ApplicationUser> userMana
 
         if (!string.IsNullOrWhiteSpace(search))
         {
-            query = query.Where(c => c.Title.Contains(search) || c.Description.Contains(search));
+            query = query.Where(c => c.Title.Contains(search) || c.Description.Contains(search) || c.BrandProfile.CompanyName.Contains(search));
         }
 
         if (!string.IsNullOrWhiteSpace(category))
