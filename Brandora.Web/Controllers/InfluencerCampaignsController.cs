@@ -19,7 +19,7 @@ public class InfluencerCampaignsController(UserManager<ApplicationUser> userMana
 
         var browsable = db.Campaigns
             .Include(c => c.BrandProfile)
-            .Where(c => c.Status == CampaignStatus.Published || c.Status == CampaignStatus.Active);
+            .Where(c => c.Status == CampaignStatus.Published || c.Status == CampaignStatus.Active || ((c.Status == CampaignStatus.Completed || c.Status == CampaignStatus.Cancelled) && db.Collaborations.Any(x => x.CampaignId == c.Id && x.InfluencerProfileId == influencer.Id)));
 
         var myProposals = await db.Proposals
             .Where(p => p.InfluencerProfileId == influencer.Id)
@@ -29,7 +29,7 @@ public class InfluencerCampaignsController(UserManager<ApplicationUser> userMana
             .GroupBy(p => p.CampaignId)
             .ToDictionary(g => g.Key, g => g.OrderByDescending(p => p.CreatedAt).First().Status);
 
-        var myCollaborations = await db.Collaborations
+        var myCollaborations = await db.Collaborations.Include(c => c.Milestones)
             .Where(c => c.InfluencerProfileId == influencer.Id)
             .ToListAsync();
 
@@ -47,7 +47,7 @@ public class InfluencerCampaignsController(UserManager<ApplicationUser> userMana
 
         if (!string.IsNullOrWhiteSpace(search))
         {
-            query = query.Where(c => c.Title.Contains(search) || c.Description.Contains(search) || c.BrandProfile.CompanyName.Contains(search));
+            query = query.Where(c => c.Title.Contains(search) || c.Description.Contains(search) || c.BrandProfile.CompanyName.Contains(search) || (c.Niche != null && c.Niche.Contains(search)));
         }
 
         if (!string.IsNullOrWhiteSpace(category))
@@ -99,15 +99,18 @@ public class InfluencerCampaignsController(UserManager<ApplicationUser> userMana
             MediaUrl = c.MediaUrl,
             Status = c.Status,
             ApplicantCount = applicantCounts.GetValueOrDefault(c.Id),
+            MilestoneCount = myCollaborations.Where(x => x.CampaignId == c.Id).Select(x => (int?)x.Milestones.Count).FirstOrDefault(),
             MyProposalStatus = myProposalByCampaign.TryGetValue(c.Id, out var proposalStatus) ? proposalStatus : null,
             IsCollaborating = myActiveCollabCampaignIds.Contains(c.Id),
             IsCollabCompleted = myCompletedCollabCampaignIds.Contains(c.Id)
         }).ToList();
 
-        var selectedTab = string.IsNullOrWhiteSpace(tab) ? "all" : tab;
+        var selectedTab = tab is "open" or "closed" or "applied" or "inreview" or "ongoing" or "completed" ? tab : "all";
 
         var tabFiltered = selectedTab switch
         {
+            "open" => allRows.Where(r => (r.Status == CampaignStatus.Published || r.Status == CampaignStatus.Active) && (!r.Deadline.HasValue || r.Deadline >= DateTime.UtcNow)).ToList(),
+            "closed" => allRows.Where(r => r.Status == CampaignStatus.Cancelled || r.Status == CampaignStatus.Completed || r.Deadline < DateTime.UtcNow).ToList(),
             "applied" => allRows.Where(r => r.MyProposalStatus.HasValue).ToList(),
             "inreview" => allRows.Where(r => r.MyProposalStatus == ProposalStatus.Pending).ToList(),
             "ongoing" => allRows.Where(r => r.IsCollaborating).ToList(),
@@ -116,8 +119,8 @@ public class InfluencerCampaignsController(UserManager<ApplicationUser> userMana
         };
 
         var totalFiltered = tabFiltered.Count;
-        var pageSize = 6;
-        var pageNumber = Math.Max(1, page);
+        var pageSize = 4;
+        var pageNumber = Math.Clamp(page, 1, Math.Max(1, (int)Math.Ceiling(totalFiltered / (double)pageSize)));
         var pagedRows = tabFiltered.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToList();
 
         var platformOptions = await browsable
@@ -137,6 +140,7 @@ public class InfluencerCampaignsController(UserManager<ApplicationUser> userMana
         var vm = new InfluencerCampaignsViewModel
         {
             Profile = influencer,
+            Notifications = await db.Notifications.AsNoTracking().Where(n => n.UserId == influencer.UserId).OrderByDescending(n => n.CreatedAt).Take(5).ToListAsync(),
             Campaigns = pagedRows,
             PlatformOptions = platformOptions,
             CategoryOptions = categoryOptions,
@@ -173,6 +177,11 @@ public class InfluencerCampaignsController(UserManager<ApplicationUser> userMana
         if (campaign is null)
         {
             return NotFound();
+        }
+
+        if (campaign.Status is not (CampaignStatus.Published or CampaignStatus.Active) || campaign.Deadline < DateTime.UtcNow)
+        {
+            return BadRequest("This campaign is no longer accepting proposals.");
         }
 
         var alreadyApplied = await db.Proposals.AnyAsync(p => p.CampaignId == campaignId && p.InfluencerProfileId == influencer.Id);

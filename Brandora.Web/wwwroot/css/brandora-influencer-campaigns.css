@@ -1,0 +1,90 @@
+/* Campaign browser content; shared dashboard hero and sidebar remain in their own stylesheets. */
+.campaigns-page .dashboard-hero { min-height: 194px; }
+.campaigns-page .dashboard-introduction { max-width: 43%; }
+.campaigns-page .dashboard-introduction h1 { font-size: clamp(27px,2.9cqi,38px); line-height: 1.12; }
+.campaigns-page .dashboard-introduction .campaigns-eyebrow { font-size: 12px; margin-bottom: 6px; }
+.campaigns-page .dashboard-introduction .campaigns-intro { margin-top: 8px; line-height: 1.35; font-size: 14px; }
+.campaigns-page .campaigns-accent { display: block; width: 58px; height: 4px; margin-top: 12px; border-radius: 3px; background: linear-gradient(90deg,#772aff,#00b7ec); }
+.campaigns-page .dashboard-hero-motto { padding-right: 4%; color: #5272aa; }
+.campaigns-page .campaigns-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin: 14px 0; }
+.campaigns-page .campaigns-tabs { display: flex; flex-shrink: 0; padding: 3px; gap: 4px; border: 1px solid #deebff; border-radius: 10px; background: #e7f2ff99; }
+.campaigns-page .campaigns-tabs a { padding: 9px 14px; border-radius: 8px; color: #122150; font-size: 12px; white-space: nowrap; }
+.campaigns-page .campaigns-tabs .is-active,.campaigns-page .campaigns-pagination .is-active { color: #fff; background: linear-gradient(110deg,#7557ff,#009fff); }
+.campaigns-page .campaigns-filters { display: flex; min-width: 0; gap: 12px; justify-content: flex-end; }
+.campaigns-page .campaigns-filters select,.campaigns-page .campaigns-search { border: 1px solid #d3e4ff; border-radius: 9px; min-height: 37px; color: #172857; background: #ffffffb8; font-size: 12px; }
+.campaigns-page .campaigns-filters select { width: 106px; min-width: 0; padding: 8px; }
+.campaigns-page .campaigns-search { display: flex; align-items: center; width: 205px; min-width: 100px; }
+.campaigns-page .campaigns-search button { border: 0; background: transparent; color: #5274b8; padding: 8px 10px; }
+.campaigns-page .campaigns-search input { min-width: 0; width: 100%; border: 0; background: transparent; padding-right: 8px; }
+.campaigns-page .campaigns-search input::placeholder { color: #5878b1; }
+.campaigns-page .campaigns-list { display: grid; gap: 9px; }
+.campaigns-page .campaigns-row { display: grid; grid-template-columns: minmax(0,1.35fr) minmax(0,1fr) 165px; align-items: center; gap: 22px; padding: 14px; min-height: 124px; }
+.campaigns-page .campaigns-summary { display: flex; align-items: center; gap: 18px; min-width: 0; }
+.campaigns-page .campaigns-image { position: relative; flex: 0 0 90px; height: 94px; display: grid; place-items: center; overflow: hidden; border-radius: 13px; background: linear-gradient(125deg,#e1ebf7,#f0f5fc); color: #123a85; font: 600 25px 'Playfair Display',serif; }
+.campaigns-page .campaigns-image img { position: absolute; width: 100%; height: 100%; object-fit: cover; }
+.campaigns-page .campaigns-image img[hidden] { display: none; }
+.campaigns-page .campaigns-copy { min-width: 0; }
+.campaigns-page .campaigns-copy h2 { font: 600 20px/1.2 'Playfair Display',Georgia,serif; letter-spacing: -.5px; overflow-wrap: anywhere; }
+.campaigns-page .campaigns-meta { display: flex; flex-wrap: wrap; gap: 4px 10px; margin: 5px 0; font-size: 11px; color: #5877ac; }
+.campaigns-page .campaigns-meta strong { color: #182b60; }
+.campaigns-page .campaigns-meta span::before { content: '•'; margin-right: 10px; }
+.campaigns-page .campaigns-description { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 11px; line-height: 1.5; color: #5877ac; overflow-wrap: anywhere; }
+.campaigns-page .campaigns-tags { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 7px; }
+.campaigns-page .campaigns-tags span { background: #e6f0ff; color: #3268ef; font-size: 11px; border-radius: 20px; padding: 3px 12px; overflow-wrap: anywhere; }
+.campaigns-page .campaigns-tags span:first-child { background: #ecebff; color: #6950ff; }
+.campaigns-page .campaigns-facts { display: grid; grid-template-columns: 1fr .85fr 1.35fr; align-items: center; padding: 18px 0; border-inline: 1px solid #dfebff; min-width: 0; }
+.campaigns-page .campaigns-facts > div { padding: 8px 20px; min-width: 0; }
+.campaigns-page .campaigns-facts > div + div { border-left: 1px solid #dfebff; }
+.campaigns-page .campaigns-facts dt { color: #5877ac; font-size: 11px; font-weight: 400; margin-bottom: 6px; }
+.campaigns-page .campaigns-facts dd { font-size: 18px; font-weight: 700; overflow-wrap: anywhere; }
+.campaigns-page .campaigns-facts > div:last-child dd { font-size: 15px; }
+.campaigns-page .campaigns-actions { display: grid; gap: 6px; padding: 0 9px; text-align: center; }
+.campaigns-page .campaigns-actions button,.campaigns-page .campaigns-status { border: 1px solid #d7e8ff; background: linear-gradient(120deg,#e9f0ff,#dcedff); color: #1451ff; border-radius: 7px; padding: 7px 10px; font-size: 12px; }
+.campaigns-page .campaigns-apply { border: 0 !important; background: linear-gradient(110deg,#8950ff,#433bff 35%,#00a8f1) !important; color: #fff !important; border-radius: 7px; padding: 9px 18px; }
+.campaigns-page .campaigns-actions small { color: #5877ac; font-size: 12px; margin-top: 2px; }
+.campaigns-page .campaigns-pagination { display: flex; justify-content: space-between; align-items: center; gap: 15px; margin-top: 22px; font-size: 12px; color: #5877ac; }
+.campaigns-page .campaigns-pagination nav { display: flex; gap: 5px; }
+.campaigns-page .campaigns-pagination a { display: grid; place-items: center; min-width: 31px; height: 34px; border: 1px solid #dfebff; border-radius: 7px; background: #ffffffb8; }
+.campaigns-page .campaigns-empty { padding: 60px 20px; text-align: center; color: #5877ac; }
+.campaigns-page .campaigns-empty i { font-size: 32px; }
+.campaigns-page .campaigns-empty h2 { font: 600 24px 'Playfair Display',serif; margin: 12px; color: #142652; }
+.campaigns-page dialog { width: min(560px,calc(100% - 28px)); max-height: 85vh; border: 1px solid #cfddff; border-radius: 16px; padding: 26px; color: #152553; background: #f7fbff; box-shadow: 0 20px 70px #14265933; overflow-wrap: anywhere; }
+.campaigns-page dialog::backdrop { background: #13295266; backdrop-filter: blur(3px); }
+.campaigns-page dialog h2 { font: 600 24px 'Playfair Display',serif; padding-right: 20px; }
+.campaigns-page dialog p { margin-top: 12px; color: #5871a8; }
+.campaigns-page .campaigns-full-description { white-space: pre-wrap; }
+.campaigns-page .campaigns-close { float: right; border: 0; background: transparent; font-size: 25px; color: #334e8b; }
+.campaigns-page .campaigns-application { display: grid; gap: 15px; margin-top: 20px; }
+.campaigns-page .campaigns-application label { display: grid; gap: 7px; font-size: 13px; }
+.campaigns-page .campaigns-application :is(input,textarea) { min-width: 0; width: 100%; padding: 10px; border: 1px solid #ccdefa; border-radius: 7px; background: #fff; }
+@container (max-width: 1150px) {
+    .campaigns-page .campaigns-toolbar { flex-wrap: wrap; }
+    .campaigns-page .campaigns-filters { flex: 1; }
+    .campaigns-page .campaigns-row { gap: 12px; grid-template-columns: minmax(0,1.2fr) minmax(0,1fr) 140px; }
+    .campaigns-page .campaigns-facts > div { padding-inline: 10px; }
+    .campaigns-page .campaigns-image { flex-basis: 78px; height: 86px; }
+    .campaigns-page .campaigns-summary { gap: 12px; }
+}
+@container (max-width: 850px) {
+    .campaigns-page .campaigns-row { grid-template-columns: minmax(0,1fr) 145px; }
+    .campaigns-page .campaigns-summary { grid-column: 1 / -1; }
+    .campaigns-page .campaigns-facts { border-left: 0; padding: 5px 0; }
+    .campaigns-page .dashboard-introduction { max-width: 58%; }
+}
+@container (max-width: 600px) {
+    .campaigns-page .dashboard-introduction { max-width: 100%; }
+    .campaigns-page .campaigns-tabs { width: 100%; flex-wrap: wrap; }
+    .campaigns-page .campaigns-tabs a { flex: 1; text-align: center; padding: 9px; }
+    .campaigns-page .campaigns-filters { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); width: 100%; }
+    .campaigns-page .campaigns-search { grid-column: 1 / -1; width: 100%; }
+    .campaigns-page .campaigns-filters select { width: 100%; }
+    .campaigns-page .campaigns-row { grid-template-columns: minmax(0,1fr); }
+    .campaigns-page .campaigns-facts { border: 0; }
+    .campaigns-page .campaigns-facts dd { font-size: 16px; }
+    .campaigns-page .campaigns-facts > div:last-child dd { font-size: 13px; }
+    .campaigns-page .campaigns-actions { grid-template-columns: 1fr 1fr; padding: 0; }
+    .campaigns-page .campaigns-actions small { grid-column: 1 / -1; }
+    .campaigns-page .campaigns-pagination { flex-wrap: wrap; }
+    .campaigns-page .campaigns-copy h2 { font-size: 18px; }
+    .campaigns-page .campaigns-image { flex-basis: 64px; height: 74px; }
+}

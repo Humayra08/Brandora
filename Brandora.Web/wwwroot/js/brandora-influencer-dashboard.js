@@ -25,8 +25,10 @@
     updateExpanded();
 
     const period = document.getElementById('dashboard-period');
-    period.form.querySelector('button').hidden = true;
-    period.addEventListener('change', () => period.form.requestSubmit());
+    if (period) {
+        period.form.querySelector('button').hidden = true;
+        period.addEventListener('change', () => period.form.requestSubmit());
+    }
     const notifications = page.querySelector('.dashboard-notifications');
     document.addEventListener('click', event => {
         if (!notifications.contains(event.target)) notifications.open = false;
