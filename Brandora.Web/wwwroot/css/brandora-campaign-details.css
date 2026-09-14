@@ -58,7 +58,7 @@
 .campaign-details-page .campaign-apply-card,.campaign-details-page .campaign-facts-card,.campaign-details-page .campaign-support-card { padding: 22px; }
 .campaign-details-page .campaign-apply-card h2,.campaign-details-page .campaign-facts-card h2 { font: 600 18px 'Playfair Display',Georgia,serif; color: #101d48; margin-bottom: 6px; }
 .campaign-details-page .campaign-apply-card p { font-size: 12px; color: #5877ac; margin-bottom: 16px; }
-.campaign-details-page .campaign-apply-btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 13px; font-size: 14px; font-weight: 600; }
+.campaign-details-page .campaign-apply-btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 13px; font-size: 14px; font-weight: 600; text-decoration: none; }
 .campaign-details-page .campaign-apply-card small { display: block; text-align: center; margin-top: 10px; font-size: 11px; color: #5877ac; }
 .campaign-details-page .campaign-apply-status { display: block; text-align: center; padding: 12px; font-size: 13px; }
 

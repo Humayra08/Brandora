@@ -1,0 +1,135 @@
+@model Brandora.Web.Models.Dashboard.CampaignApplyViewModel
+@using Brandora.Web.Models.Influencers
+@{
+    ViewData["Title"] = "Review Application - " + Model.Title;
+    ViewData["ActiveNav"] = "Campaigns";
+    Layout = null;
+    var name = Model.Profile.FullName;
+    var sampleLinks = new[] { Model.InstagramLink, Model.TikTokLink, Model.YouTubeLink }.Where(l => !string.IsNullOrWhiteSpace(l)).ToList();
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Review Application - @Model.Title - Brandora</title>
+    <link rel="icon" href="~/images/brandora-icon.png" />
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/lib/dashboard-assets/bootstrap-icons.css" />
+    <link rel="stylesheet" href="~/lib/dashboard-assets/dashboard-fonts.css" />
+    <link rel="stylesheet" href="~/css/brandora-influencer-shell.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/brandora-influencer-dashboard.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/brandora-influencer-campaigns.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/brandora-campaign-details.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/brandora-campaign-apply.css" asp-append-version="true" />
+</head>
+<body>
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+    @await Html.PartialAsync("_InfluencerSidebar")
+    <main class="dashboard-page campaigns-page campaign-details-page campaign-apply-page" id="dashboardMain">
+        <header class="dashboard-topbar">
+            <button class="dashboard-menu" id="menuToggleBtn" type="button" aria-label="Toggle sidebar" aria-controls="dashboardSidebar"><i class="bi bi-list" aria-hidden="true"></i></button>
+            <form class="dashboard-search" method="get" asp-controller="InfluencerCampaigns" asp-action="Index" role="search">
+                <i class="bi bi-search" aria-hidden="true"></i>
+                <input type="search" name="search" placeholder="Search campaigns, brands..." aria-label="Search campaigns and brands" />
+                <button type="submit" aria-label="Search"><i class="bi bi-search" aria-hidden="true"></i></button>
+            </form>
+            <details class="dashboard-notifications">
+                <summary aria-label="Notifications"><i class="bi bi-bell" aria-hidden="true"></i>@if ((ViewData["UnreadNotifications"] as int? ?? 0) > 0) { <span class="dashboard-unread"></span> }</summary>
+                <div class="dashboard-notification-panel">
+                    <h2>Notifications</h2>
+                    @foreach (var notification in Model.Notifications)
+                    {
+                        <article><strong>@notification.Title</strong><p>@notification.Body</p></article>
+                    }
+                    @if (Model.Notifications.Count == 0) { <p>No notifications yet.</p> }
+                </div>
+            </details>
+            <a class="dashboard-account" href="/InfluencerSettings">
+                <span class="dashboard-avatar">@FollowerFormat.InitialsOf(name)</span>
+                <span><strong>@name</strong><small>Influencer</small></span>
+                <i class="bi bi-chevron-down" aria-hidden="true"></i>
+            </a>
+        </header>
+
+        @await Html.PartialAsync("~/Views/InfluencerCampaigns/_ApplyHero.cshtml", Model)
+
+        <div class="apply-grid">
+            <div class="apply-stepper-col">
+                @await Html.PartialAsync("~/Views/InfluencerCampaigns/_ApplyStepper.cshtml", Model.Step)
+            </div>
+
+            <div class="apply-main-col">
+                <form method="post" asp-action="ApplySubmit" class="dashboard-card apply-form">
+                    <input type="hidden" name="CampaignId" value="@Model.CampaignId" />
+                    <input type="hidden" name="Concept" value="@Model.Concept" />
+                    <input type="hidden" name="WhyGoodFit" value="@Model.WhyGoodFit" />
+                    <input type="hidden" name="InstagramLink" value="@Model.InstagramLink" />
+                    <input type="hidden" name="TikTokLink" value="@Model.TikTokLink" />
+                    <input type="hidden" name="YouTubeLink" value="@Model.YouTubeLink" />
+
+                    <div class="apply-review-head">
+                        <h2>Review Your Application</h2>
+                        <a href="@Url.Action("Apply", new { id = Model.CampaignId, concept = Model.Concept, whyGoodFit = Model.WhyGoodFit, instagramLink = Model.InstagramLink, tikTokLink = Model.TikTokLink, youTubeLink = Model.YouTubeLink })"><i class="bi bi-pencil" aria-hidden="true"></i> Edit</a>
+                    </div>
+                    <p class="apply-form-intro">Please review all the information below before submitting your application.</p>
+
+                    <section class="apply-review-section">
+                        <h3><i class="bi bi-file-earmark-text" aria-hidden="true"></i> Your Proposal</h3>
+                        <div class="apply-review-block">
+                            <strong>Concept / Idea</strong>
+                            <p>@Model.Concept</p>
+                        </div>
+                        <div class="apply-review-block">
+                            <strong>Why You're a Good Fit</strong>
+                            <p>@Model.WhyGoodFit</p>
+                        </div>
+                    </section>
+
+                    <section class="apply-review-section">
+                        <h3><i class="bi bi-share" aria-hidden="true"></i> Social Accounts</h3>
+                        <ul class="apply-review-social">
+                            @foreach (var platform in Model.Platforms)
+                            {
+                                <li>
+                                    <span class="apply-social-icon small" style="background:@platform.IconGradient"><i class="bi @platform.Icon" aria-hidden="true"></i></span>
+                                    <span class="apply-social-handle">@platform.Handle</span>
+                                    <span class="apply-social-connected"><i class="bi bi-check-circle-fill" aria-hidden="true"></i>Connected</span>
+                                    <span class="apply-social-followers">@platform.Followers.ToString("N0") <small>followers</small></span>
+                                </li>
+                            }
+                        </ul>
+                        @if (sampleLinks.Count > 0)
+                        {
+                            <div class="apply-review-block">
+                                <strong>Sample Work</strong>
+                                @foreach (var link in sampleLinks)
+                                {
+                                    <p><a href="@link" target="_blank" rel="noopener">@link</a></p>
+                                }
+                            </div>
+                        }
+                    </section>
+
+                    <label class="apply-confirm">
+                        <input type="checkbox" name="Confirmed" value="true" required />
+                        I confirm that all the information provided is accurate and complete. I understand that Brandora may review my application and reach out for further details if needed.
+                    </label>
+
+                    <div class="apply-form-actions">
+                        <a class="apply-btn-secondary" href="@Url.Action("ApplySocial", new { id = Model.CampaignId, concept = Model.Concept, whyGoodFit = Model.WhyGoodFit, instagramLink = Model.InstagramLink, tikTokLink = Model.TikTokLink, youTubeLink = Model.YouTubeLink })">Back</a>
+                        <button type="submit" class="apply-btn-primary">Submit Application <i class="bi bi-arrow-right" aria-hidden="true"></i></button>
+                    </div>
+                    <p class="apply-review-note">You can edit your application anytime before the deadline.</p>
+                </form>
+            </div>
+
+            <div class="apply-side-col">
+                @await Html.PartialAsync("~/Views/InfluencerCampaigns/_ApplyCampaignSummary.cshtml", Model)
+            </div>
+        </div>
+    </main>
+    <script src="~/js/brandora-influencer-dashboard.js" asp-append-version="true"></script>
+    <script src="~/js/brandora-campaign-apply.js" asp-append-version="true"></script>
+</body>
+</html>

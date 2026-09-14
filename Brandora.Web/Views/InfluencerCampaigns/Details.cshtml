@@ -167,7 +167,7 @@
                     <p>Showcase your creativity and be part of this campaign.</p>
                     @if (Model.CanApply)
                     {
-                        <button type="button" class="campaigns-apply campaign-apply-btn" data-dialog="apply-dialog">Apply Now <i class="bi bi-arrow-right" aria-hidden="true"></i></button>
+                        <a class="campaigns-apply campaign-apply-btn" href="@Url.Action("Apply", new { id = Model.CampaignId })">Apply Now <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
                         @if (Model.Deadline.HasValue)
                         {
                             <small>You can apply until @Model.Deadline.Value.ToString("MMM d, yyyy", CultureInfo.InvariantCulture)</small>
@@ -200,21 +200,6 @@
             </aside>
         </div>
 
-        @if (Model.CanApply)
-        {
-            <dialog id="apply-dialog" aria-labelledby="apply-dialog-title">
-                <form method="dialog"><button class="campaigns-close" aria-label="Close application">×</button></form>
-                <h2 id="apply-dialog-title">Apply to @Model.Title</h2>
-                <p>Send your proposal to the brand for review.</p>
-                <form method="post" asp-action="Apply" class="campaigns-application">
-                    <input type="hidden" name="campaignId" value="@Model.CampaignId" />
-                    <label>Proposed amount (&#2547;)<input type="number" name="proposedAmount" min="1" step="0.01" value="@Model.Budget.ToString(CultureInfo.InvariantCulture)" required /></label>
-                    <label>Deliverables<textarea name="deliverables" rows="3" required></textarea></label>
-                    <label>Message to brand (optional)<textarea name="message" rows="3"></textarea></label>
-                    <button type="submit" class="campaigns-apply">Send Proposal</button>
-                </form>
-            </dialog>
-        }
     </main>
     <script src="~/js/brandora-influencer-dashboard.js" asp-append-version="true"></script>
     <script src="~/js/brandora-campaign-details.js" asp-append-version="true"></script>

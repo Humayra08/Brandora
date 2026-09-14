@@ -218,9 +218,45 @@ public class InfluencerCampaignsController(UserManager<ApplicationUser> userMana
         return View(vm);
     }
 
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Apply(int campaignId, decimal proposedAmount, string deliverables, string? message)
+    private async Task<CampaignApplyViewModel?> BuildApplyViewModelAsync(int id, InfluencerProfile influencer)
+    {
+        var campaign = await db.Campaigns.Include(c => c.BrandProfile).FirstOrDefaultAsync(c => c.Id == id);
+        if (campaign is null)
+        {
+            return null;
+        }
+
+        return new CampaignApplyViewModel
+        {
+            Profile = influencer,
+            Notifications = await db.Notifications.AsNoTracking().Where(n => n.UserId == influencer.UserId).OrderByDescending(n => n.CreatedAt).Take(5).ToListAsync(),
+            CampaignId = campaign.Id,
+            Title = campaign.Title,
+            BrandName = campaign.BrandProfile.CompanyName,
+            Platform = campaign.Platform,
+            Niche = campaign.Niche,
+            Budget = campaign.Budget,
+            Deadline = campaign.Deadline,
+            ApplicantCount = await db.Proposals.CountAsync(p => p.CampaignId == campaign.Id)
+        };
+    }
+
+    private List<ConnectedPlatformRow> BuildConnectedPlatforms(InfluencerProfile influencer)
+    {
+        var handle = string.IsNullOrWhiteSpace(influencer.PlatformUsername)
+            ? "@" + influencer.FullName.Split(' ')[0].ToLowerInvariant()
+            : influencer.PlatformUsername;
+        var primaryFollowers = influencer.Followers > 0 ? influencer.Followers : 25400;
+
+        return new List<ConnectedPlatformRow>
+        {
+            new() { Name = "Instagram", Icon = "bi-instagram", IconGradient = "linear-gradient(135deg,#f9ce34,#ee2a7b,#6228d7)", Handle = handle, Verified = true, Followers = primaryFollowers, FollowerLabel = "Followers", Connected = true },
+            new() { Name = "TikTok", Icon = "bi-tiktok", IconGradient = "linear-gradient(135deg,#111112,#2b2b2e)", Handle = handle, Verified = true, Followers = (int)(primaryFollowers * 0.74), FollowerLabel = "Followers", Connected = true },
+            new() { Name = "Facebook", Icon = "bi-facebook", IconGradient = "linear-gradient(135deg,#3f8cff,#1857d6)", Handle = influencer.FullName, Verified = true, Followers = (int)(primaryFollowers * 0.33), FollowerLabel = "Followers", Connected = true },
+        };
+    }
+
+    public async Task<IActionResult> Apply(int id, string? concept, string? whyGoodFit, string? instagramLink, string? tikTokLink, string? youTubeLink)
     {
         var influencer = await GetCurrentInfluencerAsync();
         if (influencer is null)
@@ -228,7 +264,123 @@ public class InfluencerCampaignsController(UserManager<ApplicationUser> userMana
             return RedirectToAction("Index", "Home");
         }
 
-        var campaign = await db.Campaigns.FirstOrDefaultAsync(c => c.Id == campaignId);
+        var vm = await BuildApplyViewModelAsync(id, influencer);
+        if (vm is null)
+        {
+            return NotFound();
+        }
+
+        vm.Step = 2;
+        vm.Concept = concept ?? "";
+        vm.WhyGoodFit = whyGoodFit ?? "";
+        vm.InstagramLink = instagramLink;
+        vm.TikTokLink = tikTokLink;
+        vm.YouTubeLink = youTubeLink;
+        return View(vm);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Apply(CampaignApplyViewModel form)
+    {
+        var influencer = await GetCurrentInfluencerAsync();
+        if (influencer is null)
+        {
+            return RedirectToAction("Index", "Home");
+        }
+
+        var vm = await BuildApplyViewModelAsync(form.CampaignId, influencer);
+        if (vm is null)
+        {
+            return NotFound();
+        }
+
+        vm.Step = 2;
+        vm.Concept = form.Concept;
+        vm.WhyGoodFit = form.WhyGoodFit;
+        vm.InstagramLink = form.InstagramLink;
+        vm.TikTokLink = form.TikTokLink;
+        vm.YouTubeLink = form.YouTubeLink;
+
+        if (string.IsNullOrWhiteSpace(vm.Concept))
+        {
+            ModelState.AddModelError(nameof(vm.Concept), "Share your creative idea for this campaign.");
+        }
+        if (string.IsNullOrWhiteSpace(vm.WhyGoodFit))
+        {
+            ModelState.AddModelError(nameof(vm.WhyGoodFit), "Tell the brand why you're a good fit.");
+        }
+        if (!ModelState.IsValid)
+        {
+            return View(vm);
+        }
+
+        vm.Step = 3;
+        vm.Platforms = BuildConnectedPlatforms(influencer);
+        return View("ApplySocial", vm);
+    }
+
+    public async Task<IActionResult> ApplySocial(int id, string? concept, string? whyGoodFit, string? instagramLink, string? tikTokLink, string? youTubeLink)
+    {
+        var influencer = await GetCurrentInfluencerAsync();
+        if (influencer is null)
+        {
+            return RedirectToAction("Index", "Home");
+        }
+
+        var vm = await BuildApplyViewModelAsync(id, influencer);
+        if (vm is null)
+        {
+            return NotFound();
+        }
+
+        vm.Step = 3;
+        vm.Concept = concept ?? "";
+        vm.WhyGoodFit = whyGoodFit ?? "";
+        vm.InstagramLink = instagramLink;
+        vm.TikTokLink = tikTokLink;
+        vm.YouTubeLink = youTubeLink;
+        vm.Platforms = BuildConnectedPlatforms(influencer);
+        return View(vm);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ApplySocial(CampaignApplyViewModel form)
+    {
+        var influencer = await GetCurrentInfluencerAsync();
+        if (influencer is null)
+        {
+            return RedirectToAction("Index", "Home");
+        }
+
+        var vm = await BuildApplyViewModelAsync(form.CampaignId, influencer);
+        if (vm is null)
+        {
+            return NotFound();
+        }
+
+        vm.Step = 4;
+        vm.Concept = form.Concept;
+        vm.WhyGoodFit = form.WhyGoodFit;
+        vm.InstagramLink = form.InstagramLink;
+        vm.TikTokLink = form.TikTokLink;
+        vm.YouTubeLink = form.YouTubeLink;
+        vm.Platforms = BuildConnectedPlatforms(influencer);
+        return View("ApplyReview", vm);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ApplySubmit(CampaignApplyViewModel form)
+    {
+        var influencer = await GetCurrentInfluencerAsync();
+        if (influencer is null)
+        {
+            return RedirectToAction("Index", "Home");
+        }
+
+        var campaign = await db.Campaigns.FirstOrDefaultAsync(c => c.Id == form.CampaignId);
         if (campaign is null)
         {
             return NotFound();
@@ -239,16 +391,21 @@ public class InfluencerCampaignsController(UserManager<ApplicationUser> userMana
             return BadRequest("This campaign is no longer accepting proposals.");
         }
 
-        var alreadyApplied = await db.Proposals.AnyAsync(p => p.CampaignId == campaignId && p.InfluencerProfileId == influencer.Id);
-        if (!alreadyApplied && !string.IsNullOrWhiteSpace(deliverables))
+        var alreadyApplied = await db.Proposals.AnyAsync(p => p.CampaignId == form.CampaignId && p.InfluencerProfileId == influencer.Id);
+        if (!alreadyApplied && form.Confirmed && !string.IsNullOrWhiteSpace(form.Concept))
         {
+            var sampleLinks = new[] { form.InstagramLink, form.TikTokLink, form.YouTubeLink }
+                .Where(l => !string.IsNullOrWhiteSpace(l)).ToList();
+            var message = $"Why I'm a good fit: {form.WhyGoodFit}"
+                + (sampleLinks.Count > 0 ? "\n\nSample work:\n" + string.Join("\n", sampleLinks) : "");
+
             db.Proposals.Add(new Proposal
             {
-                CampaignId = campaignId,
+                CampaignId = form.CampaignId,
                 InfluencerProfileId = influencer.Id,
                 InitiatedBy = ProposalInitiator.Influencer,
-                ProposedAmount = proposedAmount > 0 ? proposedAmount : campaign.Budget,
-                Deliverables = deliverables,
+                ProposedAmount = campaign.Budget,
+                Deliverables = form.Concept,
                 Message = message,
                 Status = ProposalStatus.Pending
             });
@@ -256,6 +413,6 @@ public class InfluencerCampaignsController(UserManager<ApplicationUser> userMana
             await db.SaveChangesAsync();
         }
 
-        return RedirectToAction("Details", new { id = campaignId });
+        return RedirectToAction("Details", new { id = form.CampaignId });
     }
 }

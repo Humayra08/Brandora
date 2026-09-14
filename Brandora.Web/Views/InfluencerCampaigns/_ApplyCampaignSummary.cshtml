@@ -1,0 +1,24 @@
+@model Brandora.Web.Models.Dashboard.CampaignApplyViewModel
+@using Brandora.Web.Models.Influencers
+@using System.Globalization
+@{
+    string Money(decimal amount) => "৳" + amount.ToString("N0", CultureInfo.InvariantCulture);
+}
+<div class="dashboard-card apply-summary-card">
+    <h2>Campaign Summary</h2>
+    <div class="apply-summary-head">
+        <div class="campaign-logo small"><span>@FollowerFormat.InitialsOf(Model.BrandName)</span></div>
+        <div>
+            <h6>@Model.Title</h6>
+            <p>@Model.BrandName @if (!string.IsNullOrWhiteSpace(Model.Niche)) { <span>&bull; @Model.Niche</span> }</p>
+        </div>
+    </div>
+    <dl class="campaign-fact-list">
+        <div><dt>Budget</dt><dd>@Money(Model.Budget)</dd></div>
+        @if (!string.IsNullOrWhiteSpace(Model.Platform))
+        {
+            <div><dt>Platform</dt><dd>@Model.Platform</dd></div>
+        }
+        <div><dt>Deadline</dt><dd>@(Model.Deadline?.ToString("MMM d, yyyy", CultureInfo.InvariantCulture) ?? "Not set")</dd></div>
+    </dl>
+</div>
