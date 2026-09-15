@@ -296,8 +296,10 @@ public class InfluencerCampaignsController(UserManager<ApplicationUser> userMana
         }
 
         vm.Step = 2;
-        vm.Concept = form.Concept;
-        vm.WhyGoodFit = form.WhyGoodFit;
+        // Model binding converts a posted empty string to null (ConvertEmptyStringToNull),
+        // so these must be normalized before the view touches Concept.Length etc.
+        vm.Concept = form.Concept ?? "";
+        vm.WhyGoodFit = form.WhyGoodFit ?? "";
         vm.InstagramLink = form.InstagramLink;
         vm.TikTokLink = form.TikTokLink;
         vm.YouTubeLink = form.YouTubeLink;
@@ -361,8 +363,8 @@ public class InfluencerCampaignsController(UserManager<ApplicationUser> userMana
         }
 
         vm.Step = 4;
-        vm.Concept = form.Concept;
-        vm.WhyGoodFit = form.WhyGoodFit;
+        vm.Concept = form.Concept ?? "";
+        vm.WhyGoodFit = form.WhyGoodFit ?? "";
         vm.InstagramLink = form.InstagramLink;
         vm.TikTokLink = form.TikTokLink;
         vm.YouTubeLink = form.YouTubeLink;

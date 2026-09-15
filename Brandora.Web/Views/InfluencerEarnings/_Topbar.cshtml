@@ -3,7 +3,7 @@
     var initial = string.IsNullOrWhiteSpace(Model.InfluencerName) ? "I" : Model.InfluencerName[..1].ToUpperInvariant();
 }
     <header class="earnings-topbar">
-        <button type="button" class="earnings-icon-button" id="sidebarToggle" aria-label="Toggle sidebar">
+        <button type="button" class="earnings-icon-button" id="menuToggleBtn" aria-label="Toggle sidebar" aria-controls="dashboardSidebar">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
         </button>
         <form method="get" asp-action="Index" class="earnings-search" role="search">
@@ -12,10 +12,9 @@
             <input type="hidden" name="campaignId" value="@Model.CampaignId" />
             <input type="hidden" name="tab" value="@Model.Tab" />
         </form>
-        <details class="earnings-notifications">
-            <summary class="earnings-icon-button" aria-label="Notifications">
-                <svg width="21" height="21" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 9a6 6 0 0 1 12 0c0 4 1.5 5.5 1.5 5.5h-15S6 13 6 9ZM10 18a2 2 0 0 0 4 0" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                @if ((ViewData["UnreadNotifications"] as int? ?? 0) > 0) { <span class="earnings-unread"></span> }
+        <details class="earnings-notifications dashboard-notifications">
+            <summary aria-label="Notifications"><i class="bi bi-bell" aria-hidden="true"></i>
+                @if ((ViewData["UnreadNotifications"] as int? ?? 0) > 0) { <span class="dashboard-unread"></span> }
             </summary>
             <div class="earnings-notification-panel">
                 <h2>Recent notifications</h2>
@@ -26,9 +25,9 @@
                 @if (Model.Notifications.Count == 0) { <p>You're all caught up.</p> }
             </div>
         </details>
-        <a href="/InfluencerSettings" class="earnings-profile" aria-label="Your profile settings">
+        <a href="/InfluencerSettings" class="dashboard-account" aria-label="Your profile settings">
             <span class="earnings-avatar">@initial</span>
             <span><strong>@Model.InfluencerName</strong><small>Influencer</small></span>
-            <span aria-hidden="true">⌄</span>
+            <i class="bi bi-chevron-down" aria-hidden="true"></i>
         </a>
     </header>

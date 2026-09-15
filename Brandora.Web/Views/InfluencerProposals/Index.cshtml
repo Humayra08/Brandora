@@ -4,7 +4,7 @@
 @{
     ViewData["Title"] = "My Proposals";
     ViewData["ActiveNav"] = "Proposals";
-    Layout = "_AppLayout";
+    Layout = null;
     var filters = new (ProposalStatus? Status, string Label)[] {
         (null, "All Proposals"), (ProposalStatus.Pending, "Pending"),
         (ProposalStatus.Accepted, "Accepted"), (ProposalStatus.Rejected, "Not Selected")
@@ -12,36 +12,48 @@
     string PageUrl(int page, ProposalStatus? status) => Url.Action("Index", new { page, status, search = Model.Search, sort = Model.Sort })!;
     var initial = string.IsNullOrWhiteSpace(Model.InfluencerName) ? "I" : Model.InfluencerName[..1].ToUpperInvariant();
 }
-<link rel="stylesheet" href="~/css/brandora-proposals.css" asp-append-version="true" />
-<div class="proposals-page">
-    <header class="proposals-topbar">
-        <button type="button" class="proposals-icon-button" id="sidebarToggle" aria-label="Toggle sidebar">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-        </button>
-        <form method="get" asp-action="Index" class="proposals-search" role="search">
-            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" stroke="currentColor" stroke-width="1.8"/><path d="m16 16 5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>My Proposals - Brandora</title>
+    <link rel="icon" href="~/images/brandora-icon.png" />
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/lib/dashboard-assets/bootstrap-icons.css" />
+    <link rel="stylesheet" href="~/lib/dashboard-assets/dashboard-fonts.css" />
+    <link rel="stylesheet" href="~/css/brandora-influencer-shell.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/brandora-influencer-dashboard.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/brandora-proposals.css" asp-append-version="true" />
+</head>
+<body>
+<div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+@await Html.PartialAsync("_InfluencerSidebar")
+<main class="proposals-page" id="dashboardMain">
+    <header class="dashboard-topbar">
+        <button class="dashboard-menu" id="menuToggleBtn" type="button" aria-label="Toggle sidebar" aria-controls="dashboardSidebar"><i class="bi bi-list" aria-hidden="true"></i></button>
+        <form class="dashboard-search" method="get" asp-action="Index" role="search">
+            <i class="bi bi-search" aria-hidden="true"></i>
             <input type="search" name="search" value="@Model.Search" placeholder="Search campaigns, brands..." aria-label="Search campaigns and brands" />
             <input type="hidden" name="status" value="@Model.Status" />
             <input type="hidden" name="sort" value="@Model.Sort" />
+            <button type="submit" aria-label="Search"><i class="bi bi-search" aria-hidden="true"></i></button>
         </form>
-        <details class="proposals-notifications">
-            <summary class="proposals-icon-button" aria-label="Notifications">
-                <svg width="21" height="21" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 9a6 6 0 0 1 12 0c0 4 1.5 5.5 1.5 5.5h-15S6 13 6 9ZM10 18a2 2 0 0 0 4 0" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                @if ((ViewData["UnreadNotifications"] as int? ?? 0) > 0) { <span class="proposals-unread"></span> }
-            </summary>
-            <div class="proposals-notification-panel">
+        <details class="dashboard-notifications">
+            <summary aria-label="Notifications"><i class="bi bi-bell" aria-hidden="true"></i>@if ((ViewData["UnreadNotifications"] as int? ?? 0) > 0) { <span class="dashboard-unread"></span> }</summary>
+            <div class="dashboard-notification-panel">
                 <h2>Recent notifications</h2>
                 @foreach (var notification in Model.Notifications)
                 {
-                    <div><strong>@notification.Title</strong><p>@notification.Body</p></div>
+                    <article><strong>@notification.Title</strong><p>@notification.Body</p></article>
                 }
                 @if (Model.Notifications.Count == 0) { <p>You're all caught up.</p> }
             </div>
         </details>
-        <a href="/InfluencerSettings" class="proposals-profile" aria-label="Your profile settings">
-            <span class="proposals-avatar">@initial</span>
+        <a class="dashboard-account" href="/InfluencerSettings" aria-label="Your profile settings">
+            <span class="dashboard-avatar">@initial</span>
             <span><strong>@Model.InfluencerName</strong><small>Influencer</small></span>
-            <span aria-hidden="true">⌄</span>
+            <i class="bi bi-chevron-down" aria-hidden="true"></i>
         </a>
     </header>
     <section class="proposals-hero" aria-labelledby="proposals-title">
@@ -54,13 +66,8 @@
             <div class="proposals-glass proposals-glass-back"></div>
             <div class="proposals-glass proposals-glass-front">Ideas<br />Collaborations<br />Real Impact<i></i></div>
         </div>
-        <p class="proposals-motto">Consistent<br />Effort<br />Creates<br />Greater Opportunities.<i></i></p>
-        <svg class="proposals-wave" viewBox="0 0 1200 220" preserveAspectRatio="none" aria-hidden="true">
-            <defs><linearGradient id="proposal-wave-fill" x1="0" y1="0" x2="1" y2=".3"><stop stop-color="#91caff" stop-opacity="0"/><stop offset=".5" stop-color="#649dff" stop-opacity=".22"/><stop offset=".75" stop-color="#6545ff" stop-opacity=".45"/><stop offset="1" stop-color="#89baff" stop-opacity=".08"/></linearGradient></defs>
-            <path d="M0 210C230 235 285 120 425 54S550 240 708 151 826 49 906 130 1060 207 1200 115V220H0Z" fill="url(#proposal-wave-fill)"/>
-            <path d="M0 220C255 230 280 145 420 97S565 262 714 179 817 105 920 176 1070 223 1200 153" fill="none" stroke="#fff" stroke-opacity=".42"/>
-            <path d="M0 220C255 240 300 164 420 117S565 282 714 199 827 125 930 196 1070 243 1200 173" fill="none" stroke="#fff" stroke-opacity=".28"/>
-        </svg>
+        <div class="dashboard-hero-motto">Consistent<br />Effort<br />Creates<br />Greater Opportunities.<span></span></div>
+        @await Html.PartialAsync("~/Views/InfluencerDashboard/_Waves.cshtml", "hero")
     </section>
     <div class="proposals-content">
         <div class="proposal-toolbar">
@@ -146,7 +153,8 @@
             }
         </footer>
     </div>
-</div>
-@section Scripts {
-    <script src="~/js/brandora-proposals.js" asp-append-version="true"></script>
-}
+</main>
+<script src="~/js/brandora-influencer-dashboard.js" asp-append-version="true"></script>
+<script src="~/js/brandora-proposals.js" asp-append-version="true"></script>
+</body>
+</html>
