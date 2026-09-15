@@ -1,0 +1,42 @@
+@model Brandora.Web.Models.Domain.Proposal
+@using Brandora.Web.Models.Domain
+@using System.Globalization
+@{
+    ViewData["Title"] = "Proposal Details";
+    ViewData["ActiveNav"] = "Proposals";
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Proposal Details - Brandora</title>
+    <link rel="icon" href="~/images/brandora-icon.png" />
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/lib/dashboard-assets/bootstrap-icons.css" />
+    <link rel="stylesheet" href="~/lib/dashboard-assets/dashboard-fonts.css" />
+    <link rel="stylesheet" href="~/css/brandora-influencer-shell.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/brandora-influencer-dashboard.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/brandora-proposals.css" asp-append-version="true" />
+</head>
+<body>
+<div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+@await Html.PartialAsync("_InfluencerSidebar")
+<main class="proposals-page proposals-detail" id="dashboardMain">
+    <nav aria-label="Breadcrumb"><a asp-action="Index">My Proposals</a> / Proposal details</nav>
+    <h1>@Model.Campaign.Title</h1>
+    <p>@Model.Campaign.BrandProfile.CompanyName</p>
+    <dl>
+        <div><dt>Status</dt><dd>@(Model.Status == ProposalStatus.Rejected ? "Not Selected" : Model.Status.ToString())</dd></div>
+        <div><dt>Proposed rate</dt><dd>৳@Model.ProposedAmount.ToString("N0", CultureInfo.InvariantCulture)</dd></div>
+        <div><dt>Date submitted</dt><dd>@Model.CreatedAt.ToString("MMM d, yyyy", CultureInfo.InvariantCulture)</dd></div>
+        <div><dt>Deliverables</dt><dd>@Model.Deliverables</dd></div>
+        @if (!string.IsNullOrWhiteSpace(Model.Timeline)) { <div><dt>Timeline</dt><dd>@Model.Timeline</dd></div> }
+        @if (!string.IsNullOrWhiteSpace(Model.Message)) { <div><dt>Proposal message</dt><dd class="proposal-message">@Model.Message</dd></div> }
+        @if (Model.Collaboration is not null) { <div><dt>Collaboration</dt><dd>@Model.Collaboration.Status</dd></div> }
+    </dl>
+    <a class="proposal-detail-back" asp-action="Index">Back to my proposals</a>
+</main>
+</body>
+</html>

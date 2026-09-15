@@ -1,0 +1,33 @@
+@model Brandora.Web.Models.Dashboard.InfluencerEarningsViewModel
+@{
+    var initial = string.IsNullOrWhiteSpace(Model.InfluencerName) ? "I" : Model.InfluencerName[..1].ToUpperInvariant();
+}
+    <header class="earnings-topbar">
+        <button type="button" class="earnings-icon-button" id="menuToggleBtn" aria-label="Toggle sidebar" aria-controls="dashboardSidebar">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </button>
+        <form method="get" asp-action="Index" class="earnings-search" role="search">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" stroke="currentColor" stroke-width="1.8"/><path d="m16 16 5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            <input type="search" name="search" value="@Model.Search" placeholder="Search campaigns, brands..." aria-label="Search campaigns and brands" />
+            <input type="hidden" name="campaignId" value="@Model.CampaignId" />
+            <input type="hidden" name="tab" value="@Model.Tab" />
+        </form>
+        <details class="earnings-notifications dashboard-notifications">
+            <summary aria-label="Notifications"><i class="bi bi-bell" aria-hidden="true"></i>
+                @if ((ViewData["UnreadNotifications"] as int? ?? 0) > 0) { <span class="dashboard-unread"></span> }
+            </summary>
+            <div class="earnings-notification-panel">
+                <h2>Recent notifications</h2>
+                @foreach (var notification in Model.Notifications)
+                {
+                    <div><strong>@notification.Title</strong><p>@notification.Body</p></div>
+                }
+                @if (Model.Notifications.Count == 0) { <p>You're all caught up.</p> }
+            </div>
+        </details>
+        <a href="/InfluencerSettings" class="dashboard-account" aria-label="Your profile settings">
+            <span class="earnings-avatar">@initial</span>
+            <span><strong>@Model.InfluencerName</strong><small>Influencer</small></span>
+            <i class="bi bi-chevron-down" aria-hidden="true"></i>
+        </a>
+    </header>

@@ -25,6 +25,7 @@ public class ProofCampaignOption
 
 public class UploadProofViewModel
 {
+    public List<Notification> Notifications { get; set; } = new();
     public InfluencerProfile Profile { get; set; } = null!;
     public List<ProofCampaignOption> Campaigns { get; set; } = new();
 }

@@ -1,0 +1,105 @@
+.withdrawal-page .earnings-hero { min-height: 200px; }
+.withdrawal-page .earnings-art { top: -4px; height: 250px; }
+.withdrawal-page .earnings-glass-front { padding-top: 23px; line-height: 1.5; }
+.withdrawal-page .withdrawal-content { position: relative; padding: 0 32px 36px; margin-top: -8px; z-index: 2; }
+.withdrawal-page .withdrawal-notice { display: flex; justify-content: space-between; align-items: center; gap: 20px; border: 1px solid #dfe7fd; background: #f7f9ff; color: #546695; border-radius: 8px; padding: 10px 16px; margin-bottom: 12px; font-size: 11px; line-height: 1.6; }
+.withdrawal-page .withdrawal-notice a { flex-shrink: 0; color: #5c29eb; font-weight: 600; text-decoration: underline; }
+.withdrawal-page .withdrawal-grid { display: grid; grid-template-columns: minmax(0,1.42fr) minmax(0,1fr); align-items: start; gap: 18px; }
+.withdrawal-page :is(.withdrawal-form-panel,.withdrawal-information,.withdrawal-history) { border: 1px solid #e5ecfb; border-radius: 11px; background: linear-gradient(125deg,#fff,#fcfdff); padding: 24px 26px; min-width: 0; }
+.withdrawal-page .withdrawal-form-panel h2 { font-size: 20px; line-height: 1.4; letter-spacing: -.4px; }
+.withdrawal-page .withdrawal-form-panel header > p { margin-top: 4px; font-size: 12px; color: #52649b; line-height: 1.6; }
+.withdrawal-page .withdrawal-balance { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 22px 0 14px; margin-bottom: 14px; border-bottom: 1px solid #edf1fc; }
+.withdrawal-page .withdrawal-balance > div > span { color: #52649b; font-size: 13px; }
+.withdrawal-page .withdrawal-balance-value { display: flex; align-items: center; gap: 10px; margin-top: 3px; }
+.withdrawal-page .withdrawal-balance-value strong { font-size: 28px; line-height: 1.3; overflow-wrap: anywhere; }
+.withdrawal-page .withdrawal-balance-value svg { width: 17px; height: 17px; color: #6374b6; vertical-align: middle; }
+.withdrawal-page .withdrawal-minimum { background: #f3f6ff; border-radius: 8px; padding: 10px 14px; }
+.withdrawal-page .withdrawal-minimum > span { display: block; font-size: 10px !important; }
+.withdrawal-page .withdrawal-minimum strong { display: block; font-size: 12px; color: #3b5097; margin-top: 4px; font-weight: 500; }
+.withdrawal-page .withdrawal-methods { border: 0; padding: 0; min-width: 0; }
+.withdrawal-page .withdrawal-methods legend { font-size: 13px; font-weight: 600; margin-bottom: 10px; }
+.withdrawal-page .withdrawal-method-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 20px; }
+.withdrawal-page .withdrawal-method { display: flex; align-items: center; gap: 16px; border: 1px solid #dce4fc; border-radius: 7px; padding: 12px 16px; cursor: pointer; min-width: 0; min-height: 64px; }
+.withdrawal-page .withdrawal-method:has(input:checked) { border-color: #956dff; box-shadow: 0 0 0 1px #ba9bff20; background: #fefcff; }
+.withdrawal-page .withdrawal-method:has(input:disabled) { cursor: default; }
+.withdrawal-page .withdrawal-method > span:nth-child(2) { flex: 1; min-width: 0; }
+.withdrawal-page .withdrawal-method strong { display: block; font-size: 12px; font-weight: 600; }
+.withdrawal-page .withdrawal-method small { display: block; color: #6071a5; font-size: 12px; margin-top: 4px; overflow-wrap: anywhere; }
+.withdrawal-page .withdrawal-method input { width: 17px; height: 17px; accent-color: #7830ff; flex-shrink: 0; }
+.withdrawal-page .withdrawal-add-method { display: block; color: #6327f4; text-align: center; font-size: 12px; padding: 12px 0; margin-bottom: 8px; }
+.withdrawal-page .withdrawal-add-method > span { font-size: 19px; vertical-align: middle; margin-right: 4px; }
+.withdrawal-page .withdrawal-amount-group > label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 10px; }
+.withdrawal-page .withdrawal-amount-input { display: flex; align-items: center; min-height: 44px; border: 1px solid #dce3fb; border-radius: 7px; padding: 6px 12px; gap: 10px; }
+.withdrawal-page .withdrawal-amount-input > span { color: #354d98; border-right: 1px solid #edf0fa; padding-right: 12px; font-size: 16px; }
+.withdrawal-page .withdrawal-amount-input input { border: 0; background: transparent; color: #17244f; width: 100%; min-width: 0; font-size: 14px; padding: 3px 0; appearance: textfield; -moz-appearance: textfield; }
+.withdrawal-page .withdrawal-amount-input input::-webkit-inner-spin-button { -webkit-appearance: none; }
+.withdrawal-page .withdrawal-amount-input button { padding: 5px 12px; border: 0; border-radius: 5px; background: #f1f3ff; color: #6230f3; font-size: 12px; cursor: pointer; }
+.withdrawal-page #withdrawal-available { font-size: 11px; color: #6477af; margin: 6px 0 0; }
+.withdrawal-page .withdrawal-error { color: #b92748; font-size: 11px; line-height: 1.5; margin-top: 5px; }
+.withdrawal-page .withdrawal-error:empty { display: none; }
+.withdrawal-page .withdrawal-summary { background: linear-gradient(125deg,#f4f6ff,#f0f5ff); border-radius: 8px; padding: 14px 18px; margin-top: 16px; font-size: 12px; }
+.withdrawal-page .withdrawal-summary > div { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 4px 0; color: #52659c; }
+.withdrawal-page .withdrawal-summary output { color: #263a80; flex-shrink: 0; }
+.withdrawal-page .withdrawal-summary svg { width: 14px; height: 14px; vertical-align: middle; margin-left: 4px; }
+.withdrawal-page .withdrawal-summary .withdrawal-net { border-top: 1px solid #d5def6; padding-top: 12px; margin-top: 7px; color: #17224e; font-size: 13px; }
+.withdrawal-page .withdrawal-net output { font-weight: 700; font-size: 18px; color: #141b49; }
+.withdrawal-page .withdrawal-actions { display: grid; grid-template-columns: 1fr 1.35fr; gap: 15px; margin-top: 20px; }
+.withdrawal-page :is(.withdrawal-confirm,.withdrawal-cancel) { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 11px 16px; border-radius: 6px; font-size: 13px; text-align: center; cursor: pointer; font-weight: 500; }
+.withdrawal-page .withdrawal-confirm { border: 1px solid transparent; background: linear-gradient(110deg,#6c18ff,#154fff); color: #fff; }
+.withdrawal-page .withdrawal-cancel { border: 1px solid #b6a0ff; color: #602bff; background: #fff; }
+.withdrawal-page .withdrawal-security { display: flex; align-items: center; justify-content: center; gap: 7px; font-size: 10px; color: #6375a6; margin-top: 15px; line-height: 1.6; }
+.withdrawal-page .withdrawal-security svg { width: 14px; height: 14px; flex-shrink: 0; }
+.withdrawal-page .withdrawal-rail { display: grid; gap: 10px; min-width: 0; }
+.withdrawal-page :is(.withdrawal-information,.withdrawal-history) h2 { font-size: 16px; font-weight: 700; margin-bottom: 20px; }
+.withdrawal-page .withdrawal-info-row { display: flex; align-items: flex-start; gap: 16px; padding: 9px 0; }
+.withdrawal-page .withdrawal-info-icon { display: inline-flex; justify-content: center; align-items: center; width: 44px; height: 44px; border-radius: 50%; color: #6a2cff; background: #efebff; flex-shrink: 0; }
+.withdrawal-page .withdrawal-info-icon svg { width: 22px; height: 22px; }
+.withdrawal-page .withdrawal-info-row h3 { font-size: 13px; font-weight: 600; margin: 3px 0 3px; }
+.withdrawal-page .withdrawal-info-row p { font-size: 12px; color: #53659d; line-height: 1.65; }
+.withdrawal-page .withdrawal-info-row a { text-decoration: underline; text-underline-offset: 2px; }
+.withdrawal-page .withdrawal-history header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+.withdrawal-page .withdrawal-history header h2 { margin-bottom: 0; }
+.withdrawal-page .withdrawal-history header button { border: 0; background: transparent; padding: 8px 0; color: #6125ef; font-size: 12px; cursor: pointer; }
+.withdrawal-page .withdrawal-history-row { display: flex; align-items: center; gap: 16px; padding: 11px 0; border-bottom: 1px solid #eef2fb; }
+.withdrawal-page .withdrawal-history-row:last-child { border: 0; padding-bottom: 0; }
+.withdrawal-page .withdrawal-history-row > div { flex: 1; min-width: 0; }
+.withdrawal-page .withdrawal-history-row strong { display: block; font-size: 14px; overflow-wrap: anywhere; }
+.withdrawal-page .withdrawal-history-row time { display: block; color: #6172a5; font-size: 12px; margin-top: 3px; }
+.withdrawal-page .withdrawal-history-row .earnings-provider { width: 32px; height: 32px; border-radius: 5px; font-size: 20px; }
+.withdrawal-page .withdrawal-history-empty { padding: 22px 5px 10px; text-align: center; color: #6677a5; }
+.withdrawal-page .withdrawal-history-empty > svg { width: 30px; height: 30px; margin-bottom: 12px; }
+.withdrawal-page .withdrawal-history-empty h3 { font-size: 14px; color: #3d5186; margin-bottom: 8px; }
+.withdrawal-page .withdrawal-history-empty p { font-size: 12px; line-height: 1.7; }
+.withdrawal-page .withdrawal-dialog { position: fixed; inset: 0; margin: auto; padding: 28px; width: min(460px,calc(100% - 32px)); max-height: calc(100dvh - 40px); overflow: auto; border: 1px solid #e2e7fa; border-radius: 16px; background: #fff; color: #17234e; box-shadow: 0 20px 80px #18295533; }
+.withdrawal-page .withdrawal-dialog::backdrop { background: #18264b66; backdrop-filter: blur(4px); }
+.withdrawal-page .withdrawal-dialog h2 { font-size: 21px; margin: 16px 0 12px; }
+.withdrawal-page .withdrawal-dialog p { font-size: 13px; color: #53659d; line-height: 1.7; margin-bottom: 12px; }
+.withdrawal-page .withdrawal-dialog form { margin-top: 20px; }
+.withdrawal-page .withdrawal-dialog form button { width: 100%; }
+@container (max-width: 1200px) {
+    .withdrawal-page .withdrawal-content { padding: 0 20px 32px; }
+    .withdrawal-page :is(.withdrawal-form-panel,.withdrawal-information,.withdrawal-history) { padding: 22px; }
+    .withdrawal-page .withdrawal-method-grid { gap: 12px; }
+    .withdrawal-page .withdrawal-method { gap: 10px; padding: 12px; }
+    .withdrawal-page .withdrawal-method small { font-size: 11px; }
+}
+@container (max-width: 1000px) {
+    .withdrawal-page .withdrawal-grid { grid-template-columns: minmax(0,1fr); }
+    .withdrawal-page .withdrawal-rail { grid-template-columns: repeat(2,minmax(0,1fr)); }
+}
+@container (max-width: 650px) {
+    .withdrawal-page .earnings-hero h1 { font-size: 34px; }
+    .withdrawal-page .withdrawal-content { padding: 0 12px 24px; }
+    .withdrawal-page .withdrawal-notice { flex-direction: column; align-items: flex-start; gap: 5px; }
+    .withdrawal-page :is(.withdrawal-form-panel,.withdrawal-information,.withdrawal-history) { padding: 20px 16px; }
+    .withdrawal-page .withdrawal-form-panel h2 { font-size: 19px; }
+    .withdrawal-page .withdrawal-balance { flex-wrap: wrap; gap: 12px; }
+    .withdrawal-page .withdrawal-method-grid { grid-template-columns: minmax(0,1fr); gap: 10px; }
+    .withdrawal-page .withdrawal-method { padding: 12px 14px; }
+    .withdrawal-page .withdrawal-actions { grid-template-columns: minmax(0,1fr); gap: 10px; }
+    .withdrawal-page .withdrawal-confirm { grid-row: 1; }
+    .withdrawal-page .withdrawal-rail { grid-template-columns: minmax(0,1fr); }
+    .withdrawal-page .withdrawal-summary { padding: 12px; }
+    .withdrawal-page .withdrawal-history-row { gap: 10px; }
+    .withdrawal-page .withdrawal-history-row .earnings-badge { min-width: 75px; font-size: 10px; }
+}

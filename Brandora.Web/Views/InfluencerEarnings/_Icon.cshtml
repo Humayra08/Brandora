@@ -1,0 +1,21 @@
+@model string
+@{
+    var path = Model switch {
+        "shield" => "m12 2 9 4v6c0 5-6 9-9 10-3-1-9-5-9-10V6l9-4Zm-4 10 3 3 5-6",
+        "person" => "M17 7a5 5 0 1 1-10 0 5 5 0 0 1 10 0ZM3 22v-2a9 9 0 0 1 18 0v2",
+        "chat" => "M3 3h18v15H9l-6 4V3Zm4 7h.01M12 10h.01M17 10h.01",
+        "lock" => "M5 10h14v12H5V10Zm3 0V6a4 4 0 0 1 8 0v4m-4 5v3",
+        "info" => "M12 11v6m0-10h.01M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0Z",
+        "wallet" => "M4 7V5l13-3v5M4 7h16v14H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2Zm12 5h6v5h-6a2.5 2.5 0 0 1 0-5Z",
+        "received" => "M5 6h14l2 4v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-9l2-4Zm3 0V3h8v3M8 13l3 3 5-6",
+        "clock" => "M12 8v5l3 2M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0Z",
+        "progress" => "M3 3v18h18M7 17v-4m5 4V9m5 8v-6M6 10l5-5 4 2 5-5M16 2h4v4",
+        "card" => "M3 4h18v16H3V4Zm0 5h18M7 15h4",
+        "calendar" => "M3 5h18v16H3V5Zm0 5h18M7 2v6m10-6v6",
+        "chevron" => "m6 15 6-6 6 6",
+        "upload" => "M12 16V3m-5 5 5-5 5 5M3 16v5h18v-5",
+        "arrow" => "M12 21V3m-6 6 6-6 6 6",
+        _ => "M5 2h9l5 5v15H5V2Zm9 0v6h5M8 12h8m-8 4h8"
+    };
+}
+<svg class="earnings-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="@path" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" /></svg>

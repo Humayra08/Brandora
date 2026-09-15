@@ -1,0 +1,155 @@
+@model Brandora.Web.Models.Dashboard.WithdrawalViewModel
+@using System.Globalization
+@{
+    ViewData["Title"] = "Withdraw Earnings";
+    ViewData["ActiveNav"] = "Earnings";
+    Layout = null;
+    string Money(decimal value) => "৳" + value.ToString("N0", CultureInfo.InvariantCulture);
+    var history = new[] {
+        ("bkash", "bKash", 15000m, new DateTime(2026, 9, 12), "Completed"),
+        ("nagad", "Nagad", 10000m, new DateTime(2026, 8, 28), "Completed"),
+        ("bkash", "bKash", 8000m, new DateTime(2026, 8, 10), "Processing"),
+        ("nagad", "Nagad", 12000m, new DateTime(2026, 7, 25), "Completed")
+    };
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Withdraw Earnings - Brandora</title>
+    <link rel="icon" href="~/images/brandora-icon.png" />
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/lib/dashboard-assets/bootstrap-icons.css" />
+    <link rel="stylesheet" href="~/lib/dashboard-assets/dashboard-fonts.css" />
+    <link rel="stylesheet" href="~/css/brandora-influencer-shell.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/brandora-influencer-dashboard.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/brandora-earnings.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/brandora-withdrawal.css" asp-append-version="true" />
+</head>
+<body>
+<div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+@await Html.PartialAsync("_InfluencerSidebar")
+<main class="earnings-page withdrawal-page" id="dashboardMain">
+    @await Html.PartialAsync("~/Views/InfluencerEarnings/_Topbar.cshtml", Model.Header)
+    <section class="earnings-hero" aria-labelledby="earnings-title">
+        <div class="earnings-hero-copy">
+            <nav aria-label="Breadcrumb"><a href="/InfluencerDashboard">Home</a><span aria-hidden="true"> / </span><a asp-action="Index">Earnings</a><span aria-hidden="true"> / </span><span aria-current="page">Withdraw</span></nav>
+            <h1 id="earnings-title">Withdraw <span>Earnings</span></h1>
+            <p>Get your hard-earned money, securely and easily.</p>
+        </div>
+        <div class="earnings-art" aria-hidden="true">
+            <div class="earnings-glass earnings-glass-back"></div>
+            <div class="earnings-glass earnings-glass-front">Your<br />Creativity<br />Creates<br />Real Opportunities.<i></i></div>
+        </div>
+        <div class="dashboard-hero-motto">Earn<br />Collaborate<br />Grow<br />Get Rewarded.<span></span></div>
+        @await Html.PartialAsync("~/Views/InfluencerDashboard/_Waves.cshtml", "hero")
+    </section>
+    <div class="withdrawal-content">
+        <div class="withdrawal-notice" role="note">
+            @if (Model.IsPreview)
+            {
+                <p><strong>Example preview.</strong> Balances, accounts, fees, processing times, and history are sample data. No money will be transferred.</p>
+                <a asp-action="Withdraw">Exit preview</a>
+            }
+            else
+            {
+                <p>Withdrawals are coming soon. Your balance and verified payout accounts will appear here when available.</p>
+                <a asp-action="Withdraw" asp-route-preview="true">View example</a>
+            }
+        </div>
+        <div class="withdrawal-grid">
+            <section class="withdrawal-form-panel" aria-labelledby="withdrawal-form-title">
+                <header><h2 id="withdrawal-form-title">Withdraw to Your Account</h2><p>Choose your preferred payment method and enter the amount.</p></header>
+                <div class="withdrawal-balance">
+                    <div><span>Available Balance</span><div class="withdrawal-balance-value"><strong>@(Model.IsPreview ? Money(Model.ExampleBalance) : "—")</strong><span title="@(Model.IsPreview ? "Example balance for this preview only." : "A withdrawable balance is not available yet.")">@await Html.PartialAsync("~/Views/InfluencerEarnings/_Icon.cshtml", "info")</span></div></div>
+                    <div class="withdrawal-minimum"><span>Minimum withdrawal amount</span><strong>@(Model.IsPreview ? Money(Model.ExampleMinimum) : "Not available yet")</strong></div>
+                </div>
+                <form id="withdrawal-form" data-preview="@Model.IsPreview.ToString().ToLowerInvariant()" data-balance="@Model.ExampleBalance.ToString(CultureInfo.InvariantCulture)" data-fee="@Model.ExampleFeePercent.ToString(CultureInfo.InvariantCulture)">
+                    <fieldset class="withdrawal-methods">
+                        <legend>Payment Method</legend>
+                        <div class="withdrawal-method-grid">
+                            <label class="withdrawal-method">
+                                <span class="earnings-provider bkash" aria-hidden="true">b</span>
+                                <span><strong>bKash</strong><small>@(Model.IsPreview ? "01712 345678" : "No verified account")</small></span>
+                                <input type="radio" name="method" value="bKash" checked="@Model.IsPreview" disabled="@(!Model.IsPreview)" required />
+                            </label>
+                            <label class="withdrawal-method">
+                                <span class="earnings-provider nagad" aria-hidden="true">N</span>
+                                <span><strong>Nagad</strong><small>@(Model.IsPreview ? "01823 456789" : "No verified account")</small></span>
+                                <input type="radio" name="method" value="Nagad" disabled="@(!Model.IsPreview)" required />
+                            </label>
+                        </div>
+                        <a class="withdrawal-add-method" asp-action="Index" asp-route-tab="payout-methods"><span aria-hidden="true">+</span> Add New Payment Method</a>
+                    </fieldset>
+                    <div class="withdrawal-amount-group">
+                        <label for="withdrawal-amount">Amount to Withdraw</label>
+                        <div class="withdrawal-amount-input">
+                            <span aria-hidden="true">৳</span>
+                            <input id="withdrawal-amount" name="amount" type="number" inputmode="decimal" min="@Model.ExampleMinimum.ToString(CultureInfo.InvariantCulture)" max="@Model.ExampleBalance.ToString(CultureInfo.InvariantCulture)" step="0.01" value="@(Model.IsPreview ? Model.ExampleBalance.ToString(CultureInfo.InvariantCulture) : null)" placeholder="Enter amount" disabled="@(!Model.IsPreview)" required aria-describedby="withdrawal-available withdrawal-error" />
+                            <button id="withdrawal-max" type="button" disabled="@(!Model.IsPreview)">Max</button>
+                        </div>
+                        <p id="withdrawal-available">@(Model.IsPreview ? "Available: " + Money(Model.ExampleBalance) : "Balance unavailable")</p>
+                        <p class="withdrawal-error" id="withdrawal-error" aria-live="polite"></p>
+                    </div>
+                    <div class="withdrawal-summary" aria-live="polite" aria-atomic="true">
+                        <div><span>Withdrawal Amount</span><output id="withdrawal-gross">@(Model.IsPreview ? Money(Model.ExampleBalance) : "—")</output></div>
+                        <div><span>Platform Fee@(Model.IsPreview ? " (5%)" : "") <span title="@(Model.IsPreview ? "Illustrative fee from the reference design; not a live payout policy." : "Fees will be shown when payouts become available.")">@await Html.PartialAsync("~/Views/InfluencerEarnings/_Icon.cshtml", "info")</span></span><output id="withdrawal-fee">@(Model.IsPreview ? "-" + Money(Model.ExampleBalance * .05m) : "—")</output></div>
+                        <div class="withdrawal-net"><strong>You will receive</strong><output id="withdrawal-net">@(Model.IsPreview ? Money(Model.ExampleBalance * .95m) : "—")</output></div>
+                    </div>
+                    <div class="withdrawal-actions">
+                        <a class="withdrawal-cancel" asp-action="Index">Cancel</a>
+                        <button class="withdrawal-confirm" id="withdrawal-confirm" type="button" disabled="@(!Model.IsPreview)">Confirm Withdrawal</button>
+                    </div>
+                    <p class="withdrawal-security">@await Html.PartialAsync("~/Views/InfluencerEarnings/_Icon.cshtml", "lock") @(Model.IsPreview ? "Preview only. No withdrawal will be submitted." : "Payout processing is not available yet.")</p>
+                    <noscript><p class="withdrawal-security">Enable JavaScript to try the amount calculator and preview confirmation.</p></noscript>
+                </form>
+            </section>
+            <aside class="withdrawal-rail" aria-label="Withdrawal information">
+                <section class="withdrawal-information">
+                    <h2>Important Information</h2>
+                    <div class="withdrawal-info-row"><span class="withdrawal-info-icon">@await Html.PartialAsync("~/Views/InfluencerEarnings/_Icon.cshtml", "shield")</span><div><h3>Secure Transactions</h3><p>@(Model.IsPreview ? "This example previews the withdrawal flow. It does not submit a payment." : "Withdrawal processing will be available here once payouts are enabled.")</p></div></div>
+                    <div class="withdrawal-info-row"><span class="withdrawal-info-icon">@await Html.PartialAsync("~/Views/InfluencerEarnings/_Icon.cshtml", "person")</span><div><h3>Verified Accounts Only</h3><p>Withdrawals will require a verified bKash or Nagad account.</p></div></div>
+                    <div class="withdrawal-info-row"><span class="withdrawal-info-icon">@await Html.PartialAsync("~/Views/InfluencerEarnings/_Icon.cshtml", "clock")</span><div><h3>Processing Time</h3><p>@(Model.IsPreview ? "Example estimate: 1–3 business days." : "Processing estimates will be shown when withdrawals become available.")</p></div></div>
+                    <div class="withdrawal-info-row"><span class="withdrawal-info-icon">@await Html.PartialAsync("~/Views/InfluencerEarnings/_Icon.cshtml", "chat")</span><div><h3>Need Help?</h3><p><a asp-controller="Home" asp-action="Contact">Contact our support team</a> if you have any issues.</p></div></div>
+                </section>
+                <section class="withdrawal-history">
+                    <header><h2>Recent Withdrawals</h2>@if (Model.IsPreview) { <button type="button" id="withdrawal-history-open">View All</button> }</header>
+                    @if (Model.IsPreview)
+                    {
+                        @foreach (var item in history)
+                        {
+                            <article class="withdrawal-history-row">
+                                <span class="earnings-provider @item.Item1" aria-label="@item.Item2">@(item.Item1 == "bkash" ? "b" : "N")</span>
+                                <div><strong>@Money(item.Item3)</strong><time datetime="@item.Item4.ToString("yyyy-MM-dd")">@item.Item4.ToString("MMM d, yyyy", CultureInfo.InvariantCulture)</time></div>
+                                <span class="earnings-badge @(item.Item5 == "Completed" ? "is-success" : "is-pending")">@item.Item5</span>
+                            </article>
+                        }
+                    }
+                    else { <div class="withdrawal-history-empty">@await Html.PartialAsync("~/Views/InfluencerEarnings/_Icon.cshtml", "wallet")<h3>No withdrawals yet</h3><p>Your withdrawal history will appear here when payouts are available.</p></div> }
+                </section>
+            </aside>
+        </div>
+    </div>
+    @if (Model.IsPreview)
+    {
+        <dialog class="withdrawal-dialog" id="withdrawal-confirm-dialog" aria-labelledby="withdrawal-dialog-title">
+            <span class="withdrawal-info-icon">@await Html.PartialAsync("~/Views/InfluencerEarnings/_Icon.cshtml", "shield")</span>
+            <h2 id="withdrawal-dialog-title">Withdrawal preview</h2>
+            <p id="withdrawal-confirm-message"></p><p>No request was created and no money was transferred.</p>
+            <form method="dialog"><button class="withdrawal-confirm">Done</button></form>
+        </dialog>
+        <dialog class="withdrawal-dialog" id="withdrawal-history-dialog" aria-labelledby="withdrawal-history-title">
+            <h2 id="withdrawal-history-title">Example withdrawal history</h2><p>These four example records are not your account history.</p>
+            @foreach (var item in history)
+            {
+                <article class="withdrawal-history-row"><span>@item.Item2</span><div><strong>@Money(item.Item3)</strong><time>@item.Item4.ToString("MMM d, yyyy", CultureInfo.InvariantCulture)</time></div><span class="earnings-badge @(item.Item5 == "Completed" ? "is-success" : "is-pending")">@item.Item5</span></article>
+            }
+            <form method="dialog"><button class="withdrawal-confirm">Close</button></form>
+        </dialog>
+    }
+</main>
+<script src="~/js/brandora-influencer-dashboard.js" asp-append-version="true"></script>
+<script src="~/js/brandora-withdrawal.js" asp-append-version="true"></script>
+</body>
+</html>

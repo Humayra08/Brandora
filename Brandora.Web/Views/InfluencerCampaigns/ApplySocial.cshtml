@@ -1,0 +1,123 @@
+@model Brandora.Web.Models.Dashboard.CampaignApplyViewModel
+@using Brandora.Web.Models.Influencers
+@{
+    ViewData["Title"] = "Apply - " + Model.Title;
+    ViewData["ActiveNav"] = "Campaigns";
+    Layout = null;
+    var name = Model.Profile.FullName;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Apply - @Model.Title - Brandora</title>
+    <link rel="icon" href="~/images/brandora-icon.png" />
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/lib/dashboard-assets/bootstrap-icons.css" />
+    <link rel="stylesheet" href="~/lib/dashboard-assets/dashboard-fonts.css" />
+    <link rel="stylesheet" href="~/css/brandora-influencer-shell.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/brandora-influencer-dashboard.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/brandora-influencer-campaigns.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/brandora-campaign-details.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/brandora-campaign-apply.css" asp-append-version="true" />
+</head>
+<body>
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+    @await Html.PartialAsync("_InfluencerSidebar")
+    <main class="dashboard-page campaigns-page campaign-details-page campaign-apply-page" id="dashboardMain">
+        <header class="dashboard-topbar">
+            <button class="dashboard-menu" id="menuToggleBtn" type="button" aria-label="Toggle sidebar" aria-controls="dashboardSidebar"><i class="bi bi-list" aria-hidden="true"></i></button>
+            <form class="dashboard-search" method="get" asp-controller="InfluencerCampaigns" asp-action="Index" role="search">
+                <i class="bi bi-search" aria-hidden="true"></i>
+                <input type="search" name="search" placeholder="Search campaigns, brands..." aria-label="Search campaigns and brands" />
+                <button type="submit" aria-label="Search"><i class="bi bi-search" aria-hidden="true"></i></button>
+            </form>
+            <details class="dashboard-notifications">
+                <summary aria-label="Notifications"><i class="bi bi-bell" aria-hidden="true"></i>@if ((ViewData["UnreadNotifications"] as int? ?? 0) > 0) { <span class="dashboard-unread"></span> }</summary>
+                <div class="dashboard-notification-panel">
+                    <h2>Notifications</h2>
+                    @foreach (var notification in Model.Notifications)
+                    {
+                        <article><strong>@notification.Title</strong><p>@notification.Body</p></article>
+                    }
+                    @if (Model.Notifications.Count == 0) { <p>No notifications yet.</p> }
+                </div>
+            </details>
+            <a class="dashboard-account" href="/InfluencerSettings">
+                <span class="dashboard-avatar">@FollowerFormat.InitialsOf(name)</span>
+                <span><strong>@name</strong><small>Influencer</small></span>
+                <i class="bi bi-chevron-down" aria-hidden="true"></i>
+            </a>
+        </header>
+
+        @await Html.PartialAsync("~/Views/InfluencerCampaigns/_ApplyHero.cshtml", Model)
+
+        <div class="apply-grid">
+            <div class="apply-stepper-col">
+                @await Html.PartialAsync("~/Views/InfluencerCampaigns/_ApplyStepper.cshtml", Model.Step)
+            </div>
+
+            <div class="apply-main-col">
+                <form method="post" asp-action="ApplySocial" class="dashboard-card apply-form">
+                    <input type="hidden" name="CampaignId" value="@Model.CampaignId" />
+                    <input type="hidden" name="Concept" value="@Model.Concept" />
+                    <input type="hidden" name="WhyGoodFit" value="@Model.WhyGoodFit" />
+                    <input type="hidden" name="InstagramLink" value="@Model.InstagramLink" />
+                    <input type="hidden" name="TikTokLink" value="@Model.TikTokLink" />
+                    <input type="hidden" name="YouTubeLink" value="@Model.YouTubeLink" />
+
+                    <h2>Connect Your Social Accounts</h2>
+                    <p class="apply-form-intro">Link the social media accounts you'll use for this campaign. This helps the brand understand your reach and content style.</p>
+
+                    <ul class="apply-social-list">
+                        @foreach (var platform in Model.Platforms)
+                        {
+                            <li>
+                                <span class="apply-social-icon" style="background:@platform.IconGradient"><i class="bi @platform.Icon" aria-hidden="true"></i></span>
+                                <div class="apply-social-copy">
+                                    <div class="apply-social-name"><strong>@platform.Name</strong><span class="apply-social-connected"><i class="bi bi-check-circle-fill" aria-hidden="true"></i>Connected</span></div>
+                                    <span class="apply-social-handle">@platform.Handle</span>
+                                </div>
+                                <span class="apply-social-followers">@platform.Followers.ToString("N0")<small>@platform.FollowerLabel</small></span>
+                                <button type="button" class="apply-social-remove" aria-label="Remove @platform.Name">×</button>
+                            </li>
+                        }
+                        <li class="apply-social-add">
+                            <span class="apply-social-icon apply-social-add-icon"><i class="bi bi-plus-lg" aria-hidden="true"></i></span>
+                            <div class="apply-social-copy">
+                                <strong>Add Another Account</strong>
+                                <span>You can link more accounts if relevant</span>
+                            </div>
+                        </li>
+                    </ul>
+
+                    <div class="apply-form-actions">
+                        <a class="apply-btn-secondary" href="@Url.Action("Apply", new { id = Model.CampaignId, concept = Model.Concept, whyGoodFit = Model.WhyGoodFit, instagramLink = Model.InstagramLink, tikTokLink = Model.TikTokLink, youTubeLink = Model.YouTubeLink })">Back</a>
+                        <button type="submit" class="apply-btn-primary">Next Step <i class="bi bi-arrow-right" aria-hidden="true"></i></button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="apply-side-col">
+                <div class="dashboard-card apply-why-card">
+                    <h2>Why Connect Your Accounts?</h2>
+                    <p>Brands review your social presence to ensure your content aligns with their campaign goals.</p>
+                    <ul>
+                        <li><i class="bi bi-check-circle-fill" aria-hidden="true"></i>Showcase your authentic work</li>
+                        <li><i class="bi bi-check-circle-fill" aria-hidden="true"></i>Help brands understand your audience</li>
+                        <li><i class="bi bi-check-circle-fill" aria-hidden="true"></i>Increase your chances of getting selected</li>
+                        <li><i class="bi bi-check-circle-fill" aria-hidden="true"></i>Your information is safe and secure</li>
+                    </ul>
+                </div>
+
+                @await Html.PartialAsync("~/Views/InfluencerCampaigns/_ApplyCampaignSummary.cshtml", Model)
+
+                <div class="apply-secure-note"><i class="bi bi-lock-fill" aria-hidden="true"></i>Your information is secure and only shared with the brand for this campaign.</div>
+            </div>
+        </div>
+    </main>
+    <script src="~/js/brandora-influencer-dashboard.js" asp-append-version="true"></script>
+    <script src="~/js/brandora-campaign-apply.js" asp-append-version="true"></script>
+</body>
+</html>

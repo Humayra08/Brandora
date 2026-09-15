@@ -1,0 +1,49 @@
+@model Brandora.Web.Models.Dashboard.CampaignApplyViewModel
+@using Brandora.Web.Models.Influencers
+@using System.Globalization
+@{
+    string Money(decimal amount) => "৳" + amount.ToString("N0", CultureInfo.InvariantCulture);
+}
+<nav class="campaign-crumb" aria-label="Breadcrumb">
+    <a href="@Url.Action("Index")">Campaigns</a>
+    <i class="bi bi-chevron-right" aria-hidden="true"></i>
+    <a href="@Url.Action("Details", new { id = Model.CampaignId })">Campaign Details</a>
+    <i class="bi bi-chevron-right" aria-hidden="true"></i>
+    @if (Model.Step < 4)
+    {
+        <strong>Apply for Campaign</strong>
+    }
+    else
+    {
+        <a href="@Url.Action("Apply", new { id = Model.CampaignId })">Apply for Campaign</a>
+        <i class="bi bi-chevron-right" aria-hidden="true"></i>
+        <strong>Review &amp; Submit</strong>
+    }
+</nav>
+
+<section class="dashboard-hero campaign-hero apply-hero" aria-label="Campaign summary">
+    @await Html.PartialAsync("~/Views/InfluencerDashboard/_Waves.cshtml", "hero")
+    <div class="campaign-hero-content">
+        <div class="campaign-hero-head">
+            <div class="campaign-logo">
+                <span>@FollowerFormat.InitialsOf(Model.BrandName)</span>
+            </div>
+            <div class="campaign-hero-copy">
+                <p class="apply-hero-brandline">@Model.BrandName @if (!string.IsNullOrWhiteSpace(Model.Niche)) { <span>&bull; @Model.Niche</span> }</p>
+                <h1>@Model.Title</h1>
+            </div>
+        </div>
+        <dl class="campaign-hero-stats">
+            <div><dt>Budget</dt><dd>@Money(Model.Budget)</dd></div>
+            <div><dt>Applications</dt><dd>@Model.ApplicantCount</dd></div>
+            <div><dt>Deadline</dt><dd>@(Model.Deadline?.ToString("MMM d, yyyy", CultureInfo.InvariantCulture) ?? "Not set")</dd></div>
+        </dl>
+    </div>
+    <div class="apply-hero-art" aria-hidden="true">
+        <div class="dashboard-glass dashboard-glass-back"></div>
+        <div class="dashboard-glass dashboard-glass-front">
+            <div class="dashboard-glass-copy">Style<br />Lives Here.<span></span></div>
+        </div>
+    </div>
+    <div class="dashboard-hero-motto">Real Brands.<br />Real Opportunities.<span></span></div>
+</section>

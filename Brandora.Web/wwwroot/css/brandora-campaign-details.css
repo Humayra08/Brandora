@@ -1,0 +1,85 @@
+/* Campaign details page: hero summary, tabbed overview, apply sidebar. */
+.campaign-details-page .campaign-crumb { display: flex; align-items: center; gap: 8px; margin: 4px 0 14px; font-size: 13px; color: #5877ac; }
+.campaign-details-page .campaign-crumb a { color: #5877ac; }
+.campaign-details-page .campaign-crumb a:hover { color: #1451ff; }
+.campaign-details-page .campaign-crumb i { font-size: 11px; }
+.campaign-details-page .campaign-crumb strong { color: #142652; }
+
+.campaign-details-page .campaign-hero { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; min-height: 0; padding: 26px 34px; }
+.campaign-details-page .campaign-hero-content { position: relative; z-index: 1; min-width: 0; flex: 1; }
+.campaign-details-page .campaign-hero-head { display: flex; gap: 20px; align-items: flex-start; }
+.campaign-details-page .campaign-logo { flex: 0 0 84px; width: 84px; height: 84px; display: grid; place-items: center; border-radius: 14px; background: #fff; color: #123a85; font: 600 22px 'Playfair Display',serif; box-shadow: 0 8px 24px #14265922; }
+.campaign-details-page .campaign-hero-copy { min-width: 0; }
+.campaign-details-page .campaign-hero-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.campaign-details-page .campaign-hero-tags span { background: #ffffffcc; color: #172857; font-size: 11px; font-weight: 600; border-radius: 20px; padding: 5px 14px; }
+.campaign-details-page .campaign-hero-copy h1 { font: 600 clamp(24px,3cqi,34px)/1.2 'Playfair Display',Georgia,serif; letter-spacing: -.6px; color: #101d48; margin-bottom: 8px; overflow-wrap: anywhere; }
+.campaign-details-page .campaign-hero-description { max-width: 560px; color: #33477c; font-size: 13px; line-height: 1.55; margin-bottom: 14px; overflow-wrap: anywhere; }
+.campaign-details-page .campaign-hero-brand { display: flex; align-items: center; gap: 10px; }
+.campaign-details-page .campaign-hero-brand h6 { font-size: 13px; font-weight: 700; color: #142652; }
+.campaign-details-page .campaign-hero-brand span:last-child { font-size: 11px; color: #5877ac; }
+.campaign-details-page .campaign-hero-stats { position: relative; z-index: 1; display: flex; flex-wrap: wrap; gap: 0; margin-top: 22px; padding-top: 16px; border-top: 1px solid #ffffffa0; }
+.campaign-details-page .campaign-hero-stats > div { padding: 0 26px; border-left: 1px solid #ffffffa0; }
+.campaign-details-page .campaign-hero-stats > div:first-child { padding-left: 0; border-left: 0; }
+.campaign-details-page .campaign-hero-stats dt { font-size: 11px; color: #4a6099; margin-bottom: 6px; }
+.campaign-details-page .campaign-hero-stats dd { font-size: 18px; font-weight: 700; color: #101d48; }
+.campaign-details-page .dashboard-hero-motto { flex: 0 0 auto; align-self: flex-start; margin-top: 6px; }
+
+.campaign-details-page .campaign-details-grid { display: grid; grid-template-columns: minmax(0,1.65fr) minmax(0,1fr); gap: 22px; align-items: start; margin-top: 20px; }
+.campaign-details-page .campaign-details-main { min-width: 0; display: grid; gap: 16px; }
+.campaign-details-page .campaign-details-side { min-width: 0; display: grid; gap: 16px; }
+
+.campaign-details-page .campaign-tabs { display: flex; flex-wrap: wrap; gap: 4px; padding: 4px; border: 1px solid #deebff; border-radius: 11px; background: #e7f2ff99; }
+.campaign-details-page .campaign-tabs button { flex: 1; min-width: 100px; padding: 10px 14px; border-radius: 8px; color: #122150; font-size: 13px; font-weight: 600; background: transparent; border: 0; }
+.campaign-details-page .campaign-tabs button.is-active { color: #fff; background: linear-gradient(110deg,#7557ff,#009fff); }
+
+.campaign-details-page .campaign-tab-panel { padding: 26px; }
+.campaign-details-page .campaign-tab-panel h2 { font: 600 20px 'Playfair Display',Georgia,serif; color: #101d48; margin-bottom: 10px; }
+.campaign-details-page .campaign-tab-panel h2 + h2 { margin-top: 22px; }
+.campaign-full-description { color: #33477c; font-size: 13px; line-height: 1.65; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+.campaign-details-page .campaign-timeline { position: relative; display: grid; gap: 22px; margin-top: 16px; padding-left: 26px; }
+.campaign-details-page .campaign-timeline::before { content: ''; position: absolute; left: 5px; top: 6px; bottom: 6px; width: 2px; background: #dfebff; }
+.campaign-details-page .campaign-timeline li { position: relative; display: grid; gap: 2px; }
+.campaign-details-page .campaign-timeline-dot { position: absolute; left: -26px; top: 2px; width: 12px; height: 12px; border-radius: 50%; background: linear-gradient(110deg,#7557ff,#009fff); }
+.campaign-details-page .campaign-timeline strong { font-size: 13px; color: #142652; }
+.campaign-details-page .campaign-timeline span:last-child { font-size: 12px; color: #5877ac; }
+
+.campaign-details-page .campaign-list { display: grid; gap: 10px; color: #33477c; font-size: 13px; line-height: 1.6; padding-left: 18px; }
+.campaign-details-page .campaign-faq + .campaign-faq { margin-top: 18px; }
+.campaign-details-page .campaign-faq h3 { font-size: 14px; color: #142652; margin-bottom: 4px; }
+.campaign-details-page .campaign-faq p { font-size: 13px; color: #5877ac; line-height: 1.55; }
+
+.campaign-details-page .campaign-fact-list { display: grid; gap: 12px; }
+.campaign-details-page .campaign-fact-list > div { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 12px; border-bottom: 1px solid #eaf1ff; font-size: 13px; }
+.campaign-details-page .campaign-fact-list > div:last-child { border-bottom: 0; padding-bottom: 0; }
+.campaign-details-page .campaign-fact-list dt { color: #5877ac; }
+.campaign-details-page .campaign-fact-list dd { font-weight: 600; color: #142652; text-align: right; overflow-wrap: anywhere; }
+
+.campaign-details-page .campaign-apply-card,.campaign-details-page .campaign-facts-card,.campaign-details-page .campaign-support-card { padding: 22px; }
+.campaign-details-page .campaign-apply-card h2,.campaign-details-page .campaign-facts-card h2 { font: 600 18px 'Playfair Display',Georgia,serif; color: #101d48; margin-bottom: 6px; }
+.campaign-details-page .campaign-apply-card p { font-size: 12px; color: #5877ac; margin-bottom: 16px; }
+.campaign-details-page .campaign-apply-btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 13px; font-size: 14px; font-weight: 600; text-decoration: none; }
+.campaign-details-page .campaign-apply-card small { display: block; text-align: center; margin-top: 10px; font-size: 11px; color: #5877ac; }
+.campaign-details-page .campaign-apply-status { display: block; text-align: center; padding: 12px; font-size: 13px; }
+
+.campaign-details-page .campaign-support-card { display: flex; gap: 14px; background: linear-gradient(135deg,#eef4ffbd,#f5faff8c); }
+.campaign-details-page .campaign-support-card i { flex: 0 0 auto; font-size: 20px; color: #1451ff; background: #dde9ff; width: 40px; height: 40px; display: grid; place-items: center; border-radius: 10px; }
+.campaign-details-page .campaign-support-card h6 { font-size: 14px; color: #142652; margin-bottom: 4px; }
+.campaign-details-page .campaign-support-card p { font-size: 12px; color: #5877ac; line-height: 1.5; margin-bottom: 10px; }
+.campaign-details-page .campaign-support-card a { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: #1451ff; }
+
+@container (max-width: 1150px) {
+    .campaign-details-page .campaign-details-grid { grid-template-columns: minmax(0,1fr); }
+    .campaign-details-page .campaign-hero { flex-wrap: wrap; }
+}
+@container (max-width: 850px) {
+    .campaign-details-page .campaign-hero-stats { gap: 12px 0; }
+    .campaign-details-page .campaign-hero-stats > div { padding: 0 16px; }
+}
+@container (max-width: 600px) {
+    .campaign-details-page .campaign-hero { padding: 20px; }
+    .campaign-details-page .campaign-hero-head { flex-direction: column; }
+    .campaign-details-page .campaign-hero-stats { flex-direction: column; gap: 12px; }
+    .campaign-details-page .campaign-hero-stats > div { border-left: 0; padding: 0; }
+    .campaign-details-page .campaign-tabs { flex-direction: column; }
+}

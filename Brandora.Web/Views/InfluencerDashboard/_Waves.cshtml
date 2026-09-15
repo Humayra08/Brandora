@@ -1,0 +1,47 @@
+@model string
+@if (Model == "discover")
+{
+    <svg class="dashboard-waves" viewBox="0 0 1200 160" preserveAspectRatio="none" aria-hidden="true">
+        <defs>
+            <linearGradient id="discover-ribbon" x1=".1" y1="1" x2="1" y2=".2">
+                <stop stop-color="#004eea" stop-opacity=".1" />
+                <stop offset=".4" stop-color="#009eff" stop-opacity=".6" />
+                <stop offset="1" stop-color="#448aff" stop-opacity=".12" />
+            </linearGradient>
+        </defs>
+        <path d="M-20 120C120 50 180 175 350 145S460 68 580 125 790 155 970 45 1110 20 1220 5L1220 180H-20Z" fill="url(#discover-ribbon)" />
+        @for (var line = 0; line < 25; line++)
+        {
+            var offset = line * 2;
+            <path d="M-20 @(120 + offset)C120 @(50 + offset) 180 @(175 + offset) 350 @(145 + offset)S460 @(68 + offset) 580 @(125 + offset) 790 @(155 + offset) 970 @(45 + offset) 1110 @(20 + offset) 1220 @(5 + offset)" fill="none" stroke="#46aaff" stroke-opacity=".26" stroke-width=".7" />
+        }
+    </svg>
+}
+else
+{
+    <svg class="dashboard-waves" viewBox="0 0 1200 200" preserveAspectRatio="none" aria-hidden="true">
+        <defs>
+            <linearGradient id="wave-hero" x1="0" y1="0" x2="1" y2=".2">
+                <stop offset=".2" stop-color="#b6e7ff" stop-opacity="0" />
+                <stop offset=".45" stop-color="#58b4ff" stop-opacity=".32" />
+                <stop offset=".68" stop-color="#346aff" stop-opacity=".57" />
+                <stop offset="1" stop-color="#8dccff" stop-opacity=".28" />
+            </linearGradient>
+            <linearGradient id="wave-light-hero" x1="0" y1="0" x2="1" y2="0">
+                <stop offset=".25" stop-color="#e7f7ff" stop-opacity="0" />
+                <stop offset=".53" stop-color="#72cfff" stop-opacity=".3" />
+                <stop offset=".72" stop-color="#5598ff" stop-opacity=".33" />
+                <stop offset="1" stop-color="#d8f0ff" stop-opacity=".4" />
+            </linearGradient>
+        </defs>
+        <path d="M180 210C345 204 391 96 501 81S637 174 728 131 817 94 894 160 1000 230 1090 146 1170 103 1220 108V210Z" fill="url(#wave-hero)" />
+        <path d="M220 210C369 208 414 113 515 94S642 180 731 142 827 106 898 169 1004 237 1094 158 1176 111 1220 122V210Z" fill="url(#wave-light-hero)" />
+        <path d="M290 210C410 198 457 133 535 131S636 218 731 160 826 115 900 176 1014 243 1100 181 1179 139 1220 150V210Z" fill="url(#wave-hero)" opacity=".55" />
+        <path d="M252 211C395 207 441 152 528 153S639 224 733 167 827 116 902 178 1009 243 1098 176 1180 140 1220 151" fill="none" stroke="#fff" stroke-opacity=".8" stroke-width="1" />
+        @for (var line = 0; line < 12; line++)
+        {
+            var offset = line * 3;
+            <path d="M220 @(210 + offset)C369 @(208 + offset) 414 @(113 + offset) 515 @(94 + offset)S642 @(180 + offset) 731 @(142 + offset) 827 @(106 + offset) 898 @(169 + offset) 1004 @(237 + offset) 1094 @(158 + offset) 1176 @(111 + offset) 1220 @(122 + offset)" fill="none" stroke="#e3f4ff" stroke-opacity=".2" stroke-width=".7" />
+        }
+    </svg>
+}

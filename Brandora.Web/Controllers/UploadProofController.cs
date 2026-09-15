@@ -46,7 +46,13 @@ public class UploadProofController(UserManager<ApplicationUser> userManager, App
             .OrderBy(c => c.Title)
             .ToList();
 
-        return View(new UploadProofViewModel { Profile = influencer, Campaigns = campaigns });
+        var recentNotifications = await db.Notifications.AsNoTracking()
+            .Where(n => n.UserId == influencer.UserId)
+            .OrderByDescending(n => n.CreatedAt)
+            .Take(8)
+            .ToListAsync();
+
+        return View(new UploadProofViewModel { Profile = influencer, Campaigns = campaigns, Notifications = recentNotifications });
     }
 
     [HttpPost]

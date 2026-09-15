@@ -1,0 +1,231 @@
+@model Brandora.Web.Models.Dashboard.InfluencerEarningsViewModel
+@using Brandora.Web.Models.Domain
+@using Brandora.Web.Models.Dashboard
+@using System.Globalization
+@{
+    ViewData["Title"] = "Your Earnings";
+    ViewData["ActiveNav"] = "Earnings";
+    Layout = null;
+
+    string Money(decimal value) => "৳" + value.ToString("N0", CultureInfo.InvariantCulture);
+    string PageUrl(string tab, bool? allActivity = null) => Url.Action("Index", new { tab, campaignId = Model.CampaignId, search = Model.Search, allActivity = allActivity ?? Model.AllActivity })!;
+    string MilestoneLabel(MilestoneStatus status) => status switch {
+        MilestoneStatus.Pending => "Not Started", MilestoneStatus.Submitted => "Under Review",
+        MilestoneStatus.RevisionRequested => "Revision Requested", _ => status.ToString()
+    };
+    string StatusClass(MilestoneStatus status) => status switch {
+        MilestoneStatus.Approved or MilestoneStatus.Paid => "is-success",
+        MilestoneStatus.Submitted => "is-pending", MilestoneStatus.RevisionRequested => "is-revision", _ => "is-neutral"
+    };
+    var tabs = new[] { ("milestones", "Milestones"), ("transactions", "Transactions"), ("payout-methods", "Payout Methods") };
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Your Earnings - Brandora</title>
+    <link rel="icon" href="~/images/brandora-icon.png" />
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/lib/dashboard-assets/bootstrap-icons.css" />
+    <link rel="stylesheet" href="~/lib/dashboard-assets/dashboard-fonts.css" />
+    <link rel="stylesheet" href="~/css/brandora-influencer-shell.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/brandora-influencer-dashboard.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/brandora-earnings.css" asp-append-version="true" />
+</head>
+<body>
+<div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+@await Html.PartialAsync("_InfluencerSidebar")
+<main class="earnings-page" id="dashboardMain">
+    @await Html.PartialAsync("~/Views/InfluencerEarnings/_Topbar.cshtml", Model)
+    <section class="earnings-hero" aria-labelledby="earnings-title">
+        <div class="earnings-hero-copy">
+            <nav aria-label="Breadcrumb"><a href="/InfluencerDashboard">Home</a><span aria-hidden="true"> / </span><span aria-current="page">Earnings</span></nav>
+            <h1 id="earnings-title">Your <span>Earnings</span></h1>
+            <p>Complete milestones, get verified, and receive your payments.<br />Your creativity creates real opportunities.</p>
+        </div>
+        <div class="earnings-art" aria-hidden="true">
+            <div class="earnings-glass earnings-glass-back"></div>
+            <div class="earnings-glass earnings-glass-front">Create<br />Collaborate<br />Get Rewarded<i></i></div>
+        </div>
+        <div class="dashboard-hero-motto">More<br />Creations<br />More Opportunities<br />More Earnings<span></span></div>
+        @await Html.PartialAsync("~/Views/InfluencerDashboard/_Waves.cshtml", "hero")
+    </section>
+    <div class="earnings-content">
+        <section class="earnings-stats" aria-label="Earnings summary">
+            <div class="earnings-stat"><span class="earnings-stat-icon violet">@await Html.PartialAsync("~/Views/InfluencerEarnings/_Icon.cshtml", "wallet")</span><div><h2>Total Earnings</h2><strong>@Money(Model.TotalEarnings)</strong><p>All time</p></div></div>
+            <div class="earnings-stat"><span class="earnings-stat-icon mint">@await Html.PartialAsync("~/Views/InfluencerEarnings/_Icon.cshtml", "received")</span><div><h2>Received</h2><strong>@Money(Model.Received)</strong><p>Across @Model.ReceivedMilestones @(Model.ReceivedMilestones == 1 ? "milestone" : "milestones")</p></div></div>
+            <div class="earnings-stat"><span class="earnings-stat-icon amber">@await Html.PartialAsync("~/Views/InfluencerEarnings/_Icon.cshtml", "clock")</span><div><h2>Pending</h2><strong>@Money(Model.Pending)</strong><p>@Model.PendingMilestones @(Model.PendingMilestones == 1 ? "milestone" : "milestones")</p></div></div>
+            <div class="earnings-stat"><span class="earnings-stat-icon violet">@await Html.PartialAsync("~/Views/InfluencerEarnings/_Icon.cshtml", "progress")</span><div><h2>In Progress</h2><strong>@Model.ActiveCampaigns</strong><p>Active campaigns</p></div></div>
+        </section>
+
+        <div class="earnings-grid">
+            <section class="earnings-workspace" aria-label="Earnings records">
+                <div class="earnings-toolbar">
+                    <nav class="earnings-tabs" aria-label="Earnings sections">
+                        @foreach (var tab in tabs)
+                        {
+                            <a href="@PageUrl(tab.Item1)" class="@(Model.Tab == tab.Item1 ? "is-active" : "")" aria-current="@(Model.Tab == tab.Item1 ? "page" : null)">@tab.Item2</a>
+                        }
+                    </nav>
+                    @if (Model.Tab != "payout-methods")
+                    {
+                        <form method="get" asp-action="Index" class="earnings-filter">
+                            <input type="hidden" name="tab" value="@Model.Tab" />
+                            <input type="hidden" name="search" value="@Model.Search" />
+                            <input type="hidden" name="allActivity" value="@Model.AllActivity.ToString().ToLowerInvariant()" />
+                            <label for="earnings-campaign" class="earnings-sr-only">Filter by campaign</label>
+                            @await Html.PartialAsync("~/Views/InfluencerEarnings/_Icon.cshtml", "calendar")
+                            <select name="campaignId" id="earnings-campaign">
+                                <option value="">All Campaigns</option>
+                                @foreach (var campaign in Model.Campaigns)
+                                {
+                                    <option value="@campaign.Id" selected="@(Model.CampaignId == campaign.Id)">@campaign.Title</option>
+                                }
+                            </select>
+                            <button type="submit">Apply</button>
+                        </form>
+                    }
+                </div>
+                @if (!string.IsNullOrEmpty(Model.Search))
+                {
+                    <p class="earnings-search-result">Results for “@Model.Search” <a asp-action="Index" asp-route-tab="@Model.Tab" asp-route-campaignId="@Model.CampaignId">Clear search</a></p>
+                }
+
+                @if (Model.Tab == "milestones")
+                {
+                    <div class="earnings-records">
+                        <div class="earnings-column-head" aria-hidden="true"><span>Campaign &amp; Milestone</span><span>Amount</span><span>Proof</span><span>Status</span><span>Payment</span></div>
+                        @foreach (var group in Model.Collaborations.GroupBy(c => c.CampaignId))
+                        {
+                            var campaign = group.First().Campaign;
+                            var image = campaign.MediaType == "video" ? null : InfluencerEarningsViewModel.ImageUrl(campaign.MediaUrl);
+                            var milestones = group.SelectMany(c => c.Milestones).OrderBy(m => m.CreatedAt).ThenBy(m => m.Id).ToList();
+                            <details class="earnings-campaign" open>
+                                <summary>
+                                    <span class="earnings-thumbnail">
+                                        <span aria-hidden="true">@(string.IsNullOrWhiteSpace(campaign.Title) ? "B" : campaign.Title[..1])</span>
+                                        @if (image is not null) { <img src="@image" alt="" loading="lazy" /> }
+                                    </span>
+                                    <span class="earnings-campaign-title"><strong>@campaign.Title</strong><small>@campaign.BrandProfile.CompanyName</small></span>
+                                    <span class="earnings-expand-label">Milestones</span>
+                                    <span class="earnings-chevron" aria-hidden="true">@await Html.PartialAsync("~/Views/InfluencerEarnings/_Icon.cshtml", "chevron")</span>
+                                </summary>
+                                <div class="earnings-campaign-link"><a asp-controller="InfluencerCampaigns" asp-action="Index" asp-route-search="@campaign.Title">View Campaign<span class="earnings-sr-only">: @campaign.Title</span></a></div>
+                                <div class="earnings-milestones">
+                                    @for (var index = 0; index < milestones.Count; index++)
+                                    {
+                                        var milestone = milestones[index];
+                                        var proof = InfluencerEarningsViewModel.SafeUrl(milestone.ProofUrl);
+                                        var proofImage = InfluencerEarningsViewModel.ImageUrl(milestone.ProofUrl);
+                                        var payment = Model.Payments.FirstOrDefault(p => p.MilestoneId == milestone.Id);
+                                        <div class="earnings-milestone">
+                                            <div class="earnings-milestone-title"><span>@(index + 1).</span> @milestone.Title</div>
+                                            <div class="earnings-amount"><span class="earnings-mobile-label">Amount</span><strong>@Money(milestone.Amount)</strong></div>
+                                            <div class="earnings-proof">
+                                                <span class="earnings-mobile-label">Proof</span>
+                                                @if (proof is not null)
+                                                {
+                                                    <a href="@proof" target="_blank" rel="noopener noreferrer" class="earnings-proof-link">
+                                                        <span class="earnings-proof-thumbnail">@await Html.PartialAsync("~/Views/InfluencerEarnings/_Icon.cshtml", "document")
+                                                            @if (proofImage is not null) { <img src="@proofImage" alt="" loading="lazy" /> }
+                                                        </span>
+                                                        <span>Proof submitted<span class="earnings-sr-only"> for @milestone.Title (opens in a new tab)</span></span>
+                                                    </a>
+                                                }
+                                                else if (milestone.Status is MilestoneStatus.Pending or MilestoneStatus.RevisionRequested)
+                                                {
+                                                    <a href="/UploadProof" class="earnings-upload">@await Html.PartialAsync("~/Views/InfluencerEarnings/_Icon.cshtml", "upload") Upload Proof<span class="earnings-sr-only"> for @milestone.Title</span></a>
+                                                }
+                                                else { <span class="earnings-muted">Preview unavailable</span> }
+                                            </div>
+                                            <div class="earnings-milestone-status"><span class="earnings-mobile-label">Status</span><span class="earnings-badge @StatusClass(milestone.Status)">@MilestoneLabel(milestone.Status)</span></div>
+                                            <div class="earnings-payment-status"><span class="earnings-mobile-label">Payment</span>
+                                                @if (payment?.Status == PaymentStatus.Completed) { <span class="earnings-badge is-success">Paid</span> }
+                                                else if (payment?.Status == PaymentStatus.Pending) { <span class="earnings-badge is-pending">Processing</span> }
+                                                else if (payment?.Status == PaymentStatus.Failed) { <span class="earnings-badge is-revision">Failed</span> }
+                                                else { <span class="earnings-muted">Payment not released</span> }
+                                            </div>
+                                        </div>
+                                    }
+                                    @if (milestones.Count == 0) { <p class="earnings-campaign-empty">No milestones have been added to this campaign yet.</p> }
+                                </div>
+                            </details>
+                        }
+                        @if (Model.Collaborations.Count == 0)
+                        {
+                            <div class="earnings-empty"><h2>No milestones to show</h2><p>Your campaign milestones and payment progress will appear here.</p><a href="/InfluencerCampaigns">Explore campaigns</a></div>
+                        }
+                    </div>
+                }
+                else if (Model.Tab == "transactions")
+                {
+                    <div class="earnings-transactions">
+                        <h2 class="earnings-sr-only">Transactions</h2>
+                        @foreach (var payment in Model.Payments)
+                        {
+                            <article class="earnings-transaction">
+                                <div><h3>@payment.Collaboration.Campaign.Title</h3><p>@payment.Collaboration.Campaign.BrandProfile.CompanyName</p><small>@(payment.Milestone?.Title ?? "Campaign payment")</small></div>
+                                <strong>@Money(payment.Amount)</strong>
+                                <span class="earnings-badge @(payment.Status == PaymentStatus.Completed ? "is-success" : payment.Status == PaymentStatus.Pending ? "is-pending" : "is-revision")">@(payment.Status == PaymentStatus.Completed ? "Paid" : payment.Status == PaymentStatus.Pending ? "Processing" : "Failed")</span>
+                                <time datetime="@((payment.PaidAt ?? payment.CreatedAt).ToString("yyyy-MM-dd"))">@((payment.PaidAt ?? payment.CreatedAt).ToString("MMM d, yyyy", CultureInfo.InvariantCulture))</time>
+                            </article>
+                        }
+                        @if (Model.Payments.Count == 0) { <div class="earnings-empty"><h2>No transactions yet</h2><p>Payments for your campaigns will appear here as they are released.</p></div> }
+                    </div>
+                }
+                else
+                {
+                    <div class="earnings-empty earnings-payout-empty">
+                        <span class="earnings-stat-icon blue">@await Html.PartialAsync("~/Views/InfluencerEarnings/_Icon.cshtml", "card")</span>
+                        <h2>Your payout methods</h2><p>bKash and Nagad payout methods are coming soon.</p>
+                        <button class="earnings-primary" disabled>Add Payout Method</button>
+                    </div>
+                }
+            </section>
+
+            <aside class="earnings-rail" aria-label="Payouts and activity">
+                <section class="earnings-panel earnings-withdrawal">
+                    <span class="earnings-stat-icon blue">@await Html.PartialAsync("~/Views/InfluencerEarnings/_Icon.cshtml", "card")</span>
+                    <div><h2>Available for Withdrawal</h2><strong class="earnings-unavailable" aria-label="Balance unavailable">—</strong><p>Withdrawals coming soon</p><a class="earnings-primary earnings-withdraw-link" asp-action="Withdraw">Withdraw Now</a></div>
+                </section>
+                <section class="earnings-panel earnings-methods">
+                    <header><h2>Payout Methods</h2><a href="@PageUrl("payout-methods")">Manage</a></header>
+                    <div class="earnings-method"><span class="earnings-provider bkash">b</span><div><strong>bKash</strong><small>Coming soon</small></div></div>
+                    <div class="earnings-method"><span class="earnings-provider nagad">N</span><div><strong>Nagad</strong><small>Coming soon</small></div></div>
+                    <button class="earnings-add-method" disabled><span aria-hidden="true">+</span> Add Payout Method</button>
+                </section>
+                <section class="earnings-panel earnings-activity" id="earnings-activity">
+                    <header><h2>Recent Activity</h2><a href="@(PageUrl(Model.Tab, !Model.AllActivity))#earnings-activity">@(Model.AllActivity ? "Show Less" : "View All")</a></header>
+                    @foreach (var activity in Model.Activity)
+                    {
+                        <article class="earnings-activity-item">
+                            <span class="earnings-activity-icon @(activity.Kind == "received" ? "mint" : activity.Kind == "pending" ? "amber" : "blue")">@await Html.PartialAsync("~/Views/InfluencerEarnings/_Icon.cshtml", activity.Kind == "received" ? "arrow" : activity.Kind == "pending" ? "clock" : "document")</span>
+                            <div><h3>@activity.Title</h3><p>@activity.Description</p></div>
+                            <time datetime="@activity.Date.ToString("yyyy-MM-dd")">@activity.Date.ToString("MMM d, yyyy", CultureInfo.InvariantCulture)</time>
+                        </article>
+                    }
+                    @if (Model.Activity.Count == 0) { <p class="earnings-activity-empty">Your latest payment and milestone updates will appear here.</p> }
+                </section>
+            </aside>
+        </div>
+    </div>
+</main>
+<script src="~/js/brandora-influencer-dashboard.js" asp-append-version="true"></script>
+<script>
+(() => {
+    const page = document.querySelector('.earnings-page');
+    const filter = page.querySelector('#earnings-campaign');
+    if (filter) {
+        filter.form.querySelector('button').hidden = true;
+        filter.addEventListener('change', () => filter.form.requestSubmit());
+    }
+    page.querySelectorAll('.earnings-thumbnail img, .earnings-proof-thumbnail img').forEach(img => {
+        const fallback = () => { img.hidden = true; };
+        img.addEventListener('error', fallback);
+        if (img.complete && !img.naturalWidth) fallback();
+    });
+})();
+</script>
+</body>
+</html>

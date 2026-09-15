@@ -15,6 +15,7 @@ public class BrowseCampaignRow
     public DateTime CreatedAt { get; set; }
     public string? MediaUrl { get; set; }
     public CampaignStatus Status { get; set; }
+    public int? MilestoneCount { get; set; }
     public int ApplicantCount { get; set; }
     public ProposalStatus? MyProposalStatus { get; set; }
     public bool IsCollaborating { get; set; }
@@ -23,6 +24,7 @@ public class BrowseCampaignRow
 
 public class InfluencerCampaignsViewModel
 {
+    public List<Notification> Notifications { get; set; } = new();
     public InfluencerProfile Profile { get; set; } = null!;
 
     public List<BrowseCampaignRow> Campaigns { get; set; } = new();

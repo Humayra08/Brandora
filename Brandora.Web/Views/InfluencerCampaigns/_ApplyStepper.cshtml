@@ -1,0 +1,26 @@
+@model int
+@{
+    var steps = new (string Title, string Subtitle)[]
+    {
+        ("Campaign Details", "Review campaign information"),
+        ("Your Proposal", "Tell us about your idea"),
+        ("Social Accounts", "Link your relevant accounts"),
+        ("Review & Submit", "Check and submit your application"),
+    };
+}
+<nav class="apply-stepper dashboard-card" aria-label="Application steps">
+    <ol>
+        @for (var i = 0; i < steps.Length; i++)
+        {
+            var stepNumber = i + 1;
+            var state = stepNumber < Model ? "done" : stepNumber == Model ? "active" : "upcoming";
+            <li class="@state">
+                <span class="apply-stepper-dot">@if (state == "done") { <i class="bi bi-check-lg" aria-hidden="true"></i> } else { @stepNumber }</span>
+                <div>
+                    <strong>@steps[i].Title</strong>
+                    <span>@steps[i].Subtitle</span>
+                </div>
+            </li>
+        }
+    </ol>
+</nav>

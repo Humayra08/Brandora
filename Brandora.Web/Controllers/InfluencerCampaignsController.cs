@@ -19,7 +19,7 @@ public class InfluencerCampaignsController(UserManager<ApplicationUser> userMana
 
         var browsable = db.Campaigns
             .Include(c => c.BrandProfile)
-            .Where(c => c.Status == CampaignStatus.Published || c.Status == CampaignStatus.Active);
+            .Where(c => c.Status == CampaignStatus.Published || c.Status == CampaignStatus.Active || ((c.Status == CampaignStatus.Completed || c.Status == CampaignStatus.Cancelled) && db.Collaborations.Any(x => x.CampaignId == c.Id && x.InfluencerProfileId == influencer.Id)));
 
         var myProposals = await db.Proposals
             .Where(p => p.InfluencerProfileId == influencer.Id)
@@ -29,7 +29,7 @@ public class InfluencerCampaignsController(UserManager<ApplicationUser> userMana
             .GroupBy(p => p.CampaignId)
             .ToDictionary(g => g.Key, g => g.OrderByDescending(p => p.CreatedAt).First().Status);
 
-        var myCollaborations = await db.Collaborations
+        var myCollaborations = await db.Collaborations.Include(c => c.Milestones)
             .Where(c => c.InfluencerProfileId == influencer.Id)
             .ToListAsync();
 
@@ -47,7 +47,7 @@ public class InfluencerCampaignsController(UserManager<ApplicationUser> userMana
 
         if (!string.IsNullOrWhiteSpace(search))
         {
-            query = query.Where(c => c.Title.Contains(search) || c.Description.Contains(search));
+            query = query.Where(c => c.Title.Contains(search) || c.Description.Contains(search) || c.BrandProfile.CompanyName.Contains(search) || (c.Niche != null && c.Niche.Contains(search)));
         }
 
         if (!string.IsNullOrWhiteSpace(category))
@@ -99,15 +99,18 @@ public class InfluencerCampaignsController(UserManager<ApplicationUser> userMana
             MediaUrl = c.MediaUrl,
             Status = c.Status,
             ApplicantCount = applicantCounts.GetValueOrDefault(c.Id),
+            MilestoneCount = myCollaborations.Where(x => x.CampaignId == c.Id).Select(x => (int?)x.Milestones.Count).FirstOrDefault(),
             MyProposalStatus = myProposalByCampaign.TryGetValue(c.Id, out var proposalStatus) ? proposalStatus : null,
             IsCollaborating = myActiveCollabCampaignIds.Contains(c.Id),
             IsCollabCompleted = myCompletedCollabCampaignIds.Contains(c.Id)
         }).ToList();
 
-        var selectedTab = string.IsNullOrWhiteSpace(tab) ? "all" : tab;
+        var selectedTab = tab is "open" or "closed" or "applied" or "inreview" or "ongoing" or "completed" ? tab : "all";
 
         var tabFiltered = selectedTab switch
         {
+            "open" => allRows.Where(r => (r.Status == CampaignStatus.Published || r.Status == CampaignStatus.Active) && (!r.Deadline.HasValue || r.Deadline >= DateTime.UtcNow)).ToList(),
+            "closed" => allRows.Where(r => r.Status == CampaignStatus.Cancelled || r.Status == CampaignStatus.Completed || r.Deadline < DateTime.UtcNow).ToList(),
             "applied" => allRows.Where(r => r.MyProposalStatus.HasValue).ToList(),
             "inreview" => allRows.Where(r => r.MyProposalStatus == ProposalStatus.Pending).ToList(),
             "ongoing" => allRows.Where(r => r.IsCollaborating).ToList(),
@@ -116,8 +119,8 @@ public class InfluencerCampaignsController(UserManager<ApplicationUser> userMana
         };
 
         var totalFiltered = tabFiltered.Count;
-        var pageSize = 6;
-        var pageNumber = Math.Max(1, page);
+        var pageSize = 4;
+        var pageNumber = Math.Clamp(page, 1, Math.Max(1, (int)Math.Ceiling(totalFiltered / (double)pageSize)));
         var pagedRows = tabFiltered.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToList();
 
         var platformOptions = await browsable
@@ -137,6 +140,7 @@ public class InfluencerCampaignsController(UserManager<ApplicationUser> userMana
         var vm = new InfluencerCampaignsViewModel
         {
             Profile = influencer,
+            Notifications = await db.Notifications.AsNoTracking().Where(n => n.UserId == influencer.UserId).OrderByDescending(n => n.CreatedAt).Take(5).ToListAsync(),
             Campaigns = pagedRows,
             PlatformOptions = platformOptions,
             CategoryOptions = categoryOptions,
@@ -159,9 +163,7 @@ public class InfluencerCampaignsController(UserManager<ApplicationUser> userMana
         return View(vm);
     }
 
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Apply(int campaignId, decimal proposedAmount, string deliverables, string? message)
+    public async Task<IActionResult> Details(int id)
     {
         var influencer = await GetCurrentInfluencerAsync();
         if (influencer is null)
@@ -169,22 +171,243 @@ public class InfluencerCampaignsController(UserManager<ApplicationUser> userMana
             return RedirectToAction("Index", "Home");
         }
 
-        var campaign = await db.Campaigns.FirstOrDefaultAsync(c => c.Id == campaignId);
+        var campaign = await db.Campaigns.Include(c => c.BrandProfile).FirstOrDefaultAsync(c => c.Id == id);
         if (campaign is null)
         {
             return NotFound();
         }
 
-        var alreadyApplied = await db.Proposals.AnyAsync(p => p.CampaignId == campaignId && p.InfluencerProfileId == influencer.Id);
-        if (!alreadyApplied && !string.IsNullOrWhiteSpace(deliverables))
+        var isBrowsable = campaign.Status is CampaignStatus.Published or CampaignStatus.Active
+            || await db.Collaborations.AnyAsync(x => x.CampaignId == campaign.Id && x.InfluencerProfileId == influencer.Id);
+        if (!isBrowsable)
         {
+            return NotFound();
+        }
+
+        var myProposalStatus = await db.Proposals.Where(p => p.CampaignId == campaign.Id && p.InfluencerProfileId == influencer.Id)
+            .OrderByDescending(p => p.CreatedAt).Select(p => (ProposalStatus?)p.Status).FirstOrDefaultAsync();
+
+        var collaboration = await db.Collaborations.FirstOrDefaultAsync(c => c.CampaignId == campaign.Id && c.InfluencerProfileId == influencer.Id);
+
+        var closed = campaign.Status is CampaignStatus.Completed or CampaignStatus.Cancelled || campaign.Deadline < DateTime.UtcNow;
+
+        var vm = new InfluencerCampaignDetailsViewModel
+        {
+            Profile = influencer,
+            Notifications = await db.Notifications.AsNoTracking().Where(n => n.UserId == influencer.UserId).OrderByDescending(n => n.CreatedAt).Take(5).ToListAsync(),
+            CampaignId = campaign.Id,
+            Title = campaign.Title,
+            Description = campaign.Description,
+            BrandName = campaign.BrandProfile.CompanyName,
+            BrandLogoUrl = campaign.BrandProfile.ProfilePictureUrl,
+            BrandIndustry = campaign.BrandProfile.Industry,
+            BrandWebsiteUrl = campaign.BrandProfile.WebsiteUrl,
+            Platform = campaign.Platform,
+            Niche = campaign.Niche,
+            Budget = campaign.Budget,
+            Deadline = campaign.Deadline,
+            CreatedAt = campaign.CreatedAt,
+            Status = campaign.Status,
+            ApplicantCount = await db.Proposals.CountAsync(p => p.CampaignId == campaign.Id),
+            MyProposalStatus = myProposalStatus,
+            IsCollaborating = collaboration?.Status == CollaborationStatus.Active,
+            IsCollabCompleted = collaboration?.Status == CollaborationStatus.Completed,
+            CanApply = !closed && !myProposalStatus.HasValue && collaboration is null
+        };
+
+        return View(vm);
+    }
+
+    private async Task<CampaignApplyViewModel?> BuildApplyViewModelAsync(int id, InfluencerProfile influencer)
+    {
+        var campaign = await db.Campaigns.Include(c => c.BrandProfile).FirstOrDefaultAsync(c => c.Id == id);
+        if (campaign is null)
+        {
+            return null;
+        }
+
+        return new CampaignApplyViewModel
+        {
+            Profile = influencer,
+            Notifications = await db.Notifications.AsNoTracking().Where(n => n.UserId == influencer.UserId).OrderByDescending(n => n.CreatedAt).Take(5).ToListAsync(),
+            CampaignId = campaign.Id,
+            Title = campaign.Title,
+            BrandName = campaign.BrandProfile.CompanyName,
+            Platform = campaign.Platform,
+            Niche = campaign.Niche,
+            Budget = campaign.Budget,
+            Deadline = campaign.Deadline,
+            ApplicantCount = await db.Proposals.CountAsync(p => p.CampaignId == campaign.Id)
+        };
+    }
+
+    private List<ConnectedPlatformRow> BuildConnectedPlatforms(InfluencerProfile influencer)
+    {
+        var handle = string.IsNullOrWhiteSpace(influencer.PlatformUsername)
+            ? "@" + influencer.FullName.Split(' ')[0].ToLowerInvariant()
+            : influencer.PlatformUsername;
+        var primaryFollowers = influencer.Followers > 0 ? influencer.Followers : 25400;
+
+        return new List<ConnectedPlatformRow>
+        {
+            new() { Name = "Instagram", Icon = "bi-instagram", IconGradient = "linear-gradient(135deg,#f9ce34,#ee2a7b,#6228d7)", Handle = handle, Verified = true, Followers = primaryFollowers, FollowerLabel = "Followers", Connected = true },
+            new() { Name = "TikTok", Icon = "bi-tiktok", IconGradient = "linear-gradient(135deg,#111112,#2b2b2e)", Handle = handle, Verified = true, Followers = (int)(primaryFollowers * 0.74), FollowerLabel = "Followers", Connected = true },
+            new() { Name = "Facebook", Icon = "bi-facebook", IconGradient = "linear-gradient(135deg,#3f8cff,#1857d6)", Handle = influencer.FullName, Verified = true, Followers = (int)(primaryFollowers * 0.33), FollowerLabel = "Followers", Connected = true },
+        };
+    }
+
+    public async Task<IActionResult> Apply(int id, string? concept, string? whyGoodFit, string? instagramLink, string? tikTokLink, string? youTubeLink)
+    {
+        var influencer = await GetCurrentInfluencerAsync();
+        if (influencer is null)
+        {
+            return RedirectToAction("Index", "Home");
+        }
+
+        var vm = await BuildApplyViewModelAsync(id, influencer);
+        if (vm is null)
+        {
+            return NotFound();
+        }
+
+        vm.Step = 2;
+        vm.Concept = concept ?? "";
+        vm.WhyGoodFit = whyGoodFit ?? "";
+        vm.InstagramLink = instagramLink;
+        vm.TikTokLink = tikTokLink;
+        vm.YouTubeLink = youTubeLink;
+        return View(vm);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Apply(CampaignApplyViewModel form)
+    {
+        var influencer = await GetCurrentInfluencerAsync();
+        if (influencer is null)
+        {
+            return RedirectToAction("Index", "Home");
+        }
+
+        var vm = await BuildApplyViewModelAsync(form.CampaignId, influencer);
+        if (vm is null)
+        {
+            return NotFound();
+        }
+
+        vm.Step = 2;
+        // Model binding converts a posted empty string to null (ConvertEmptyStringToNull),
+        // so these must be normalized before the view touches Concept.Length etc.
+        vm.Concept = form.Concept ?? "";
+        vm.WhyGoodFit = form.WhyGoodFit ?? "";
+        vm.InstagramLink = form.InstagramLink;
+        vm.TikTokLink = form.TikTokLink;
+        vm.YouTubeLink = form.YouTubeLink;
+
+        if (string.IsNullOrWhiteSpace(vm.Concept))
+        {
+            ModelState.AddModelError(nameof(vm.Concept), "Share your creative idea for this campaign.");
+        }
+        if (string.IsNullOrWhiteSpace(vm.WhyGoodFit))
+        {
+            ModelState.AddModelError(nameof(vm.WhyGoodFit), "Tell the brand why you're a good fit.");
+        }
+        if (!ModelState.IsValid)
+        {
+            return View(vm);
+        }
+
+        vm.Step = 3;
+        vm.Platforms = BuildConnectedPlatforms(influencer);
+        return View("ApplySocial", vm);
+    }
+
+    public async Task<IActionResult> ApplySocial(int id, string? concept, string? whyGoodFit, string? instagramLink, string? tikTokLink, string? youTubeLink)
+    {
+        var influencer = await GetCurrentInfluencerAsync();
+        if (influencer is null)
+        {
+            return RedirectToAction("Index", "Home");
+        }
+
+        var vm = await BuildApplyViewModelAsync(id, influencer);
+        if (vm is null)
+        {
+            return NotFound();
+        }
+
+        vm.Step = 3;
+        vm.Concept = concept ?? "";
+        vm.WhyGoodFit = whyGoodFit ?? "";
+        vm.InstagramLink = instagramLink;
+        vm.TikTokLink = tikTokLink;
+        vm.YouTubeLink = youTubeLink;
+        vm.Platforms = BuildConnectedPlatforms(influencer);
+        return View(vm);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ApplySocial(CampaignApplyViewModel form)
+    {
+        var influencer = await GetCurrentInfluencerAsync();
+        if (influencer is null)
+        {
+            return RedirectToAction("Index", "Home");
+        }
+
+        var vm = await BuildApplyViewModelAsync(form.CampaignId, influencer);
+        if (vm is null)
+        {
+            return NotFound();
+        }
+
+        vm.Step = 4;
+        vm.Concept = form.Concept ?? "";
+        vm.WhyGoodFit = form.WhyGoodFit ?? "";
+        vm.InstagramLink = form.InstagramLink;
+        vm.TikTokLink = form.TikTokLink;
+        vm.YouTubeLink = form.YouTubeLink;
+        vm.Platforms = BuildConnectedPlatforms(influencer);
+        return View("ApplyReview", vm);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ApplySubmit(CampaignApplyViewModel form)
+    {
+        var influencer = await GetCurrentInfluencerAsync();
+        if (influencer is null)
+        {
+            return RedirectToAction("Index", "Home");
+        }
+
+        var campaign = await db.Campaigns.FirstOrDefaultAsync(c => c.Id == form.CampaignId);
+        if (campaign is null)
+        {
+            return NotFound();
+        }
+
+        if (campaign.Status is not (CampaignStatus.Published or CampaignStatus.Active) || campaign.Deadline < DateTime.UtcNow)
+        {
+            return BadRequest("This campaign is no longer accepting proposals.");
+        }
+
+        var alreadyApplied = await db.Proposals.AnyAsync(p => p.CampaignId == form.CampaignId && p.InfluencerProfileId == influencer.Id);
+        if (!alreadyApplied && form.Confirmed && !string.IsNullOrWhiteSpace(form.Concept))
+        {
+            var sampleLinks = new[] { form.InstagramLink, form.TikTokLink, form.YouTubeLink }
+                .Where(l => !string.IsNullOrWhiteSpace(l)).ToList();
+            var message = $"Why I'm a good fit: {form.WhyGoodFit}"
+                + (sampleLinks.Count > 0 ? "\n\nSample work:\n" + string.Join("\n", sampleLinks) : "");
+
             db.Proposals.Add(new Proposal
             {
-                CampaignId = campaignId,
+                CampaignId = form.CampaignId,
                 InfluencerProfileId = influencer.Id,
                 InitiatedBy = ProposalInitiator.Influencer,
-                ProposedAmount = proposedAmount > 0 ? proposedAmount : campaign.Budget,
-                Deliverables = deliverables,
+                ProposedAmount = campaign.Budget,
+                Deliverables = form.Concept,
                 Message = message,
                 Status = ProposalStatus.Pending
             });
@@ -192,6 +415,6 @@ public class InfluencerCampaignsController(UserManager<ApplicationUser> userMana
             await db.SaveChangesAsync();
         }
 
-        return RedirectToAction("Index");
+        return RedirectToAction("Details", new { id = form.CampaignId });
     }
 }
