@@ -1,8 +1,8 @@
 /* Main dashboard content; the existing sidebar has its own unchanged shell styles. */
 * { box-sizing: border-box; }
 body { margin: 0; font-family: 'DM Sans', sans-serif; background: #fff; color: #20283a; }
-/* Hero heading accent, matching "Driving Real Impact." on the Platform page. */
-:root { --brand-hero-gradient: linear-gradient(90deg, #c000ff 0%, #8000ff 35%, #164bff 65%, #00c8f5 100%); }
+/* Shared hero heading accent for the influencer pages. */
+:root { --brand-hero-gradient: linear-gradient(115deg, #7224ff, #3735ff 55%, #087fff); }
 .dashboard-page {
     --dash-ink: #101d48;
     --dash-muted: #5871a8;
