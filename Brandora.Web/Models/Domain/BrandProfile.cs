@@ -14,6 +14,11 @@ public class BrandProfile
     public string MonthlyBudget { get; set; } = string.Empty;
     public string? ProfilePictureUrl { get; set; }
 
+    public VerificationStatus VerificationStatus { get; set; } = VerificationStatus.Pending;
+    public string? RejectionReason { get; set; }
+    public DateTime? VerifiedAt { get; set; }
+    public string? AdminNotes { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public ICollection<Campaign> Campaigns { get; set; } = new List<Campaign>();

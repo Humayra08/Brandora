@@ -14,5 +14,9 @@ public class Payment
     public PaymentStatus Status { get; set; } = PaymentStatus.Pending;
     public DateTime? PaidAt { get; set; }
 
+    public PaymentMethod? Method { get; set; }
+    public string? TransactionReference { get; set; }
+    public EscrowStatus EscrowStatus { get; set; } = EscrowStatus.Held;
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

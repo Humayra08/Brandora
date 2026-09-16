@@ -18,6 +18,11 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<ShortlistEntry> ShortlistEntries => Set<ShortlistEntry>();
     public DbSet<Dispute> Disputes => Set<Dispute>();
+    public DbSet<WithdrawalRequest> WithdrawalRequests => Set<WithdrawalRequest>();
+    public DbSet<PayoutMethod> PayoutMethods => Set<PayoutMethod>();
+    public DbSet<AdminAuditLog> AdminAuditLogs => Set<AdminAuditLog>();
+    public DbSet<EmailVerificationCode> EmailVerificationCodes => Set<EmailVerificationCode>();
+    public DbSet<PasswordResetCode> PasswordResetCodes => Set<PasswordResetCode>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -190,6 +195,40 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
                 .WithMany()
                 .HasForeignKey(e => e.InfluencerProfileId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<WithdrawalRequest>(entity =>
+        {
+            entity.Property(e => e.Amount).HasPrecision(12, 2);
+
+            entity.HasOne(e => e.InfluencerProfile)
+                .WithMany()
+                .HasForeignKey(e => e.InfluencerProfileId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<PayoutMethod>(entity =>
+        {
+            entity.HasOne(e => e.InfluencerProfile)
+                .WithMany()
+                .HasForeignKey(e => e.InfluencerProfileId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<EmailVerificationCode>(entity =>
+        {
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<PasswordResetCode>(entity =>
+        {
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

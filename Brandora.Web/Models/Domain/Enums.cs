@@ -57,3 +57,39 @@ public enum DisputeStatus
     UnderReview,
     Resolved
 }
+
+public enum VerificationStatus
+{
+    Pending,
+    Verified,
+    Rejected
+}
+
+public enum PaymentMethod
+{
+    Bkash,
+    Nagad,
+    BankTransfer
+}
+
+public enum EscrowStatus
+{
+    Held,
+    Released,
+    Refunded
+}
+
+public enum WithdrawalStatus
+{
+    Pending,
+    Approved,
+    Rejected,
+    Paid
+}
+
+public enum PayoutMethodKind
+{
+    Bkash,
+    Nagad,
+    BankAccount
+}
