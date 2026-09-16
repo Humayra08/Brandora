@@ -8,11 +8,26 @@ using Microsoft.AspNetCore.Mvc;
 namespace Brandora.Web.Areas.Admin.Controllers;
 
 [Area("Admin")]
-public class AdminAccountController(AdminAuthService adminAuthService) : Controller
+public class AdminAccountController(AdminAuthService adminAuthService, IWebHostEnvironment env) : Controller
 {
     public IActionResult Login()
     {
         return View(new AdminLoginViewModel());
+    }
+
+    // Development-only helper: generates the PBKDF2 hash for a chosen admin password so you can
+    // paste it into .env as ADMIN_n_PASSWORD. Never available outside Development — the plaintext
+    // password never leaves your own browser/machine, and nothing here is logged or persisted.
+    [HttpGet]
+    public IActionResult HashPassword(string? password)
+    {
+        if (!env.IsDevelopment())
+        {
+            return NotFound();
+        }
+
+        ViewData["Hash"] = string.IsNullOrEmpty(password) ? null : AdminAuthService.HashPassword(password);
+        return View();
     }
 
     [HttpPost]
@@ -48,6 +63,16 @@ public class AdminAccountController(AdminAuthService adminAuthService) : Control
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Logout()
+    {
+        await HttpContext.SignOutAsync("AdminScheme");
+        return RedirectToAction("Login");
+    }
+
+    // A bare GET here (e.g. the browser reloading /Logout after the POST already signed
+    // the admin out) should never show a raw 400 — just land back on the login page.
+    [HttpGet]
+    [ActionName("Logout")]
+    public async Task<IActionResult> LogoutGet()
     {
         await HttpContext.SignOutAsync("AdminScheme");
         return RedirectToAction("Login");
