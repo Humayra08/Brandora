@@ -240,10 +240,6 @@
                 0 8px 25px rgba(106, 37, 213, .25);
         }
 
-        .side-nav-item.is-soon {
-            color: rgba(255,255,255,.4);
-        }
-
         .nav-chevron {
             width: 14px;
             height: 14px;
@@ -300,18 +296,6 @@
             border: 2px solid #0a1028;
         }
 
-        .soon-tag {
-            padding: 2px 8px;
-
-            border-radius: 20px;
-            border: 1px solid rgba(255,255,255,.14);
-
-            font-size: 10px;
-            font-weight: 600;
-            letter-spacing: .4px;
-
-            color: rgba(255,255,255,.45);
-        }
 
         .unread-badge {
             display: inline-flex;
@@ -444,6 +428,214 @@
             min-width: 0;
 
             padding: 34px 42px 60px;
+        }
+
+
+        /* =========================================================
+           SHARED: PAGE HERO
+           Reproduces the Influencer side's exact hero-card visual
+           system (brandora-influencer-dashboard.css: .dashboard-hero /
+           .dashboard-glass / .dashboard-hero-motto) so every Brand page
+           that includes this markup automatically matches it, in one
+           place, without per-page duplication.
+        ========================================================= */
+
+        .page-hero {
+            position: relative;
+            isolation: isolate;
+
+            display: flex;
+            align-items: center;
+            min-height: 170px;
+
+            margin: 0 0 26px;
+            padding: 26px 40px;
+
+            border-radius: 18px;
+            overflow: hidden;
+
+            background:
+                radial-gradient(ellipse at 61% 0%, #a9c9ff99, transparent 58%),
+                linear-gradient(110deg, #edf8ff55, #dcefff99 55%, #edf8ff55);
+            border: 1px solid #d1e2ff;
+
+            animation: fade-up .5s ease both;
+        }
+
+        .page-hero-intro {
+            position: relative;
+            z-index: 2;
+            max-width: 52%;
+        }
+
+        .page-hero-eyebrow {
+            font-family: 'Inter', sans-serif;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 1.6px;
+            text-transform: uppercase;
+            color: #4b6398;
+        }
+
+        .page-hero-title {
+            margin-top: 6px;
+
+            font-family: 'Playfair Display', Georgia, serif;
+            font-weight: 600;
+            font-size: clamp(24px, 2.6vw, 34px);
+            line-height: 1.2;
+            letter-spacing: -.5px;
+            color: #171d3d;
+        }
+
+        .page-hero-title span {
+            background: linear-gradient(115deg, #7224ff, #3735ff 55%, #087fff);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            color: transparent;
+        }
+
+        .page-hero-sub {
+            margin-top: 8px;
+            max-width: 480px;
+
+            font-family: 'Inter', sans-serif;
+            font-size: 13.5px;
+            line-height: 1.55;
+            color: #426098;
+        }
+
+        .page-hero-stats {
+            display: flex;
+            gap: 26px;
+            margin-top: 14px;
+        }
+
+        .page-hero-stats > div + div {
+            border-left: 1px solid #9ebce9;
+            padding-left: 26px;
+        }
+
+        .page-hero-stats dd {
+            margin: 0;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 15px;
+            font-weight: 700;
+            line-height: 1.1;
+            color: #171d3d;
+        }
+
+        .page-hero-stats dt {
+            margin: 2px 0 0;
+            font-family: 'Inter', sans-serif;
+            font-size: 11px;
+            font-weight: 500;
+            color: #2b467d;
+        }
+
+        .page-hero-art {
+            position: absolute;
+            z-index: 1;
+            width: 230px;
+            height: 200px;
+            left: 48%;
+            top: 22px;
+            transform: rotate(10deg) skewX(-3deg);
+        }
+
+        .hero-glass {
+            position: absolute;
+            border: 1px solid #ffffffb8;
+            border-radius: 18px;
+            background: linear-gradient(125deg, #ffffff80, #d4ebff35 55%, #ffffff5c);
+            box-shadow: inset 0 0 20px #ffffff44, 0 10px 30px #4488da0b;
+        }
+
+        .hero-glass-back {
+            inset: 0;
+        }
+
+        .hero-glass-front {
+            inset: 22px 18px -18px 16px;
+            padding: 17px 19px;
+
+            font-family: 'DM Sans', sans-serif;
+            font-size: 15px;
+            line-height: 1.4;
+            color: #244988;
+
+            backdrop-filter: blur(1px);
+        }
+
+        .hero-glass-copy {
+            display: block;
+            transform: skewX(3deg) rotate(-10deg);
+            transform-origin: top left;
+            padding-top: 3px;
+        }
+
+        .hero-glass-copy > span,
+        .page-hero-motto span {
+            display: block;
+            width: 34px;
+            height: 3px;
+            margin-top: 11px;
+
+            border-radius: 4px;
+            background: linear-gradient(110deg, #6323ff, #0759ff);
+        }
+
+        .hero-sparkle {
+            position: absolute;
+            top: 20px;
+            right: -6px;
+            width: 16px;
+            height: 16px;
+            background: radial-gradient(ellipse, white, transparent 65%);
+        }
+
+        .hero-sparkle::before,
+        .hero-sparkle::after {
+            content: "";
+            position: absolute;
+            inset: 7px -4px;
+            background: linear-gradient(90deg, transparent, white, transparent);
+        }
+
+        .hero-sparkle::after {
+            transform: rotate(90deg);
+        }
+
+        .page-hero-motto {
+            margin-left: auto;
+            padding: 4px 4% 4px 32px;
+
+            position: relative;
+            z-index: 2;
+
+            border-left: 1px solid #adcdec;
+
+            font-family: 'DM Sans', sans-serif;
+            font-size: 13.5px;
+            font-weight: 600;
+            line-height: 1.5;
+            color: #1e427c;
+        }
+
+        @@media(max-width: 1100px) {
+            .page-hero-art { left: auto; right: 26px; }
+            .page-hero-intro { max-width: 60%; }
+        }
+
+        @@media(max-width: 900px) {
+            .page-hero-motto { display: none; }
+        }
+
+        @@media(max-width: 760px) {
+            .page-hero { padding: 22px 24px; flex-wrap: wrap; }
+            .page-hero-art { display: none; }
+            .page-hero-intro { max-width: 100%; }
         }
 
 
@@ -764,31 +956,29 @@
             background: rgba(255,255,255,.92);
             backdrop-filter: blur(14px);
             -webkit-backdrop-filter: blur(14px);
-            border-bottom: 1px solid #eaecf5;
+            border-bottom: 1px solid #d1e2ff;
         }
 
         .topbar-menu-btn {
             flex-shrink: 0;
 
-            width: 40px;
-            height: 40px;
+            width: 34px;
+            height: 34px;
 
             display: flex;
             align-items: center;
             justify-content: center;
 
-            border-radius: 10px;
-            border: 1px solid #e2e5f2;
-            background: #ffffff;
+            border: 0;
+            background: transparent;
 
-            color: #545b7d;
+            color: #172952;
             cursor: pointer;
 
             transition: .2s;
         }
 
         .topbar-menu-btn:hover {
-            border-color: #9b2cff;
             color: #9b2cff;
         }
 
@@ -799,20 +989,26 @@
 
         .topbar-search input {
             width: 100%;
-            height: 40px;
+            height: 38px;
 
             padding: 0 16px;
 
-            border-radius: 10px;
-            border: 1px solid #e2e5f2;
-            background: #fbfbfe;
+            border-radius: 12px;
+            border: 1px solid #d1e2ff;
+            background: #ffffffb8;
 
             font-family: 'Inter', sans-serif;
             font-size: 13px;
-            color: #2a3157;
+            color: #20365f;
 
             outline: none;
             transition: .2s;
+            box-shadow: 0 3px 12px #7ea8da0a;
+        }
+
+        .topbar-search input::placeholder {
+            color: #5a74a8;
+            opacity: 1;
         }
 
         .topbar-search input:focus {
@@ -827,30 +1023,28 @@
 
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 14px;
         }
 
         .topbar-icon-btn {
             position: relative;
             flex-shrink: 0;
 
-            width: 40px;
-            height: 40px;
+            width: 32px;
+            height: 32px;
 
             display: flex;
             align-items: center;
             justify-content: center;
 
-            border-radius: 10px;
-            border: 1px solid #e2e5f2;
-            background: #ffffff;
+            border: 0;
+            background: transparent;
 
-            color: #545b7d;
+            color: #101d48;
             transition: .2s;
         }
 
         .topbar-icon-btn:hover {
-            border-color: #9b2cff;
             color: #9b2cff;
         }
 
@@ -910,12 +1104,15 @@
         }
 
         .topbar-profile {
+            width: 38px;
+            height: 38px;
             overflow: hidden;
 
             border: none;
             border-radius: 50%;
 
-            background: linear-gradient(135deg, #a326ff, #236eff);
+            background: radial-gradient(circle at 70% 65%, #5086ff, #4f12ff);
+            box-shadow: inset 0 0 6px #ffffff55;
             color: #ffffff;
 
             font-family: 'DM Sans', sans-serif;
@@ -1257,10 +1454,6 @@
                         {
                             <span class="topbar-badge">@(unread > 9 ? "9+" : unread.ToString())</span>
                         }
-                    </a>
-
-                    <a href="/Campaigns/Create" class="topbar-cta">
-                        <span>Create Campaign</span>
                     </a>
 
                     @{

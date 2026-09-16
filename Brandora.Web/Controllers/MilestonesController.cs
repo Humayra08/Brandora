@@ -154,7 +154,7 @@ public class MilestonesController(UserManager<ApplicationUser> userManager, Appl
         milestone.ProofNotes = model.ProofNotes;
         milestone.Status = MilestoneStatus.Submitted;
 
-        notifications.Notify(
+        await notifications.NotifyAsync(
             userManager.GetUserId(User)!,
             "Milestone",
             "Submission logged",
@@ -190,7 +190,7 @@ public class MilestonesController(UserManager<ApplicationUser> userManager, Appl
         {
             milestone.Status = MilestoneStatus.Approved;
 
-            notifications.Notify(
+            await notifications.NotifyAsync(
                 milestone.Collaboration.InfluencerProfile.UserId,
                 "Milestone",
                 "Milestone approved",

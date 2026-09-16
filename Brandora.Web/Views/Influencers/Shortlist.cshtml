@@ -184,10 +184,23 @@
     Back to Dashboard
 </a>
 
-<div class="page-head">
-    <h1 class="page-title">Your Shortlist</h1>
-    <p class="page-sub">@Model.Count creator@(Model.Count == 1 ? "" : "s") saved for comparison.</p>
-</div>
+<section class="page-hero">
+    <div class="page-hero-intro">
+        <p class="page-hero-eyebrow">Shortlist</p>
+        <h1 class="page-hero-title">Your <span>Shortlist</span></h1>
+        <p class="page-hero-sub">@Model.Count creator@(Model.Count == 1 ? "" : "s") saved for comparison.</p>
+    </div>
+
+    <div class="page-hero-art" aria-hidden="true">
+        <div class="hero-glass hero-glass-back"></div>
+        <div class="hero-glass hero-glass-front">
+            <span class="hero-glass-copy">Save<br />Compare<br />Decide<span></span></span>
+        </div>
+        <span class="hero-sparkle"></span>
+    </div>
+
+    <div class="page-hero-motto">Your Creators.<br />Your Choice.<span></span></div>
+</section>
 
 @if (Model.Count > 0)
 {

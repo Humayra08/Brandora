@@ -285,13 +285,26 @@
     Back to Dashboard
 </a>
 
-<div class="page-head">
-    <div>
-        <h1 class="page-title">Campaigns</h1>
-        <p class="page-sub">@Model.TotalCount campaign@(Model.TotalCount == 1 ? "" : "s") in your workspace.</p>
+<section class="page-hero">
+    <div class="page-hero-intro">
+        <p class="page-hero-eyebrow">Campaigns</p>
+        <h1 class="page-hero-title">Your <span>Campaigns</span></h1>
+        <p class="page-hero-sub">Create, manage and track every creator campaign from one place.</p>
+        <div class="hero-actions" style="margin-top: 16px;">
+            <a href="/Campaigns/Create" class="btn btn-primary">Create a Campaign</a>
+        </div>
     </div>
-    <a href="/Campaigns/Create" class="btn btn-primary">Create Campaign</a>
-</div>
+
+    <div class="page-hero-art" aria-hidden="true">
+        <div class="hero-glass hero-glass-back"></div>
+        <div class="hero-glass hero-glass-front">
+            <span class="hero-glass-copy">Create<br />Collaborate<br />Get Rewarded<span></span></span>
+        </div>
+        <span class="hero-sparkle"></span>
+    </div>
+
+    <div class="page-hero-motto">Real Brands.<br />Real Opportunities.<span></span></div>
+</section>
 
 <form method="get" action="/Campaigns" class="filter-bar">
 
@@ -313,7 +326,7 @@
 
     <div class="filter-spacer"></div>
 
-    <input type="text" name="search" class="filter-input" placeholder="Search campaigns..." value="@Model.Search" />
+    <input type="text" name="search" class="filter-input" placeholder="Search your campaigns" value="@Model.Search" />
 
     <select name="sort" class="filter-select" onchange="this.form.submit()">
         <option value="" selected="@(string.IsNullOrEmpty(Model.Sort))">Newest first</option>
@@ -401,9 +414,9 @@
 else if (Model.TotalCount == 0)
 {
     <div class="panel empty-block" style="margin-top: 24px;">
-        <div class="empty-title">Your first campaign starts here</div>
-        <p class="empty-text">Create a campaign to define your budget, platform, and creative direction — then invite creators once discovery launches.</p>
-        <a href="/Campaigns/Create" class="btn btn-primary" style="margin-top: 16px;">Create Campaign</a>
+        <div class="empty-title">Your next campaign starts here</div>
+        <p class="empty-text">You haven't launched a campaign yet. Define your goals, set your milestones and discover creators who can bring your campaign to life.</p>
+        <a href="/Campaigns/Create" class="btn btn-primary" style="margin-top: 16px;">Create Your First Campaign</a>
     </div>
 }
 else

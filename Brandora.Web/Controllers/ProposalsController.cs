@@ -88,7 +88,7 @@ public class ProposalsController(UserManager<ApplicationUser> userManager, Appli
         db.Proposals.Add(proposal);
         await db.SaveChangesAsync();
 
-        notifications.Notify(
+        await notifications.NotifyAsync(
             creator.UserId,
             "Proposal",
             "New campaign invite",
@@ -230,7 +230,7 @@ public class ProposalsController(UserManager<ApplicationUser> userManager, Appli
 
         await db.SaveChangesAsync();
 
-        notifications.Notify(
+        await notifications.NotifyAsync(
             proposal.InfluencerProfile.UserId,
             "Collaboration",
             "Collaboration started",

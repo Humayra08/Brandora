@@ -13,121 +13,23 @@
 @section Styles {
 
     /* =========================================================
-       HERO — premium Brandora social/brand collaboration visual
-       No human imagery. Existing dashboard data/routes preserved.
+       HERO — actions row only; the hero card itself (background,
+       heading, glass-card visual, motto) is the shared .page-hero
+       component in _AppLayout.cshtml, matching the Influencer side.
     ========================================================= */
-
-    .hero-card {
-        position: relative;
-        overflow: hidden;
-        min-height: 298px;
-        padding: 36px 42px 32px;
-        border-radius: 22px;
-        background:
-            radial-gradient(circle at 78% 48%, rgba(170, 65, 255, .30), transparent 25%),
-            radial-gradient(circle at 96% 15%, rgba(34, 174, 255, .22), transparent 28%),
-            radial-gradient(circle at 60% 110%, rgba(255, 53, 195, .17), transparent 36%),
-            linear-gradient(145deg, #150b38 0%, #21104e 46%, #301666 72%, #17124a 100%);
-        color: #ffffff;
-        box-shadow: 0 22px 55px rgba(32, 14, 82, .17);
-        isolation: isolate;
-        animation: brandora-hero-enter .65s cubic-bezier(.22,1,.36,1) both;
-    }
-
-    .hero-card::before {
-        content: "";
-        position: absolute;
-        inset: 0;
-        z-index: -2;
-        pointer-events: none;
-        background:
-            linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
-        background-size: 42px 42px;
-        mask-image: linear-gradient(to right, transparent 0%, rgba(0,0,0,.95) 48%, transparent 100%);
-        opacity: .42;
-    }
-
-    .hero-card::after {
-        content: "";
-        position: absolute;
-        inset: -25%;
-        z-index: -3;
-        pointer-events: none;
-        background:
-            radial-gradient(ellipse at 72% 42%, rgba(160, 55, 255, .22), transparent 32%),
-            radial-gradient(ellipse at 96% 80%, rgba(31, 166, 255, .12), transparent 34%);
-        filter: blur(12px);
-        animation: hero-ambient 14s ease-in-out infinite alternate;
-    }
-
-    @@keyframes brandora-hero-enter {
-        from { opacity: 0; transform: translateY(10px) scale(.988); }
-        to { opacity: 1; transform: translateY(0) scale(1); }
-    }
-
-    @@keyframes hero-ambient {
-        from { transform: translate3d(-1%, 0, 0) scale(1); }
-        to { transform: translate3d(2%, -2%, 0) scale(1.05); }
-    }
-
-    .hero-content {
-        position: relative;
-        z-index: 10;
-        max-width: 590px;
-    }
-
-    .hero-eyebrow {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        font-family: 'Inter', sans-serif;
-        font-size: 10.5px;
-        font-weight: 800;
-        letter-spacing: 2.5px;
-        text-transform: uppercase;
-        color: rgba(255,255,255,.72);
-    }
-
-    .hero-eyebrow::before {
-        content: "";
-        width: 7px;
-        height: 7px;
-        border-radius: 50%;
-        background: linear-gradient(135deg, #d43cff, #24a9ff);
-        box-shadow: 0 0 13px rgba(190,61,255,.85);
-    }
-
-    .hero-title {
-        margin-top: 12px;
-        font-family: 'Playfair Display', serif;
-        font-weight: 600;
-        font-size: clamp(25px, 2.8vw, 34px);
-        line-height: 1.18;
-        letter-spacing: -.4px;
-    }
-
-    .hero-accent {
-        background: linear-gradient(100deg, #e4c4ff 0%, #bd8cff 42%, #80c9ff 78%, #b6ecff 100%);
-        -webkit-background-clip: text;
-        background-clip: text;
-        color: transparent;
-    }
-
-    .hero-sub {
-        margin-top: 10px;
-        max-width: 500px;
-        font-family: 'Inter', sans-serif;
-        font-size: 13.5px;
-        line-height: 1.65;
-        color: rgba(255,255,255,.74);
-    }
 
     .hero-actions {
         margin-top: 20px;
         display: flex;
         flex-wrap: wrap;
         gap: 11px;
+    }
+
+    .hero-cta-caption {
+        margin-top: 10px;
+        font-family: 'Inter', sans-serif;
+        font-size: 11.5px;
+        color: #9096b3;
     }
 
     .hero-cta,
@@ -195,125 +97,7 @@
 
     /* Social-media / brand partnership visual */
 
-    .hero-social-visual {
-        position: absolute;
-        right: 6px;
-        top: 50%;
-        width: 462px;
-        height: 302px;
-        transform: translateY(-50%);
-        pointer-events: none;
-        z-index: 1;
-    }
-
-    .hero-visual-glow {
-        position: absolute;
-        inset: -14% -8%;
-        border-radius: 50%;
-        pointer-events: none;
-        background:
-            radial-gradient(circle at 56% 50%, rgba(163,38,255,.38), transparent 62%),
-            radial-gradient(circle at 78% 30%, rgba(35,110,234,.26), transparent 58%),
-            radial-gradient(circle at 34% 74%, rgba(24,169,255,.20), transparent 60%);
-        filter: blur(26px);
-        animation: hero-visual-glow 9s ease-in-out infinite alternate;
-    }
-
-    .hero-visual-img {
-        position: absolute;
-        inset: 0;
-        width: 100%;
-        height: 100%;
-        object-fit: contain;
-        object-position: center;
-        mix-blend-mode: screen;
-        filter: saturate(1.18) contrast(1.42) brightness(.86) drop-shadow(0 18px 42px rgba(120,40,255,.42));
-        -webkit-mask-image: radial-gradient(ellipse 63% 71% at 53% 50%, #000 40%, rgba(0,0,0,.45) 68%, transparent 89%);
-        mask-image: radial-gradient(ellipse 63% 71% at 53% 50%, #000 40%, rgba(0,0,0,.45) 68%, transparent 89%);
-        animation: hero-visual-float 7s ease-in-out infinite;
-    }
-
-    .hero-particle {
-        position: absolute;
-        width: 4px;
-        height: 4px;
-        border-radius: 50%;
-        background: #ffffff;
-        box-shadow: 0 0 12px rgba(208,163,255,.9);
-        animation: particle-pulse 4s ease-in-out infinite;
-    }
-
-    .hero-particle.p1 { right: 40%; top: 17%; }
-    .hero-particle.p2 { right: 17%; top: 24%; animation-delay: -1.3s; }
-    .hero-particle.p3 { right: 8%; bottom: 24%; animation-delay: -2.2s; }
-    .hero-particle.p4 { right: 45%; bottom: 18%; animation-delay: -3.2s; }
-
-    @@keyframes hero-visual-float {
-        0%, 100% { transform: translateY(0) scale(1); }
-        50% { transform: translateY(-10px) scale(1.012); }
-    }
-
-    @@keyframes hero-visual-glow {
-        from { opacity: .72; transform: scale(1) translateX(0); }
-        to { opacity: 1; transform: scale(1.07) translateX(-2%); }
-    }
-
-    @@keyframes particle-pulse {
-        0%, 100% { opacity: .2; transform: scale(.6); }
-        50% { opacity: 1; transform: scale(1.35); }
-    }
-
-    @@media (prefers-reduced-motion: reduce) {
-        .hero-card,
-        .hero-card::after,
-        .hero-card *,
-        .hero-card::before {
-            animation: none !important;
-            transition: none !important;
-        }
-    }
-
-    @@media(max-width: 1050px) {
-        .hero-social-visual {
-            right: -55px;
-            opacity: .55;
-        }
-
-        .hero-content {
-            max-width: 63%;
-        }
-    }
-
-    @@media(max-width: 820px) {
-        .hero-card {
-            min-height: 330px;
-            padding: 28px 22px 26px;
-        }
-
-        .hero-content {
-            max-width: 100%;
-        }
-
-        .hero-social-visual {
-            right: -130px;
-            opacity: .25;
-        }
-    }
-
     @@media(max-width: 560px) {
-        .hero-card {
-            min-height: auto;
-            padding: 26px 20px;
-        }
-
-        .hero-social-visual {
-            display: none;
-        }
-
-        .hero-title {
-            font-size: 27px;
-        }
-
         .hero-actions {
             flex-direction: column;
             align-items: stretch;
@@ -1381,42 +1165,38 @@
         .split-grid { grid-template-columns: 1fr; }
     }
 
-    @@media(max-width: 820px) {
-        .hero-card { padding: 28px 22px 26px; }
-    }
-
 }
 
-<section class="hero-card" id="dashHero">
+<section class="page-hero" id="dashHero">
 
-    <span class="hero-particle p1" aria-hidden="true"></span>
-    <span class="hero-particle p2" aria-hidden="true"></span>
-    <span class="hero-particle p3" aria-hidden="true"></span>
-    <span class="hero-particle p4" aria-hidden="true"></span>
+    <div class="page-hero-intro">
+        <p class="page-hero-eyebrow">Good to see you again,</p>
 
-    <div class="hero-social-visual" aria-hidden="true">
-        <span class="hero-visual-glow"></span>
-        <img src="~/images/branddashboard.png" alt="" class="hero-visual-img" />
-    </div>
-
-    <div class="hero-content">
-        <div class="hero-eyebrow">Brandora &middot; Brand Workspace</div>
-
-        <h1 class="hero-title">
-            Where @Model.CompanyName builds its
-            <span class="hero-accent">creator partnerships</span>.
+        <h1 class="page-hero-title">
+            <span>@Model.CompanyName</span>
         </h1>
 
-        <p class="hero-sub">
-            Track every campaign, review every creator, and move each collaboration
-            forward &mdash; from first invite to final payment.
+        <p class="page-hero-sub">
+            Your next great creator collaboration starts here. Discover the right voices,
+            manage your campaigns and keep every collaboration moving forward.
         </p>
 
         <div class="hero-actions">
-            <a href="/Campaigns/Create" class="hero-cta">Create Campaign</a>
+            <a href="/Campaigns/Create" class="hero-cta">Create a Campaign</a>
             <a href="/Influencers" class="hero-cta-ghost">Discover Creators</a>
         </div>
+        <p class="hero-cta-caption">Turn your next idea into a structured creator campaign.</p>
     </div>
+
+    <div class="page-hero-art" aria-hidden="true">
+        <div class="hero-glass hero-glass-back"></div>
+        <div class="hero-glass hero-glass-front">
+            <span class="hero-glass-copy">Turn<br />Your Creativity<br />into Opportunities<span></span></span>
+        </div>
+        <span class="hero-sparkle"></span>
+    </div>
+
+    <div class="page-hero-motto">Create<br />Collaborate<br />Get Rewarded<span></span></div>
 
 </section>
 
@@ -1425,25 +1205,25 @@
     <a href="/Campaigns?status=Active" class="metric-block tone-violet" data-reveal>
         <div class="metric-value" data-count-to="@Model.ActiveCount">0</div>
         <div class="metric-label">Active Campaigns</div>
-        <div class="metric-context">@(Model.ActiveCount > 0 ? "Currently running with creators" : "Publish a draft to get one running")</div>
+        <div class="metric-context">Campaigns currently running with creators</div>
     </a>
 
     <a href="/Campaigns?status=Draft" class="metric-block tone-amber" data-reveal>
         <div class="metric-value" data-count-to="@Model.DraftCount">0</div>
         <div class="metric-label">Drafts</div>
-        <div class="metric-context">Ready to publish</div>
+        <div class="metric-context">Started but not yet published</div>
     </a>
 
     <a href="/Campaigns?status=Published" class="metric-block tone-blue" data-reveal>
         <div class="metric-value" data-count-to="@Model.PublishedCount">0</div>
         <div class="metric-label">Published</div>
-        <div class="metric-context">Open to creators</div>
+        <div class="metric-context">Live and open to creator applications</div>
     </a>
 
     <a href="/Campaigns?status=Completed" class="metric-block tone-purple" data-reveal>
         <div class="metric-value" data-count-to="@Model.CompletedCount">0</div>
-        <div class="metric-label">Completed</div>
-        <div class="metric-context">Delivered campaigns</div>
+        <div class="metric-label">Completed Campaigns</div>
+        <div class="metric-context">Campaigns successfully completed</div>
     </a>
 
     <a href="/Proposals?status=Pending" class="metric-block tone-magenta" data-reveal>
@@ -1453,7 +1233,7 @@
         }
         <div class="metric-value" data-count-to="@Model.PendingProposalCount">0</div>
         <div class="metric-label">Pending Proposals</div>
-        <div class="metric-context">@(Model.PendingProposalCount > 0 ? "Awaiting your confirmation" : "Nothing waiting on you")</div>
+        <div class="metric-context">Creator proposals waiting for your response</div>
     </a>
 
     <a href="/Influencers/Shortlist" class="metric-block tone-mint" data-reveal>
@@ -1467,8 +1247,8 @@
 <section class="dash-section" data-reveal>
     <div class="dash-section-head">
         <div>
-            <div class="dash-section-title">Campaign Workspace</div>
-            <div class="dash-section-sub">Where things stand, at a glance.</div>
+            <div class="dash-section-title">Your Active Campaigns</div>
+            <div class="dash-section-sub">Keep track of the campaigns currently moving from planning to creator delivery.</div>
         </div>
         <a href="/Campaigns" class="dash-section-link">View All Campaigns &rarr;</a>
     </div>
@@ -1528,9 +1308,9 @@
     else
     {
         <div class="empty-block">
-            <div class="empty-title">Your campaign workspace is empty</div>
-            <p class="empty-text">Create your first campaign to define a budget, platform, and creative direction &mdash; then invite creators once discovery launches.</p>
-            <a href="/Campaigns/Create" class="btn btn-primary" style="margin-top: 16px;">Create Campaign</a>
+            <div class="empty-title">Your next campaign starts here</div>
+            <p class="empty-text">You haven't launched a campaign yet. Define your goals, set your milestones and discover creators who can bring your campaign to life.</p>
+            <a href="/Campaigns/Create" class="btn btn-primary" style="margin-top: 16px;">Create Your First Campaign</a>
         </div>
     }
 </section>
@@ -1539,7 +1319,7 @@
 
     <div class="tinted-panel">
         <div class="panel-title">What Needs Your Attention</div>
-        <div class="panel-sub">Real actions waiting on you &mdash; nothing more.</div>
+        <div class="panel-sub">Stay ahead of proposals, milestones and approvals that need a decision from you.</div>
 
         @if (Model.AttentionItems.Count > 0)
         {
@@ -1810,7 +1590,7 @@
 
     <div class="list-panel">
         <div class="panel-title">Recent Activity</div>
-        <div class="panel-sub">What's happened across your workspace.</div>
+        <div class="panel-sub">A quick look at what has changed across your campaigns and creator collaborations.</div>
 
         @if (Model.RecentActivity.Count > 0)
         {

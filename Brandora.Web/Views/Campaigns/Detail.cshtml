@@ -161,9 +161,80 @@
         gap: 8px;
     }
 
+    .info-section {
+        margin-top: 20px;
+        padding: 26px 30px;
+
+        border-radius: 18px;
+        background: #ffffff;
+        border: 1px solid #eaecf5;
+    }
+
+    .info-section-title {
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 700;
+        font-size: 15.5px;
+        color: #171d3d;
+    }
+
+    .info-section-sub {
+        margin-top: 4px;
+        font-family: 'Inter', sans-serif;
+        font-size: 12.5px;
+        color: #8189a8;
+    }
+
+    .info-section-body {
+        margin-top: 16px;
+        font-family: 'Inter', sans-serif;
+        font-size: 13.5px;
+        line-height: 1.75;
+        color: #3c4363;
+        white-space: pre-wrap;
+    }
+
+    .info-grid {
+        margin-top: 16px;
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px 24px;
+    }
+
+    .info-grid-label {
+        font-family: 'Inter', sans-serif;
+        font-size: 10.5px;
+        font-weight: 600;
+        letter-spacing: .3px;
+        text-transform: uppercase;
+        color: #9096b3;
+    }
+
+    .info-grid-value {
+        margin-top: 3px;
+        font-family: 'Inter', sans-serif;
+        font-size: 13px;
+        color: #171d3d;
+    }
+
+    .progress-mini-track {
+        margin-top: 10px;
+        height: 8px;
+        border-radius: 8px;
+        background: #e8eaf5;
+        overflow: hidden;
+    }
+
+    .progress-mini-fill {
+        height: 100%;
+        border-radius: 8px;
+        background: linear-gradient(90deg, #a326ff, #236eff);
+    }
+
     @@media(max-width: 760px) {
         .detail-figures { grid-template-columns: repeat(3, 1fr); gap: 12px; }
         .soon-grid { grid-template-columns: 1fr; }
+        .info-grid { grid-template-columns: 1fr; }
+        .info-section { padding: 20px 18px; }
     }
 
 }
@@ -204,6 +275,9 @@
 
         <a href="/Campaigns/Edit/@campaign.Id" class="btn btn-secondary">Edit</a>
     </div>
+
+    <div class="detail-crumb" style="margin-top: 18px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; color: #9b2cff;">Campaign Overview</div>
+    <p class="section-desc" style="margin-top: 4px; font-family:'Inter',sans-serif; font-size: 12.5px; color: #8189a8;">Everything you need to monitor your campaign, creators, milestones and progress in one workspace.</p>
 
     <div class="detail-card">
 
@@ -285,5 +359,92 @@
         </div>
 
     </div>
+
+    @if (!string.IsNullOrEmpty(campaign.ContentGuidelines))
+    {
+        <div class="info-section">
+            <div class="info-section-title">Content Guidelines</div>
+            <p class="info-section-sub">The tone, visual direction, messaging requirements and content expectations shared with creators.</p>
+            <p class="info-section-body">@campaign.ContentGuidelines</p>
+        </div>
+    }
+
+    @{
+        var hasTargeting = !string.IsNullOrWhiteSpace(campaign.TargetLocation)
+            || campaign.TargetFollowersMin.HasValue || campaign.TargetFollowersMax.HasValue
+            || campaign.TargetEngagementRateMin.HasValue || campaign.TargetVerifiedOnly;
+    }
+
+    <div class="info-section">
+        <div class="info-section-title">Targeting</div>
+        <p class="info-section-sub">The audience, platform and creator characteristics selected for this campaign.</p>
+
+        @if (!hasTargeting)
+        {
+            <p class="info-section-body" style="color:#9096b3;">Open to all creators — no targeting criteria set for this campaign.</p>
+        }
+        else
+        {
+            <div class="info-grid">
+                @if (!string.IsNullOrEmpty(campaign.Platform))
+                {
+                    <div><div class="info-grid-label">Platform</div><div class="info-grid-value">@campaign.Platform</div></div>
+                }
+                @if (!string.IsNullOrEmpty(campaign.TargetLocation))
+                {
+                    <div><div class="info-grid-label">Location</div><div class="info-grid-value">@campaign.TargetLocation</div></div>
+                }
+                @if (campaign.TargetFollowersMin.HasValue || campaign.TargetFollowersMax.HasValue)
+                {
+                    <div><div class="info-grid-label">Follower Range</div><div class="info-grid-value">@(campaign.TargetFollowersMin?.ToString("N0") ?? "Any") – @(campaign.TargetFollowersMax?.ToString("N0") ?? "Any")</div></div>
+                }
+                @if (campaign.TargetEngagementRateMin.HasValue)
+                {
+                    <div><div class="info-grid-label">Engagement Rate</div><div class="info-grid-value">@campaign.TargetEngagementRateMin.Value.ToString("0.0")%+</div></div>
+                }
+                @if (campaign.TargetVerifiedOnly)
+                {
+                    <div><div class="info-grid-label">Verification</div><div class="info-grid-value">Verified creators preferred</div></div>
+                }
+            </div>
+        }
+        <a href="/Influencers?campaignId=@campaign.Id" class="btn btn-secondary" style="margin-top: 16px;">Discover Matching Creators</a>
+    </div>
+
+    @if (Model.MilestonePlans.Count > 0 || Model.TotalMilestoneCount > 0)
+    {
+        <div class="info-section">
+            <div class="info-section-title">Milestone Progress</div>
+            <p class="info-section-sub">Deliverables planned for this campaign and how far real collaborations have progressed.</p>
+
+            @if (Model.TotalMilestoneCount > 0)
+            {
+                var pct = (int)Math.Round(Model.PaidMilestoneCount * 100.0 / Model.TotalMilestoneCount);
+                <div class="info-grid">
+                    <div><div class="info-grid-label">Milestones Paid</div><div class="info-grid-value">@Model.PaidMilestoneCount of @Model.TotalMilestoneCount</div></div>
+                    <div><div class="info-grid-label">Progress</div><div class="info-grid-value">@pct%</div></div>
+                </div>
+                <div class="progress-mini-track"><div class="progress-mini-fill" style="width: @pct%;"></div></div>
+            }
+            else
+            {
+                <p class="info-section-body" style="color:#9096b3;">@Model.MilestonePlans.Count milestone@(Model.MilestonePlans.Count == 1 ? "" : "s") planned — these become real, trackable deliverables once a creator's proposal is accepted.</p>
+            }
+        </div>
+    }
+
+    @if (Model.PendingPaymentsAmount > 0 || campaign.SpentAmount > 0)
+    {
+        <div class="info-section">
+            <div class="info-section-title">Payment Overview</div>
+            <p class="info-section-sub">Funding committed and released across this campaign's collaborations.</p>
+
+            <div class="info-grid">
+                <div><div class="info-grid-label">Spent</div><div class="info-grid-value">৳@campaign.SpentAmount.ToString("N0")</div></div>
+                <div><div class="info-grid-label">Pending</div><div class="info-grid-value">৳@Model.PendingPaymentsAmount.ToString("N0")</div></div>
+            </div>
+            <a href="/Payments" class="btn btn-secondary" style="margin-top: 16px;">View Payments</a>
+        </div>
+    }
 
 </div>

@@ -28,4 +28,19 @@ public class BrandSettingsViewModel
 
     [ValidateNever]
     public string? ExistingProfilePictureUrl { get; set; }
+
+    [ValidateNever]
+    public NotificationPreferencesFormViewModel NotificationPreferences { get; set; } = new();
+
+    [ValidateNever]
+    public decimal TotalFunded { get; set; }
+
+    [ValidateNever]
+    public decimal PendingPayments { get; set; }
+
+    [ValidateNever]
+    public decimal ReleasedPayments { get; set; }
+
+    [ValidateNever]
+    public decimal CampaignSpend { get; set; }
 }

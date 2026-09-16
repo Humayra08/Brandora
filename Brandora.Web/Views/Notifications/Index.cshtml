@@ -145,20 +145,32 @@
     Back to Dashboard
 </a>
 
-<div class="page-head">
-    <div>
-        <h1 class="page-title">Notifications</h1>
-        <p class="page-sub">@(unreadCount > 0 ? $"{unreadCount} unread" : "You're all caught up")</p>
+<section class="page-hero">
+    <div class="page-hero-intro">
+        <p class="page-hero-eyebrow">Notifications</p>
+        <h1 class="page-hero-title">Stay <span>Informed</span></h1>
+        <p class="page-hero-sub">Proposals, campaign activity, milestones, messages and payments that need your attention.</p>
+        <p class="page-hero-sub" style="margin-top: 4px; font-weight: 700; color: #7a2df3;">@(unreadCount > 0 ? $"{unreadCount} unread" : "You're all caught up")</p>
+
+        @if (unreadCount > 0)
+        {
+            <form method="post" action="/Notifications/MarkAllRead" style="margin-top: 14px;">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-secondary">Mark All Read</button>
+            </form>
+        }
     </div>
 
-    @if (unreadCount > 0)
-    {
-        <form method="post" action="/Notifications/MarkAllRead">
-            @Html.AntiForgeryToken()
-            <button type="submit" class="btn btn-secondary">Mark All Read</button>
-        </form>
-    }
-</div>
+    <div class="page-hero-art" aria-hidden="true">
+        <div class="hero-glass hero-glass-back"></div>
+        <div class="hero-glass hero-glass-front">
+            <span class="hero-glass-copy">Stay<br />Updated<br />Always<span></span></span>
+        </div>
+        <span class="hero-sparkle"></span>
+    </div>
+
+    <div class="page-hero-motto">Nothing<br />Missed.<span></span></div>
+</section>
 
 @if (Model.Count > 0)
 {
@@ -182,7 +194,7 @@
 else
 {
     <div class="panel empty-block" style="margin-top: 24px; max-width: 480px;">
-        <div class="empty-title">No notifications yet</div>
-        <p class="empty-text">Activity across your campaigns, proposals, and payments will show up here.</p>
+        <div class="empty-title">You're all caught up</div>
+        <p class="empty-text">New campaign activity, creator updates and important account notifications will appear here.</p>
     </div>
 }

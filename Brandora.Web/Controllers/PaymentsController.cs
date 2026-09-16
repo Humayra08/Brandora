@@ -109,7 +109,7 @@ public class PaymentsController(UserManager<ApplicationUser> userManager, Applic
 
             payment.Collaboration.Campaign.SpentAmount += payment.Amount;
 
-            notifications.Notify(
+            await notifications.NotifyAsync(
                 payment.Collaboration.InfluencerProfile.UserId,
                 "Payment",
                 "Payment received",

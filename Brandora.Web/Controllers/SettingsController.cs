@@ -21,6 +21,13 @@ public class SettingsController(UserManager<ApplicationUser> userManager, Applic
         var user = await userManager.GetUserAsync(User);
         ViewData["Email"] = user?.Email;
 
+        var userId = userManager.GetUserId(User)!;
+        var prefs = await db.NotificationPreferences.AsNoTracking().FirstOrDefaultAsync(p => p.UserId == userId);
+
+        var payments = await db.Payments
+            .Where(p => p.Collaboration.Campaign.BrandProfileId == brand.Id)
+            .ToListAsync();
+
         return View(new BrandSettingsViewModel
         {
             CompanyName = brand.CompanyName,
@@ -28,8 +35,55 @@ public class SettingsController(UserManager<ApplicationUser> userManager, Applic
             WebsiteUrl = brand.WebsiteUrl,
             Industry = brand.Industry,
             MonthlyBudget = brand.MonthlyBudget,
-            ExistingProfilePictureUrl = brand.ProfilePictureUrl
+            ExistingProfilePictureUrl = brand.ProfilePictureUrl,
+            NotificationPreferences = prefs is null
+                ? new NotificationPreferencesFormViewModel { NewProposals = true, ProposalUpdates = true, Messages = true, MilestoneUpdates = true, PaymentUpdates = true, CampaignDeadlines = true }
+                : new NotificationPreferencesFormViewModel
+                {
+                    NewProposals = prefs.NewProposals,
+                    ProposalUpdates = prefs.ProposalUpdates,
+                    Messages = prefs.Messages,
+                    MilestoneUpdates = prefs.MilestoneUpdates,
+                    PaymentUpdates = prefs.PaymentUpdates,
+                    CampaignDeadlines = prefs.CampaignDeadlines
+                },
+            TotalFunded = payments.Sum(p => p.Amount),
+            PendingPayments = payments.Where(p => p.Status == PaymentStatus.Pending).Sum(p => p.Amount),
+            ReleasedPayments = payments.Where(p => p.Status == PaymentStatus.Completed).Sum(p => p.Amount),
+            CampaignSpend = await db.Campaigns.Where(c => c.BrandProfileId == brand.Id).SumAsync(c => c.SpentAmount)
         });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> UpdateNotificationPreferences(NotificationPreferencesFormViewModel model)
+    {
+        var brand = await GetCurrentBrandAsync();
+        if (brand is null)
+        {
+            return RedirectToAction("Index", "Home");
+        }
+
+        var userId = userManager.GetUserId(User)!;
+        var prefs = await db.NotificationPreferences.FirstOrDefaultAsync(p => p.UserId == userId);
+
+        if (prefs is null)
+        {
+            prefs = new NotificationPreference { UserId = userId };
+            db.NotificationPreferences.Add(prefs);
+        }
+
+        prefs.NewProposals = model.NewProposals;
+        prefs.ProposalUpdates = model.ProposalUpdates;
+        prefs.Messages = model.Messages;
+        prefs.MilestoneUpdates = model.MilestoneUpdates;
+        prefs.PaymentUpdates = model.PaymentUpdates;
+        prefs.CampaignDeadlines = model.CampaignDeadlines;
+
+        await db.SaveChangesAsync();
+
+        TempData["NotificationPrefsSaved"] = "true";
+        return Redirect("/Settings#notifications");
     }
 
     public async Task<IActionResult> Profile()

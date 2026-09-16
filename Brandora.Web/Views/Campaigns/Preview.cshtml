@@ -10,19 +10,7 @@
 
     .wizard-shell { max-width: 1100px; margin: 0 auto; animation: fade-up .4s ease both; }
 
-    .wizard-hero {
-        position: relative; overflow: hidden; padding: 30px 34px; border-radius: 22px;
-        background:
-            radial-gradient(circle at 85% 20%, rgba(163,38,255,.14), transparent 40%),
-            radial-gradient(circle at 100% 90%, rgba(24,169,255,.14), transparent 45%),
-            linear-gradient(120deg, #eef3ff 0%, #f7f2ff 55%, #eaf6ff 100%);
-        border: 1px solid #e3e7fb;
-    }
-    .wizard-hero-eyebrow { font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 1.8px; text-transform: uppercase; color: #7a2df3; }
-    .wizard-hero-title { margin-top: 10px; max-width: 560px; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 32px; line-height: 1.1; color: #171d3d; }
-    .wizard-hero-sub { margin-top: 10px; max-width: 480px; font-family: 'Inter', sans-serif; font-size: 13.5px; color: #5d6488; }
-    .wizard-hero-motto { position: absolute; right: 40px; top: 30px; max-width: 220px; text-align: right; font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 15px; line-height: 1.4; color: #2a3157; opacity: .85; }
-    .wizard-hero-motto span { display: block; margin-top: 6px; width: 34px; height: 3px; margin-left: auto; border-radius: 3px; background: linear-gradient(90deg, #a326ff, #18a9ff); }
+    /* Hero — shared .page-hero component (see _AppLayout.cshtml). */
 
     .wizard-stepper { margin-top: 18px; padding: 18px 26px; display: flex; align-items: flex-start; border-radius: 16px; background: #ffffff; border: 1px solid #eaecf5; }
     .wizard-step { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
@@ -91,18 +79,29 @@
     .form-actions { margin-top: 22px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 
     @@media(max-width: 960px) { .wizard-columns { grid-template-columns: 1fr; } .wizard-side { position: static; } }
-    @@media(max-width: 700px) { .wizard-hero-motto { display: none; } .wizard-stepper { flex-wrap: wrap; gap: 12px 0; } .wizard-step-line { display: none; } .wizard-step-text span { display: none; } }
+    @@media(max-width: 700px) { .wizard-stepper { flex-wrap: wrap; gap: 12px 0; } .wizard-step-line { display: none; } .wizard-step-text span { display: none; } }
     @@media(max-width: 600px) { .review-grid { grid-template-columns: 1fr; } .review-field-value.full { grid-column: span 1; } }
 
 }
 
 <div class="wizard-shell">
 
-    <section class="wizard-hero">
-        <div class="wizard-hero-eyebrow">Create Campaign</div>
-        <h1 class="wizard-hero-title">Review &amp; Publish</h1>
-        <p class="wizard-hero-sub">Everything looks great! Review your campaign details and publish it to start receiving applications from creators.</p>
-        <div class="wizard-hero-motto">Launch Today.<br />Grow Tomorrow.<span></span></div>
+    <section class="page-hero">
+        <div class="page-hero-intro">
+            <p class="page-hero-eyebrow">Create Campaign</p>
+            <h1 class="page-hero-title">Review &amp; <span>Publish</span></h1>
+            <p class="page-hero-sub">Everything looks great! Review your campaign details and publish it to start receiving applications from creators.</p>
+        </div>
+
+        <div class="page-hero-art" aria-hidden="true">
+            <div class="hero-glass hero-glass-back"></div>
+            <div class="hero-glass hero-glass-front">
+                <span class="hero-glass-copy">Ideas<br />Collaborations<br />Real Impact<span></span></span>
+            </div>
+            <span class="hero-sparkle"></span>
+        </div>
+
+        <div class="page-hero-motto">Launch Today.<br />Grow Tomorrow.<span></span></div>
     </section>
 
     <div class="wizard-stepper">

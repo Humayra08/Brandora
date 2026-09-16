@@ -14,75 +14,8 @@
         animation: fade-up .4s ease both;
     }
 
-    /* Hero */
-
-    .wizard-hero {
-        position: relative;
-        overflow: hidden;
-        padding: 30px 34px;
-        border-radius: 22px;
-
-        background:
-            radial-gradient(circle at 85% 20%, rgba(163,38,255,.14), transparent 40%),
-            radial-gradient(circle at 100% 90%, rgba(24,169,255,.14), transparent 45%),
-            linear-gradient(120deg, #eef3ff 0%, #f7f2ff 55%, #eaf6ff 100%);
-        border: 1px solid #e3e7fb;
-    }
-
-    .wizard-hero-eyebrow {
-        font-family: 'Inter', sans-serif;
-        font-size: 11px;
-        font-weight: 700;
-        letter-spacing: 1.8px;
-        text-transform: uppercase;
-        color: #7a2df3;
-    }
-
-    .wizard-hero-title {
-        margin-top: 10px;
-        max-width: 560px;
-
-        font-family: 'Playfair Display', serif;
-        font-weight: 600;
-        font-size: 32px;
-        line-height: 1.1;
-        color: #171d3d;
-    }
-
-    .wizard-hero-sub {
-        margin-top: 10px;
-        max-width: 480px;
-
-        font-family: 'Inter', sans-serif;
-        font-size: 13.5px;
-        color: #5d6488;
-    }
-
-    .wizard-hero-motto {
-        position: absolute;
-        right: 40px;
-        top: 30px;
-
-        max-width: 220px;
-        text-align: right;
-
-        font-family: 'DM Sans', sans-serif;
-        font-weight: 700;
-        font-size: 15px;
-        line-height: 1.4;
-        color: #2a3157;
-        opacity: .85;
-    }
-
-    .wizard-hero-motto span {
-        display: block;
-        margin-top: 6px;
-        width: 34px;
-        height: 3px;
-        margin-left: auto;
-        border-radius: 3px;
-        background: linear-gradient(90deg, #a326ff, #18a9ff);
-    }
+    /* Hero — shared .page-hero component (see _AppLayout.cshtml),
+       matching the Influencer side's hero exactly. */
 
     /* Stepper */
 
@@ -531,7 +464,6 @@
     }
 
     @@media(max-width: 700px) {
-        .wizard-hero-motto { display: none; }
         .wizard-stepper { flex-wrap: wrap; gap: 12px 0; }
         .wizard-step-line { display: none; }
         .wizard-step-text span { display: none; }
@@ -547,14 +479,24 @@
 
 <div class="wizard-shell">
 
-    <section class="wizard-hero">
-        <div class="wizard-hero-eyebrow">@(isEdit ? "Edit Campaign" : "Create Campaign")</div>
-        <h1 class="wizard-hero-title">@(isEdit ? "Refine Your Campaign" : "Launch Your Next Big Campaign")</h1>
-        <p class="wizard-hero-sub">@(isEdit ? "Update the details below — your milestones and targeting stay untouched." : "Share your goals, set milestones, and connect with the right influencers.")</p>
+    <section class="page-hero">
+        <div class="page-hero-intro">
+            <p class="page-hero-eyebrow">@(isEdit ? "Edit Campaign" : "Create Campaign")</p>
+            <h1 class="page-hero-title">@(isEdit ? "Refine Your Campaign" : "Launch Your Next Big Campaign")</h1>
+            <p class="page-hero-sub">@(isEdit ? "Update the details below — your milestones and targeting stay untouched." : "Share your goals, set milestones, and connect with the right influencers.")</p>
+        </div>
 
         @if (!isEdit)
         {
-            <div class="wizard-hero-motto">
+            <div class="page-hero-art" aria-hidden="true">
+                <div class="hero-glass hero-glass-back"></div>
+                <div class="hero-glass hero-glass-front">
+                    <span class="hero-glass-copy">Great<br />Brands Create<br />Opportunities<span></span></span>
+                </div>
+                <span class="hero-sparkle"></span>
+            </div>
+
+            <div class="page-hero-motto">
                 Turn Ideas<br />Into Real Impact.
                 <span></span>
             </div>

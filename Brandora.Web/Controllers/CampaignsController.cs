@@ -541,12 +541,29 @@ public class CampaignsController(UserManager<ApplicationUser> userManager, Appli
         var collaborationCount = await db.Collaborations.CountAsync(c => c.CampaignId == id);
         var conversationCount = await db.Conversations.CountAsync(c => c.CampaignId == id);
 
+        var milestonePlans = await db.CampaignMilestonePlans
+            .Where(p => p.CampaignId == id)
+            .OrderBy(p => p.SortOrder).ThenBy(p => p.Id)
+            .ToListAsync();
+
+        var campaignMilestones = await db.Milestones
+            .Where(m => m.Collaboration.CampaignId == id)
+            .ToListAsync();
+
+        var pendingPayments = await db.Payments
+            .Where(p => p.Collaboration.CampaignId == id && p.Status == PaymentStatus.Pending)
+            .SumAsync(p => p.Amount);
+
         return View(new CampaignDetailViewModel
         {
             Campaign = campaign,
             ApplicantCount = applicantCount,
             CollaborationCount = collaborationCount,
-            ConversationCount = conversationCount
+            ConversationCount = conversationCount,
+            MilestonePlans = milestonePlans,
+            TotalMilestoneCount = campaignMilestones.Count,
+            PaidMilestoneCount = campaignMilestones.Count(m => m.Status == MilestoneStatus.Paid),
+            PendingPaymentsAmount = pendingPayments
         });
     }
 }
