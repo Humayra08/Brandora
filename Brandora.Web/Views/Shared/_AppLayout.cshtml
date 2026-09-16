@@ -1081,60 +1081,13 @@
                 var unread = ViewData["UnreadNotifications"] as int? ?? 0;
             }
 
-            @if (isInfluencer)
-            {
-                <a href="/InfluencerDashboard" class="side-nav-item @(activeNav == "Dashboard" ? "is-active" : "")">
-                    <span class="nav-letter">D</span>
-                    <span class="nav-label side-toggle-hide">Dashboard</span>
-                </a>
-
-                <a href="#" class="side-nav-item is-soon">
-                    <span class="nav-letter">B</span>
-                    <span class="nav-label side-toggle-hide">Browse Campaigns <span class="soon-tag">Soon</span></span>
-                </a>
-
-                <a href="#" class="side-nav-item is-soon">
-                    <span class="nav-letter">P</span>
-                    <span class="nav-label side-toggle-hide">My Proposals <span class="soon-tag">Soon</span></span>
-                </a>
-
-                <a href="#" class="side-nav-item is-soon">
-                    <span class="nav-letter">A</span>
-                    <span class="nav-label side-toggle-hide">Active Campaigns <span class="soon-tag">Soon</span></span>
-                </a>
-
-                <a href="#" class="side-nav-item is-soon">
-                    <span class="nav-letter">C</span>
-                    <span class="nav-label side-toggle-hide">Chat <span class="soon-tag">Soon</span></span>
-                </a>
-
-                <a href="/InfluencerEarnings" class="side-nav-item @(activeNav == "Earnings" ? "is-active" : "")">
-                    <span class="nav-letter">E</span>
-                    <span class="nav-label side-toggle-hide">Earnings</span>
-                </a>
-
-                <a href="#" class="side-nav-item is-soon">
-                    <span class="nav-letter">S</span>
-                    <span class="nav-label side-toggle-hide">Social Accounts <span class="soon-tag">Soon</span></span>
-                </a>
-
-                <a href="#" class="side-nav-item is-soon">
-                    <span class="nav-letter">U</span>
-                    <span class="nav-label side-toggle-hide">Upload Proof <span class="soon-tag">Soon</span></span>
-                </a>
-
-                <a href="#" class="side-nav-item is-soon">
-                    <span class="nav-letter">P</span>
-                    <span class="nav-label side-toggle-hide">Payments <span class="soon-tag">Soon</span></span>
-                </a>
-
-                <a href="#" class="side-nav-item is-soon">
-                    <span class="nav-letter">S</span>
-                    <span class="nav-label side-toggle-hide">Profile Settings <span class="soon-tag">Soon</span></span>
-                </a>
+            @{
+                // _AppLayout is only ever rendered by real Brand-side controllers
+                // (BrandControllerBase); every Influencer-facing page is a
+                // self-contained Layout = null view with its own sidebar
+                // (see Views/Shared/_InfluencerSidebar.cshtml convention), so
+                // this layout only needs to render the Brand nav.
             }
-            else
-            {
                 <a href="/Dashboard" class="side-nav-item @(activeNav == "Dashboard" ? "is-active" : "")">
                     <span class="nav-letter">D</span>
                     <span class="nav-label side-toggle-hide">Dashboard</span>
@@ -1180,7 +1133,6 @@
                     <span class="nav-letter">S</span>
                     <span class="nav-label side-toggle-hide">Settings</span>
                 </a>
-            }
 
         </nav>
         </div>

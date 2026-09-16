@@ -190,11 +190,11 @@ public class MilestonesController(UserManager<ApplicationUser> userManager, Appl
             milestone.Status = MilestoneStatus.Approved;
 
             notifications.Notify(
-                userManager.GetUserId(User)!,
+                milestone.Collaboration.InfluencerProfile.UserId,
                 "Milestone",
                 "Milestone approved",
-                $"\"{milestone.Title}\" for {milestone.Collaboration.InfluencerProfile.FullName} is approved and ready for payment.",
-                $"/Milestones/Detail/{milestone.Id}");
+                $"\"{milestone.Title}\" for {milestone.Collaboration.Campaign.Title} is approved and ready for payment.",
+                "/InfluencerEarnings");
 
             await db.SaveChangesAsync();
         }

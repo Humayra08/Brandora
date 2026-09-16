@@ -298,16 +298,19 @@
 <div class="form-shell">
 
     <div class="form-head">
-        <div class="form-eyebrow">@(isEdit ? "Edit Campaign" : "New Campaign")</div>
+        <div class="form-eyebrow">@(isEdit ? "Edit Campaign" : "Step 1 of 4 · Campaign Details")</div>
         <h1 class="form-title">@(isEdit ? "Refine your campaign" : "Let's build your campaign")</h1>
-        <p class="form-sub">A few details now save a lot of back-and-forth later.</p>
+        <p class="form-sub">@(isEdit ? "A few details now save a lot of back-and-forth later." : "Start with the basics — you'll plan milestones and targeting next.")</p>
 
-        <div class="form-progress">
-            <span class="is-filled"></span>
-            <span class="is-filled"></span>
-            <span class="is-filled"></span>
-            <span class="is-filled"></span>
-        </div>
+        @if (!isEdit)
+        {
+            <div class="form-progress">
+                <span class="is-filled"></span>
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        }
     </div>
 
     @if (!ViewData.ModelState.IsValid)
@@ -346,8 +349,8 @@
 
         <section class="form-section">
             <div class="section-num">02</div>
-            <div class="section-heading">Targeting</div>
-            <p class="section-desc">Where should this campaign run, and who is it for?</p>
+            <div class="section-heading">Platform &amp; Category</div>
+            <p class="section-desc">Where should this campaign run, and what kind of content is it?</p>
 
             <div class="form-fields">
                 <div class="form-field">
@@ -420,7 +423,7 @@
 
         <div class="form-actions">
             <a href="/Campaigns" class="btn btn-ghost">Cancel</a>
-            <button type="submit" class="btn btn-primary">@(isEdit ? "Save Changes" : "Continue to Preview")</button>
+            <button type="submit" class="btn btn-primary">@(isEdit ? "Save Changes" : "Continue to Milestones")</button>
         </div>
 
     </form>

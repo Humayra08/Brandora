@@ -110,11 +110,11 @@ public class PaymentsController(UserManager<ApplicationUser> userManager, Applic
             payment.Collaboration.Campaign.SpentAmount += payment.Amount;
 
             notifications.Notify(
-                userManager.GetUserId(User)!,
+                payment.Collaboration.InfluencerProfile.UserId,
                 "Payment",
-                "Payment confirmed",
-                $"৳{payment.Amount:N0} confirmed for {payment.Collaboration.InfluencerProfile.FullName} on {payment.Collaboration.Campaign.Title}.",
-                "/Payments");
+                "Payment received",
+                $"৳{payment.Amount:N0} confirmed for {payment.Collaboration.Campaign.Title}.",
+                "/InfluencerPayments");
 
             await db.SaveChangesAsync();
         }

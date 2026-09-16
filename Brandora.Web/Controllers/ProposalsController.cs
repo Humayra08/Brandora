@@ -89,11 +89,11 @@ public class ProposalsController(UserManager<ApplicationUser> userManager, Appli
         await db.SaveChangesAsync();
 
         notifications.Notify(
-            userManager.GetUserId(User)!,
+            creator.UserId,
             "Proposal",
-            "Invite sent",
-            $"You invited {creator.FullName} to {campaign.Title} for ৳{model.ProposedAmount:N0}.",
-            $"/Proposals/Detail/{proposal.Id}");
+            "New campaign invite",
+            $"{brand.CompanyName} invited you to \"{campaign.Title}\" for ৳{model.ProposedAmount:N0}.",
+            $"/InfluencerProposals/Detail/{proposal.Id}");
         await db.SaveChangesAsync();
 
         return RedirectToAction("Detail", new { id = proposal.Id });
@@ -205,14 +205,36 @@ public class ProposalsController(UserManager<ApplicationUser> userManager, Appli
             });
         }
 
+        // Turn the campaign's milestone plan (drafted in the campaign wizard,
+        // Step 2) into this creator's real, trackable milestones. The plan
+        // itself stays untouched so it can be reused if other creators join
+        // the same campaign.
+        var milestonePlans = await db.CampaignMilestonePlans
+            .Where(p => p.CampaignId == proposal.CampaignId)
+            .OrderBy(p => p.SortOrder).ThenBy(p => p.Id)
+            .ToListAsync();
+
+        foreach (var plan in milestonePlans)
+        {
+            db.Milestones.Add(new Milestone
+            {
+                Collaboration = collaboration,
+                Title = plan.Title,
+                Description = plan.Description,
+                Amount = plan.Amount,
+                DueDate = plan.DueDate,
+                Status = MilestoneStatus.Pending
+            });
+        }
+
         await db.SaveChangesAsync();
 
         notifications.Notify(
-            userManager.GetUserId(User)!,
+            proposal.InfluencerProfile.UserId,
             "Collaboration",
             "Collaboration started",
-            $"{proposal.InfluencerProfile.FullName} is now collaborating on {proposal.Campaign.Title}.",
-            $"/Collaborations/Detail/{collaboration.Id}");
+            $"Your proposal for \"{proposal.Campaign.Title}\" was accepted — the collaboration is now active.",
+            $"/InfluencerCampaigns/Details/{proposal.CampaignId}");
         await db.SaveChangesAsync();
 
         return RedirectToAction("Detail", "Collaborations", new { id = collaboration.Id });
