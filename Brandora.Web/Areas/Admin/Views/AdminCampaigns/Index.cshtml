@@ -1,0 +1,161 @@
+@model List<Brandora.Web.Areas.Admin.Controllers.AdminCampaignRow>
+@using System.Globalization
+@{
+    var statusFilter = ViewData["StatusFilter"] as Brandora.Web.Models.Domain.CampaignStatus?;
+    var search = ViewData["Search"] as string ?? "";
+
+    var tabs = new (Brandora.Web.Models.Domain.CampaignStatus? Status, string Label)[]
+    {
+        (null, "All Campaigns"),
+        (Brandora.Web.Models.Domain.CampaignStatus.Active, "Active"),
+        (Brandora.Web.Models.Domain.CampaignStatus.Published, "Published"),
+        (Brandora.Web.Models.Domain.CampaignStatus.Draft, "Draft"),
+        (Brandora.Web.Models.Domain.CampaignStatus.Completed, "Completed"),
+        (Brandora.Web.Models.Domain.CampaignStatus.Cancelled, "Cancelled")
+    };
+
+    static string PillColor(Brandora.Web.Models.Domain.CampaignStatus s) => s switch
+    {
+        Brandora.Web.Models.Domain.CampaignStatus.Active => "green",
+        Brandora.Web.Models.Domain.CampaignStatus.Completed => "gray",
+        Brandora.Web.Models.Domain.CampaignStatus.Published => "blue",
+        Brandora.Web.Models.Domain.CampaignStatus.Cancelled => "red",
+        _ => "gray"
+    };
+
+    string Money(decimal amount) => "৳" + amount.ToString("N0", CultureInfo.InvariantCulture);
+    string Posted(DateTime date)
+    {
+        var days = Math.Max(0, (int)(DateTime.UtcNow - date).TotalDays);
+        return days == 0 ? "today" : days == 1 ? "1 day ago" : days < 7 ? $"{days} days ago" : date.ToString("MMM d, yyyy", CultureInfo.InvariantCulture);
+    }
+}
+
+<style>
+    .ac-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-bottom: 18px; flex-wrap: wrap; }
+    .ac-tabs { display: flex; flex-shrink: 0; padding: 4px; gap: 4px; border: 1px solid #dce7ff; border-radius: 12px; background: #f6f8ff; flex-wrap: wrap; }
+    .ac-tabs a { padding: 9px 15px; border-radius: 9px; font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 600; color: #2a3157; white-space: nowrap; }
+    .ac-tabs a.is-active { color: #fff; background: linear-gradient(105deg, #a326ff, #236eff, #18a9ff); }
+
+    .ac-search { display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 14px; border-radius: 10px; border: 1px solid #dde1f0; background: #ffffff; min-width: 220px; }
+    .ac-search input { border: 0; outline: none; font-family: 'Inter', sans-serif; font-size: 13px; width: 100%; }
+    .ac-search button { border: 0; background: transparent; color: #8189a8; display: flex; }
+
+    .ac-list { display: flex; flex-direction: column; gap: 12px; }
+    .ac-row {
+        display: grid;
+        grid-template-columns: minmax(0,1.5fr) minmax(0,1.2fr) 150px;
+        align-items: center;
+        gap: 22px;
+        padding: 18px 22px;
+        border-radius: 15px;
+        background: #ffffff;
+        border: 1px solid #dce7ff;
+        transition: transform .15s ease, box-shadow .15s ease;
+    }
+    .ac-row:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(20,25,60,.08); }
+
+    .ac-summary { display: flex; align-items: center; gap: 16px; min-width: 0; }
+    .ac-thumb {
+        flex: 0 0 76px; height: 76px; border-radius: 13px;
+        display: flex; align-items: center; justify-content: center;
+        background: linear-gradient(135deg, #f1e6ff, #e3f0ff);
+        color: #7a2fe0; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 22px;
+    }
+    .ac-copy { min-width: 0; }
+    .ac-copy h2 { margin: 0; font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 16px; color: #171d3d; overflow-wrap: anywhere; }
+    .ac-meta { display: flex; flex-wrap: wrap; gap: 4px 10px; margin: 5px 0; font-family: 'Inter', sans-serif; font-size: 11.5px; color: #8189a8; }
+    .ac-meta strong { color: #2a3157; font-weight: 600; }
+    .ac-meta span::before { content: '•'; margin-right: 10px; }
+    .ac-description { font-family: 'Inter', sans-serif; font-size: 12px; line-height: 1.5; color: #8189a8; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+    .ac-tags { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 7px; }
+    .ac-tags span { background: #e7eef8; color: #2362a9; font-family: 'Inter', sans-serif; font-size: 11px; border-radius: 20px; padding: 3px 12px; }
+    .ac-tags span:first-child { background: #f1e6ff; color: #8b2ff2; }
+
+    .ac-facts { display: grid; grid-template-columns: 1fr 1fr 1fr; padding: 14px 0; border-inline: 1px solid #eef1fb; min-width: 0; }
+    .ac-facts > div { padding: 4px 14px; min-width: 0; }
+    .ac-facts > div + div { border-left: 1px solid #eef1fb; }
+    .ac-facts dt { font-family: 'Inter', sans-serif; font-size: 10.5px; color: #8189a8; margin-bottom: 5px; }
+    .ac-facts dd { margin: 0; font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 14.5px; color: #171d3d; overflow-wrap: anywhere; }
+
+    .ac-side { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; }
+    .ac-side small { font-family: 'Inter', sans-serif; font-size: 11.5px; color: #8189a8; }
+
+    @@container (max-width: 1150px) {
+        .ac-row { grid-template-columns: minmax(0,1.2fr) minmax(0,1fr) 130px; gap: 14px; }
+        .ac-facts > div { padding-inline: 8px; }
+    }
+    @@container (max-width: 850px) {
+        .ac-row { grid-template-columns: minmax(0,1fr) 130px; }
+        .ac-summary { grid-column: 1 / -1; }
+        .ac-facts { border: 0; padding: 6px 0; }
+    }
+</style>
+
+<div class="panel">
+    <div class="panel-title">Campaigns</div>
+    <div class="panel-sub">@Model.Count campaign@(Model.Count == 1 ? "" : "s") found across all brands</div>
+
+    <div class="ac-toolbar" style="margin-top:18px;">
+        <nav class="ac-tabs">
+            @foreach (var tab in tabs)
+            {
+                var isActive = statusFilter == tab.Status;
+                var url = Url.Action("Index", new { status = tab.Status, search })!;
+                <a href="@url" class="@(isActive ? "is-active" : "")">@tab.Label</a>
+            }
+        </nav>
+
+        <form method="get" class="ac-search">
+            <input type="hidden" name="status" value="@statusFilter" />
+            <input type="search" name="search" value="@search" placeholder="Search campaigns, brands, niche..." aria-label="Search campaigns" />
+            <button type="submit" aria-label="Search"><i class="bi bi-search"></i></button>
+        </form>
+    </div>
+
+    @if (Model.Count == 0)
+    {
+        <div class="empty-block">
+            <div class="empty-title">No campaigns found</div>
+            <div class="empty-text">Try a different filter or search term, or check back once brands create more campaigns.</div>
+        </div>
+    }
+    else
+    {
+        <div class="ac-list">
+            @foreach (var c in Model)
+            {
+                <div class="ac-row">
+                    <div class="ac-summary">
+                        <div class="ac-thumb">@c.BrandName.Substring(0, Math.Min(2, c.BrandName.Length)).ToUpperInvariant()</div>
+                        <div class="ac-copy">
+                            <h2>@c.Title</h2>
+                            <p class="ac-meta">
+                                <strong>@c.BrandName</strong>
+                                @if (!string.IsNullOrWhiteSpace(c.Niche)) { <span>@c.Niche</span> }
+                                <span>Posted @Posted(c.CreatedAt)</span>
+                            </p>
+                            <p class="ac-description">@c.Description</p>
+                            <div class="ac-tags">
+                                @if (!string.IsNullOrWhiteSpace(c.Platform)) { <span>@c.Platform</span> }
+                                @if (!string.IsNullOrWhiteSpace(c.Niche)) { <span>@c.Niche</span> }
+                            </div>
+                        </div>
+                    </div>
+
+                    <dl class="ac-facts">
+                        <div><dt>Budget</dt><dd>@Money(c.Budget)</dd></div>
+                        <div><dt>Spent</dt><dd>@Money(c.SpentAmount)</dd></div>
+                        <div><dt>Deadline</dt><dd>@(c.Deadline.HasValue ? c.Deadline.Value.ToString("MMM d, yyyy") : "Not set")</dd></div>
+                    </dl>
+
+                    <div class="ac-side">
+                        <span class="status-pill @PillColor(c.Status)">@c.Status</span>
+                        <small>@c.ApplicantCount applied &middot; @c.AcceptedInfluencers accepted</small>
+                        <small>@c.MilestoneCount milestone@(c.MilestoneCount == 1 ? "" : "s")</small>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>

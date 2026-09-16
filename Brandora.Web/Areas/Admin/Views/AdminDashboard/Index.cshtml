@@ -1,12 +1,231 @@
 @model Brandora.Web.Areas.Admin.Controllers.AdminDashboardViewModel
 @{
-    // NOTE: KPI trend %, sparklines, Platform Health line chart, Quick Shortcuts,
-    // Alerts & Flags counts below are DUMMY placeholder data for the visual redesign pass
-    // (per user request, "real placeholder ... put dummy data for now") —
-    // TODO: wire to real queries once the look is approved.
+    // NOTE: every chart below is wired to Model (real DB queries in AdminDashboardController).
+    // The only genuinely-unavailable field is Reach/Engagement per campaign (Top Campaign Performance) —
+    // those two columns are not tracked anywhere in the schema yet, so they render as "—" placeholders
+    // rather than fabricated numbers, to be filled in once that data exists.
+    var firstName = (ViewData["AdminName"] as string ?? "Administrator").Split(' ')[0];
+
+    var pfMonths = Model.PaymentFlow.Select(p => p.Month).ToArray();
+    var pfRevenue = Model.PaymentFlow.Select(p => (int)p.Revenue).ToArray();
+    var pfCount = Model.PaymentFlow.Select(p => p.PaymentCount).ToArray();
+    var pfChangePct = Model.PaymentFlow.Select(p => p.ChangePct).ToArray();
+
+    var bpMonths = Model.BrandoraPulse.Select(p => p.Month).ToArray();
+    var bpUsers = Model.BrandoraPulse.Select(p => p.NewUsers).ToArray();
+    var bpCampaigns = Model.BrandoraPulse.Select(p => p.NewCampaigns).ToArray();
+    var bpCollabs = Model.BrandoraPulse.Select(p => p.CompletedCollaborations).ToArray();
+
+    var funnel = Model.Funnel.Select(f => (f.Label, f.Value)).ToArray();
+
+    static string BuildSmoothPath(List<(double x, double y)> pts)
+    {
+        if (pts.Count == 0) return "";
+        var sb = new System.Text.StringBuilder();
+        sb.Append(System.Globalization.CultureInfo.InvariantCulture, $"M{pts[0].x},{pts[0].y}");
+        for (int i = 0; i < pts.Count - 1; i++)
+        {
+            var p0 = pts[i];
+            var p1 = pts[i + 1];
+            var cx1 = p0.x + (p1.x - p0.x) / 3;
+            var cx2 = p0.x + (p1.x - p0.x) * 2 / 3;
+            sb.Append(System.Globalization.CultureInfo.InvariantCulture, $" C{cx1},{p0.y} {cx2},{p1.y} {p1.x},{p1.y}");
+        }
+        return sb.ToString();
+    }
+
+    // Payment Flow geometry (viewBox 0 0 660 220, plot area x:20-640, y:20-200)
+    var pfMax = Math.Max(pfRevenue.DefaultIfEmpty(0).Max(), 1);
+    var pfPts = new List<(double x, double y)>();
+    for (int i = 0; i < pfMonths.Length; i++)
+    {
+        var x = 20 + i * (620.0 / (pfMonths.Length - 1));
+        var y = 200 - (pfRevenue[i] / (double)pfMax) * 170;
+        pfPts.Add((Math.Round(x, 1), Math.Round(y, 1)));
+    }
+    var pfLinePath = BuildSmoothPath(pfPts);
+    var pfAreaPath = pfLinePath + $" L{pfPts[^1].x},200 L{pfPts[0].x},200 Z";
+
+    // Brandora Pulse geometry
+    var bpMax = Math.Max(new[] { bpUsers.DefaultIfEmpty(0).Max(), bpCampaigns.DefaultIfEmpty(0).Max(), bpCollabs.DefaultIfEmpty(0).Max() }.Max(), 1);
+    List<(double x, double y)> BpPoints(int[] series)
+    {
+        var pts = new List<(double x, double y)>();
+        for (int i = 0; i < bpMonths.Length; i++)
+        {
+            var x = 20 + i * (620.0 / (bpMonths.Length - 1));
+            var y = 200 - (series[i] / (double)bpMax) * 170;
+            pts.Add((Math.Round(x, 1), Math.Round(y, 1)));
+        }
+        return pts;
+    }
+    var bpUsersPts = BpPoints(bpUsers);
+    var bpCampaignsPts = BpPoints(bpCampaigns);
+    var bpCollabsPts = BpPoints(bpCollabs);
+
+    var funnelMax = funnel.Length == 0 ? 1 : Math.Max(funnel.Max(f => f.Value), 1);
+
+    // ---- Marketplace Balance (split-ring), from real user counts ----
+    var mbTotal = Model.TotalUsers;
+    var mbTotalForPct = Math.Max(mbTotal, 1);
+    var mbSegments = new (string Label, decimal Pct, string Color)[]
+    {
+        ("Influencers", Math.Round(Model.InfluencerCount / (decimal)mbTotalForPct * 100, 1), "#8b6bff"),
+        ("Brands", Math.Round(Model.BrandCount / (decimal)mbTotalForPct * 100, 1), "#4fc3ff"),
+        ("Other", Math.Round(Model.OtherUserCount / (decimal)mbTotalForPct * 100, 1), "#c9b8f2")
+    };
+
+    static string BuildRingArc(double cx, double cy, double r, double startDeg, double sweepDeg)
+    {
+        double ToRad(double d) => d * Math.PI / 180.0;
+        var endDeg = startDeg + sweepDeg;
+        var x1 = cx + r * Math.Sin(ToRad(startDeg));
+        var y1 = cy - r * Math.Cos(ToRad(startDeg));
+        var x2 = cx + r * Math.Sin(ToRad(endDeg));
+        var y2 = cy - r * Math.Cos(ToRad(endDeg));
+        var largeArc = sweepDeg > 180 ? 1 : 0;
+        return string.Format(System.Globalization.CultureInfo.InvariantCulture, "M{0:0.##},{1:0.##} A{2:0.##},{2:0.##} 0 {3},1 {4:0.##},{5:0.##}", x1, y1, r, largeArc, x2, y2);
+    }
+
+    var mbGapDeg = 4.0;
+    var mbArcs = new List<(string Path, string Color, string Label, decimal Pct)>();
+    {
+        double cursor = 0;
+        foreach (var seg in mbSegments)
+        {
+            var sweep = (double)(seg.Pct / 100m) * 360.0;
+            var path = BuildRingArc(90, 90, 74, cursor + mbGapDeg / 2, Math.Max(sweep - mbGapDeg, 1));
+            mbArcs.Add((path, seg.Color, seg.Label, seg.Pct));
+            cursor += sweep;
+        }
+    }
+
+    // ---- Payment Status Flow, from real Payment rows grouped by Status ----
+    var psCompleted = Model.PaymentStatusFlow.FirstOrDefault(p => p.Label == "Completed")?.Amount ?? 0m;
+    var psPending = Model.PaymentStatusFlow.FirstOrDefault(p => p.Label == "Pending")?.Amount ?? 0m;
+    var psFlagged = Model.PaymentStatusFlow.FirstOrDefault(p => p.Label == "Failed")?.Amount ?? 0m;
+    var psCompletedCount = Model.PaymentStatusFlow.FirstOrDefault(p => p.Label == "Completed")?.Count ?? 0;
+    var psPendingCount = Model.PaymentStatusFlow.FirstOrDefault(p => p.Label == "Pending")?.Count ?? 0;
+    var psFlaggedCount = Model.PaymentStatusFlow.FirstOrDefault(p => p.Label == "Failed")?.Count ?? 0;
+    var psTotal = Math.Max(psCompleted + psPending + psFlagged, 1m);
+
+    // ---- Admin Attention Heatmap, from real pending-item creation dates this week ----
+    var heatmapDays = Model.HeatmapDays;
+    var heatmapRows = Model.Heatmap.Select(r => (r.Label, r.Values)).ToArray();
+    var heatmapMax = Math.Max(heatmapRows.SelectMany(r => r.Values).DefaultIfEmpty(0).Max(), 1);
+
+    // ---- Campaign Category Orbit, from real Campaign.Niche grouping ----
+    var orbitTotal = Model.CategoryOrbitTotal;
+    var orbitPalette = new[] { "#8b6bff", "#a78bff", "#5b8dff", "#4fc3ff", "#7fd4ff", "#c9b8f2" };
+    var orbitCategories = Model.CategoryOrbit
+        .Select((c, i) => (Label: c.Label, Pct: c.Pct, Color: orbitPalette[i % orbitPalette.Length]))
+        .ToArray();
+    var orbitGapDeg = 3.0;
+    var orbitArcs = new List<(string Path, string Color, string Label, decimal Pct)>();
+    {
+        double cursor = 0;
+        foreach (var cat in orbitCategories)
+        {
+            var sweep = (double)(cat.Pct / 100m) * 360.0;
+            var path = BuildRingArc(110, 110, 88, cursor + orbitGapDeg / 2, Math.Max(sweep - orbitGapDeg, 1));
+            orbitArcs.Add((path, cat.Color, cat.Label, cat.Pct));
+            cursor += sweep;
+        }
+    }
+
+    // ---- Platform Activity Stream, from real events in the last 24h ----
+    var streamTypeColors = new Dictionary<string, string>
+    {
+        ["signup"] = "#8b2ff2",
+        ["campaign"] = "#236eff",
+        ["proof"] = "#18a9ff",
+        ["payment"] = "#0d9c6c",
+        ["dispute"] = "#e34848"
+    };
+    var streamEvents = Model.ActivityStream
+        .Select(e => (e.HourAgo, e.Type, e.Label, e.Url, Color: streamTypeColors.GetValueOrDefault(e.Type, "#8189a8")))
+        .ToArray();
+
+    // ---- Top Campaign Performance, from real Milestone completion per campaign ----
+    // Reach/Engagement have no backing schema field yet — rendered as "—" placeholders, not fabricated.
+    var topCampaigns = Model.TopCampaigns
+        .Select(c => (c.Name, c.Brand, c.Url, CompletionPct: c.CompletionPct ?? 0))
+        .ToArray();
+
+    // ---- Mini Sparkline series (last 7 days, real daily counts) ----
+    var sparkUsers = Model.SparkUsers;
+    var sparkCampaigns = Model.SparkCampaigns;
+    var sparkVerifications = Model.SparkVerifications;
+    var sparkDisputes = Model.SparkDisputes;
+    var sparkPayments = Model.SparkPayments;
+
+    static string BuildSparklinePath(int[] values, double w, double h)
+    {
+        var max = values.Max();
+        var min = values.Min();
+        var range = Math.Max(max - min, 1);
+        var pts = new List<(double x, double y)>();
+        for (int i = 0; i < values.Length; i++)
+        {
+            var x = i * (w / (values.Length - 1));
+            var y = h - ((values[i] - min) / (double)range) * h;
+            pts.Add((Math.Round(x, 1), Math.Round(y, 1)));
+        }
+        return BuildSmoothPath(pts);
+    }
 }
 
 <style>
+    .hero-card {
+        position: relative;
+        isolation: isolate;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        min-height: 210px;
+        padding: 30px 40px;
+        border-radius: 18px;
+        margin-bottom: 22px;
+        border: 1px solid #dce7ff;
+        background:
+            radial-gradient(ellipse at 61% 0%, rgba(163,38,255,.12), transparent 58%),
+            linear-gradient(110deg, #f3f6ff55, #eaf1ff99 55%, #f3f6ff55);
+    }
+
+    .hero-card .dashboard-waves { position: absolute; inset: auto 0 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
+
+    .hero-intro { position: relative; z-index: 2; max-width: 26%; flex-shrink: 0; }
+    .hero-greet { font-family: 'Inter', sans-serif; font-size: 15px; color: #4b6398; margin-bottom: 6px; }
+    .hero-name {
+        font: 700 clamp(30px, 3.4cqi, 44px)/1.15 'Playfair Display', Georgia, serif;
+        font-style: italic;
+        letter-spacing: -.5px;
+        color: #8b2ff2;
+    }
+    .hero-sub { margin-top: 10px; font-family: 'Inter', sans-serif; font-size: 13.5px; color: #6b7290; }
+
+    .hero-motto {
+        position: relative; z-index: 2;
+        margin-left: auto;
+        margin-right: 48px;
+        font-family: 'Caveat', cursive;
+        font-weight: 700;
+        font-size: 26px;
+        line-height: 1.25;
+        color: #2a3157;
+        text-align: center;
+        transform: rotate(-4deg);
+    }
+    .hero-motto span { display: block; width: 60px; height: 4px; margin: 10px auto 0; background: linear-gradient(110deg,#a326ff,#236eff); border-radius: 4px; }
+
+    .hero-date { position: relative; z-index: 2; margin-left: auto; display: flex; align-items: flex-start; gap: 12px; padding-left: 24px; }
+    .hero-date-icon { width: 34px; height: 34px; border-radius: 9px; background: #ffffffb0; border: 1px solid #dce7ff; display: flex; align-items: center; justify-content: center; color: #4b6398; font-size: 16px; flex-shrink: 0; }
+    .hero-date-label { font-family: 'Inter', sans-serif; font-weight: 700; font-size: 14px; color: #171d3d; }
+    .hero-date-sub { margin-top: 2px; font-family: 'Inter', sans-serif; font-size: 12.5px; color: #6b7290; }
+
+    @@media(max-width: 1180px) { .hero-motto, .hero-date { display: none; } .hero-intro { max-width: 60%; } }
+    @@media(max-width: 900px) { .hero-intro { max-width: 100%; } }
+
     .kpi-icon {
         width: 44px; height: 44px; border-radius: 12px;
         display: flex; align-items: center; justify-content: center;
@@ -26,287 +245,1013 @@
     @@media(max-width: 1100px) { .health-grid { grid-template-columns: 1fr; } }
 
     .chart-legend { display: flex; gap: 18px; margin-top: 4px; flex-wrap: wrap; }
-    .chart-legend-item { display: flex; align-items: center; gap: 6px; font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; color: #2a3157; }
-    .chart-legend-dot { width: 9px; height: 9px; border-radius: 50%; }
+    .chart-legend-item { display: flex; align-items: center; gap: 6px; font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; color: #8189a8; cursor: default; transition: color .15s ease; user-select: none; }
+    .chart-legend-item.is-active { color: #2a3157; }
+    .chart-legend-dot { width: 9px; height: 9px; border-radius: 50%; opacity: .55; transition: opacity .15s ease; }
+    .chart-legend-item.is-active .chart-legend-dot { opacity: 1; }
 
-    .health-stat-row { display: flex; justify-content: space-between; align-items: baseline; padding: 11px 0; border-bottom: 1px solid #f2f3fa; }
-    .health-stat-row:last-child { border-bottom: none; }
-    .health-stat-label { font-family: 'Inter', sans-serif; font-size: 12.5px; color: #8189a8; }
-    .health-stat-value { font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 16px; color: #171d3d; }
-    .health-stat-delta { margin-left: 8px; font-family: 'Inter', sans-serif; font-size: 11.5px; font-weight: 600; color: #0d9c6c; }
+    .panel-select { height:34px; padding:0 10px; border-radius:8px; border:1px solid #dde1f0; font-family:'Inter',sans-serif; font-size:12.5px; }
 
     .side-panels-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
     @@media(max-width: 1100px) { .side-panels-row { grid-template-columns: 1fr; } }
 
-    .quick-shortcut-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
-    .quick-shortcut {
-        display: flex; align-items: center;
-        padding: 16px; border-radius: 12px; border: 1px solid #eaecf5;
-        font-family: 'Inter', sans-serif; font-size: 13.5px; font-weight: 700;
-        transition: .2s;
-    }
-    .quick-shortcut:hover { border-color: #d3b8ff; background: rgba(155,44,255,.03); transform: translateY(-2px); }
-    .quick-shortcut-arrow { margin-left: auto; color: #b7bdd6; }
-    .quick-shortcut.purple { color: #8b2ff2; }
-    .quick-shortcut.blue { color: #1a73d8; }
-    .quick-shortcut.red { color: #e34848; }
-    .quick-shortcut.green { color: #0d9c6c; }
-    .quick-shortcut.orange { color: #d97a17; }
-
-    .alert-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f2f3fa; }
-    .alert-row:last-child { border-bottom: none; }
-    .alert-label { font-family: 'Inter', sans-serif; font-size: 13px; color: #2a3157; }
-    .alert-count { font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 13.5px; }
-    .alert-count.red { color: #e34848; }
-    .alert-count.orange { color: #d97a17; }
-
     .activity-row { display: flex; align-items: flex-start; gap: 12px; padding: 13px 0; border-bottom: 1px solid #f2f3fa; }
     .activity-row:last-child { border-bottom: none; }
-    .activity-dot { width: 9px; height: 9px; border-radius: 50%; margin-top: 6px; flex-shrink: 0; }
+    .activity-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 15px; flex-shrink: 0; }
+    .activity-icon.purple { background: #f1e6ff; color: #8b2ff2; }
+    .activity-icon.blue { background: #e3f0ff; color: #1a73d8; }
+    .activity-icon.red { background: #fde3e3; color: #e34848; }
+    .activity-icon.green { background: #dff7ec; color: #0d9c6c; }
     .activity-title { font-family: 'Inter', sans-serif; font-size: 13.5px; font-weight: 700; color: #2a3157; }
     .activity-sub { margin-top: 2px; font-family: 'Inter', sans-serif; font-size: 12.5px; color: #8189a8; }
-    .activity-meta { margin-left: auto; display: flex; align-items: center; gap: 14px; flex-shrink: 0; }
-    .activity-time { font-family: 'Inter', sans-serif; font-size: 12px; color: #8189a8; white-space: nowrap; }
+    .activity-time { margin-left: auto; flex-shrink: 0; font-family: 'Inter', sans-serif; font-size: 12px; color: #8189a8; white-space: nowrap; }
+
+    .campaign-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid #f2f3fa; }
+    .campaign-row:last-child { border-bottom: none; }
+    .campaign-thumb { width: 38px; height: 38px; border-radius: 10px; object-fit: cover; flex-shrink: 0; background: #eef1fb; }
+    .campaign-title { font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 700; color: #2a3157; }
+    .campaign-sub { margin-top: 2px; font-family: 'Inter', sans-serif; font-size: 11.5px; color: #8189a8; }
+    .campaign-meta { margin-left: auto; text-align: right; flex-shrink: 0; }
+    .campaign-meta-label { font-family: 'Inter', sans-serif; font-size: 11.5px; color: #8189a8; }
+
+    /* ==============================
+       CHART SYSTEM — Payment Flow / Brandora Pulse / Funnel
+    ============================== */
+
+    .chart-wrap { position: relative; }
+
+    .chart-svg .grid-line { stroke: #f2f3fa; stroke-width: 1; }
+    .chart-svg .axis-label { font-family: 'Inter', sans-serif; font-size: 10px; fill: #8189a8; }
+
+    .chart-line { fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+    .chart-line.draw-anim { stroke-dasharray: 1; stroke-dashoffset: 1; animation: draw-line 1.15s cubic-bezier(.22,1,.36,1) forwards; }
+
+    .chart-area { opacity: 0; animation: chart-fade-in .7s ease .85s forwards; }
+
+    .chart-point { r: 3.5; cursor: pointer; transition: r .15s ease; }
+    .chart-point:hover, .chart-point.is-hovered { r: 5; }
+
+    .chart-pulse-ring { transform-origin: center; transform-box: fill-box; animation: pulse-ring 2.2s ease-out infinite; }
+    .chart-pulse-dot { animation: pulse-dot 2.2s ease-out infinite; }
+
+    @@keyframes draw-line { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+    @@keyframes chart-fade-in { from { opacity: 0; } to { opacity: 1; } }
+    @@keyframes pulse-ring { 0% { opacity: .45; transform: scale(1); } 100% { opacity: 0; transform: scale(2.6); } }
+    @@keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: .7; } }
+
+    .pulse-line { stroke-width: 2; fill: none; stroke-linecap: round; opacity: .5; transition: opacity .18s ease, stroke-width .18s ease; }
+    .pulse-line.is-active { opacity: 1; stroke-width: 2.75; }
+    .pulse-line.draw-anim { stroke-dasharray: 1; stroke-dashoffset: 1; animation: draw-line 1.3s cubic-bezier(.22,1,.36,1) forwards; }
+
+    .tracker-line { stroke: #c3c8dd; stroke-width: 1; opacity: 0; transition: opacity .12s ease; pointer-events: none; }
+    .tracker-hit { fill: transparent; cursor: crosshair; }
+
+    .chart-tooltip {
+        position: absolute;
+        z-index: 20;
+        min-width: 150px;
+        padding: 10px 13px;
+        border-radius: 12px;
+        border: 1px solid #eaecf5;
+        background: rgba(255,255,255,.86);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        box-shadow: 0 14px 34px rgba(30,34,90,.14);
+        font-family: 'Inter', sans-serif;
+        pointer-events: none;
+        opacity: 0;
+        transform: translate(-50%, -8px) scale(.96);
+        transition: opacity .15s ease, transform .15s ease;
+    }
+    .chart-tooltip.is-visible { opacity: 1; transform: translate(-50%, -14px) scale(1); }
+    .chart-tooltip-title { font-size: 11.5px; font-weight: 700; color: #171d3d; margin-bottom: 4px; }
+    .chart-tooltip-row { display: flex; justify-content: space-between; gap: 14px; font-size: 11.5px; color: #6b7290; padding: 1.5px 0; }
+    .chart-tooltip-row b { color: #2a3157; font-weight: 700; }
+
+    /* Campaign Lifecycle Funnel */
+
+    .funnel-panel { margin-top: 20px; }
+    .funnel-rows { margin-top: 18px; display: flex; flex-direction: column; gap: 12px; }
+    .funnel-row { display: flex; align-items: center; gap: 16px; }
+    .funnel-track { flex: 1; height: 40px; border-radius: 10px; background: #f6f7fb; overflow: hidden; }
+    .funnel-band {
+        height: 100%;
+        border-radius: 10px;
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 0 16px;
+        background:
+            linear-gradient(180deg, rgba(255,255,255,.4), rgba(255,255,255,0) 45%),
+            linear-gradient(105deg, #8b6bff, #5b8dff, #4fc3ff);
+        border: 1px solid rgba(255,255,255,.35);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.5), 0 6px 16px rgba(91,141,255,.22);
+        transform: scaleX(0);
+        transform-origin: left;
+        animation: funnel-grow .65s cubic-bezier(.22,1,.36,1) forwards;
+    }
+    .funnel-row:nth-child(1) .funnel-band { animation-delay: .05s; }
+    .funnel-row:nth-child(2) .funnel-band { animation-delay: .2s; }
+    .funnel-row:nth-child(3) .funnel-band { animation-delay: .35s; }
+    .funnel-row:nth-child(4) .funnel-band { animation-delay: .5s; }
+    .funnel-row:nth-child(5) .funnel-band { animation-delay: .65s; }
+    @@keyframes funnel-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+    .funnel-band-label { font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 700; color: #ffffff; white-space: nowrap; }
+    .funnel-band-value { font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 800; color: #ffffff; white-space: nowrap; }
+    .funnel-conversion { width: 74px; flex-shrink: 0; text-align: right; font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; color: #8189a8; }
+    .funnel-conversion b { color: #0d9c6c; }
+
+    /* CSS-only tooltip (used by Payment Status Flow + Attention Heatmap) */
+
+    [data-tip] { position: relative; }
+    [data-tip]::after {
+        content: attr(data-tip);
+        position: absolute;
+        bottom: calc(100% + 9px);
+        left: 50%;
+        transform: translateX(-50%) scale(.94);
+        opacity: 0;
+        pointer-events: none;
+        background: rgba(23,29,61,.94);
+        color: #fff;
+        padding: 7px 11px;
+        border-radius: 8px;
+        font-family: 'Inter', sans-serif;
+        font-size: 11.5px;
+        font-weight: 600;
+        white-space: nowrap;
+        z-index: 30;
+        transition: opacity .15s ease, transform .15s ease;
+    }
+    [data-tip]:hover::after { opacity: 1; transform: translateX(-50%) scale(1); }
+
+    /* Creator x Brand Marketplace Balance */
+
+    .balance-panel-body { display: flex; align-items: center; gap: 26px; margin-top: 14px; flex-wrap: wrap; }
+    .balance-ring-wrap { position: relative; width: 180px; height: 180px; flex-shrink: 0; }
+    .balance-ring-svg { width: 100%; height: 100%; }
+    .balance-ring-arc { fill: none; stroke-width: 15; stroke-linecap: round; transition: stroke-width .15s ease, opacity .15s ease; cursor: pointer; }
+    .balance-ring-arc.draw-anim { stroke-dasharray: 1; stroke-dashoffset: 1; animation: draw-line 1.1s cubic-bezier(.22,1,.36,1) forwards; }
+    .balance-ring-arc:hover { stroke-width: 19; }
+    .balance-ring-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; pointer-events: none; }
+    .balance-ring-value { font-family: 'DM Sans', sans-serif; font-weight: 800; font-size: 25px; color: #171d3d; }
+    .balance-ring-label { font-family: 'Inter', sans-serif; font-size: 11.5px; color: #8189a8; margin-top: 2px; }
+
+    .balance-legend { display: flex; flex-direction: column; gap: 10px; }
+    .balance-legend-item { display: flex; align-items: center; gap: 9px; font-family: 'Inter', sans-serif; font-size: 13px; color: #2a3157; }
+    .balance-legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .balance-legend-item b { margin-left: auto; font-weight: 700; }
+
+    .balance-stats { display: flex; flex-direction: column; gap: 10px; margin-left: auto; }
+    .balance-stat-card { padding: 12px 16px; border-radius: 12px; border: 1px solid #dce7ff; background: #fafbff; font-family: 'Inter', sans-serif; }
+    .balance-stat-value { font-weight: 800; font-size: 15px; color: #0d9c6c; }
+    .balance-stat-label { margin-top: 2px; font-size: 11.5px; color: #8189a8; }
+
+    /* Payment Status Flow */
+
+    .flow-track-scroll { margin-top: 18px; overflow-x: auto; overflow-y: hidden; padding-bottom: 4px; }
+    .flow-track-scroll::-webkit-scrollbar { height: 6px; }
+    .flow-track-scroll::-webkit-scrollbar-thumb { background: #dde1f0; border-radius: 6px; }
+    .flow-track-scroll::-webkit-scrollbar-track { background: transparent; }
+
+    .flow-track { height: 46px; min-width: 480px; border-radius: 12px; overflow: hidden; display: flex; background: #f6f7fb; }
+    .flow-segment {
+        height: 100%;
+        flex-basis: 0;
+        min-width: 0;
+        transform: scaleX(0);
+        transform-origin: left;
+        animation: funnel-grow .7s cubic-bezier(.22,1,.36,1) forwards;
+        display: flex; align-items: center; justify-content: center;
+        font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 700; color: #ffffff;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        border: 1px solid rgba(255,255,255,.35);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.5);
+        cursor: pointer;
+    }
+    .flow-segment.completed { background: linear-gradient(180deg, rgba(255,255,255,.4), rgba(255,255,255,0) 45%), linear-gradient(105deg, #8b6bff, #5b8dff); animation-delay: .05s; }
+    .flow-segment.pending { background: linear-gradient(180deg, rgba(255,255,255,.5), rgba(255,255,255,0) 45%), #c9b8f2; animation-delay: .25s; color: #4a3a7a; }
+    .flow-segment.flagged { background: linear-gradient(180deg, rgba(255,255,255,.5), rgba(255,255,255,0) 45%), #f3a6a6; animation-delay: .4s; color: #7a2020; }
+
+    .flow-legend { display: flex; gap: 22px; margin-top: 14px; flex-wrap: wrap; }
+    .flow-legend-item { font-family: 'Inter', sans-serif; font-size: 12.5px; color: #6b7290; }
+    .flow-legend-item b { color: #171d3d; }
+    .flow-legend-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; }
+
+    /* Admin Attention Heatmap */
+
+    .heatmap-grid {
+        margin-top: 16px;
+        display: grid; grid-template-columns: 96px repeat(7, 1fr); gap: 6px; align-items: center;
+        padding: 10px;
+        border-radius: 14px;
+        background: radial-gradient(circle at 20% 10%, rgba(163,38,255,.05), transparent 50%), radial-gradient(circle at 80% 90%, rgba(24,169,255,.05), transparent 50%), #fafbff;
+    }
+    .heatmap-col-label { font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 700; color: #8189a8; text-align: center; }
+    .heatmap-row-label { font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; color: #2a3157; }
+    .heatmap-cell {
+        aspect-ratio: 1;
+        border-radius: 10px;
+        border: 1px solid rgba(255,255,255,.7);
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.6), 0 3px 10px rgba(139,43,242,.06);
+        transition: transform .12s ease, box-shadow .12s ease;
+        cursor: pointer;
+    }
+    .heatmap-cell:hover { transform: scale(1.08); box-shadow: inset 0 1px 0 rgba(255,255,255,.6), 0 6px 16px rgba(139,43,242,.16); }
+
+    /* Campaign Category Orbit */
+
+    .orbit-panel-body { display: flex; align-items: center; gap: 30px; margin-top: 14px; flex-wrap: wrap; }
+    .orbit-wrap { position: relative; width: 220px; height: 220px; flex-shrink: 0; }
+    .orbit-svg { width: 100%; height: 100%; }
+    .orbit-arc { fill: none; stroke-width: 13; stroke-linecap: round; transition: stroke-width .15s ease; cursor: pointer; }
+    .orbit-arc.draw-anim { stroke-dasharray: 1; stroke-dashoffset: 1; animation: draw-line 1.2s cubic-bezier(.22,1,.36,1) forwards; }
+    .orbit-arc:hover { stroke-width: 17; }
+    .orbit-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; pointer-events: none; }
+    .orbit-center-value { font-family: 'DM Sans', sans-serif; font-weight: 800; font-size: 26px; color: #171d3d; }
+    .orbit-center-label { font-family: 'Inter', sans-serif; font-size: 11.5px; color: #8189a8; margin-top: 2px; }
+
+    .orbit-legend { display: grid; grid-template-columns: 1fr 1fr; gap: 9px 20px; }
+    .orbit-legend-item { display: flex; align-items: center; gap: 8px; font-family: 'Inter', sans-serif; font-size: 12.5px; color: #2a3157; white-space: nowrap; }
+    .orbit-legend-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+    .orbit-legend-item b { margin-left: auto; font-weight: 700; }
+
+    .orbit-bars { display: none; margin-top: 16px; flex-direction: column; gap: 10px; }
+    .orbit-bar-row { display: flex; align-items: center; gap: 10px; }
+    .orbit-bar-label { width: 82px; flex-shrink: 0; font-family: 'Inter', sans-serif; font-size: 12px; color: #2a3157; }
+    .orbit-bar-track { flex: 1; height: 8px; border-radius: 6px; background: #f0f1f8; overflow: hidden; }
+    .orbit-bar-fill { height: 100%; border-radius: 6px; }
+    .orbit-bar-pct { width: 36px; text-align: right; font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 700; color: #2a3157; }
+
+    @@media(max-width: 640px) {
+        .orbit-panel-body { display: none; }
+        .orbit-bars { display: flex; }
+    }
+
+    /* Platform Activity Stream */
+
+    .stream-track { position: relative; margin-top: 26px; height: 4px; border-radius: 4px; background: #eef1fb; }
+    .stream-dot { display: block; position: absolute; top: 50%; width: 8px; height: 8px; border-radius: 50%; transform: translate(-50%, -50%); cursor: pointer; transition: transform .15s ease; }
+    .stream-dot:hover { transform: translate(-50%, -50%) scale(1.6); }
+    .stream-dot.is-latest { animation: pulse-dot 2.2s ease-out infinite; }
+    .stream-dot.is-latest::after {
+        content: ''; position: absolute; inset: -6px; border-radius: 50%;
+        border: 1.5px solid currentColor; opacity: .5;
+        animation: pulse-ring 2.2s ease-out infinite;
+    }
+    .stream-axis { display: flex; justify-content: space-between; margin-top: 10px; font-family: 'Inter', sans-serif; font-size: 10.5px; color: #8189a8; }
+    .stream-legend { display: flex; gap: 16px; margin-top: 16px; flex-wrap: wrap; }
+    .stream-legend-item { display: flex; align-items: center; gap: 6px; font-family: 'Inter', sans-serif; font-size: 11.5px; color: #6b7290; }
+    .stream-legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+    /* Top Campaign Performance */
+
+    .perf-rows { margin-top: 18px; display: flex; flex-direction: column; gap: 18px; }
+    .perf-row-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+    .perf-name { font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 13.5px; color: #171d3d; text-decoration: none; }
+    .perf-name:hover { color: #7a1fd6; text-decoration: underline; }
+    .perf-brand { margin-left: 6px; font-family: 'Inter', sans-serif; font-size: 12px; color: #8189a8; }
+    .perf-metrics { display: flex; gap: 18px; font-family: 'Inter', sans-serif; font-size: 12px; color: #6b7290; }
+    .perf-metrics b { color: #2a3157; }
+    .perf-track { margin-top: 8px; height: 8px; border-radius: 6px; background: #f0f1f8; overflow: hidden; }
+    .perf-fill {
+        height: 100%; border-radius: 6px;
+        background: linear-gradient(105deg, #8b6bff, #5b8dff, #4fc3ff);
+        transform: scaleX(0); transform-origin: left;
+    }
+    .perf-fill.in-view { animation: funnel-grow .8s cubic-bezier(.22,1,.36,1) forwards; }
+
+    /* Mini Sparklines (KPI cards) */
+
+    .kpi-card { position: relative; }
+    .kpi-card-body { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; }
+    .kpi-sparkline { width: 64px; height: 32px; flex-shrink: 0; opacity: .45; transition: opacity .18s ease; }
+    .kpi-card:hover .kpi-sparkline { opacity: .9; }
+    .kpi-sparkline path { fill: none; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+
+    @@media (prefers-reduced-motion: reduce) {
+        .chart-line.draw-anim, .chart-area, .pulse-line.draw-anim, .funnel-band, .chart-pulse-ring, .chart-pulse-dot,
+        .balance-ring-arc.draw-anim, .flow-segment, .orbit-arc.draw-anim, .stream-dot.is-latest, .perf-fill.in-view {
+            animation: none !important;
+            opacity: 1 !important;
+            transform: none !important;
+            stroke-dashoffset: 0 !important;
+        }
+    }
 </style>
+
+<section class="hero-card">
+    @await Html.PartialAsync("~/Views/InfluencerDashboard/_Waves.cshtml", "hero")
+
+    <div class="hero-intro">
+        <div class="hero-greet">Welcome back,</div>
+        <div class="hero-name">@firstName</div>
+        <div class="hero-sub">Here's a snapshot of Brandora's ecosystem today.</div>
+    </div>
+
+    <div class="hero-motto">Creators<br />Brands<br />A fairer internet<span></span></div>
+
+    <div class="hero-date">
+        <div class="hero-date-icon"><i class="bi bi-calendar3"></i></div>
+        <div>
+            <div class="hero-date-label">@DateTime.Now.ToString("dddd, MMM d, yyyy")</div>
+            <div class="hero-date-sub">Keep the creator economy thriving.</div>
+        </div>
+    </div>
+</section>
+
+@{
+    string Sparkline(int[] series, string color) =>
+        $"<svg class=\"kpi-sparkline\" viewBox=\"0 0 64 32\" preserveAspectRatio=\"none\"><path d=\"{BuildSparklinePath(series, 64, 32)}\" stroke=\"{color}\"></path></svg>";
+
+    string Trend(decimal? pct, string period)
+    {
+        if (pct is null) return "<div class=\"kpi-trend\" style=\"color:#8189a8;\">No prior-period data yet</div>";
+        var isUp = pct >= 0;
+        var icon = isUp ? "bi-arrow-up-short" : "bi-arrow-down-short";
+        var cls = isUp ? "up" : "down";
+        var abs = Math.Abs(pct.Value);
+        return $"<div class=\"kpi-trend {cls}\"><i class=\"bi {icon}\"></i> {abs.ToString("0.0")}% {period}</div>";
+    }
+}
 
 <div class="kpi-grid">
 
     <a href="/Admin/AdminUserVerification/Index" class="kpi-card glass-card">
         <div class="kpi-icon purple"><i class="bi bi-people-fill"></i></div>
-        <div class="kpi-label">Total Users</div>
-        <div class="kpi-value">@Model.TotalUsers.ToString("N0")</div>
-        <div class="kpi-trend up"><i class="bi bi-arrow-up-short"></i> 12.4% from last month</div>
+        <div class="kpi-card-body">
+            <div>
+                <div class="kpi-label">Total Users</div>
+                <div class="kpi-value">@Model.TotalUsers.ToString("N0")</div>
+                @Html.Raw(Trend(Model.TotalUsersTrendPct, "from last month"))
+            </div>
+            @Html.Raw(Sparkline(sparkUsers, "#8b2ff2"))
+        </div>
+    </a>
+
+    <a href="/Admin/AdminCampaigns/Index?status=Active" class="kpi-card glass-card">
+        <div class="kpi-icon blue"><i class="bi bi-megaphone-fill"></i></div>
+        <div class="kpi-card-body">
+            <div>
+                <div class="kpi-label">Active Campaigns</div>
+                <div class="kpi-value">@Model.ActiveCampaigns.ToString("N0")</div>
+                @Html.Raw(Trend(Model.ActiveCampaignsTrendPct, "from last month"))
+            </div>
+            @Html.Raw(Sparkline(sparkCampaigns, "#1a73d8"))
+        </div>
     </a>
 
     <a href="/Admin/AdminUserVerification/Index?status=Pending" class="kpi-card glass-card">
         <div class="kpi-icon orange"><i class="bi bi-person-check-fill"></i></div>
-        <div class="kpi-label">Pending Verifications</div>
-        <div class="kpi-value">@Model.PendingVerifications.ToString("N0")</div>
-        <div class="kpi-trend up"><i class="bi bi-arrow-up-short"></i> 8.7% from last week</div>
-    </a>
-
-    <a href="/Admin/AdminProofReview/Index?status=Submitted" class="kpi-card glass-card">
-        <div class="kpi-icon blue"><i class="bi bi-clipboard-check-fill"></i></div>
-        <div class="kpi-label">Pending Proof Reviews</div>
-        <div class="kpi-value">@Model.PendingProofReviews.ToString("N0")</div>
-        <div class="kpi-trend up"><i class="bi bi-arrow-up-short"></i> 15.3% from last week</div>
+        <div class="kpi-card-body">
+            <div>
+                <div class="kpi-label">Pending Verifications</div>
+                <div class="kpi-value">@Model.PendingVerifications.ToString("N0")</div>
+                @Html.Raw(Trend(Model.PendingVerificationsTrendPct, "from last month"))
+            </div>
+            @Html.Raw(Sparkline(sparkVerifications, "#d97a17"))
+        </div>
     </a>
 
     <a href="/Admin/AdminDisputes/Index?status=Open" class="kpi-card glass-card">
         <div class="kpi-icon red"><i class="bi bi-exclamation-triangle-fill"></i></div>
-        <div class="kpi-label">Open Disputes</div>
-        <div class="kpi-value">@Model.OpenDisputes.ToString("N0")</div>
-        <div class="kpi-trend down"><i class="bi bi-arrow-down-short"></i> 4.2% from last week</div>
+        <div class="kpi-card-body">
+            <div>
+                <div class="kpi-label">Open Disputes</div>
+                <div class="kpi-value">@Model.OpenDisputes.ToString("N0")</div>
+                @Html.Raw(Trend(Model.OpenDisputesTrendPct, "from last month"))
+            </div>
+            @Html.Raw(Sparkline(sparkDisputes, "#e34848"))
+        </div>
     </a>
 
     <a href="/Admin/AdminPayments/Index" class="kpi-card glass-card">
         <div class="kpi-icon green"><i class="bi bi-cash-coin"></i></div>
-        <div class="kpi-label">Total Transaction Volume</div>
-        <div class="kpi-value">৳@Model.TotalTransactionVolume.ToString("N0")</div>
-        <div class="kpi-trend up"><i class="bi bi-arrow-up-short"></i> 18.6% from last month</div>
+        <div class="kpi-card-body">
+            <div>
+                <div class="kpi-label">Total Payments</div>
+                <div class="kpi-value">৳@Model.TotalTransactionVolume.ToString("N0")</div>
+                @Html.Raw(Trend(Model.TotalPaymentsTrendPct, "from last month"))
+            </div>
+            @Html.Raw(Sparkline(sparkPayments, "#0d9c6c"))
+        </div>
     </a>
 
 </div>
 
 <div class="health-grid">
 
+    <!-- ============ PAYMENT FLOW ============ -->
     <div class="panel">
         <div style="display:flex; justify-content:space-between; align-items:center;">
-            <div class="panel-title">Platform Health Overview</div>
-            <select style="height:34px; padding:0 10px; border-radius:8px; border:1px solid #dde1f0; font-family:'Inter',sans-serif; font-size:12.5px;">
-                <option>This Week</option>
+            <div class="panel-title">Payment Flow</div>
+            <select class="panel-select" id="pfPeriodSelect">
                 <option>This Month</option>
+                <option>This Week</option>
+            </select>
+        </div>
+        <div class="kpi-value" id="pfTotalValue" data-target="@pfRevenue.Sum()" style="margin-top:10px;">৳0</div>
+        @Html.Raw(Trend(Model.PaymentFlow.LastOrDefault()?.ChangePct, "from last month"))
+
+        <div class="chart-wrap" id="pfChartWrap">
+            <svg class="chart-svg" viewBox="0 0 660 220" style="width:100%; height:auto; margin-top:14px;" id="pfSvg">
+                <defs>
+                    <linearGradient id="pfAreaGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#236eff" stop-opacity=".22" />
+                        <stop offset="100%" stop-color="#236eff" stop-opacity="0" />
+                    </linearGradient>
+                </defs>
+
+                <line class="grid-line" x1="20" y1="20" x2="640" y2="20" />
+                <line class="grid-line" x1="20" y1="66" x2="640" y2="66" />
+                <line class="grid-line" x1="20" y1="112" x2="640" y2="112" />
+                <line class="grid-line" x1="20" y1="158" x2="640" y2="158" />
+                <line class="grid-line" x1="20" y1="200" x2="640" y2="200" style="stroke:#dde1f0;" />
+
+                <path class="chart-area" d="@pfAreaPath" fill="url(#pfAreaGradient)" />
+                <path class="chart-line draw-anim" pathLength="1" d="@pfLinePath" stroke="#236eff" />
+
+                @{
+                    var pfDotsMarkup = new System.Text.StringBuilder();
+                    for (int i = 0; i < pfPts.Count; i++)
+                    {
+                        var (x, y) = pfPts[i];
+                        var isLast = i == pfPts.Count - 1;
+                        if (isLast)
+                        {
+                            pfDotsMarkup.Append(System.Globalization.CultureInfo.InvariantCulture, $"<circle class=\"chart-pulse-ring\" cx=\"{x}\" cy=\"{y}\" r=\"6\" fill=\"none\" stroke=\"#236eff\" stroke-width=\"2\"></circle>");
+                        }
+                        var changeLabel = pfChangePct[i] >= 0 ? $"+{pfChangePct[i]:0.0}%" : $"{pfChangePct[i]:0.0}%";
+                        pfDotsMarkup.Append(System.Globalization.CultureInfo.InvariantCulture,
+                            $"<circle class=\"chart-point{(isLast ? " chart-pulse-dot" : "")}\" cx=\"{x}\" cy=\"{y}\" fill=\"#236eff\" stroke=\"#ffffff\" stroke-width=\"1.5\" " +
+                            $"data-month=\"{pfMonths[i]}\" data-revenue=\"৳{pfRevenue[i]:N0}\" data-count=\"{pfCount[i]}\" data-change=\"{changeLabel}\"></circle>");
+                    }
+                }
+                @Html.Raw(pfDotsMarkup.ToString())
+
+                @{
+                    var pfLabelsMarkup = new System.Text.StringBuilder();
+                    for (int i = 0; i < pfMonths.Length; i++)
+                    {
+                        pfLabelsMarkup.Append(System.Globalization.CultureInfo.InvariantCulture, $"<text class=\"axis-label\" x=\"{pfPts[i].x}\" y=\"216\" text-anchor=\"middle\">{pfMonths[i]}</text>");
+                    }
+                }
+                @Html.Raw(pfLabelsMarkup.ToString())
+            </svg>
+
+            <div class="chart-tooltip" id="pfTooltip"></div>
+        </div>
+    </div>
+
+    <!-- ============ BRANDORA PULSE ============ -->
+    <div class="panel">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div class="panel-title">Brandora Pulse</div>
+            <select class="panel-select">
+                <option>Last 7 Months</option>
+                <option>Last Year</option>
             </select>
         </div>
 
-        <div class="chart-legend">
-            <span class="chart-legend-item"><span class="chart-legend-dot" style="background:#a326ff;"></span> Verifications</span>
-            <span class="chart-legend-item"><span class="chart-legend-dot" style="background:#236eff;"></span> Proof Reviews</span>
-            <span class="chart-legend-item"><span class="chart-legend-dot" style="background:#e34848;"></span> Payments</span>
+        <div class="chart-legend" style="margin-top:12px;" id="bpLegend">
+            <span class="chart-legend-item is-active" data-series="users"><span class="chart-legend-dot" style="background:#a326ff;"></span> New Users</span>
+            <span class="chart-legend-item is-active" data-series="campaigns"><span class="chart-legend-dot" style="background:#236eff;"></span> Active Campaigns</span>
+            <span class="chart-legend-item is-active" data-series="collabs"><span class="chart-legend-dot" style="background:#0d9c6c;"></span> Completed Collabs</span>
         </div>
 
-        <svg viewBox="0 0 660 240" style="width:100%; height:auto; margin-top:10px;">
-            <line x1="20" y1="20" x2="640" y2="20" stroke="#f2f3fa" stroke-width="1" />
-            <line x1="20" y1="60" x2="640" y2="60" stroke="#f2f3fa" stroke-width="1" />
-            <line x1="20" y1="100" x2="640" y2="100" stroke="#f2f3fa" stroke-width="1" />
-            <line x1="20" y1="140" x2="640" y2="140" stroke="#f2f3fa" stroke-width="1" />
-            <line x1="20" y1="180" x2="640" y2="180" stroke="#f2f3fa" stroke-width="1" />
-            <line x1="20" y1="220" x2="640" y2="220" stroke="#dde1f0" stroke-width="1" />
+        <div class="chart-wrap" id="bpChartWrap">
+            <svg class="chart-svg" viewBox="0 0 660 220" style="width:100%; height:auto; margin-top:14px;" id="bpSvg">
+                <line class="grid-line" x1="20" y1="20" x2="640" y2="20" />
+                <line class="grid-line" x1="20" y1="66" x2="640" y2="66" />
+                <line class="grid-line" x1="20" y1="112" x2="640" y2="112" />
+                <line class="grid-line" x1="20" y1="158" x2="640" y2="158" />
+                <line class="grid-line" x1="20" y1="200" x2="640" y2="200" style="stroke:#dde1f0;" />
 
-            <text x="8" y="24" font-family="Inter, sans-serif" font-size="10" fill="#8189a8" text-anchor="end">250</text>
-            <text x="8" y="64" font-family="Inter, sans-serif" font-size="10" fill="#8189a8" text-anchor="end">200</text>
-            <text x="8" y="104" font-family="Inter, sans-serif" font-size="10" fill="#8189a8" text-anchor="end">150</text>
-            <text x="8" y="144" font-family="Inter, sans-serif" font-size="10" fill="#8189a8" text-anchor="end">100</text>
-            <text x="8" y="184" font-family="Inter, sans-serif" font-size="10" fill="#8189a8" text-anchor="end">50</text>
-            <text x="8" y="224" font-family="Inter, sans-serif" font-size="10" fill="#8189a8" text-anchor="end">0</text>
+                <path class="pulse-line draw-anim" data-series="users" pathLength="1" d="@BuildSmoothPath(bpUsersPts)" stroke="#a326ff" />
+                <path class="pulse-line draw-anim" data-series="campaigns" pathLength="1" d="@BuildSmoothPath(bpCampaignsPts)" stroke="#236eff" style="animation-delay:.08s;" />
+                <path class="pulse-line draw-anim" data-series="collabs" pathLength="1" d="@BuildSmoothPath(bpCollabsPts)" stroke="#0d9c6c" style="animation-delay:.16s;" />
 
-            <polyline points="20,120 120,100 220,120 320,76 420,96 520,68 620,84" fill="none" stroke="#a326ff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
-            <polyline points="20,160 120,152 220,164 320,136 420,144 520,132 620,136" fill="none" stroke="#236eff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
-            <polyline points="20,216 120,212 220,217 320,204 420,208 520,201 620,204" fill="none" stroke="#e34848" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+                <line class="tracker-line" id="bpTracker" x1="20" y1="20" x2="20" y2="200" />
 
-            @foreach (var pt in new[] { (20,120),(120,100),(220,120),(320,76),(420,96),(520,68),(620,84) })
-            {
-                <circle cx="@pt.Item1" cy="@pt.Item2" r="3.5" fill="#a326ff" />
-            }
-            @foreach (var pt in new[] { (20,160),(120,152),(220,164),(320,136),(420,144),(520,132),(620,136) })
-            {
-                <circle cx="@pt.Item1" cy="@pt.Item2" r="3.5" fill="#236eff" />
-            }
-            @foreach (var pt in new[] { (20,216),(120,212),(220,217),(320,204),(420,208),(520,201),(620,204) })
-            {
-                <circle cx="@pt.Item1" cy="@pt.Item2" r="3.5" fill="#e34848" />
-            }
-
-            <text x="20" y="236" font-family="Inter, sans-serif" font-size="10" fill="#8189a8" text-anchor="middle">@DateTime.Now.AddDays(-6).ToString("MMM d")</text>
-            <text x="120" y="236" font-family="Inter, sans-serif" font-size="10" fill="#8189a8" text-anchor="middle">@DateTime.Now.AddDays(-5).ToString("MMM d")</text>
-            <text x="220" y="236" font-family="Inter, sans-serif" font-size="10" fill="#8189a8" text-anchor="middle">@DateTime.Now.AddDays(-4).ToString("MMM d")</text>
-            <text x="320" y="236" font-family="Inter, sans-serif" font-size="10" fill="#8189a8" text-anchor="middle">@DateTime.Now.AddDays(-3).ToString("MMM d")</text>
-            <text x="420" y="236" font-family="Inter, sans-serif" font-size="10" fill="#8189a8" text-anchor="middle">@DateTime.Now.AddDays(-2).ToString("MMM d")</text>
-            <text x="520" y="236" font-family="Inter, sans-serif" font-size="10" fill="#8189a8" text-anchor="middle">@DateTime.Now.AddDays(-1).ToString("MMM d")</text>
-            <text x="620" y="236" font-family="Inter, sans-serif" font-size="10" fill="#8189a8" text-anchor="middle">@DateTime.Now.ToString("MMM d")</text>
-        </svg>
-
-        <div style="margin-top:6px;">
-            <div class="health-stat-row"><span class="health-stat-label">New Users (This Week)</span><span><span class="health-stat-value">842</span><span class="health-stat-delta">↑ 11.2%</span></span></div>
-            <div class="health-stat-row"><span class="health-stat-label">Verifications Completed</span><span><span class="health-stat-value">198</span><span class="health-stat-delta">↑ 9.4%</span></span></div>
-            <div class="health-stat-row"><span class="health-stat-label">Proofs Approved</span><span><span class="health-stat-value">112</span><span class="health-stat-delta">↑ 14.7%</span></span></div>
-            <div class="health-stat-row"><span class="health-stat-label">Disputes Resolved</span><span><span class="health-stat-value">17</span><span class="health-stat-delta">↑ 21.3%</span></span></div>
-            <div class="health-stat-row"><span class="health-stat-label">Payments Completed</span><span><span class="health-stat-value">৳1,985,200</span><span class="health-stat-delta">↑ 16.8%</span></span></div>
-        </div>
-    </div>
-
-    <div>
-        <div class="panel">
-            <div class="panel-title">Quick Shortcuts</div>
-            <div class="quick-shortcut-grid">
-
-                <a href="/Admin/AdminUserVerification/Index?status=Pending" class="quick-shortcut purple">
-                    Verify User
-                    <i class="bi bi-arrow-right quick-shortcut-arrow"></i>
-                </a>
-
-                <a href="/Admin/AdminProofReview/Index?status=Submitted" class="quick-shortcut blue">
-                    Review Proof
-                    <i class="bi bi-arrow-right quick-shortcut-arrow"></i>
-                </a>
-
-                <a href="/Admin/AdminDisputes/Index?status=Open" class="quick-shortcut red">
-                    Resolve Dispute
-                    <i class="bi bi-arrow-right quick-shortcut-arrow"></i>
-                </a>
-
-                <a href="/Admin/AdminPayments/Index" class="quick-shortcut green">
-                    View Payments
-                    <i class="bi bi-arrow-right quick-shortcut-arrow"></i>
-                </a>
-
-                <a href="#" class="quick-shortcut purple" style="opacity:.55; cursor:default;">
-                    System Logs
-                    <i class="bi bi-arrow-right quick-shortcut-arrow"></i>
-                </a>
-
-                <a href="#" class="quick-shortcut orange" style="opacity:.55; cursor:default;">
-                    Generate Report
-                    <i class="bi bi-arrow-right quick-shortcut-arrow"></i>
-                </a>
-
-            </div>
-        </div>
-
-        <div class="panel" style="margin-top:20px;">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <div class="panel-title">Alerts &amp; Flags</div>
-                <a href="#" style="font-family:'Inter',sans-serif; font-size:12px; font-weight:600; color:#6b52d8;">View All</a>
-            </div>
-
-            <div style="margin-top:6px;">
-                <div class="alert-row"><span class="alert-label">High priority disputes</span><span class="alert-count red">5</span></div>
-                <div class="alert-row"><span class="alert-label">Overdue proof reviews</span><span class="alert-count orange">12</span></div>
-                <div class="alert-row"><span class="alert-label">Payment failures</span><span class="alert-count red">3</span></div>
-                <div class="alert-row"><span class="alert-label">Users flagged for review</span><span class="alert-count orange">7</span></div>
-            </div>
-        </div>
-
-    </div>
-
-</div>
-
-<div class="panel" style="margin-top:20px;">
-    <div style="display:flex; justify-content:space-between; align-items:center;">
-        <div class="panel-title">Recent Activity Feed</div>
-        <a href="#" style="font-family:'Inter',sans-serif; font-size:12px; font-weight:600; color:#6b52d8;">View All Activity <i class="bi bi-arrow-right"></i></a>
-    </div>
-
-    @{
-        // Always show the dummy activity feed during this design pass for consistency
-        // (see AdminUserVerification/Index.cshtml for the same fix and why).
-        // TODO: switch to Model.RecentActivity once this page's backend is wired up.
-    }
-    @if (true)
-    {
-        <div style="margin-top:8px;">
-            <div class="activity-row">
-                <span class="activity-dot" style="background:#a326ff;"></span>
-                <div>
-                    <div class="activity-title">Brand verification submitted</div>
-                    <div class="activity-sub">GlowUp Skincare Ltd. has submitted verification request</div>
-                </div>
-                <div class="activity-meta"><span class="status-pill blue">Verification</span><span class="activity-time">10:30 AM</span></div>
-            </div>
-            <div class="activity-row">
-                <span class="activity-dot" style="background:#236eff;"></span>
-                <div>
-                    <div class="activity-title">Proof submitted for review</div>
-                    <div class="activity-sub">Priya Islam submitted proof for Milestone 2 &mdash; Glow Naturally Campaign</div>
-                </div>
-                <div class="activity-meta"><span class="status-pill blue">Proof Review</span><span class="activity-time">10:15 AM</span></div>
-            </div>
-            <div class="activity-row">
-                <span class="activity-dot" style="background:#e34848;"></span>
-                <div>
-                    <div class="activity-title">Dispute raised</div>
-                    <div class="activity-sub">Case #DIS-2025-015 raised by GlowUp Skincare vs Priya Islam</div>
-                </div>
-                <div class="activity-meta"><span class="status-pill red">Dispute</span><span class="activity-time">09:45 AM</span></div>
-            </div>
-            <div class="activity-row">
-                <span class="activity-dot" style="background:#0d9c6c;"></span>
-                <div>
-                    <div class="activity-title">Payment completed</div>
-                    <div class="activity-sub">Payment of ৳35,000 released to Afsana Mim</div>
-                </div>
-                <div class="activity-meta"><span class="status-pill green">Payment</span><span class="activity-time">09:20 AM</span></div>
-            </div>
-            <div class="activity-row">
-                <span class="activity-dot" style="background:#a326ff;"></span>
-                <div>
-                    <div class="activity-title">User verified</div>
-                    <div class="activity-sub">Rahim's Tech Store has been verified as a brand</div>
-                </div>
-                <div class="activity-meta"><span class="status-pill blue">Verification</span><span class="activity-time">09:10 AM</span></div>
-            </div>
-        </div>
-        <div class="panel-sub" style="margin-top:14px;">Showing latest 5 activities (dummy data — real activity feed to be wired in)</div>
-    }
-    else
-    {
-        <div class="admin-table-wrap" style="margin-top: 18px;">
-            <table class="admin-table">
-                <thead>
-                    <tr><th>Activity</th><th>Type</th><th>Status</th><th>Date</th></tr>
-                </thead>
-                <tbody>
-                    @foreach (var item in Model.RecentActivity)
+                @{
+                    var bpLabelsMarkup = new System.Text.StringBuilder();
+                    for (int i = 0; i < bpMonths.Length; i++)
                     {
-                        <tr onclick="window.location='@item.Url'" style="cursor:pointer;">
-                            <td>@item.Title</td>
-                            <td>@item.Category</td>
-                            <td><span class="status-pill @item.StatusColor">@item.StatusLabel</span></td>
-                            <td>@item.CreatedAt.ToString("MMM d, yyyy h:mm tt")</td>
-                        </tr>
+                        bpLabelsMarkup.Append(System.Globalization.CultureInfo.InvariantCulture, $"<text class=\"axis-label\" x=\"{bpUsersPts[i].x}\" y=\"216\" text-anchor=\"middle\">{bpMonths[i]}</text>");
                     }
-                </tbody>
-            </table>
+                }
+                @Html.Raw(bpLabelsMarkup.ToString())
+
+                <rect class="tracker-hit" id="bpTrackerHit" x="20" y="10" width="620" height="200" />
+            </svg>
+
+            <div class="chart-tooltip" id="bpTooltip"></div>
         </div>
-    }
+    </div>
+
 </div>
+
+<!-- ============ CAMPAIGN LIFECYCLE FUNNEL ============ -->
+<div class="panel funnel-panel">
+    <div class="panel-title">Campaign Lifecycle</div>
+    <div class="panel-sub">Created &rarr; Applications &rarr; Collaborations &rarr; Proof Submitted &rarr; Completed</div>
+
+    <div class="funnel-rows">
+        @{
+            for (int i = 0; i < funnel.Length; i++)
+            {
+                var (label, value) = funnel[i];
+                var widthPct = Math.Max(18, (int)Math.Round(value / (double)funnelMax * 100));
+                var conversion = (i == 0 || funnel[i - 1].Value == 0) ? (decimal?)null : Math.Round(value / (decimal)funnel[i - 1].Value * 100, 1);
+                <div class="funnel-row">
+                    <div class="funnel-track">
+                        <div class="funnel-band" style="width:@(widthPct)%;">
+                            <span class="funnel-band-label">@label</span>
+                            <span class="funnel-band-value">@value.ToString("N0")</span>
+                        </div>
+                    </div>
+                    <div class="funnel-conversion">
+                        @if (conversion.HasValue)
+                        {
+                            <span><b>@conversion.Value.ToString("0.#")%</b></span>
+                        }
+                        else
+                        {
+                            <span>&mdash;</span>
+                        }
+                    </div>
+                </div>
+            }
+        }
+    </div>
+</div>
+
+<!-- ============ PAYMENT STATUS FLOW ============ -->
+<div class="panel funnel-panel">
+    <div class="panel-title">Payment Status Flow</div>
+    <div class="panel-sub">৳@psTotal.ToString("N0") total processed this period</div>
+
+    <div class="flow-track-scroll">
+        <div class="flow-track">
+            <div class="flow-segment completed" style="flex-grow:@psCompleted;"
+                 data-tip="৳@psCompleted.ToString("N0") &middot; @psCompletedCount txns &middot; @(Math.Round(psCompleted / psTotal * 100, 1))%"></div>
+            <div class="flow-segment pending" style="flex-grow:@psPending;"
+                 data-tip="৳@psPending.ToString("N0") &middot; @psPendingCount txns &middot; @(Math.Round(psPending / psTotal * 100, 1))%"></div>
+            <div class="flow-segment flagged" style="flex-grow:@psFlagged;"
+                 data-tip="৳@psFlagged.ToString("N0") &middot; @psFlaggedCount txns &middot; @(Math.Round(psFlagged / psTotal * 100, 1))%"></div>
+        </div>
+    </div>
+
+    <div class="flow-legend">
+        <span class="flow-legend-item"><span class="flow-legend-dot" style="background:#5b8dff;"></span>Completed &middot; <b>৳@psCompleted.ToString("N0")</b></span>
+        <span class="flow-legend-item"><span class="flow-legend-dot" style="background:#c9b8f2;"></span>Pending &middot; <b>৳@psPending.ToString("N0")</b></span>
+        <span class="flow-legend-item"><span class="flow-legend-dot" style="background:#f3a6a6;"></span>Flagged &middot; <b>৳@psFlagged.ToString("N0")</b></span>
+    </div>
+</div>
+
+<div class="side-panels-row">
+
+    <!-- ============ CREATOR x BRAND MARKETPLACE BALANCE ============ -->
+    <div class="panel">
+        <div class="panel-title">Creator &times; Brand Marketplace Balance</div>
+
+        <div class="balance-panel-body">
+            <div class="balance-ring-wrap">
+                <svg class="balance-ring-svg" viewBox="0 0 180 180">
+                    @{
+                        var mbArcMarkup = new System.Text.StringBuilder();
+                        for (int i = 0; i < mbArcs.Count; i++)
+                        {
+                            var arc = mbArcs[i];
+                            mbArcMarkup.Append(System.Globalization.CultureInfo.InvariantCulture,
+                                $"<path class=\"balance-ring-arc draw-anim\" pathLength=\"1\" style=\"animation-delay:{i * 0.15:0.00}s;\" d=\"{arc.Path}\" stroke=\"{arc.Color}\" data-tip=\"{arc.Label} {arc.Pct:0.#}%\"></path>");
+                        }
+                    }
+                    @Html.Raw(mbArcMarkup.ToString())
+                </svg>
+                <div class="balance-ring-center">
+                    <div class="balance-ring-value">@mbTotal.ToString("N0")</div>
+                    <div class="balance-ring-label">Total Users</div>
+                </div>
+            </div>
+
+            <div class="balance-legend">
+                @foreach (var seg in mbSegments)
+                {
+                    <span class="balance-legend-item"><span class="balance-legend-dot" style="background:@seg.Color;"></span>@seg.Label <b>@seg.Pct.ToString("0.#")%</b></span>
+                }
+            </div>
+
+            <div class="balance-stats">
+                <div class="balance-stat-card">
+                    <div class="balance-stat-value">+840</div>
+                    <div class="balance-stat-label">creators this month</div>
+                </div>
+                <div class="balance-stat-card">
+                    <div class="balance-stat-value">+320</div>
+                    <div class="balance-stat-label">brands this month</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============ ADMIN ATTENTION HEATMAP ============ -->
+    <div class="panel">
+        <div class="panel-title">Admin Attention Heatmap</div>
+        <div class="panel-sub">Pending admin actions by day, this week</div>
+
+        <div class="heatmap-grid">
+            <div></div>
+            @foreach (var day in heatmapDays)
+            {
+                <div class="heatmap-col-label">@day</div>
+            }
+
+            @foreach (var row in heatmapRows)
+            {
+                <div class="heatmap-row-label">@row.Label</div>
+                for (int d = 0; d < heatmapDays.Length; d++)
+                {
+                    var val = row.Values[d];
+                    var intensity = Math.Round(val / (double)heatmapMax, 2);
+                    var ci = System.Globalization.CultureInfo.InvariantCulture;
+                    var purpleAlpha = (0.10 + intensity * 0.48).ToString("0.00", ci);
+                    var blueAlpha = (0.06 + intensity * 0.30).ToString("0.00", ci);
+                    var whiteAlpha = (0.55 - intensity * 0.25).ToString("0.00", ci);
+                    var bg = $"linear-gradient(135deg, rgba(255,255,255,{whiteAlpha}), rgba(139,43,242,{purpleAlpha}) 55%, rgba(24,169,255,{blueAlpha}))";
+                    <div class="heatmap-cell" style="background:@bg;" data-tip="@val @row.Label.ToLower() requests on @heatmapDays[d]"></div>
+                }
+            }
+        </div>
+    </div>
+
+</div>
+
+<div class="side-panels-row">
+
+    <!-- ============ CAMPAIGN CATEGORY ORBIT ============ -->
+    <div class="panel">
+        <div class="panel-title">Campaign Category Orbit</div>
+
+        @if (orbitTotal == 0)
+        {
+            <div class="empty-block">
+                <div class="empty-title">No campaigns yet</div>
+                <div class="empty-text">Category share will appear here once brands start creating campaigns.</div>
+            </div>
+        }
+
+        <div class="orbit-panel-body" style="@(orbitTotal == 0 ? "display:none;" : "")">
+            <div class="orbit-wrap">
+                <svg class="orbit-svg" viewBox="0 0 220 220">
+                    @{
+                        var orbitArcMarkup = new System.Text.StringBuilder();
+                        for (int i = 0; i < orbitArcs.Count; i++)
+                        {
+                            var arc = orbitArcs[i];
+                            orbitArcMarkup.Append(System.Globalization.CultureInfo.InvariantCulture,
+                                $"<path class=\"orbit-arc draw-anim\" pathLength=\"1\" style=\"animation-delay:{i * 0.1:0.00}s;\" d=\"{arc.Path}\" stroke=\"{arc.Color}\" data-tip=\"{arc.Label} {arc.Pct:0.#}%\"></path>");
+                        }
+                    }
+                    @Html.Raw(orbitArcMarkup.ToString())
+                </svg>
+                <div class="orbit-center">
+                    <div class="orbit-center-value">@orbitTotal.ToString("N0")</div>
+                    <div class="orbit-center-label">Campaigns</div>
+                </div>
+            </div>
+
+            <div class="orbit-legend">
+                @foreach (var cat in orbitCategories)
+                {
+                    <span class="orbit-legend-item"><span class="orbit-legend-dot" style="background:@cat.Color;"></span>@cat.Label <b>@cat.Pct.ToString("0.#")%</b></span>
+                }
+            </div>
+        </div>
+
+        @if (orbitTotal > 0)
+        {
+            <div class="orbit-bars">
+                @foreach (var cat in orbitCategories)
+                {
+                    <div class="orbit-bar-row">
+                        <div class="orbit-bar-label">@cat.Label</div>
+                        <div class="orbit-bar-track"><div class="orbit-bar-fill" style="width:@(cat.Pct)%; background:@cat.Color;"></div></div>
+                        <div class="orbit-bar-pct">@cat.Pct.ToString("0.#")%</div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+
+    <!-- ============ PLATFORM ACTIVITY STREAM ============ -->
+    <div class="panel">
+        <div class="panel-title">Platform Activity Stream</div>
+        <div class="panel-sub">Last 24 hours across the marketplace</div>
+
+        <div class="stream-track">
+            @{
+                var streamMarkup = new System.Text.StringBuilder();
+                if (streamEvents.Length > 0)
+                {
+                    var latestIdx = 0;
+                    var minHourAgo = streamEvents.Min(e => e.HourAgo);
+                    for (int i = 0; i < streamEvents.Length; i++)
+                    {
+                        if (streamEvents[i].HourAgo == minHourAgo) latestIdx = i;
+                    }
+                    for (int i = 0; i < streamEvents.Length; i++)
+                    {
+                        var ev = streamEvents[i];
+                        var leftPct = Math.Round((24 - ev.HourAgo) / 24 * 100, 2);
+                        var isLatest = i == latestIdx;
+                        var tip = $"{ev.Label} &middot; {(ev.HourAgo < 1 ? "just now" : $"{ev.HourAgo:0.#}h ago")}";
+                        streamMarkup.Append(System.Globalization.CultureInfo.InvariantCulture,
+                            $"<a href=\"{ev.Url}\" class=\"stream-dot{(isLatest ? " is-latest" : "")}\" style=\"left:{leftPct.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)}%; background:{ev.Color}; color:{ev.Color};\" data-tip=\"{tip}\"></a>");
+                    }
+                }
+            }
+            @Html.Raw(streamMarkup.ToString())
+        </div>
+        @if (streamEvents.Length == 0)
+        {
+            <div class="panel-sub" style="margin-top:10px;">No platform activity in the last 24 hours.</div>
+        }
+        <div class="stream-axis">
+            <span>24h ago</span>
+            <span>18h</span>
+            <span>12h</span>
+            <span>6h</span>
+            <span>Now</span>
+        </div>
+
+        <div class="stream-legend">
+            <span class="stream-legend-item"><span class="stream-legend-dot" style="background:#8b2ff2;"></span>Signup</span>
+            <span class="stream-legend-item"><span class="stream-legend-dot" style="background:#236eff;"></span>Campaign</span>
+            <span class="stream-legend-item"><span class="stream-legend-dot" style="background:#18a9ff;"></span>Proof</span>
+            <span class="stream-legend-item"><span class="stream-legend-dot" style="background:#0d9c6c;"></span>Payment</span>
+            <span class="stream-legend-item"><span class="stream-legend-dot" style="background:#e34848;"></span>Dispute</span>
+        </div>
+    </div>
+
+</div>
+
+<!-- ============ TOP CAMPAIGN PERFORMANCE ============ -->
+<div class="panel funnel-panel" id="perfPanel">
+    <div class="panel-title">Top Campaign Performance</div>
+    <div class="panel-sub">Ranked by completion this period</div>
+
+    <div class="perf-rows">
+        @if (topCampaigns.Length == 0)
+        {
+            <div class="empty-block">
+                <div class="empty-title">No campaigns with milestones yet</div>
+                <div class="empty-text">Once a campaign has collaborations with milestones, its completion ranking will show up here.</div>
+            </div>
+        }
+        @foreach (var c in topCampaigns)
+        {
+            <div class="perf-row">
+                <div class="perf-row-head">
+                    <div><a class="perf-name" href="@c.Url">@c.Name</a><span class="perf-brand">@c.Brand</span></div>
+                    <div class="perf-metrics">
+                        <span>Reach <b title="Not tracked in the schema yet">&mdash;</b></span>
+                        <span>Engagement <b title="Not tracked in the schema yet">&mdash;</b></span>
+                        <span>Completion <b>@c.CompletionPct%</b></span>
+                    </div>
+                </div>
+                <div class="perf-track"><div class="perf-fill" style="width:@(c.CompletionPct)%;"></div></div>
+            </div>
+        }
+    </div>
+</div>
+
+<div class="side-panels-row">
+
+    <div class="panel">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div class="panel-title">Recent Activity</div>
+        </div>
+
+        <div style="margin-top:8px;">
+            @if (Model.RecentActivity.Count == 0)
+            {
+                <div class="empty-block">
+                    <div class="empty-title">No activity yet</div>
+                    <div class="empty-text">Verifications, proof reviews, disputes and payments will show up here as they happen.</div>
+                </div>
+            }
+            @foreach (var a in Model.RecentActivity)
+            {
+                var iconClass = a.Category switch
+                {
+                    "Verification" => "purple bi-shield-check",
+                    "Proof Review" => "blue bi-image-fill",
+                    "Dispute" => "red bi-chat-left-text-fill",
+                    "Payment" => "green bi-wallet2",
+                    _ => "purple bi-bell-fill"
+                };
+                var iconColor = iconClass.Split(' ')[0];
+                var iconGlyph = iconClass.Split(' ')[1];
+                var elapsed = DateTime.UtcNow - a.CreatedAt;
+                var timeLabel = elapsed.TotalMinutes < 1 ? "just now"
+                    : elapsed.TotalMinutes < 60 ? $"{(int)elapsed.TotalMinutes} min ago"
+                    : elapsed.TotalHours < 24 ? $"{(int)elapsed.TotalHours}h ago"
+                    : $"{(int)elapsed.TotalDays}d ago";
+                <a href="@a.Url" class="activity-row" style="text-decoration:none;">
+                    <span class="activity-icon @iconColor"><i class="bi @iconGlyph"></i></span>
+                    <div>
+                        <div class="activity-title">@a.Title</div>
+                        <div class="activity-sub">@a.Category &middot; @a.StatusLabel</div>
+                    </div>
+                    <span class="activity-time">@timeLabel</span>
+                </a>
+            }
+        </div>
+    </div>
+
+    <div class="panel">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div class="panel-title">Ongoing Campaigns</div>
+        </div>
+
+        <div style="margin-top:8px;">
+            @if (Model.OngoingCampaigns.Count == 0)
+            {
+                <div class="empty-block">
+                    <div class="empty-title">No campaigns yet</div>
+                    <div class="empty-text">Campaigns created by brands will appear here.</div>
+                </div>
+            }
+            @foreach (var c in Model.OngoingCampaigns)
+            {
+                <a href="@c.Url" class="campaign-row" style="text-decoration:none;">
+                    <div class="campaign-thumb"></div>
+                    <div>
+                        <div class="campaign-title">@c.Title &mdash; @c.Brand</div>
+                        <div class="campaign-sub">
+                            @c.InfluencerCount influencer@(c.InfluencerCount == 1 ? "" : "s")
+                            @if (c.Deadline.HasValue)
+                            {
+                                @: &middot; ends @c.Deadline.Value.ToString("MMM d, yyyy")
+                            }
+                        </div>
+                    </div>
+                    <div class="campaign-meta"><span class="status-pill @c.StatusColor">@c.StatusLabel</span></div>
+                </a>
+            }
+        </div>
+    </div>
+
+</div>
+
+@section Scripts {
+<script>
+(function () {
+    var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    // ---- Top Campaign Performance: animate fill once when scrolled into view ----
+    var perfFills = document.querySelectorAll('#perfPanel .perf-fill');
+    if (perfFills.length) {
+        if (reduceMotion || !('IntersectionObserver' in window)) {
+            perfFills.forEach(function (el) { el.classList.add('in-view'); });
+        } else {
+            var perfObserver = new IntersectionObserver(function (entries) {
+                entries.forEach(function (entry) {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('in-view');
+                        perfObserver.unobserve(entry.target);
+                    }
+                });
+            }, { threshold: 0.4 });
+            perfFills.forEach(function (el) { perfObserver.observe(el); });
+        }
+    }
+
+    // ---- Count-up for Payment Flow total ----
+    var pfTotalEl = document.getElementById('pfTotalValue');
+    if (pfTotalEl) {
+        var target = parseInt(pfTotalEl.getAttribute('data-target'), 10) || 0;
+        if (reduceMotion) {
+            pfTotalEl.textContent = '৳' + target.toLocaleString('en-US');
+        } else {
+            var start = null;
+            var duration = 900;
+            function step(ts) {
+                if (!start) start = ts;
+                var progress = Math.min((ts - start) / duration, 1);
+                var eased = 1 - Math.pow(1 - progress, 3);
+                var value = Math.round(target * eased);
+                pfTotalEl.textContent = '৳' + value.toLocaleString('en-US');
+                if (progress < 1) requestAnimationFrame(step);
+            }
+            requestAnimationFrame(step);
+        }
+    }
+
+    // ---- Shared tooltip helper ----
+    function wireTooltip(wrapId, tooltipId, pointSelector, buildContent) {
+        var wrap = document.getElementById(wrapId);
+        var tooltip = document.getElementById(tooltipId);
+        if (!wrap || !tooltip) return;
+
+        wrap.querySelectorAll(pointSelector).forEach(function (pt) {
+            pt.addEventListener('mouseenter', function () {
+                pt.classList.add('is-hovered');
+                tooltip.innerHTML = buildContent(pt);
+                positionTooltip(wrap, tooltip, pt);
+                tooltip.classList.add('is-visible');
+            });
+            pt.addEventListener('mouseleave', function () {
+                pt.classList.remove('is-hovered');
+                tooltip.classList.remove('is-visible');
+            });
+        });
+    }
+
+    function positionTooltip(wrap, tooltip, pt) {
+        var svg = pt.ownerSVGElement;
+        var pointRect = pt.getBoundingClientRect();
+        var wrapRect = wrap.getBoundingClientRect();
+        var left = pointRect.left - wrapRect.left + pointRect.width / 2;
+        var top = pointRect.top - wrapRect.top;
+        tooltip.style.left = left + 'px';
+        tooltip.style.top = top + 'px';
+    }
+
+    wireTooltip('pfChartWrap', 'pfTooltip', '.chart-point', function (pt) {
+        return '<div class="chart-tooltip-title">' + pt.getAttribute('data-month') + ' 2026</div>' +
+            '<div class="chart-tooltip-row"><span>Revenue</span><b>' + pt.getAttribute('data-revenue') + '</b></div>' +
+            '<div class="chart-tooltip-row"><span>Payments</span><b>' + pt.getAttribute('data-count') + '</b></div>' +
+            '<div class="chart-tooltip-row"><span>Change</span><b>' + pt.getAttribute('data-change') + '</b></div>';
+    });
+
+    // ---- Brandora Pulse: legend highlight + vertical tracker ----
+    var bpLegend = document.getElementById('bpLegend');
+    var bpSvg = document.getElementById('bpSvg');
+    if (bpLegend && bpSvg) {
+        var lines = bpSvg.querySelectorAll('.pulse-line');
+        bpLegend.querySelectorAll('.chart-legend-item').forEach(function (item) {
+            item.addEventListener('mouseenter', function () {
+                var series = item.getAttribute('data-series');
+                lines.forEach(function (line) {
+                    line.classList.toggle('is-active', line.getAttribute('data-series') === series);
+                });
+                bpLegend.querySelectorAll('.chart-legend-item').forEach(function (li) {
+                    li.classList.toggle('is-active', li === item);
+                });
+            });
+            item.addEventListener('mouseleave', function () {
+                lines.forEach(function (line) { line.classList.remove('is-active'); });
+                bpLegend.querySelectorAll('.chart-legend-item').forEach(function (li) { li.classList.add('is-active'); });
+            });
+        });
+    }
+
+    var bpMonths = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(bpMonths));
+    var bpUsers = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(bpUsers));
+    var bpCampaigns = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(bpCampaigns));
+    var bpCollabs = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(bpCollabs));
+
+    var bpHit = document.getElementById('bpTrackerHit');
+    var bpTracker = document.getElementById('bpTracker');
+    var bpWrap = document.getElementById('bpChartWrap');
+    var bpTooltip = document.getElementById('bpTooltip');
+
+    if (bpHit && bpTracker && bpWrap && bpTooltip) {
+        bpHit.addEventListener('mousemove', function (evt) {
+            var pt = bpSvg.createSVGPoint();
+            pt.x = evt.clientX; pt.y = evt.clientY;
+            var svgPt = pt.matrixTransform(bpSvg.getScreenCTM().inverse());
+            var stepX = 620 / (bpMonths.length - 1);
+            var idx = Math.round((svgPt.x - 20) / stepX);
+            idx = Math.max(0, Math.min(bpMonths.length - 1, idx));
+            var x = 20 + idx * stepX;
+
+            bpTracker.setAttribute('x1', x);
+            bpTracker.setAttribute('x2', x);
+            bpTracker.style.opacity = '1';
+
+            bpTooltip.innerHTML =
+                '<div class="chart-tooltip-title">' + bpMonths[idx] + ' 2026</div>' +
+                '<div class="chart-tooltip-row"><span style="color:#a326ff;">New Users</span><b>' + bpUsers[idx] + '</b></div>' +
+                '<div class="chart-tooltip-row"><span style="color:#236eff;">Campaigns</span><b>' + bpCampaigns[idx] + '</b></div>' +
+                '<div class="chart-tooltip-row"><span style="color:#0d9c6c;">Collabs</span><b>' + bpCollabs[idx] + '</b></div>';
+
+            var wrapRect = bpWrap.getBoundingClientRect();
+            var svgRect = bpSvg.getBoundingClientRect();
+            var scaleX = svgRect.width / 660;
+            var left = (x * scaleX) + (svgRect.left - wrapRect.left);
+            bpTooltip.style.left = left + 'px';
+            bpTooltip.style.top = '20px';
+            bpTooltip.classList.add('is-visible');
+        });
+
+        bpHit.addEventListener('mouseleave', function () {
+            bpTracker.style.opacity = '0';
+            bpTooltip.classList.remove('is-visible');
+        });
+    }
+})();
+</script>
+}

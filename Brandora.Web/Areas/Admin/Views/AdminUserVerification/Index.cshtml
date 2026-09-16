@@ -1,5 +1,8 @@
 @model List<Brandora.Web.Areas.Admin.Controllers.VerificationRow>
 @{
+    // NOTE (redesign pass — real data kept where already available; new widgets below that
+    // have no backing schema yet — Flags, Today's Review Queue ring, Queue Health — are
+    // DUMMY placeholders, clearly marked, to be wired once that data/logic exists).
     var roleFilter = ViewData["RoleFilter"] as string ?? "All";
     var statusFilter = ViewData["StatusFilter"] as string ?? "All";
     var totalAll = ViewData["TotalAllCount"] as int? ?? 0;
@@ -8,66 +11,111 @@
     var totalPending = ViewData["TotalPendingCount"] as int? ?? 0;
     var totalVerified = ViewData["TotalVerifiedCount"] as int? ?? 0;
     var totalRejected = ViewData["TotalRejectedCount"] as int? ?? 0;
+    var newToday = ViewData["NewTodayCount"] as int? ?? 0;
 }
 
 <style>
-    .filter-tabs { display: flex; gap: 10px; flex-wrap: wrap; }
-    .filter-tab {
-        padding: 10px 16px;
-        border-radius: 10px;
-        border: 1px solid #eaecf5;
-        background: #ffffff;
-        font-family: 'Inter', sans-serif;
-        font-size: 13px;
-        font-weight: 600;
-        color: #545b7d;
-        white-space: nowrap;
+    .uv-hero {
+        position: relative; isolation: isolate; overflow: hidden;
+        display: flex; align-items: center; gap: 20px;
+        min-height: 190px; padding: 30px 36px;
+        border-radius: 18px; margin-bottom: 20px;
+        border: 1px solid #dce7ff;
+        background: radial-gradient(ellipse at 61% 0%, rgba(163,38,255,.1), transparent 58%), linear-gradient(110deg, #f3f6ff55, #eaf1ff99 55%, #f3f6ff55);
     }
+    .uv-hero .dashboard-waves { position: absolute; inset: auto 0 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
+    .uv-hero-title { position: relative; z-index: 2; }
+    .uv-hero-title h1 { margin: 0; font-family: 'DM Sans', sans-serif; font-weight: 800; font-size: 32px; color: #171d3d; }
+    .uv-hero-title p { margin-top: 6px; font-family: 'Inter', sans-serif; font-size: 13.5px; color: #6b7290; }
+    .uv-hero-tagline {
+        position: relative; z-index: 2; margin-left: auto;
+        font-family: 'Caveat', cursive; font-weight: 700; font-size: 21px; line-height: 1.25;
+        color: #2a3157; text-align: center; transform: rotate(-3deg);
+    }
+    .uv-hero-tagline span { display: block; width: 48px; height: 4px; margin: 8px auto 0; background: linear-gradient(110deg,#a326ff,#236eff); border-radius: 4px; }
+    .uv-hero-stat { position: relative; z-index: 2; flex-shrink: 0; padding-left: 24px; border-left: 1px solid #c9d3ee; text-align: left; }
+    .uv-hero-stat .big { font-family: 'DM Sans', sans-serif; font-weight: 800; font-size: 26px; color: #171d3d; }
+    .uv-hero-stat .big span { font-family: 'Inter', sans-serif; font-weight: 600; font-size: 13.5px; color: #2a3157; margin-left: 6px; }
+    .uv-hero-stat .sub { margin-top: 3px; font-family: 'Inter', sans-serif; font-size: 12.5px; color: #6b7290; }
+    @@media(max-width: 900px) { .uv-hero-tagline { display: none; } }
+
+    .uv-stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; }
+    @@media(max-width: 900px) { .uv-stat-grid { grid-template-columns: 1fr 1fr; } }
+    .uv-stat-card {
+        display: flex; align-items: center; gap: 12px;
+        padding: 16px 18px; border-radius: 14px; background: #ffffff; border: 1px solid #dce7ff;
+        transition: transform .15s ease, box-shadow .15s ease;
+    }
+    .uv-stat-card:hover { transform: translateY(-2px); box-shadow: 0 10px 22px rgba(20,25,60,.08); }
+    .uv-stat-card.is-active { border-color: transparent; box-shadow: 0 0 0 2px #a978ff; }
+    .uv-stat-icon { width: 40px; height: 40px; border-radius: 11px; display: flex; align-items: center; justify-content: center; font-size: 17px; flex-shrink: 0; }
+    .uv-stat-icon.purple { background: #f1e6ff; color: #8b2ff2; }
+    .uv-stat-icon.orange { background: #fdeee0; color: #d97a17; }
+    .uv-stat-icon.green { background: #dff7ec; color: #0d9c6c; }
+    .uv-stat-icon.red { background: #fde3e3; color: #e34848; }
+    .uv-stat-label { font-family: 'Inter', sans-serif; font-size: 12px; color: #8189a8; }
+    .uv-stat-value { font-family: 'DM Sans', sans-serif; font-weight: 800; font-size: 20px; color: #171d3d; }
+
+    .uv-layout { display: grid; grid-template-columns: 1fr 300px; gap: 20px; align-items: start; }
+    @@media(max-width: 1150px) { .uv-layout { grid-template-columns: 1fr; } }
+
+    .filter-tabs { display: flex; gap: 10px; flex-wrap: wrap; }
+    .filter-tab { padding: 10px 16px; border-radius: 10px; border: 1px solid #eaecf5; background: #ffffff; font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; color: #545b7d; white-space: nowrap; }
     .filter-tab:hover { border-color: #d3b8ff; }
     .filter-tab.is-active { background: #f1e6ff; border-color: transparent; color: #7a1fd6; }
 
-    .table-toolbar { display: flex; justify-content: flex-end; gap: 12px; margin: 18px 0; flex-wrap: wrap; }
+    .table-toolbar { display: flex; justify-content: space-between; gap: 12px; margin: 18px 0; flex-wrap: wrap; }
     .table-search { position: relative; flex: 1; max-width: 320px; }
     .table-search i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #b7bdd6; font-size: 14px; }
-    .table-search input {
-        width: 100%; height: 42px; padding: 0 14px 0 38px;
-        border-radius: 10px; border: 1px solid #dde1f0;
-        font-family: 'Inter', sans-serif; font-size: 13px; color: #2a3157;
-        outline: none;
-    }
+    .table-search input { width: 100%; height: 42px; padding: 0 14px 0 38px; border-radius: 10px; border: 1px solid #dde1f0; font-family: 'Inter', sans-serif; font-size: 13px; color: #2a3157; outline: none; }
     .table-search input:focus { border-color: #a978ff; }
-
-    .filter-dropdown-btn {
-        display: inline-flex; align-items: center; gap: 8px;
-        height: 42px; padding: 0 16px;
-        border-radius: 10px; border: 1px solid #dde1f0; background: #ffffff;
-        font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; color: #2a3157;
-    }
+    .table-toolbar-actions { display: flex; gap: 10px; }
+    .filter-dropdown-btn { display: inline-flex; align-items: center; gap: 8px; height: 42px; padding: 0 16px; border-radius: 10px; border: 1px solid #dde1f0; background: #ffffff; font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; color: #2a3157; }
 
     .user-cell { display: flex; align-items: center; gap: 12px; }
-    .user-avatar-square {
-        width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0;
-        display: flex; align-items: center; justify-content: center;
-        background: #14103a; color: #ffffff;
-        font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 13px;
-    }
-    .user-avatar-round {
-        width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
-        display: flex; align-items: center; justify-content: center;
-        background: linear-gradient(145deg, #c93cff, #4e38ff 55%, #159cff); color: #ffffff;
-        font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 13px;
-    }
+    .user-avatar-square { width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: #14103a; color: #ffffff; font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 13px; }
+    .user-avatar-round { width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: linear-gradient(145deg, #c93cff, #4e38ff 55%, #159cff); color: #ffffff; font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 13px; }
     .user-name { font-family: 'Inter', sans-serif; font-size: 13.5px; font-weight: 700; color: #2a3157; }
     .user-id { margin-top: 1px; font-family: 'Inter', sans-serif; font-size: 11.5px; color: #8189a8; }
+    .flag-cell { display: flex; align-items: center; gap: 6px; font-family: 'Inter', sans-serif; font-size: 12.5px; color: #6b7290; }
+    .flag-dot { width: 7px; height: 7px; border-radius: 50%; background: #0d9c6c; }
 
-    .btn-view {
-        display: inline-flex; align-items: center; justify-content: center;
-        height: 36px; padding: 0 18px;
-        border-radius: 9px; border: none;
-        background: #f1e6ff; color: #7a1fd6;
-        font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 700;
-    }
+    .btn-view { display: inline-flex; align-items: center; gap: 6px; justify-content: center; height: 36px; padding: 0 16px; border-radius: 9px; border: none; background: #f1e6ff; color: #7a1fd6; font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 700; }
     .btn-view:hover { background: #e6d3ff; }
+
+    /* Right sidebar widgets */
+    .uv-side-panel { padding: 20px; border-radius: 15px; background: #ffffff; border: 1px solid #dce7ff; margin-bottom: 18px; }
+    .uv-side-title { font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 14.5px; color: #171d3d; }
+
+    .uv-ring-wrap { position: relative; width: 150px; height: 150px; margin: 16px auto 0; }
+    .uv-ring-svg { width: 100%; height: 100%; }
+    .uv-ring-arc { fill: none; stroke-width: 12; stroke-linecap: round; }
+    .uv-ring-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+    .uv-ring-value { font-family: 'DM Sans', sans-serif; font-weight: 800; font-size: 17px; color: #171d3d; }
+    .uv-ring-label { font-family: 'Inter', sans-serif; font-size: 10.5px; color: #8189a8; }
+    .uv-ring-footer { display: flex; justify-content: space-around; margin-top: 14px; text-align: center; }
+    .uv-ring-footer .n { font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 15px; color: #171d3d; }
+    .uv-ring-footer .l { font-family: 'Inter', sans-serif; font-size: 10.5px; color: #8189a8; }
+
+    .uv-breakdown-row { margin-top: 14px; }
+    .uv-breakdown-row .bh { display: flex; justify-content: space-between; font-family: 'Inter', sans-serif; font-size: 12.5px; color: #2a3157; margin-bottom: 6px; }
+    .uv-breakdown-track { height: 7px; border-radius: 6px; background: #f0f1f8; overflow: hidden; }
+    .uv-breakdown-fill { height: 100%; border-radius: 6px; background: linear-gradient(105deg, #8b6bff, #5b8dff); }
+
+    .uv-health-item { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid #f2f3fa; }
+    .uv-health-item:last-child { border-bottom: none; }
+    .uv-health-icon { width: 30px; height: 30px; border-radius: 8px; background: #f6f7fb; display: flex; align-items: center; justify-content: center; color: #6b7290; font-size: 13px; flex-shrink: 0; }
+    .uv-health-label { font-family: 'Inter', sans-serif; font-size: 11.5px; color: #8189a8; }
+    .uv-health-value { font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 13px; color: #171d3d; }
+    .uv-health-badge { margin-top: 6px; display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 9px; background: #e2faf1; color: #0d9c6c; font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 700; }
+    .uv-health-badge .dot { width: 7px; height: 7px; border-radius: 50%; background: #0d9c6c; }
+
+    .uv-community-card {
+        padding: 22px; border-radius: 15px; color: #ffffff;
+        background: linear-gradient(135deg, #6b4fe0, #4a6bff);
+    }
+    .uv-community-card .t { font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 15.5px; line-height: 1.35; }
+    .uv-community-card span { display: block; width: 36px; height: 3px; margin-top: 12px; background: rgba(255,255,255,.7); border-radius: 4px; }
 </style>
 
 @if (TempData["VerificationMessage"] is string msg)
@@ -75,78 +123,187 @@
     <div class="form-success">@msg</div>
 }
 
-<div class="panel">
-
-    <div class="filter-tabs">
-        <a href="/Admin/AdminUserVerification/Index" class="filter-tab @(roleFilter == "All" && statusFilter == "All" ? "is-active" : "")">All (@totalAll)</a>
-        <a href="/Admin/AdminUserVerification/Index?role=Brand" class="filter-tab @(roleFilter == "Brand" ? "is-active" : "")">Brand (@totalBrand)</a>
-        <a href="/Admin/AdminUserVerification/Index?role=Influencer" class="filter-tab @(roleFilter == "Influencer" ? "is-active" : "")">Influencer (@totalInfluencer)</a>
-        <a href="/Admin/AdminUserVerification/Index?status=Pending" class="filter-tab @(statusFilter == "Pending" ? "is-active" : "")">Pending (@totalPending)</a>
-        <a href="/Admin/AdminUserVerification/Index?status=Verified" class="filter-tab @(statusFilter == "Verified" ? "is-active" : "")">Verified (@totalVerified)</a>
-        <a href="/Admin/AdminUserVerification/Index?status=Rejected" class="filter-tab @(statusFilter == "Rejected" ? "is-active" : "")">Rejected (@totalRejected)</a>
+<section class="uv-hero">
+    @await Html.PartialAsync("~/Views/InfluencerDashboard/_Waves.cshtml", "hero")
+    <div class="uv-hero-title">
+        <h1>User Verification</h1>
+        <p>Review and manage identity and profile verification requests.</p>
     </div>
-
-    <div class="table-toolbar">
-        <div class="table-search">
-            <i class="bi bi-search"></i>
-            <input type="text" placeholder="Search users, email, or ID..." />
-        </div>
-        <button type="button" class="filter-dropdown-btn"><i class="bi bi-funnel"></i> Filter <i class="bi bi-chevron-down" style="font-size:11px;"></i></button>
+    <div class="uv-hero-tagline">A safer<br />brighter creator<br />economy<span></span></div>
+    <div class="uv-hero-stat">
+        <div class="big">@totalPending <span>Awaiting Review</span></div>
+        <div class="sub">@newToday New Today</div>
     </div>
+</section>
 
-    @if (statusFilter == "Rejected")
-    {
-        <div class="empty-block">
-            <div class="empty-title">No rejected accounts</div>
-            <div class="empty-text">There's no "Rejected" status on Brand/Influencer profiles yet — only Pending/Verified exist today. This tab will populate once that status is added.</div>
+<div class="uv-stat-grid">
+    <a href="/Admin/AdminUserVerification/Index" class="uv-stat-card @(roleFilter == "All" && statusFilter == "All" ? "is-active" : "")">
+        <div class="uv-stat-icon purple"><i class="bi bi-people-fill"></i></div>
+        <div><div class="uv-stat-label">All</div><div class="uv-stat-value">@totalAll</div></div>
+    </a>
+    <a href="/Admin/AdminUserVerification/Index?status=Pending" class="uv-stat-card @(statusFilter == "Pending" ? "is-active" : "")">
+        <div class="uv-stat-icon orange"><i class="bi bi-clock-history"></i></div>
+        <div><div class="uv-stat-label">Pending</div><div class="uv-stat-value">@totalPending</div></div>
+    </a>
+    <a href="/Admin/AdminUserVerification/Index?status=Verified" class="uv-stat-card @(statusFilter == "Verified" ? "is-active" : "")">
+        <div class="uv-stat-icon green"><i class="bi bi-check-circle-fill"></i></div>
+        <div><div class="uv-stat-label">Verified</div><div class="uv-stat-value">@totalVerified</div></div>
+    </a>
+    <a href="/Admin/AdminUserVerification/Index?status=Rejected" class="uv-stat-card @(statusFilter == "Rejected" ? "is-active" : "")">
+        <div class="uv-stat-icon red"><i class="bi bi-x-circle-fill"></i></div>
+        <div><div class="uv-stat-label">Rejected</div><div class="uv-stat-value">@totalRejected</div></div>
+    </a>
+</div>
+
+<div class="uv-layout">
+
+    <div class="panel">
+        <div class="panel-title">Verification Queue</div>
+        <div class="panel-sub">Review the latest brand and influencer verification requests.</div>
+
+        <div class="filter-tabs" style="margin-top:16px;">
+            <a href="/Admin/AdminUserVerification/Index" class="filter-tab @(roleFilter == "All" && statusFilter == "All" ? "is-active" : "")">All (@totalAll)</a>
+            <a href="/Admin/AdminUserVerification/Index?role=Brand" class="filter-tab @(roleFilter == "Brand" ? "is-active" : "")">Brand (@totalBrand)</a>
+            <a href="/Admin/AdminUserVerification/Index?role=Influencer" class="filter-tab @(roleFilter == "Influencer" ? "is-active" : "")">Influencer (@totalInfluencer)</a>
         </div>
-    }
-    else if (Model.Count == 0)
-    {
-        <div class="empty-block">
-            <div class="empty-title">No users found</div>
-            <div class="empty-text">Try a different filter, or register a Brand/Influencer account to see it here.</div>
+
+        <div class="table-toolbar">
+            <div class="table-search">
+                <i class="bi bi-search"></i>
+                <input type="text" placeholder="Search users, email, or ID..." />
+            </div>
+            <div class="table-toolbar-actions">
+                <button type="button" class="filter-dropdown-btn"><i class="bi bi-funnel"></i> Filter <i class="bi bi-chevron-down" style="font-size:11px;"></i></button>
+                <button type="button" class="filter-dropdown-btn"><i class="bi bi-download"></i> Export</button>
+            </div>
         </div>
-    }
-    else
-    {
-        <div class="admin-table-wrap">
-            <table class="admin-table">
-                <thead>
-                    <tr><th>User</th><th>Role</th><th>Submitted Date</th><th>Followers / Size</th><th>Status</th><th>Action</th></tr>
-                </thead>
-                <tbody>
-                    @foreach (var row in Model)
-                    {
-                        var initials = string.Join("", row.Name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(w => w[0])).ToUpperInvariant();
-                        <tr>
-                            <td>
-                                <div class="user-cell">
-                                    @if (row.Type == "Brand")
-                                    {
-                                        <div class="user-avatar-square">@initials</div>
-                                    }
-                                    else
-                                    {
-                                        <div class="user-avatar-round">@initials</div>
-                                    }
-                                    <div>
-                                        <div class="user-name">@row.Name</div>
-                                        <div class="user-id">ID: @row.Id</div>
+
+        @if (Model.Count == 0)
+        {
+            <div class="empty-block">
+                <div class="empty-title">No users found</div>
+                <div class="empty-text">Try a different filter, or register a Brand/Influencer account to see it here.</div>
+            </div>
+        }
+        else
+        {
+            <div class="admin-table-wrap">
+                <table class="admin-table">
+                    <thead>
+                        <tr><th>User</th><th>Account Type</th><th>Submitted</th><th>Flags</th><th>Status</th><th>Action</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in Model)
+                        {
+                            var initials = string.Join("", row.Name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(w => w[0])).ToUpperInvariant();
+                            <tr>
+                                <td>
+                                    <div class="user-cell">
+                                        @if (row.Type == "Brand")
+                                        {
+                                            <div class="user-avatar-square">@initials</div>
+                                        }
+                                        else
+                                        {
+                                            <div class="user-avatar-round">@initials</div>
+                                        }
+                                        <div>
+                                            <div class="user-name">@row.Name</div>
+                                            <div class="user-id">ID: @row.Id</div>
+                                        </div>
                                     </div>
-                                </div>
-                            </td>
-                            <td><span class="status-pill @(row.Type == "Brand" ? "gray" : "blue")">@row.Type</span></td>
-                            <td>@row.SubmittedDate.ToString("MMM d, yyyy")</td>
-                            <td>@row.FollowersDisplay</td>
-                            <td><span class="status-pill @(row.Verified ? "green" : "gray")">@(row.Verified ? "Verified" : "Pending")</span></td>
-                            <td><a href="/Admin/AdminUserVerification/Details?type=@row.Type.ToLower()&id=@row.Id" class="btn-view">View</a></td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
+                                </td>
+                                <td><span class="status-pill @(row.Type == "Brand" ? "gray" : "blue")">@row.Type</span></td>
+                                <td>@row.SubmittedDate.ToString("MMM d, yyyy")</td>
+                                <td><span class="flag-cell"><span class="flag-dot"></span> No flags</span></td>
+                                <td>
+                                    @{
+                                        var statusColor = row.Status switch
+                                        {
+                                            Brandora.Web.Models.Domain.VerificationStatus.Verified => "green",
+                                            Brandora.Web.Models.Domain.VerificationStatus.Rejected => "red",
+                                            _ => "gray"
+                                        };
+                                    }
+                                    <span class="status-pill @statusColor">@row.Status</span>
+                                </td>
+                                <td><a href="/Admin/AdminUserVerification/Details?type=@row.Type.ToLower()&id=@row.Id" class="btn-view">Review <i class="bi bi-arrow-right"></i></a></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="panel-sub" style="margin-top:14px;">Showing @Model.Count of @totalAll users</div>
+        }
+    </div>
+
+    <div>
+        @{
+            var reviewed = Math.Max(totalAll - totalPending, 0);
+            var reviewedPct = totalAll == 0 ? 0 : (double)reviewed / totalAll;
+            var ringCircumference = 2 * Math.PI * 52;
+            var ringOffset = ringCircumference * (1 - reviewedPct);
+        }
+        <div class="uv-side-panel">
+            <div class="uv-side-title">Today's Review Queue</div>
+            <div class="uv-ring-wrap">
+                <svg class="uv-ring-svg" viewBox="0 0 120 120">
+                    <circle class="uv-ring-arc" cx="60" cy="60" r="52" stroke="#eef1fb" />
+                    <circle class="uv-ring-arc" cx="60" cy="60" r="52" stroke="url(#uvRingGrad)"
+                            stroke-dasharray="@ringCircumference.ToString("0.##")" stroke-dashoffset="@ringOffset.ToString("0.##")"
+                            transform="rotate(-90 60 60)" />
+                    <defs>
+                        <linearGradient id="uvRingGrad" x1="0" y1="0" x2="1" y2="1">
+                            <stop offset="0%" stop-color="#8b6bff" />
+                            <stop offset="100%" stop-color="#4fc3ff" />
+                        </linearGradient>
+                    </defs>
+                </svg>
+                <div class="uv-ring-center">
+                    <div class="uv-ring-value">@reviewed / @totalAll</div>
+                    <div class="uv-ring-label">Reviewed</div>
+                </div>
+            </div>
+            <div class="uv-ring-footer">
+                <div><div class="n">@totalPending</div><div class="l">Remaining</div></div>
+                <div><div class="n">@newToday</div><div class="l">New Today</div></div>
+            </div>
         </div>
 
-        <div class="panel-sub" style="margin-top:14px;">Showing @Model.Count of @totalAll users</div>
-    }
+        <div class="uv-side-panel">
+            <div class="uv-side-title">Queue Breakdown</div>
+            <div class="uv-breakdown-row">
+                <div class="bh"><span>Influencers</span><b>@totalInfluencer</b></div>
+                <div class="uv-breakdown-track"><div class="uv-breakdown-fill" style="width:@(totalAll == 0 ? 0 : totalInfluencer * 100 / totalAll)%;"></div></div>
+            </div>
+            <div class="uv-breakdown-row">
+                <div class="bh"><span>Brands</span><b>@totalBrand</b></div>
+                <div class="uv-breakdown-track"><div class="uv-breakdown-fill" style="width:@(totalAll == 0 ? 0 : totalBrand * 100 / totalAll)%;"></div></div>
+            </div>
+        </div>
+
+        <div class="uv-side-panel">
+            <div class="uv-side-title">Queue Health</div>
+            <div class="panel-sub" style="margin-top:2px;">Coming soon &mdash; needs review-timestamp tracking not yet in the schema.</div>
+            <div class="uv-health-item">
+                <div class="uv-health-icon"><i class="bi bi-clock"></i></div>
+                <div><div class="uv-health-label">Oldest Pending</div><div class="uv-health-value">&mdash;</div></div>
+            </div>
+            <div class="uv-health-item">
+                <div class="uv-health-icon"><i class="bi bi-hourglass-split"></i></div>
+                <div><div class="uv-health-label">Average Wait</div><div class="uv-health-value">&mdash;</div></div>
+            </div>
+            <div class="uv-health-item">
+                <div class="uv-health-icon"><i class="bi bi-graph-up"></i></div>
+                <div><div class="uv-health-label">Completion Today</div><div class="uv-health-value">&mdash;</div></div>
+            </div>
+        </div>
+
+        <div class="uv-community-card">
+            <div class="t">A trusted community builds bigger opportunities.</div>
+            <span></span>
+        </div>
+    </div>
+
 </div>

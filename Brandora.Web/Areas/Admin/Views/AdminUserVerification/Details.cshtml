@@ -1,17 +1,25 @@
 @model object
+@using Brandora.Web.Models.Domain
 @{
-    // NOTE: real InfluencerProfile fields are used below wherever a real column exists.
-    // Fields this mockup shows that have NO real column yet (phone number, submitted
-    // documents/ID verification, multi-platform social accounts beyond the one
-    // PrimaryPlatform tracked, admin notes storage, verification checklist) render as
-    // dummy/placeholder content rather than invented real data — see
-    // feedback_backend_wiring_scope memory. No schema changes were made for this pass.
+    // Real data used throughout — InfluencerProfile/BrandProfile.VerificationStatus, RejectionReason,
+    // AdminNotes, VerifiedAt (Phase 2 schema) are all wired for real here. The only placeholders left
+    // are sections with genuinely no backing feature yet: Submitted Documents (no upload feature),
+    // Recent Posts (no content-tracking feature), Audience Demographics (no country-breakdown data),
+    // and extra social platforms beyond the one PrimaryPlatform tracked per influencer.
     var type = ViewData["Type"] as string ?? "";
-    var influencer = type == "Influencer" ? Model as Brandora.Web.Models.Domain.InfluencerProfile : null;
-    var brand = type == "Brand" ? Model as Brandora.Web.Models.Domain.BrandProfile : null;
+    var influencer = type == "Influencer" ? Model as InfluencerProfile : null;
+    var brand = type == "Brand" ? Model as BrandProfile : null;
     var actionId = influencer?.Id ?? brand?.Id ?? 0;
     var actionType = type.ToLowerInvariant();
     var previousCollaborations = ViewData["PreviousCollaborationsCount"] as int? ?? 0;
+    var campaignCount = ViewData["CampaignCount"] as int? ?? 0;
+    var status = influencer?.VerificationStatus ?? brand?.VerificationStatus ?? VerificationStatus.Pending;
+    var adminNotes = influencer?.AdminNotes ?? brand?.AdminNotes ?? "";
+    var rejectionReason = influencer?.RejectionReason ?? brand?.RejectionReason ?? "";
+    var verifiedAt = influencer?.VerifiedAt ?? brand?.VerifiedAt;
+    var createdAt = influencer?.CreatedAt ?? brand?.CreatedAt ?? DateTime.UtcNow;
+    var displayName = influencer?.FullName ?? brand?.CompanyName ?? "Unknown";
+    var email = influencer?.User?.Email ?? brand?.User?.Email ?? "Not provided";
 
     string Initials(string name) => string.IsNullOrWhiteSpace(name)
         ? "?"
@@ -28,37 +36,70 @@
         var p when p.Contains("twitter") || p == "x" => ("bi-twitter-x", "#000000"),
         _ => ("bi-share-fill", "#6b52d8")
     };
+
+    (string Label, string Color) StatusPill(VerificationStatus s) => s switch
+    {
+        VerificationStatus.Verified => ("Verified", "green"),
+        VerificationStatus.Rejected => ("Rejected", "red"),
+        _ => ("Under Review", "orange")
+    };
 }
 
 <style>
-    .detail-top-panel { display: grid; grid-template-columns: 1.6fr 1fr; gap: 24px; }
-    @@media(max-width: 1100px) { .detail-top-panel { grid-template-columns: 1fr; } }
-
-    .detail-identity { display: flex; align-items: center; gap: 16px; }
-    .detail-avatar {
-        width: 72px; height: 72px; border-radius: 50%; flex-shrink: 0;
-        display: flex; align-items: center; justify-content: center;
-        background: linear-gradient(145deg, #c93cff, #4e38ff 55%, #159cff); color: #ffffff;
-        font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 22px;
+    .rv-hero {
+        position: relative; isolation: isolate; overflow: hidden;
+        display: flex; align-items: center; justify-content: space-between; gap: 20px;
+        min-height: 150px; padding: 26px 36px;
+        border-radius: 18px; margin-bottom: 20px;
+        border: 1px solid #dce7ff;
+        background: radial-gradient(ellipse at 61% 0%, rgba(163,38,255,.1), transparent 58%), linear-gradient(110deg, #f3f6ff55, #eaf1ff99 55%, #f3f6ff55);
     }
-    .detail-name-row { display: flex; align-items: center; gap: 10px; }
-    .detail-name { font-family: 'DM Sans', sans-serif; font-weight: 800; font-size: 19px; color: #171d3d; }
-    .detail-meta-row { margin-top: 6px; display: flex; align-items: center; gap: 8px; font-family: 'Inter', sans-serif; font-size: 12.5px; color: #8189a8; }
+    .rv-hero .dashboard-waves { position: absolute; inset: auto 0 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
+    .rv-eyebrow { position: relative; z-index: 2; font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 1px; color: #8b2ff2; text-transform: uppercase; }
+    .rv-title-row { position: relative; z-index: 2; }
+    .rv-title-row h1 { margin: 4px 0 0; font-family: 'DM Sans', sans-serif; font-weight: 800; font-size: 28px; color: #171d3d; }
+    .rv-title-row p { margin-top: 6px; font-family: 'Inter', sans-serif; font-size: 13.5px; color: #6b7290; }
+    .rv-tagline {
+        position: relative; z-index: 2;
+        font-family: 'Caveat', cursive; font-weight: 700; font-size: 19px; line-height: 1.2;
+        color: #2a3157; text-align: center; transform: rotate(-3deg); flex-shrink: 0;
+    }
+    .rv-tagline span { display: block; width: 42px; height: 4px; margin: 6px auto 0; background: linear-gradient(110deg,#a326ff,#236eff); border-radius: 4px; }
+    .rv-back { position: relative; z-index: 2; flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px; font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 600; color: #6b52d8; }
+    .rv-back:hover { text-decoration: underline; }
+    @@media(max-width: 900px) { .rv-tagline { display: none; } }
 
-    .contact-list { margin-top: 16px; display: flex; flex-direction: column; gap: 10px; }
-    .contact-item { display: flex; align-items: center; gap: 10px; font-family: 'Inter', sans-serif; font-size: 13px; color: #2a3157; }
-    .contact-item i { color: #9b2cff; width: 16px; text-align: center; }
+    .rv-summary { display: grid; grid-template-columns: 1.6fr 1fr; gap: 20px; align-items: center; }
+    @@media(max-width: 1000px) { .rv-summary { grid-template-columns: 1fr; } }
+    .rv-identity { display: flex; align-items: center; gap: 16px; }
+    .rv-avatar { width: 76px; height: 76px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: linear-gradient(145deg, #c93cff, #4e38ff 55%, #159cff); color: #ffffff; font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 24px; }
+    .rv-name-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .rv-name { font-family: 'DM Sans', sans-serif; font-weight: 800; font-size: 19px; color: #171d3d; }
+    .rv-handle { margin-top: 2px; font-family: 'Inter', sans-serif; font-size: 12.5px; color: #8189a8; }
+    .rv-meta-row { margin-top: 4px; font-family: 'Inter', sans-serif; font-size: 12px; color: #8189a8; }
+    .rv-bio { margin-top: 8px; font-family: 'Inter', sans-serif; font-size: 12.5px; color: #6b7290; line-height: 1.5; max-width: 480px; }
+    .rv-footer-row { margin-top: 8px; display: flex; gap: 18px; flex-wrap: wrap; font-family: 'Inter', sans-serif; font-size: 12px; color: #8189a8; }
+    .rv-footer-row i { margin-right: 4px; }
 
-    .quick-facts { display: flex; flex-direction: column; gap: 14px; }
-    .quick-fact { display: flex; align-items: flex-start; gap: 10px; }
-    .quick-fact i { color: #9b2cff; margin-top: 2px; }
-    .quick-fact-label { font-family: 'Inter', sans-serif; font-size: 11.5px; color: #8189a8; }
-    .quick-fact-value { font-family: 'Inter', sans-serif; font-size: 13.5px; font-weight: 700; color: #2a3157; }
+    .rv-stat-block { display: flex; gap: 24px; justify-content: flex-end; flex-wrap: wrap; }
+    .rv-stat { text-align: right; }
+    .rv-stat .n { font-family: 'DM Sans', sans-serif; font-weight: 800; font-size: 20px; color: #171d3d; }
+    .rv-stat .l { font-family: 'Inter', sans-serif; font-size: 11px; color: #8189a8; }
+    .rv-extra-row { margin-top: 16px; display: flex; gap: 14px; flex-wrap: wrap; justify-content: flex-end; }
+    .rv-extra-card { padding: 10px 16px; border-radius: 10px; background: #fafbff; border: 1px solid #eaecf5; text-align: left; }
+    .rv-extra-card .l { font-family: 'Inter', sans-serif; font-size: 11px; color: #8189a8; }
+    .rv-extra-card .v { margin-top: 2px; font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 700; color: #2a3157; }
 
-    .content-grid { display: grid; grid-template-columns: 1.1fr 1fr; gap: 20px; margin-top: 20px; align-items: start; }
+    .rv-tabs { display: flex; gap: 6px; margin: 20px 0 0; border-bottom: 1px solid #eaecf5; }
+    .rv-tab-btn { padding: 11px 16px; border: 0; background: transparent; font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; color: #8189a8; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+    .rv-tab-btn.is-active { color: #7a1fd6; border-bottom-color: #7a1fd6; }
+    .rv-tab-panel { display: none; margin-top: 20px; }
+    .rv-tab-panel.is-active { display: block; }
+
+    .content-grid { display: grid; grid-template-columns: 1.1fr 1fr; gap: 20px; align-items: start; }
     @@media(max-width: 1100px) { .content-grid { grid-template-columns: 1fr; } }
 
-    .info-grid { display: grid; grid-template-columns: 130px 1fr; row-gap: 14px; column-gap: 12px; }
+    .info-grid { display: grid; grid-template-columns: 140px 1fr; row-gap: 14px; column-gap: 12px; }
     .info-label { font-family: 'Inter', sans-serif; font-size: 12.5px; color: #8189a8; }
     .info-value { font-family: 'Inter', sans-serif; font-size: 13.5px; font-weight: 600; color: #2a3157; }
 
@@ -68,15 +109,6 @@
     .social-row-icon { width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 13px; color: #ffffff; }
     .social-handle { font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; color: #2a3157; }
     .social-count { font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 13px; color: #171d3d; }
-
-    .doc-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 16px; }
-    @@media(max-width: 900px) { .doc-grid { grid-template-columns: 1fr 1fr; } }
-    .doc-card { border: 1px solid #eaecf5; border-radius: 12px; overflow: hidden; }
-    .doc-thumb { height: 100px; background: linear-gradient(135deg, #f1e6ff, #e3f0ff); display: flex; align-items: center; justify-content: center; color: #b7a3e0; font-size: 28px; position: relative; }
-    .doc-badge { position: absolute; top: 8px; right: 8px; }
-    .doc-info { padding: 10px 12px; }
-    .doc-name { font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 700; color: #2a3157; }
-    .doc-date { margin-top: 2px; font-family: 'Inter', sans-serif; font-size: 11px; color: #8189a8; }
 
     .notes-textarea { width: 100%; min-height: 90px; padding: 12px; margin-top: 12px; border-radius: 10px; border: 1px solid #dde1f0; font-family: 'Inter', sans-serif; font-size: 13px; color: #2a3157; resize: vertical; }
     .char-counter { margin-top: 6px; text-align: right; font-family: 'Inter', sans-serif; font-size: 11px; color: #b7bdd6; }
@@ -89,227 +121,408 @@
     .timeline-dot.done { background: #7a1fd6; }
     .timeline-dot.current { background: #ffffff; border: 2px solid #236eff; }
     .timeline-dot.pending { background: #eaecf5; }
+    .timeline-dot.rejected { background: #e34848; }
     .timeline-title { font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 700; color: #2a3157; }
     .timeline-title.current { color: #236eff; }
     .timeline-title.pending { color: #b7bdd6; }
     .timeline-time { margin-top: 2px; font-family: 'Inter', sans-serif; font-size: 11.5px; color: #8189a8; }
 
-    .checklist-item { display: flex; align-items: center; gap: 10px; padding: 9px 0; font-family: 'Inter', sans-serif; font-size: 13px; color: #2a3157; }
-    .checklist-item i { color: #0d9c6c; }
+    .action-required-box { padding: 16px; border-radius: 12px; background: linear-gradient(135deg, #f1e6ff, #e9effe); border: 1px solid #e2d3ff; }
+    .action-required-title { display: flex; align-items: center; gap: 8px; font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 14px; color: #171d3d; }
+    .action-required-title i { color: #7a1fd6; }
+    .action-required-text { margin-top: 6px; font-family: 'Inter', sans-serif; font-size: 12.5px; color: #6b7290; line-height: 1.5; }
 
-    .decision-btn-row { display: flex; gap: 12px; margin-top: 14px; }
-    .btn-approve-outline, .btn-reject-outline {
-        flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    .decision-btn-row { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
+    .btn-approve-solid, .btn-reject-solid {
+        display: inline-flex; align-items: center; justify-content: center; gap: 8px;
         height: 46px; border-radius: 10px; border: none;
-        font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 700;
+        font-family: 'Inter', sans-serif; font-size: 13.5px; font-weight: 700; width: 100%;
     }
-    .btn-approve-outline { background: #dff7ec; color: #0d9c6c; }
-    .btn-reject-outline { background: #fde3e3; color: #d92d2d; }
+    .btn-approve-solid { background: #0d9c6c; color: #ffffff; }
+    .btn-approve-solid:hover { background: #0b8a5e; }
+    .btn-reject-solid { background: #fde3e3; color: #d92d2d; }
+    .btn-reject-solid:hover { background: #fbd0d0; }
 
-    .reject-reason-panel { margin-top: 16px; padding: 16px; border-radius: 12px; background: #fff8f8; border: 1px solid #f6c9c9; }
-    .reject-reason-title { color: #d92d2d; font-weight: 700; font-family: 'Inter', sans-serif; font-size: 13px; }
-    .reason-textarea { width: 100%; min-height: 70px; padding: 10px; margin-top: 10px; border-radius: 9px; border: 1px solid #f0b8b8; font-family: 'Inter', sans-serif; font-size: 13px; resize: vertical; }
+    .reject-reason-panel { margin-top: 14px; }
+    .reason-textarea { width: 100%; min-height: 70px; padding: 10px; margin-top: 10px; border-radius: 9px; border: 1px solid #dde1f0; font-family: 'Inter', sans-serif; font-size: 13px; resize: vertical; }
 
-    .warning-note { margin-top: 14px; padding: 12px 14px; border-radius: 10px; background: #fff7e6; border: 1px solid #f5deac; display: flex; gap: 10px; font-family: 'Inter', sans-serif; font-size: 12px; color: #93710f; }
-    .warning-note i { color: #d9a91a; margin-top: 1px; }
+    .decision-record { margin-top: 12px; padding: 12px 14px; border-radius: 10px; font-family: 'Inter', sans-serif; font-size: 12.5px; line-height: 1.5; }
+    .decision-record.approved { background: #e2faf1; color: #0d6e4d; }
+    .decision-record.rejected { background: #fde8ea; color: #a71b34; }
 </style>
+
+@if (TempData["VerificationMessage"] is string msg)
+{
+    <div class="form-success" style="margin-bottom:16px;">@msg</div>
+}
+
+<section class="rv-hero">
+    @await Html.PartialAsync("~/Views/InfluencerDashboard/_Waves.cshtml", "hero")
+    <div>
+        <div class="rv-eyebrow">User Verification</div>
+        <div class="rv-title-row">
+            <h1>Review @(type == "Brand" ? "Brand" : "Influencer") Profile</h1>
+            <p>Verify the information, review submitted documents, and take action.</p>
+        </div>
+    </div>
+    <div class="rv-tagline">Real Creators<br />Real Impact<span></span></div>
+    <a href="/Admin/AdminUserVerification/Index" class="rv-back"><i class="bi bi-arrow-left"></i> Back to User Verification</a>
+</section>
 
 @if (influencer is not null)
 {
-    <div class="panel detail-top-panel">
-
-        <div>
-            <div class="detail-identity">
-                <div class="detail-avatar">@Initials(influencer.FullName)</div>
-                <div>
-                    <div class="detail-name-row">
-                        <span class="detail-name">@influencer.FullName</span>
-                        <span class="status-pill @(influencer.Verified ? "green" : "blue")">@(influencer.Verified ? "Verified" : "Under Review")</span>
-                    </div>
-                    <div class="detail-meta-row"><i class="bi bi-person-badge"></i> Influencer &middot; ID: INF-@influencer.Id</div>
-                </div>
-            </div>
-
-            <div class="contact-list">
-                <div class="contact-item"><i class="bi bi-envelope"></i> @(influencer.User?.Email ?? "Not provided")</div>
-                <div class="contact-item"><i class="bi bi-telephone"></i> Not provided</div>
-                <div class="contact-item"><i class="bi bi-geo-alt"></i> @(influencer.Location ?? "Not provided")</div>
-            </div>
-        </div>
-
-        <div class="quick-facts">
-            <div class="quick-fact"><i class="bi bi-calendar3"></i><div><div class="quick-fact-label">Submitted On</div><div class="quick-fact-value">@influencer.CreatedAt.ToString("MMM d, yyyy, h:mm tt")</div></div></div>
-            <div class="quick-fact"><i class="bi bi-share-fill"></i><div><div class="quick-fact-label">Primary Platform</div><div class="quick-fact-value">@influencer.PrimaryPlatform</div></div></div>
-            <div class="quick-fact"><i class="bi bi-people-fill"></i><div><div class="quick-fact-label">Followers</div><div class="quick-fact-value">@FormatFollowers(influencer.Followers)</div></div></div>
-            <div class="quick-fact"><i class="bi bi-graph-up"></i><div><div class="quick-fact-label">Engagement Rate (Avg)</div><div class="quick-fact-value">@influencer.EngagementRate%</div></div></div>
-        </div>
-
-    </div>
-
-    <div class="content-grid">
-
-        <div>
-            <div class="panel">
-                <div class="panel-title">Profile Overview</div>
-                <div class="info-grid" style="margin-top:16px;">
-                    <div class="info-label">Full Name</div><div class="info-value">@influencer.FullName</div>
-                    <div class="info-label">Username</div><div class="info-value">@influencer.PlatformUsername</div>
-                    <div class="info-label">Email</div><div class="info-value">@(influencer.User?.Email ?? "Not provided")</div>
-                    <div class="info-label">Phone Number</div><div class="info-value">Not provided</div>
-                    <div class="info-label">Location</div><div class="info-value">@(influencer.Location ?? "Not provided")</div>
-                    <div class="info-label">Niche / Category</div><div class="info-value"><span class="status-pill blue">@influencer.ContentNiche</span></div>
-                    <div class="info-label">Bio</div><div class="info-value">@(influencer.Bio ?? "Not provided")</div>
-                    <div class="info-label">Audience Size</div><div class="info-value">@influencer.AudienceSize</div>
-                    <div class="info-label">Previous Collabs</div><div class="info-value">@previousCollaborations</div>
-                </div>
-            </div>
-
-            <div class="panel" style="margin-top:20px;">
-                <div class="panel-title">Submitted Documents</div>
-                <div class="panel-sub" style="margin-top:4px;">Placeholder &mdash; there's no document-upload / ID-verification feature in the app yet, so nothing real can be shown here.</div>
-                <div class="doc-grid">
-                    @{
-                        (string Name, string Icon)[] docs = [("National ID Card", "bi-card-text"), ("Passport", "bi-passport"), ("Utility Bill", "bi-file-earmark-text"), ("Selfie Photo", "bi-person-badge")];
-                    }
-                    @foreach (var doc in docs)
-                    {
-                        <div class="doc-card">
-                            <div class="doc-thumb">
-                                <i class="bi @doc.Icon"></i>
-                                <span class="doc-badge status-pill gray" style="padding:2px 8px; font-size:10px;">Not available</span>
-                            </div>
-                            <div class="doc-info">
-                                <div class="doc-name">@doc.Name</div>
-                                <div class="doc-date">Not submitted</div>
-                            </div>
+    var pill = StatusPill(status);
+    <div class="panel">
+        <div class="rv-summary">
+            <div>
+                <div class="rv-identity">
+                    <div class="rv-avatar">@Initials(influencer.FullName)</div>
+                    <div>
+                        <div class="rv-name-row">
+                            <span class="rv-name">@influencer.FullName</span>
+                            <span class="status-pill @pill.Color">@pill.Label</span>
                         </div>
-                    }
+                        <div class="rv-handle">@@@influencer.PlatformUsername</div>
+                        <div class="rv-meta-row"><i class="bi bi-person-badge"></i> Influencer &middot; ID: INF-@influencer.Id</div>
+                    </div>
+                </div>
+                <div class="rv-bio">@(influencer.Bio ?? "No bio provided.")</div>
+                <div class="rv-footer-row">
+                    <span><i class="bi bi-geo-alt"></i>@(influencer.Location ?? "Not provided")</span>
+                    <span><i class="bi bi-calendar3"></i>Joined @influencer.CreatedAt.ToString("MMM yyyy")</span>
                 </div>
             </div>
 
-            <div class="panel" style="margin-top:20px;">
-                <div class="panel-title">Admin Notes</div>
-                <div class="panel-sub" style="margin-top:4px;">Not persisted yet &mdash; there's no notes field on the profile to save this to.</div>
-                <textarea class="notes-textarea" maxlength="500" placeholder="Add any internal notes about this verification..." oninput="document.getElementById('notesCount').textContent = this.value.length"></textarea>
-                <div class="char-counter"><span id="notesCount">0</span>/500</div>
+            <div>
+                <div class="rv-stat-block">
+                    <div class="rv-stat"><div class="n">@FormatFollowers(influencer.Followers)</div><div class="l">Followers</div></div>
+                    <div class="rv-stat"><div class="n">@influencer.EngagementRate.ToString("0.##")%</div><div class="l">Engagement Rate</div></div>
+                    <div class="rv-stat"><div class="n">@previousCollaborations</div><div class="l">Past Collabs</div></div>
+                </div>
+                <div class="rv-extra-row">
+                    <div class="rv-extra-card"><div class="l">Primary Platform</div><div class="v">@influencer.PrimaryPlatform</div></div>
+                    <div class="rv-extra-card"><div class="l">Niche</div><div class="v">@influencer.ContentNiche</div></div>
+                </div>
             </div>
         </div>
 
-        <div>
-            <div class="panel">
-                <div class="panel-title">Social Media Accounts</div>
-                <div class="panel-sub" style="margin-top:4px;">Only one platform is tracked on this profile today.</div>
-                <div style="margin-top:10px;">
-                    @{
-                        var platformIcon = PlatformIconFor(influencer.PrimaryPlatform);
-                    }
-                    <div class="social-row">
-                        <div class="social-row-left">
-                            <div class="social-row-icon" style="background:@platformIcon.Color;"><i class="bi @platformIcon.Icon"></i></div>
-                            <span class="social-handle">@@@influencer.PlatformUsername</span>
-                        </div>
-                        <span class="social-count">@FormatFollowers(influencer.Followers)</span>
+        <div class="rv-tabs" id="rvTabs">
+            <button type="button" class="rv-tab-btn is-active" data-tab="overview">Overview</button>
+            <button type="button" class="rv-tab-btn" data-tab="social">Social Media</button>
+            <button type="button" class="rv-tab-btn" data-tab="documents">Submitted Documents</button>
+            <button type="button" class="rv-tab-btn" data-tab="posts">Recent Posts</button>
+        </div>
+
+        <div class="content-grid">
+            <div>
+                <div class="rv-tab-panel is-active" data-panel="overview">
+                    <div class="panel-title">Basic Information</div>
+                    <div class="info-grid" style="margin-top:16px;">
+                        <div class="info-label">Full Name</div><div class="info-value">@influencer.FullName</div>
+                        <div class="info-label">Username</div><div class="info-value">@influencer.PlatformUsername</div>
+                        <div class="info-label">Email</div><div class="info-value">@email</div>
+                        <div class="info-label">Phone Number</div><div class="info-value">Not provided</div>
+                        <div class="info-label">Location</div><div class="info-value">@(influencer.Location ?? "Not provided")</div>
+                        <div class="info-label">Niche</div><div class="info-value"><span class="status-pill blue">@influencer.ContentNiche</span></div>
+                        <div class="info-label">Bio</div><div class="info-value">@(influencer.Bio ?? "Not provided")</div>
+                        <div class="info-label">Audience Size</div><div class="info-value">@influencer.AudienceSize</div>
+                        <div class="info-label">Previous Collabs</div><div class="info-value">@previousCollaborations</div>
                     </div>
+                </div>
+
+                <div class="rv-tab-panel" data-panel="social">
+                    <div class="panel-title">Social Media Accounts</div>
+                    <div class="panel-sub" style="margin-top:4px;">Only one platform is tracked per influencer today.</div>
+                    <div style="margin-top:10px;">
+                        @{ var platformIcon = PlatformIconFor(influencer.PrimaryPlatform); }
+                        <div class="social-row">
+                            <div class="social-row-left">
+                                <div class="social-row-icon" style="background:@platformIcon.Color;"><i class="bi @platformIcon.Icon"></i></div>
+                                <span class="social-handle">@@@influencer.PlatformUsername</span>
+                            </div>
+                            <span class="social-count">@FormatFollowers(influencer.Followers)</span>
+                        </div>
+                    </div>
+                    <div class="empty-block" style="margin-top:14px;">
+                        <div class="empty-text">Additional linked platforms aren't tracked in the schema yet.</div>
+                    </div>
+                </div>
+
+                <div class="rv-tab-panel" data-panel="documents">
+                    <div class="panel-title">Submitted Documents</div>
+                    <div class="empty-block">
+                        <div class="empty-title">Coming soon</div>
+                        <div class="empty-text">There's no document-upload / ID-verification feature in the app yet, so nothing real can be shown here.</div>
+                    </div>
+                </div>
+
+                <div class="rv-tab-panel" data-panel="posts">
+                    <div class="panel-title">Recent Posts</div>
+                    <div class="empty-block">
+                        <div class="empty-title">Coming soon</div>
+                        <div class="empty-text">There's no post/content-tracking feature in the app yet, so nothing real can be shown here.</div>
+                    </div>
+                </div>
+
+                <div class="panel" style="margin-top:20px;">
+                    <div class="panel-title">Internal Notes</div>
+                    <div class="panel-sub" style="margin-top:4px;">Only visible to the admin team.</div>
+                    <form method="post" action="/Admin/AdminUserVerification/SaveNotes">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="type" value="@actionType" />
+                        <input type="hidden" name="id" value="@actionId" />
+                        <textarea class="notes-textarea" name="notes" maxlength="500" placeholder="Add any internal notes about this review..." oninput="document.getElementById('notesCount').textContent = this.value.length">@adminNotes</textarea>
+                        <div class="char-counter"><span id="notesCount">@(adminNotes?.Length ?? 0)</span>/500</div>
+                        <button type="submit" class="btn btn-secondary btn-sm" style="margin-top:8px;"><i class="bi bi-save2"></i> Save Notes</button>
+                    </form>
                 </div>
             </div>
 
-            <div class="panel" style="margin-top:20px;">
-                <div class="panel-title">Verification Status</div>
-                <div style="margin-top:16px;">
-                    <div class="timeline-item">
-                        <div class="timeline-dot done"><i class="bi bi-check-lg"></i></div>
-                        <div><div class="timeline-title">Submitted</div><div class="timeline-time">@influencer.CreatedAt.ToString("MMM d, yyyy, h:mm tt")</div></div>
-                    </div>
-                    <div class="timeline-item">
-                        <div class="timeline-dot @(influencer.Verified ? "done" : "current")">@(influencer.Verified ? Html.Raw("<i class=\"bi bi-check-lg\"></i>") : null)</div>
-                        <div>
-                            <div class="timeline-title @(influencer.Verified ? "" : "current")">
-                                @(influencer.Verified ? "Verified" : "Under Review")
-                                @if (!influencer.Verified)
+            <div>
+                <div class="panel">
+                    <div class="panel-title">Verification Status</div>
+                    <div style="margin-top:16px;">
+                        <div class="timeline-item">
+                            <div class="timeline-dot done"><i class="bi bi-check-lg"></i></div>
+                            <div><div class="timeline-title">Submitted</div><div class="timeline-time">@createdAt.ToString("MMM d, yyyy, h:mm tt")</div></div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-dot @(status == VerificationStatus.Pending ? "current" : status == VerificationStatus.Rejected ? "rejected" : "done")">
+                                @if (status != VerificationStatus.Pending)
                                 {
-                                    <span class="status-pill blue" style="padding:2px 8px; font-size:10px; margin-left:6px;">Current</span>
+                                    <i class="bi @(status == VerificationStatus.Rejected ? "bi-x-lg" : "bi-check-lg")"></i>
+                                }
+                            </div>
+                            <div>
+                                <div class="timeline-title @(status == VerificationStatus.Pending ? "current" : "")">
+                                    @pill.Label
+                                    @if (status == VerificationStatus.Pending)
+                                    {
+                                        <span class="status-pill blue" style="padding:2px 8px; font-size:10px; margin-left:6px;">Current</span>
+                                    }
+                                </div>
+                                @if (verifiedAt.HasValue)
+                                {
+                                    <div class="timeline-time">@verifiedAt.Value.ToString("MMM d, yyyy, h:mm tt")</div>
                                 }
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="panel" style="margin-top:20px;">
-                <div class="panel-title">Verification Checklist</div>
-                <div class="panel-sub" style="margin-top:4px;">Illustrative only &mdash; no automated checks exist behind this yet.</div>
-                <div style="margin-top:8px;">
-                    <div class="checklist-item"><i class="bi bi-check-circle-fill"></i> Profile information looks authentic</div>
-                    <div class="checklist-item"><i class="bi bi-check-circle-fill"></i> Social media account is active</div>
-                    <div class="checklist-item"><i class="bi bi-check-circle-fill"></i> Follower count matches profile</div>
+                <div class="panel" style="margin-top:20px;">
+                    @if (status == VerificationStatus.Pending)
+                    {
+                        <div class="action-required-box">
+                            <div class="action-required-title"><i class="bi bi-exclamation-circle-fill"></i> Action Required</div>
+                            <div class="action-required-text">Review the submitted information and take an action to proceed.</div>
+                        </div>
+
+                        <div class="decision-btn-row">
+                            <form method="post" action="/Admin/AdminUserVerification/Approve">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="type" value="@actionType" />
+                                <input type="hidden" name="id" value="@actionId" />
+                                <button type="submit" class="btn-approve-solid"><i class="bi bi-check-circle-fill"></i> Approve User</button>
+                            </form>
+                            <button type="button" class="btn-reject-solid" onclick="document.getElementById('rejectPanel').style.display='block'; this.style.display='none';"><i class="bi bi-x-circle-fill"></i> Reject User</button>
+                        </div>
+
+                        <div class="reject-reason-panel" id="rejectPanel" style="display:none;">
+                            <div class="panel-sub" style="font-weight:700; color:#d92d2d;">Rejection Reason (required)</div>
+                            <form method="post" action="/Admin/AdminUserVerification/Reject">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="type" value="@actionType" />
+                                <input type="hidden" name="id" value="@actionId" />
+                                <textarea class="reason-textarea" name="reason" maxlength="500" required placeholder="Select a reason or type your own..."></textarea>
+                                <button type="submit" class="btn-reject-solid" style="margin-top:10px;"><i class="bi bi-x-circle-fill"></i> Confirm Reject</button>
+                            </form>
+                        </div>
+                    }
+                    else if (status == VerificationStatus.Verified)
+                    {
+                        <div class="decision-record approved"><i class="bi bi-check-circle-fill"></i> This account was approved@(verifiedAt.HasValue ? $" on {verifiedAt.Value:MMM d, yyyy}" : "").</div>
+                    }
+                    else
+                    {
+                        <div class="decision-record rejected"><i class="bi bi-x-circle-fill"></i> Rejected@(string.IsNullOrWhiteSpace(rejectionReason) ? "." : $": {rejectionReason}")</div>
+                        <form method="post" action="/Admin/AdminUserVerification/Approve" style="margin-top:10px;">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="type" value="@actionType" />
+                            <input type="hidden" name="id" value="@actionId" />
+                            <button type="submit" class="btn-approve-solid"><i class="bi bi-check-circle-fill"></i> Approve Anyway</button>
+                        </form>
+                    }
                 </div>
             </div>
-
-            <div class="panel" style="margin-top:20px;">
-                <div class="panel-title">Decision Panel</div>
-
-                @if (!influencer.Verified)
-                {
-                    <div class="decision-btn-row">
-                        <form method="post" action="/Admin/AdminUserVerification/Approve" style="flex:1;">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="type" value="@actionType" />
-                            <input type="hidden" name="id" value="@actionId" />
-                            <button type="submit" class="btn-approve-outline" style="width:100%;"><i class="bi bi-check-circle-fill"></i> Approve</button>
-                        </form>
-                        <button type="button" class="btn-reject-outline" onclick="document.getElementById('rejectPanel').style.display='block'"><i class="bi bi-x-circle-fill"></i> Reject</button>
-                    </div>
-
-                    <div class="reject-reason-panel" id="rejectPanel" style="display:none;">
-                        <div class="reject-reason-title">Rejection Reason (Required)</div>
-                        <form method="post" action="/Admin/AdminUserVerification/Reject">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="type" value="@actionType" />
-                            <input type="hidden" name="id" value="@actionId" />
-                            <textarea class="reason-textarea" name="reason" maxlength="500" required placeholder="Provide a clear reason for rejection..." oninput="document.getElementById('reasonCount').textContent = this.value.length"></textarea>
-                            <div class="char-counter"><span id="reasonCount">0</span>/500</div>
-                            <button type="submit" class="btn-reject-outline" style="width:100%; margin-top:10px;"><i class="bi bi-x-circle-fill"></i> Confirm Reject</button>
-                        </form>
-                    </div>
-
-                    <div class="warning-note"><i class="bi bi-exclamation-triangle-fill"></i> Please review all information carefully before making a decision.</div>
-                }
-                else
-                {
-                    <div class="panel-sub" style="margin-top:8px;">This account is already verified.</div>
-                }
-            </div>
         </div>
-
     </div>
 }
 else if (brand is not null)
 {
-    <a href="/Admin/AdminUserVerification/Index" class="back-to-dashboard">&larr; Back to User Verification</a>
-
+    var pill = StatusPill(status);
     <div class="panel">
-        <div class="panel-title">@brand.CompanyName</div>
-        <div class="panel-sub">Brand &middot; @brand.Industry</div>
+        <div class="rv-summary">
+            <div>
+                <div class="rv-identity">
+                    <div class="rv-avatar" style="border-radius:16px;">@Initials(brand.CompanyName)</div>
+                    <div>
+                        <div class="rv-name-row">
+                            <span class="rv-name">@brand.CompanyName</span>
+                            <span class="status-pill @pill.Color">@pill.Label</span>
+                        </div>
+                        <div class="rv-handle">@brand.ContactFullName</div>
+                        <div class="rv-meta-row"><i class="bi bi-building"></i> Brand &middot; ID: BRD-@brand.Id</div>
+                    </div>
+                </div>
+                <div class="rv-footer-row">
+                    <span><i class="bi bi-globe"></i>@(brand.WebsiteUrl ?? "Not provided")</span>
+                    <span><i class="bi bi-calendar3"></i>Joined @brand.CreatedAt.ToString("MMM yyyy")</span>
+                </div>
+            </div>
 
-        <div class="form-errors" style="margin-top:20px;">
-            A dedicated Brand verification detail design hasn't been provided yet &mdash; this is the earlier basic layout.
-            Brand verification also has no real <code>Verified</code> status field in the database yet (flagged previously).
+            <div>
+                <div class="rv-stat-block">
+                    <div class="rv-stat"><div class="n">@campaignCount</div><div class="l">Campaigns</div></div>
+                </div>
+                <div class="rv-extra-row">
+                    <div class="rv-extra-card"><div class="l">Industry</div><div class="v">@brand.Industry</div></div>
+                    <div class="rv-extra-card"><div class="l">Monthly Budget</div><div class="v">@brand.MonthlyBudget</div></div>
+                </div>
+            </div>
         </div>
 
-        <div style="margin-top:16px; display:grid; grid-template-columns: repeat(2, 1fr); gap:16px;">
-            <div><strong>Contact</strong><div class="panel-sub">@brand.ContactFullName</div></div>
-            <div><strong>Website</strong><div class="panel-sub">@(brand.WebsiteUrl ?? "-")</div></div>
-            <div><strong>Monthly Budget</strong><div class="panel-sub">@brand.MonthlyBudget</div></div>
+        <div class="content-grid" style="margin-top:20px;">
+            <div>
+                <div class="panel-title">Basic Information</div>
+                <div class="info-grid" style="margin-top:16px;">
+                    <div class="info-label">Company Name</div><div class="info-value">@brand.CompanyName</div>
+                    <div class="info-label">Contact Name</div><div class="info-value">@brand.ContactFullName</div>
+                    <div class="info-label">Email</div><div class="info-value">@email</div>
+                    <div class="info-label">Website</div><div class="info-value">@(brand.WebsiteUrl ?? "Not provided")</div>
+                    <div class="info-label">Industry</div><div class="info-value"><span class="status-pill blue">@brand.Industry</span></div>
+                    <div class="info-label">Monthly Budget</div><div class="info-value">@brand.MonthlyBudget</div>
+                    <div class="info-label">Campaigns</div><div class="info-value">@campaignCount</div>
+                </div>
+
+                <div class="panel" style="margin-top:20px;">
+                    <div class="panel-title">Internal Notes</div>
+                    <div class="panel-sub" style="margin-top:4px;">Only visible to the admin team.</div>
+                    <form method="post" action="/Admin/AdminUserVerification/SaveNotes">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="type" value="@actionType" />
+                        <input type="hidden" name="id" value="@actionId" />
+                        <textarea class="notes-textarea" name="notes" maxlength="500" placeholder="Add any internal notes about this review..." oninput="document.getElementById('notesCount').textContent = this.value.length">@adminNotes</textarea>
+                        <div class="char-counter"><span id="notesCount">@(adminNotes?.Length ?? 0)</span>/500</div>
+                        <button type="submit" class="btn btn-secondary btn-sm" style="margin-top:8px;"><i class="bi bi-save2"></i> Save Notes</button>
+                    </form>
+                </div>
+            </div>
+
+            <div>
+                <div class="panel">
+                    <div class="panel-title">Verification Status</div>
+                    <div style="margin-top:16px;">
+                        <div class="timeline-item">
+                            <div class="timeline-dot done"><i class="bi bi-check-lg"></i></div>
+                            <div><div class="timeline-title">Submitted</div><div class="timeline-time">@createdAt.ToString("MMM d, yyyy, h:mm tt")</div></div>
+                        </div>
+                        <div class="timeline-item">
+                            <div class="timeline-dot @(status == VerificationStatus.Pending ? "current" : status == VerificationStatus.Rejected ? "rejected" : "done")">
+                                @if (status != VerificationStatus.Pending)
+                                {
+                                    <i class="bi @(status == VerificationStatus.Rejected ? "bi-x-lg" : "bi-check-lg")"></i>
+                                }
+                            </div>
+                            <div>
+                                <div class="timeline-title @(status == VerificationStatus.Pending ? "current" : "")">
+                                    @pill.Label
+                                    @if (status == VerificationStatus.Pending)
+                                    {
+                                        <span class="status-pill blue" style="padding:2px 8px; font-size:10px; margin-left:6px;">Current</span>
+                                    }
+                                </div>
+                                @if (verifiedAt.HasValue)
+                                {
+                                    <div class="timeline-time">@verifiedAt.Value.ToString("MMM d, yyyy, h:mm tt")</div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel" style="margin-top:20px;">
+                    @if (status == VerificationStatus.Pending)
+                    {
+                        <div class="action-required-box">
+                            <div class="action-required-title"><i class="bi bi-exclamation-circle-fill"></i> Action Required</div>
+                            <div class="action-required-text">Review the submitted information and take an action to proceed.</div>
+                        </div>
+
+                        <div class="decision-btn-row">
+                            <form method="post" action="/Admin/AdminUserVerification/Approve">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="type" value="@actionType" />
+                                <input type="hidden" name="id" value="@actionId" />
+                                <button type="submit" class="btn-approve-solid"><i class="bi bi-check-circle-fill"></i> Approve Brand</button>
+                            </form>
+                            <button type="button" class="btn-reject-solid" onclick="document.getElementById('rejectPanelBrand').style.display='block'; this.style.display='none';"><i class="bi bi-x-circle-fill"></i> Reject Brand</button>
+                        </div>
+
+                        <div class="reject-reason-panel" id="rejectPanelBrand" style="display:none;">
+                            <div class="panel-sub" style="font-weight:700; color:#d92d2d;">Rejection Reason (required)</div>
+                            <form method="post" action="/Admin/AdminUserVerification/Reject">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="type" value="@actionType" />
+                                <input type="hidden" name="id" value="@actionId" />
+                                <textarea class="reason-textarea" name="reason" maxlength="500" required placeholder="Provide a clear reason for rejection..."></textarea>
+                                <button type="submit" class="btn-reject-solid" style="margin-top:10px;"><i class="bi bi-x-circle-fill"></i> Confirm Reject</button>
+                            </form>
+                        </div>
+                    }
+                    else if (status == VerificationStatus.Verified)
+                    {
+                        <div class="decision-record approved"><i class="bi bi-check-circle-fill"></i> This account was approved@(verifiedAt.HasValue ? $" on {verifiedAt.Value:MMM d, yyyy}" : "").</div>
+                    }
+                    else
+                    {
+                        <div class="decision-record rejected"><i class="bi bi-x-circle-fill"></i> Rejected@(string.IsNullOrWhiteSpace(rejectionReason) ? "." : $": {rejectionReason}")</div>
+                        <form method="post" action="/Admin/AdminUserVerification/Approve" style="margin-top:10px;">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="type" value="@actionType" />
+                            <input type="hidden" name="id" value="@actionId" />
+                            <button type="submit" class="btn-approve-solid"><i class="bi bi-check-circle-fill"></i> Approve Anyway</button>
+                        </form>
+                    }
+                </div>
+            </div>
         </div>
     </div>
 }
 else
 {
-    <a href="/Admin/AdminUserVerification/Index" class="back-to-dashboard">&larr; Back to User Verification</a>
     <div class="panel">
         <div class="empty-block">
             <div class="empty-title">User not found</div>
             <div class="empty-text">This user may have been removed.</div>
         </div>
     </div>
+}
+
+@section Scripts {
+<script>
+(function () {
+    var tabs = document.getElementById('rvTabs');
+    if (!tabs) return;
+    tabs.querySelectorAll('.rv-tab-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            tabs.querySelectorAll('.rv-tab-btn').forEach(function (b) { b.classList.remove('is-active'); });
+            document.querySelectorAll('.rv-tab-panel').forEach(function (p) { p.classList.remove('is-active'); });
+            btn.classList.add('is-active');
+            var panel = document.querySelector('.rv-tab-panel[data-panel="' + btn.getAttribute('data-tab') + '"]');
+            if (panel) panel.classList.add('is-active');
+        });
+    });
+})();
+</script>
 }

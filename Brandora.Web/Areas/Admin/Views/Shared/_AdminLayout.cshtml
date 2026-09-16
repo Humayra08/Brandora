@@ -30,7 +30,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Playfair+Display:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap"
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,700&family=Caveat:wght@600;700&family=Inter:wght@400;500;600;700&display=swap"
           rel="stylesheet">
 
     <style>
@@ -243,16 +243,20 @@
         ============================== */
 
         .main-content {
+            display: flex;
+            flex-direction: column;
             margin-left: 230px;
             min-height: 100vh;
-            padding: 24px 26px 60px;
+            padding: 24px 26px;
             background: #ffffff;
             transition: margin-left .25s ease;
         }
 
+
         .main-content.sidebar-hidden { margin-left: 0; }
 
         .topbar { display: flex; align-items: center; margin-bottom: 20px; gap: 16px; }
+        .topbar.topbar-tight { margin-bottom: 8px; }
 
         .menu-btn {
             flex-shrink: 0;
@@ -365,6 +369,17 @@
         .breadcrumb-row .crumb-sep { color: #c3c8dd; }
         .breadcrumb-row .crumb-current { color: #2a3157; font-weight: 600; }
 
+        .hero-breadcrumb {
+            display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+            margin-bottom: 8px;
+            font-family: 'Inter', sans-serif; font-size: 12px; color: #6b7290;
+        }
+        .hero-breadcrumb a { color: #6b52d8; font-weight: 600; }
+        .hero-breadcrumb a:hover { text-decoration: underline; }
+        .hero-breadcrumb .crumb-sep { color: #b7bdd6; }
+        .hero-breadcrumb .crumb-current { color: #2a3157; font-weight: 600; }
+        .topbar .hero-breadcrumb { margin: 0 0 0 4px; }
+
         /* ==============================
            CARDS / PANELS / PILLS / BUTTONS (matches Brandora system)
         ============================== */
@@ -453,6 +468,57 @@
             .sidebar-backdrop.is-visible { display: block; }
         }
 
+        /* ==============================
+           SHARED ADMIN FOOTER (every Admin page)
+        ============================== */
+
+        .admin-footer {
+            position: relative;
+            isolation: isolate;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            min-height: 74px;
+            margin-top: auto;
+            padding: 18px 28px;
+            flex-shrink: 0;
+            border-radius: 15px;
+            border: 1px solid #dce7ff;
+            background:
+                radial-gradient(ellipse at 61% 0%, rgba(163,38,255,.1), transparent 58%),
+                linear-gradient(110deg, #f3f6ff55, #eaf1ff99 55%, #f3f6ff55);
+        }
+
+        .admin-footer .dashboard-waves { position: absolute; inset: auto 0 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; opacity: .8; }
+
+        .admin-footer-icon {
+            position: relative; z-index: 2; flex-shrink: 0;
+            width: 40px; height: 40px; border-radius: 50%;
+            background: #ffffffb0; border: 1px solid #dce7ff;
+            display: flex; align-items: center; justify-content: center;
+            color: #8b2ff2; font-size: 17px;
+        }
+
+        .admin-footer-copy { position: relative; z-index: 2; min-width: 0; }
+        .admin-footer-title { font-family: 'DM Sans', sans-serif; font-weight: 800; font-size: 15px; color: #171d3d; }
+        .admin-footer-sub { margin-top: 3px; font-family: 'Inter', sans-serif; font-size: 12.5px; color: #6b7290; }
+
+        .admin-footer-motto {
+            position: relative; z-index: 2;
+            margin-left: auto;
+            font-family: 'Caveat', cursive;
+            font-weight: 700;
+            font-size: 20px;
+            line-height: 1.2;
+            color: #2a3157;
+            text-align: right;
+            transform: rotate(-3deg);
+            flex-shrink: 0;
+        }
+
+        @@media(max-width: 640px) { .admin-footer-motto { display: none; } }
+
         @RenderSection("Styles", required: false)
 
     </style>
@@ -479,6 +545,12 @@
             <li>
                 <a href="/Admin/AdminDashboard/Index" class="@(activeNav == "Dashboard" ? "active" : "")">
                     <span>Dashboard</span>
+                </a>
+            </li>
+
+            <li>
+                <a href="/Admin/AdminCampaigns/Index" class="@(activeNav == "Campaigns" ? "active" : "")">
+                    <span>Campaigns</span>
                 </a>
             </li>
 
@@ -557,15 +629,21 @@
 
         <!-- TOP BAR -->
         @{
-            var pageHeading = ViewData["PageHeading"] as string ?? ViewData["Title"] as string ?? "";
-            var pageSubheading = ViewData["PageSubheading"] as string;
+            var hasCustomHero = ViewData["HasCustomHero"] as bool? ?? false;
+            var pageHeading = hasCustomHero ? "" : (ViewData["PageHeading"] as string ?? ViewData["Title"] as string ?? "");
+            var pageSubheading = hasCustomHero ? null : ViewData["PageSubheading"] as string;
         }
 
-        <div class="topbar">
+        <div class="topbar @(hasCustomHero ? "topbar-tight" : "")">
 
             <button class="menu-btn" id="menuToggleBtn" aria-label="Toggle sidebar" type="button">
                 <i class="bi bi-list"></i>
             </button>
+
+            @if (hasCustomHero)
+            {
+                @await Html.PartialAsync("~/Areas/Admin/Views/Shared/_AdminBreadcrumb.cshtml")
+            }
 
             <div class="topbar-page-title">
                 <div class="page-heading">@pageHeading</div>
@@ -613,6 +691,7 @@
                         <li><a class="dropdown-item" href="/Admin/AdminProofReview/Index?status=Submitted"><i class="bi bi-clipboard-check"></i> Review Proof</a></li>
                         <li><a class="dropdown-item" href="/Admin/AdminDisputes/Index?status=Open"><i class="bi bi-shield-exclamation"></i> Resolve Dispute</a></li>
                         <li><a class="dropdown-item" href="/Admin/AdminPayments/Index"><i class="bi bi-credit-card"></i> View Payments</a></li>
+                        <li><a class="dropdown-item" href="/Admin/AdminCampaigns/Index"><i class="bi bi-megaphone"></i> View Campaigns</a></li>
                     </ul>
                 </div>
 
@@ -620,7 +699,7 @@
 
         </div>
 
-        @if (breadcrumb.Count > 0)
+        @if (!hasCustomHero && breadcrumb.Count > 0)
         {
             <div class="breadcrumb-row">
                 <a href="/Admin/AdminDashboard/Index">Admin Dashboard</a>
@@ -640,6 +719,16 @@
         }
 
         @RenderBody()
+
+        <footer class="admin-footer">
+            @await Html.PartialAsync("~/Views/InfluencerDashboard/_Waves.cshtml", "hero")
+            <div class="admin-footer-icon"><i class="bi bi-stars"></i></div>
+            <div class="admin-footer-copy">
+                <div class="admin-footer-title">More Creators. More Campaigns. More Impact.</div>
+                <div class="admin-footer-sub">Keep the platform safe, fair, and thriving.</div>
+            </div>
+            <div class="admin-footer-motto">Good Ideas<br />Travel Far</div>
+        </footer>
 
     </main>
 

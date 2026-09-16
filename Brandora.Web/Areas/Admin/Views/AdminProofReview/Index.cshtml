@@ -1,144 +1,323 @@
-@model List<Brandora.Web.Models.Domain.Milestone>
+@model Brandora.Web.Areas.Admin.Controllers.AdminProofReviewViewModel
+@using Brandora.Web.Models.Domain
 @{
-    // NOTE: this whole page renders a fixed dummy dataset for the visual redesign pass
-    // (see feedback_backend_wiring_scope memory) — TODO: switch to Model (already wired
-    // to real Milestone data in the controller) once backend wiring is requested.
-    var statusFilter = ViewData["StatusFilter"] as Brandora.Web.Models.Domain.MilestoneStatus?;
+    var statusFilter = ViewData["StatusFilter"] as MilestoneStatus?;
+    var search = ViewData["Search"] as string ?? "";
+
+    (string Label, string Color) StatusPill(MilestoneStatus s) => s switch
+    {
+        MilestoneStatus.Submitted => ("Submitted", "blue"),
+        MilestoneStatus.RevisionRequested => ("Needs Revision", "orange"),
+        MilestoneStatus.Approved => ("Approved", "green"),
+        MilestoneStatus.Paid => ("Paid", "gray"),
+        _ => (s.ToString(), "gray")
+    };
+
+    string Initials(string name) => string.IsNullOrWhiteSpace(name)
+        ? "?"
+        : string.Join("", name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(w => w[0])).ToUpperInvariant();
+
+    string PlatformIcon(string? platform) => (platform ?? "").Trim().ToLowerInvariant() switch
+    {
+        var p when p.Contains("instagram") => "bi-instagram",
+        var p when p.Contains("tiktok") => "bi-tiktok",
+        var p when p.Contains("youtube") => "bi-youtube",
+        var p when p.Contains("facebook") => "bi-facebook",
+        _ => "bi-share-fill"
+    };
+
+    bool IsImageUrl(string? url) => !string.IsNullOrWhiteSpace(url) &&
+        (url.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase) || url.EndsWith(".jpeg", StringComparison.OrdinalIgnoreCase) ||
+         url.EndsWith(".png", StringComparison.OrdinalIgnoreCase) || url.EndsWith(".webp", StringComparison.OrdinalIgnoreCase) ||
+         url.EndsWith(".gif", StringComparison.OrdinalIgnoreCase));
 }
 
 <style>
-    .filter-tabs { display: flex; gap: 10px; flex-wrap: wrap; }
-    .filter-tab { padding: 10px 16px; border-radius: 10px; border: 1px solid #eaecf5; background: #ffffff; font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; color: #545b7d; white-space: nowrap; }
-    .filter-tab:hover { border-color: #d3b8ff; }
-    .filter-tab.is-active { background: #f1e6ff; border-color: transparent; color: #7a1fd6; }
+    .pr-hero {
+        position: relative; isolation: isolate; overflow: hidden;
+        display: flex; align-items: center; justify-content: space-between; gap: 20px;
+        min-height: 150px; padding: 26px 36px;
+        border-radius: 18px; margin-bottom: 20px;
+        border: 1px solid #dce7ff;
+        background: radial-gradient(ellipse at 61% 0%, rgba(163,38,255,.1), transparent 58%), linear-gradient(110deg, #f3f6ff55, #eaf1ff99 55%, #f3f6ff55);
+    }
+    .pr-hero .dashboard-waves { position: absolute; inset: auto 0 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
+    .pr-hero-title { position: relative; z-index: 2; max-width: 60%; }
+    .pr-hero-title h1 { margin: 0; font-family: 'DM Sans', sans-serif; font-weight: 800; font-size: 26px; color: #171d3d; }
+    .pr-hero-title p { margin-top: 6px; font-family: 'Inter', sans-serif; font-size: 13.5px; color: #6b7290; }
+    .pr-hero-tagline {
+        position: relative; z-index: 2; flex-shrink: 0;
+        font-family: 'Caveat', cursive; font-weight: 700; font-size: 19px; line-height: 1.2;
+        color: #2a3157; text-align: center; transform: rotate(-3deg);
+    }
+    .pr-hero-tagline span { display: block; width: 42px; height: 4px; margin: 6px auto 0; background: linear-gradient(110deg,#a326ff,#236eff); border-radius: 4px; }
+    @@media(max-width: 900px) { .pr-hero-tagline { display: none; } }
 
-    .table-toolbar { display: flex; justify-content: flex-end; gap: 12px; margin: 18px 0; flex-wrap: wrap; }
-    .table-search { position: relative; flex: 1; max-width: 340px; }
-    .table-search i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #b7bdd6; font-size: 14px; }
-    .table-search input { width: 100%; height: 42px; padding: 0 14px 0 38px; border-radius: 10px; border: 1px solid #dde1f0; font-family: 'Inter', sans-serif; font-size: 13px; color: #2a3157; outline: none; }
-    .table-search input:focus { border-color: #a978ff; }
-    .filter-dropdown-btn { display: inline-flex; align-items: center; gap: 8px; height: 42px; padding: 0 16px; border-radius: 10px; border: 1px solid #dde1f0; background: #ffffff; font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; color: #2a3157; }
+    .pr-stat-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+    .pr-stat-tile {
+        display: flex; align-items: center; gap: 12px;
+        padding: 14px 18px; border-radius: 14px; background: #ffffff; border: 1px solid #dce7ff;
+        transition: transform .15s ease, box-shadow .15s ease;
+    }
+    .pr-stat-tile:hover { transform: translateY(-2px); box-shadow: 0 10px 22px rgba(20,25,60,.08); }
+    .pr-stat-tile.is-active { border-color: transparent; box-shadow: 0 0 0 2px #a978ff; }
+    .pr-stat-icon { width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+    .pr-stat-icon.purple { background: #f1e6ff; color: #8b2ff2; }
+    .pr-stat-icon.blue { background: #e3f0ff; color: #1a73d8; }
+    .pr-stat-icon.orange { background: #fdeee0; color: #d97a17; }
+    .pr-stat-icon.green { background: #dff7ec; color: #0d9c6c; }
+    .pr-stat-icon.gray { background: #eef1fb; color: #6b7290; }
+    .pr-stat-label { font-family: 'Inter', sans-serif; font-size: 11.5px; color: #8189a8; }
+    .pr-stat-value { font-family: 'DM Sans', sans-serif; font-weight: 800; font-size: 18px; color: #171d3d; }
 
-    .campaign-cell { display: flex; align-items: center; gap: 10px; }
-    .campaign-logo { width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: #14103a; color: #ffffff; font-family: 'DM Sans', sans-serif; font-weight: 800; font-size: 10px; text-align: center; line-height: 1.1; }
-    .campaign-title { font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 700; color: #2a3157; }
-    .campaign-brand { margin-top: 1px; font-family: 'Inter', sans-serif; font-size: 11.5px; color: #8189a8; }
+    .pr-toolbar { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
+    .pr-search { position: relative; flex: 1; max-width: 340px; }
+    .pr-search i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #b7bdd6; font-size: 14px; }
+    .pr-search input { width: 100%; height: 42px; padding: 0 14px 0 38px; border-radius: 10px; border: 1px solid #dde1f0; font-family: 'Inter', sans-serif; font-size: 13px; color: #2a3157; outline: none; }
+    .pr-status-select { height: 42px; padding: 0 14px; border-radius: 10px; border: 1px solid #dde1f0; font-family: 'Inter', sans-serif; font-size: 13px; color: #2a3157; background: #ffffff; }
 
-    .milestone-title { font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; color: #2a3157; }
-    .milestone-amount { margin-top: 4px; }
+    .pr-layout { display: grid; grid-template-columns: 1fr 300px; gap: 20px; align-items: start; }
+    @@media(max-width: 1150px) { .pr-layout { grid-template-columns: 1fr; } }
 
-    .influencer-cell { display: flex; align-items: center; gap: 10px; }
-    .influencer-avatar { width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: linear-gradient(145deg, #c93cff, #4e38ff 55%, #159cff); color: #ffffff; font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 11.5px; }
-    .influencer-name { font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 700; color: #2a3157; }
-    .influencer-meta { margin-top: 1px; font-family: 'Inter', sans-serif; font-size: 11px; color: #8189a8; }
+    .pr-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    @@media(max-width: 1300px) { .pr-grid { grid-template-columns: repeat(2, 1fr); } }
+    @@media(max-width: 700px) { .pr-grid { grid-template-columns: 1fr; } }
 
-    .proof-thumb-wrap { position: relative; width: 54px; height: 54px; border-radius: 10px; overflow: hidden; }
-    .proof-thumb-wrap img { width: 100%; height: 100%; object-fit: cover; }
-    .proof-thumb-link { position: absolute; top: 3px; right: 3px; width: 18px; height: 18px; border-radius: 5px; background: rgba(0,0,0,.55); display: flex; align-items: center; justify-content: center; color: #ffffff; font-size: 9px; }
+    .pr-card { border-radius: 15px; background: #ffffff; border: 1px solid #dce7ff; overflow: hidden; transition: transform .15s ease, box-shadow .15s ease; }
+    .pr-card:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(20,25,60,.08); }
+    .pr-thumb { position: relative; height: 150px; background: linear-gradient(135deg, #f1e6ff, #e3f0ff); display: flex; align-items: center; justify-content: center; overflow: hidden; }
+    .pr-thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .pr-thumb-icon { font-size: 34px; color: #b7a3e0; }
+    .pr-thumb-status { position: absolute; top: 10px; left: 10px; }
+    .pr-thumb-platform { position: absolute; top: 10px; right: 10px; width: 26px; height: 26px; border-radius: 8px; background: rgba(0,0,0,.55); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 13px; }
 
-    .btn-view-chevron { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 16px; border-radius: 9px; border: 1px solid #dde1f0; background: #ffffff; color: #6b52d8; font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 700; }
-    .btn-view-chevron:hover { border-color: #d3b8ff; background: #f9f5ff; }
+    .pr-card-body { padding: 14px 16px; }
+    .pr-card-title { font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 14px; color: #171d3d; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .pr-card-sub { margin-top: 3px; display: flex; align-items: center; gap: 8px; font-family: 'Inter', sans-serif; font-size: 11.5px; color: #8189a8; }
+    .pr-card-logo { width: 22px; height: 22px; border-radius: 6px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: #14103a; color: #fff; font-size: 9px; font-weight: 700; }
+    .pr-card-milestone { margin-top: 10px; display: flex; align-items: center; justify-content: space-between; font-family: 'Inter', sans-serif; font-size: 12px; color: #2a3157; }
+    .pr-card-influencer { margin-top: 10px; display: flex; align-items: center; gap: 8px; }
+    .pr-card-avatar { width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: linear-gradient(145deg, #c93cff, #4e38ff 55%, #159cff); color: #fff; font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 10px; }
+    .pr-card-influencer-name { font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 700; color: #2a3157; }
+    .pr-card-date { margin-left: auto; font-family: 'Inter', sans-serif; font-size: 11px; color: #8189a8; }
+    .pr-card-actions { margin-top: 12px; display: flex; gap: 8px; }
+    .pr-btn-view, .pr-btn-review { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 36px; border-radius: 9px; font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 700; text-decoration: none; }
+    .pr-btn-view { background: #f6f7fb; color: #2a3157; border: 1px solid #eaecf5; }
+    .pr-btn-review { background: linear-gradient(105deg, #a326ff, #236eff); color: #fff; }
+    .pr-btn-view-details { background: #eef1fb; color: #6b52d8; }
 
-    .table-pagination { display: flex; align-items: center; justify-content: space-between; margin-top: 18px; flex-wrap: wrap; gap: 12px; }
-    .page-btn { width: 34px; height: 34px; border-radius: 9px; border: 1px solid #dde1f0; background: #ffffff; font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 600; color: #545b7d; display: inline-flex; align-items: center; justify-content: center; }
-    .page-btn.is-active { background: #f1e6ff; border-color: transparent; color: #7a1fd6; }
+    .pr-side-panel { padding: 20px; border-radius: 15px; background: #ffffff; border: 1px solid #dce7ff; margin-bottom: 18px; }
+    .pr-side-title { font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 14.5px; color: #171d3d; }
+
+    .pr-ring-wrap { position: relative; width: 150px; height: 150px; margin: 16px auto 0; }
+    .pr-ring-svg { width: 100%; height: 100%; }
+    .pr-ring-arc { fill: none; stroke-width: 12; stroke-linecap: round; }
+    .pr-ring-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+    .pr-ring-value { font-family: 'DM Sans', sans-serif; font-weight: 800; font-size: 17px; color: #171d3d; }
+    .pr-ring-label { font-family: 'Inter', sans-serif; font-size: 10.5px; color: #8189a8; }
+    .pr-ring-footer { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 14px; text-align: center; }
+    .pr-ring-footer .n { font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 14px; color: #171d3d; }
+    .pr-ring-footer .l { font-family: 'Inter', sans-serif; font-size: 10px; color: #8189a8; }
+
+    .pr-deadline-item { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #f2f3fa; }
+    .pr-deadline-item:last-child { border-bottom: none; }
+    .pr-deadline-logo { width: 32px; height: 32px; border-radius: 9px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: #14103a; color: #fff; font-size: 10px; font-weight: 700; }
+    .pr-deadline-title { font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 700; color: #2a3157; }
+    .pr-deadline-sub { margin-top: 1px; font-family: 'Inter', sans-serif; font-size: 11px; color: #8189a8; }
+    .pr-deadline-days { margin-left: auto; padding: 4px 9px; border-radius: 8px; background: #fdeee0; color: #d97a17; font-family: 'Inter', sans-serif; font-size: 10.5px; font-weight: 700; white-space: nowrap; }
+
+    .pr-brand-item { margin-top: 12px; }
+    .pr-brand-item .bh { display: flex; justify-content: space-between; font-family: 'Inter', sans-serif; font-size: 12px; color: #2a3157; margin-bottom: 5px; }
+    .pr-brand-track { height: 6px; border-radius: 6px; background: #f0f1f8; overflow: hidden; }
+    .pr-brand-fill { height: 100%; border-radius: 6px; background: linear-gradient(105deg, #8b6bff, #5b8dff); }
 </style>
 
-<div class="panel">
-
-    <div class="filter-tabs">
-        <a href="/Admin/AdminProofReview/Index" class="filter-tab @(statusFilter is null ? "is-active" : "")">All (128)</a>
-        <a href="/Admin/AdminProofReview/Index?status=Submitted" class="filter-tab @(statusFilter == Brandora.Web.Models.Domain.MilestoneStatus.Submitted ? "is-active" : "")">Submitted (52)</a>
-        <a href="/Admin/AdminProofReview/Index?status=Approved" class="filter-tab @(statusFilter == Brandora.Web.Models.Domain.MilestoneStatus.Approved ? "is-active" : "")">Approved (41)</a>
-        <a href="/Admin/AdminProofReview/Index?status=RevisionRequested" class="filter-tab @(statusFilter == Brandora.Web.Models.Domain.MilestoneStatus.RevisionRequested ? "is-active" : "")">Revision Requested (18)</a>
+<section class="pr-hero">
+    @await Html.PartialAsync("~/Views/InfluencerDashboard/_Waves.cshtml", "hero")
+    <div class="pr-hero-title">
+        <h1>Proof-of-Post Review</h1>
+        <p>Review influencer submissions and ensure authentic content.</p>
     </div>
+    <div class="pr-hero-tagline">Real Creators<br />Real Impact<span></span></div>
+</section>
 
-    <div class="table-toolbar">
-        <div class="table-search">
-            <i class="bi bi-search"></i>
-            <input type="text" placeholder="Search by campaign, milestone, or influencer..." />
-        </div>
-        <button type="button" class="filter-dropdown-btn"><i class="bi bi-funnel"></i> Filter <i class="bi bi-chevron-down" style="font-size:11px;"></i></button>
-    </div>
+<div class="pr-stat-row">
+    <a href="/Admin/AdminProofReview/Index" class="pr-stat-tile @(statusFilter is null ? "is-active" : "")">
+        <div class="pr-stat-icon purple"><i class="bi bi-grid-fill"></i></div>
+        <div><div class="pr-stat-label">All</div><div class="pr-stat-value">@Model.TotalCount</div></div>
+    </a>
+    <a href="/Admin/AdminProofReview/Index?status=Submitted" class="pr-stat-tile @(statusFilter == MilestoneStatus.Submitted ? "is-active" : "")">
+        <div class="pr-stat-icon blue"><i class="bi bi-clock-history"></i></div>
+        <div><div class="pr-stat-label">Submitted</div><div class="pr-stat-value">@Model.SubmittedCount</div></div>
+    </a>
+    <a href="/Admin/AdminProofReview/Index?status=RevisionRequested" class="pr-stat-tile @(statusFilter == MilestoneStatus.RevisionRequested ? "is-active" : "")">
+        <div class="pr-stat-icon orange"><i class="bi bi-arrow-repeat"></i></div>
+        <div><div class="pr-stat-label">Needs Revision</div><div class="pr-stat-value">@Model.RevisionCount</div></div>
+    </a>
+    <a href="/Admin/AdminProofReview/Index?status=Approved" class="pr-stat-tile @(statusFilter == MilestoneStatus.Approved ? "is-active" : "")">
+        <div class="pr-stat-icon green"><i class="bi bi-check-circle-fill"></i></div>
+        <div><div class="pr-stat-label">Approved</div><div class="pr-stat-value">@Model.ApprovedCount</div></div>
+    </a>
+    <a href="/Admin/AdminProofReview/Index?status=Paid" class="pr-stat-tile @(statusFilter == MilestoneStatus.Paid ? "is-active" : "")">
+        <div class="pr-stat-icon gray"><i class="bi bi-credit-card-fill"></i></div>
+        <div><div class="pr-stat-label">Paid</div><div class="pr-stat-value">@Model.PaidCount</div></div>
+    </a>
+</div>
 
-    @{
-        (string CampaignLogo, string CampaignTitle, string Brand, string MilestoneTitle, string Amount, string InfluencerName, string Handle, string Followers, string ThumbGradient, string Date, string Time, string Status, string StatusColor)[] rows =
-        [
-            ("GLOW\nUP", "GlowUp Summer Skincare Launch", "GlowUp Skincare Ltd.", "Instagram Feed Post (Milestone 2)", "৳25,000", "Priya Islam", "@priya.islam.official", "125K followers", "linear-gradient(135deg,#f6d9c4,#e8b88f)", "May 29, 2025", "10:15 AM", "Submitted", "blue"),
-            ("URBAN\nFIT", "UrbanFit Activewear Promo Campaign", "UrbanFit Bangladesh", "TikTok Video (Milestone 1)", "৳18,000", "Rifat Ahmed", "@rifat.fitness", "210K followers", "linear-gradient(135deg,#2a2f45,#4a5578)", "May 28, 2025", "04:32 PM", "Approved", "green"),
-            ("B", "BeautyBloom Skincare Routine", "BeautyBloom Ltd.", "Instagram Reel (Milestone 3)", "৳22,000", "Nabila Sultana", "@nabila.sultana", "96.2K followers", "linear-gradient(135deg,#f7d6e0,#f0a8c2)", "May 28, 2025", "11:05 AM", "Revision Requested", "gray"),
-            ("SPICE\nBITE", "SpiceBite Iftar Special Campaign", "SpiceBite Foods", "Facebook Post (Milestone 1)", "৳15,000", "Tanvir Hasan", "@tanvir.hasan", "210K followers", "linear-gradient(135deg,#e2b98a,#c97b3f)", "May 27, 2025", "09:41 PM", "Submitted", "blue"),
-            ("ECO\nHOME", "EcoHome Sustainability Drive", "EcoHome BD", "Instagram Story Series (Milestone 2)", "৳12,000", "Afsana Mim", "@afsana.mim", "84.5K followers", "linear-gradient(135deg,#dce8dc,#a9c4a9)", "May 27, 2025", "03:12 PM", "Approved", "green"),
-            ("LUXE\nWEAR", "LuxeWear Eid Collection", "LuxeWear Ltd.", "TikTok Video (Milestone 2)", "৳12,000", "Shawon Rahman", "@shawon.rahman", "310K followers", "linear-gradient(135deg,#c9b896,#8f7a52)", "May 27, 2025", "12:28 PM", "Revision Requested", "gray")
-        ];
-    }
+<div class="pr-layout">
 
-    <div class="admin-table-wrap" style="margin-top: 18px;">
-        <table class="admin-table">
-            <thead>
-                <tr>
-                    <th>Campaign</th>
-                    <th>Milestone Title</th>
-                    <th>Influencer</th>
-                    <th>Proof Thumbnail</th>
-                    <th>Submitted Date</th>
-                    <th>Status</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var row in rows)
+    <div>
+        <form method="get" class="pr-toolbar">
+            @if (statusFilter is not null)
+            {
+                <input type="hidden" name="status" value="@statusFilter" />
+            }
+            <div class="pr-search">
+                <i class="bi bi-search"></i>
+                <input type="search" name="search" value="@search" placeholder="Search submissions, campaigns, influencers..." />
+            </div>
+            <button type="submit" class="btn btn-sm btn-secondary">Search</button>
+        </form>
+
+        @if (Model.Milestones.Count == 0)
+        {
+            <div class="panel">
+                <div class="empty-block">
+                    <div class="empty-title">No submissions found</div>
+                    <div class="empty-text">Try a different filter or search term, or check back once influencers submit proof.</div>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="pr-grid">
+                @foreach (var m in Model.Milestones)
                 {
-                    var influencerInitials = string.Join("", row.InfluencerName.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(w => w[0])).ToUpperInvariant();
-                    <tr>
-                        <td>
-                            <div class="campaign-cell">
-                                <div class="campaign-logo">@row.CampaignLogo</div>
-                                <div>
-                                    <div class="campaign-title">@row.CampaignTitle</div>
-                                    <div class="campaign-brand">@row.Brand</div>
-                                </div>
+                    var pill = StatusPill(m.Status);
+                    var campaign = m.Collaboration.Campaign;
+                    var brand = campaign.BrandProfile;
+                    var influencer = m.Collaboration.InfluencerProfile;
+                    var isActionable = m.Status == MilestoneStatus.Submitted;
+                    <div class="pr-card">
+                        <div class="pr-thumb">
+                            @if (IsImageUrl(m.ProofUrl))
+                            {
+                                <img src="@m.ProofUrl" alt="Proof for @m.Title" />
+                            }
+                            else
+                            {
+                                <i class="bi bi-file-earmark-image pr-thumb-icon"></i>
+                            }
+                            <span class="pr-thumb-status status-pill @pill.Color">@pill.Label</span>
+                            <span class="pr-thumb-platform"><i class="bi @PlatformIcon(campaign.Platform)"></i></span>
+                        </div>
+                        <div class="pr-card-body">
+                            <div class="pr-card-title" title="@m.Title">@m.Title</div>
+                            <div class="pr-card-sub">
+                                <div class="pr-card-logo">@Initials(brand.CompanyName)</div>
+                                <span>@campaign.Title</span>
                             </div>
-                        </td>
-                        <td>
-                            <div class="milestone-title">@row.MilestoneTitle</div>
-                            <div class="milestone-amount"><span class="status-pill blue">@row.Amount</span></div>
-                        </td>
-                        <td>
-                            <div class="influencer-cell">
-                                <div class="influencer-avatar">@influencerInitials</div>
-                                <div>
-                                    <div class="influencer-name">@row.InfluencerName</div>
-                                    <div class="influencer-meta">@row.Handle &middot; @row.Followers</div>
-                                </div>
+                            <div class="pr-card-milestone">
+                                <span>৳@m.Amount.ToString("N0")</span>
                             </div>
-                        </td>
-                        <td>
-                            <div class="proof-thumb-wrap" style="background:@row.ThumbGradient;">
-                                <span class="proof-thumb-link"><i class="bi bi-box-arrow-up-right"></i></span>
+                            <div class="pr-card-influencer">
+                                <div class="pr-card-avatar">@Initials(influencer.FullName)</div>
+                                <span class="pr-card-influencer-name">@influencer.FullName</span>
+                                <span class="pr-card-date">@m.CreatedAt.ToString("MMM d")</span>
                             </div>
-                        </td>
-                        <td>@row.Date<div style="color:#8189a8; font-size:11.5px; margin-top:2px;">@row.Time</div></td>
-                        <td><span class="status-pill @row.StatusColor">@row.Status</span></td>
-                        <td><a href="/Admin/AdminProofReview/Details/1" class="btn-view-chevron">View <i class="bi bi-chevron-right"></i></a></td>
-                    </tr>
+                            <div class="pr-card-actions">
+                                @if (!string.IsNullOrWhiteSpace(m.ProofUrl))
+                                {
+                                    <a href="@m.ProofUrl" target="_blank" rel="noopener" class="pr-btn-view">View</a>
+                                }
+                                <a href="/Admin/AdminProofReview/Details/@m.Id" class="@(isActionable ? "pr-btn-review" : "pr-btn-view-details pr-btn-view")">
+                                    @(isActionable ? "Review" : "View Details") <i class="bi bi-arrow-right"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
                 }
-            </tbody>
-        </table>
+            </div>
+        }
     </div>
 
-    <div class="table-pagination">
-        <div class="panel-sub">Showing 1 to 6 of 128 submissions (dummy data — real list to be wired in)</div>
-        <div style="display:flex; gap:6px;">
-            <span class="page-btn"><i class="bi bi-chevron-left"></i></span>
-            <span class="page-btn is-active">1</span>
-            <span class="page-btn">2</span>
-            <span class="page-btn">3</span>
-            <span class="page-btn">4</span>
-            <span class="page-btn">5</span>
-            <span class="page-btn">&hellip;</span>
-            <span class="page-btn">22</span>
-            <span class="page-btn"><i class="bi bi-chevron-right"></i></span>
+    <div>
+        @{
+            var reviewed = Model.ApprovedCount + Model.PaidCount;
+            var reviewedPct = Model.TotalCount == 0 ? 0 : (double)reviewed / Model.TotalCount;
+            var ringCircumference = 2 * Math.PI * 52;
+            var ringOffset = ringCircumference * (1 - reviewedPct);
+        }
+        <div class="pr-side-panel">
+            <div class="pr-side-title">Review Progress</div>
+            <div class="pr-ring-wrap">
+                <svg class="pr-ring-svg" viewBox="0 0 120 120">
+                    <circle class="pr-ring-arc" cx="60" cy="60" r="52" stroke="#eef1fb" />
+                    <circle class="pr-ring-arc" cx="60" cy="60" r="52" stroke="url(#prRingGrad)"
+                            stroke-dasharray="@ringCircumference.ToString("0.##")" stroke-dashoffset="@ringOffset.ToString("0.##")"
+                            transform="rotate(-90 60 60)" />
+                    <defs>
+                        <linearGradient id="prRingGrad" x1="0" y1="0" x2="1" y2="1">
+                            <stop offset="0%" stop-color="#8b6bff" />
+                            <stop offset="100%" stop-color="#4fc3ff" />
+                        </linearGradient>
+                    </defs>
+                </svg>
+                <div class="pr-ring-center">
+                    <div class="pr-ring-value">@Model.SubmittedCount</div>
+                    <div class="pr-ring-label">Pending</div>
+                </div>
+            </div>
+            <div class="pr-ring-footer">
+                <div><div class="n">@Model.TotalCount</div><div class="l">Total</div></div>
+                <div><div class="n">@Model.ApprovedCount</div><div class="l">Approved</div></div>
+                <div><div class="n">@Model.PaidCount</div><div class="l">Paid</div></div>
+                <div><div class="n">@Model.RevisionCount</div><div class="l">Revision</div></div>
+            </div>
+        </div>
+
+        <div class="pr-side-panel">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div class="pr-side-title">Upcoming Deadlines</div>
+            </div>
+            @if (Model.UpcomingDeadlines.Count == 0)
+            {
+                <div class="panel-sub" style="margin-top:10px;">No upcoming deadlines.</div>
+            }
+            else
+            {
+                @foreach (var d in Model.UpcomingDeadlines)
+                {
+                    var daysLeft = Math.Max(0, (int)Math.Ceiling((d.DueDate - DateTime.UtcNow).TotalDays));
+                    <a href="/Admin/AdminProofReview/Details/@d.MilestoneId" class="pr-deadline-item" style="text-decoration:none;">
+                        <div class="pr-deadline-logo">@Initials(d.BrandName)</div>
+                        <div>
+                            <div class="pr-deadline-title">@d.BrandName</div>
+                            <div class="pr-deadline-sub">@d.MilestoneTitle</div>
+                        </div>
+                        <div class="pr-deadline-days">@daysLeft day@(daysLeft == 1 ? "" : "s") left</div>
+                    </a>
+                }
+            }
+        </div>
+
+        <div class="pr-side-panel">
+            <div class="pr-side-title">Top Brands by Submissions</div>
+            @if (Model.TopBrands.Count == 0)
+            {
+                <div class="panel-sub" style="margin-top:10px;">No data yet.</div>
+            }
+            else
+            {
+                var maxCount = Model.TopBrands.Max(b => b.Count);
+                @foreach (var b in Model.TopBrands)
+                {
+                    <div class="pr-brand-item">
+                        <div class="bh"><span>@b.BrandName</span><b>@b.Count</b></div>
+                        <div class="pr-brand-track"><div class="pr-brand-fill" style="width:@(maxCount == 0 ? 0 : b.Count * 100 / maxCount)%;"></div></div>
+                    </div>
+                }
+            }
         </div>
     </div>
 
