@@ -1,0 +1,465 @@
+@model Brandora.Web.Models.Campaigns.CampaignMilestonesViewModel
+@{
+    ViewData["Title"] = "Plan Milestones";
+    ViewData["ActiveNav"] = "Campaigns";
+    Layout = "_AppLayout";
+    var error = TempData["MilestoneError"] as string;
+}
+
+@section Styles {
+
+    .form-shell {
+        max-width: 720px;
+        margin: 0 auto;
+
+        animation: fade-up .4s ease both;
+    }
+
+    .form-head {
+        text-align: center;
+    }
+
+    .form-eyebrow {
+        font-family: 'Inter', sans-serif;
+        font-size: 11.5px;
+        font-weight: 700;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: #9b2cff;
+    }
+
+    .form-title {
+        margin-top: 10px;
+
+        font-family: 'Playfair Display', serif;
+        font-weight: 600;
+        font-size: 30px;
+    }
+
+    .form-sub {
+        margin-top: 8px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 13.5px;
+        color: #6b7290;
+    }
+
+    .form-progress {
+        margin-top: 26px;
+
+        display: flex;
+        gap: 6px;
+    }
+
+    .form-progress span {
+        flex: 1;
+        height: 4px;
+        border-radius: 4px;
+        background: #e8eaf5;
+    }
+
+    .form-progress span.is-filled {
+        background: linear-gradient(90deg, #a326ff, #236eff);
+    }
+
+    .form-section {
+        margin-top: 30px;
+        padding: 28px 30px;
+
+        border-radius: 18px;
+        background: #ffffff;
+        border: 1px solid #eaecf5;
+    }
+
+    .section-num {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+
+        width: 30px;
+        height: 30px;
+
+        border-radius: 50%;
+        border: 1px solid #d9bfff;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 13px;
+        font-weight: 700;
+        color: #8b2cff;
+    }
+
+    .section-heading {
+        margin-top: 14px;
+
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 700;
+        font-size: 17px;
+        color: #171d3d;
+    }
+
+    .section-desc {
+        margin-top: 4px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 12.5px;
+        color: #8189a8;
+    }
+
+    .form-fields {
+        margin-top: 22px;
+
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px 16px;
+    }
+
+    .form-fields.single {
+        grid-template-columns: 1fr;
+    }
+
+    .form-field {
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+    }
+
+    .form-field.span-2 {
+        grid-column: span 2;
+    }
+
+    .form-field label {
+        font-family: 'Inter', sans-serif;
+        font-size: 12.5px;
+        font-weight: 600;
+        color: #2a3157;
+    }
+
+    .form-field input,
+    .form-field textarea {
+        padding: 12px 14px;
+
+        border-radius: 10px;
+        border: 1px solid #e2e5f2;
+        background: #fbfbfe;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 13.5px;
+        color: #171d3d;
+
+        outline: none;
+        transition: .2s;
+    }
+
+    .form-field input:focus,
+    .form-field textarea:focus {
+        border-color: #a978ff;
+        background: #ffffff;
+        box-shadow: 0 0 0 4px rgba(155,44,255,.1);
+    }
+
+    .form-actions {
+        margin-top: 28px;
+
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+    }
+
+    .form-error-banner {
+        margin-top: 18px;
+        padding: 12px 16px;
+
+        border-radius: 12px;
+        background: #fdeef0;
+        border: 1px solid #f4c6cd;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 13px;
+        color: #b3273f;
+    }
+
+    /* Budget meter */
+
+    .budget-meter {
+        margin-top: 30px;
+        padding: 20px 24px;
+
+        border-radius: 16px;
+        background: linear-gradient(105deg, rgba(163,38,255,.06), rgba(24,169,255,.05));
+        border: 1px solid #e3d9ff;
+
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        flex-wrap: wrap;
+    }
+
+    .meter-figure { text-align: left; }
+
+    .meter-value {
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 800;
+        font-size: 20px;
+        color: #171d3d;
+    }
+
+    .meter-value.is-over { color: #b3273f; }
+
+    .meter-label {
+        margin-top: 2px;
+        font-family: 'Inter', sans-serif;
+        font-size: 10.5px;
+        font-weight: 600;
+        letter-spacing: .3px;
+        text-transform: uppercase;
+        color: #9096b3;
+    }
+
+    .meter-bar {
+        flex: 1 1 220px;
+        height: 8px;
+        border-radius: 8px;
+        background: #e8eaf5;
+        overflow: hidden;
+    }
+
+    .meter-bar-fill {
+        height: 100%;
+        border-radius: 8px;
+        background: linear-gradient(90deg, #a326ff, #236eff);
+    }
+
+    .meter-bar-fill.is-over {
+        background: linear-gradient(90deg, #e0507a, #b3273f);
+    }
+
+    /* Milestone plan list */
+
+    .plan-list {
+        margin-top: 22px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .plan-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+
+        padding: 14px 16px;
+
+        border-radius: 12px;
+        border: 1px solid #eaecf5;
+        background: #fbfbfe;
+    }
+
+    .plan-info { min-width: 0; }
+
+    .plan-title {
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 700;
+        font-size: 13.5px;
+        color: #171d3d;
+    }
+
+    .plan-desc {
+        margin-top: 3px;
+        font-family: 'Inter', sans-serif;
+        font-size: 12px;
+        color: #8189a8;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: 380px;
+    }
+
+    .plan-due {
+        margin-top: 3px;
+        font-family: 'Inter', sans-serif;
+        font-size: 11.5px;
+        color: #9096b3;
+    }
+
+    .plan-right {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-shrink: 0;
+    }
+
+    .plan-amount {
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 700;
+        font-size: 14px;
+        color: #171d3d;
+    }
+
+    .plan-remove {
+        width: 28px;
+        height: 28px;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        border-radius: 50%;
+        border: none;
+        background: #f1f2f8;
+        color: #6b7390;
+
+        font-size: 14px;
+        font-weight: 700;
+        line-height: 1;
+        cursor: pointer;
+        transition: .2s;
+    }
+
+    .plan-remove:hover {
+        background: rgba(220,50,70,.12);
+        color: #b3273f;
+    }
+
+    .plan-empty {
+        margin-top: 22px;
+        padding: 26px;
+        text-align: center;
+
+        border-radius: 14px;
+        border: 1.5px dashed #e2e5f2;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 13px;
+        color: #9096b3;
+    }
+
+    @@media(max-width: 600px) {
+        .form-fields { grid-template-columns: 1fr; }
+        .form-field.span-2 { grid-column: span 1; }
+        .form-section { padding: 22px 18px; }
+        .plan-desc { max-width: 180px; }
+    }
+
+}
+
+<div class="form-shell">
+
+    <div class="form-head">
+        <div class="form-eyebrow">Step 2 of 4 · Milestones</div>
+        <h1 class="form-title">Plan the deliverables</h1>
+        <p class="form-sub">Split "@Model.Campaign.Title"'s budget into milestones — this becomes each creator's real payment schedule.</p>
+
+        <div class="form-progress">
+            <span class="is-filled"></span>
+            <span class="is-filled"></span>
+            <span></span>
+            <span></span>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(error))
+    {
+        <div class="form-error-banner">@error</div>
+    }
+
+    <div class="budget-meter">
+        <div class="meter-figure">
+            <div class="meter-value @(Model.OverBudget ? "is-over" : "")">৳@Model.TotalPlanned.ToString("N0")</div>
+            <div class="meter-label">Planned</div>
+        </div>
+        <div class="meter-bar">
+            <div class="meter-bar-fill @(Model.OverBudget ? "is-over" : "")" style="width: @(Model.Campaign.Budget > 0 ? Math.Min(100, (double)(Model.TotalPlanned / Model.Campaign.Budget * 100)) : 0)%;"></div>
+        </div>
+        <div class="meter-figure" style="text-align:right;">
+            <div class="meter-value">৳@Model.Campaign.Budget.ToString("N0")</div>
+            <div class="meter-label">Campaign Budget</div>
+        </div>
+    </div>
+
+    <section class="form-section">
+        <div class="section-num">+</div>
+        <div class="section-heading">Add a Milestone</div>
+        <p class="section-desc">A deliverable, its amount, and when it's due.</p>
+
+        <form method="post" action="/Campaigns/AddMilestonePlan">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="CampaignId" value="@Model.Campaign.Id" />
+
+            <div class="form-fields">
+                <div class="form-field span-2">
+                    <label for="Title">Milestone Title</label>
+                    <input type="text" id="Title" name="Title" placeholder="e.g. Instagram Reel Post" required />
+                </div>
+
+                <div class="form-field span-2">
+                    <label for="Description">Deliverable Requirements (optional)</label>
+                    <textarea id="Description" name="Description" placeholder="What exactly should this milestone include?"></textarea>
+                </div>
+
+                <div class="form-field">
+                    <label for="Amount">Amount (৳)</label>
+                    <input type="number" id="Amount" name="Amount" min="1" step="1" placeholder="4000" required />
+                </div>
+
+                <div class="form-field">
+                    <label for="DueDate">Deadline (optional)</label>
+                    <input type="date" id="DueDate" name="DueDate" />
+                </div>
+            </div>
+
+            <div class="form-actions" style="justify-content: flex-end;">
+                <button type="submit" class="btn btn-secondary">Add Milestone</button>
+            </div>
+        </form>
+    </section>
+
+    <section class="form-section">
+        <div class="section-num">@Model.Plans.Count</div>
+        <div class="section-heading">Milestone Plan</div>
+        <p class="section-desc">This is copied into the creator's real milestones the moment a proposal is accepted.</p>
+
+        @if (Model.Plans.Count == 0)
+        {
+            <div class="plan-empty">No milestones planned yet — add one above, or continue and add them later per creator.</div>
+        }
+        else
+        {
+            <div class="plan-list">
+                @foreach (var plan in Model.Plans)
+                {
+                    <div class="plan-row">
+                        <div class="plan-info">
+                            <div class="plan-title">@plan.Title</div>
+                            @if (!string.IsNullOrEmpty(plan.Description))
+                            {
+                                <div class="plan-desc">@plan.Description</div>
+                            }
+                            @if (plan.DueDate.HasValue)
+                            {
+                                <div class="plan-due">Due @plan.DueDate.Value.ToString("MMM d, yyyy")</div>
+                            }
+                        </div>
+                        <div class="plan-right">
+                            <div class="plan-amount">৳@plan.Amount.ToString("N0")</div>
+                            <form method="post" action="/Campaigns/RemoveMilestonePlan">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@plan.Id" />
+                                <input type="hidden" name="campaignId" value="@Model.Campaign.Id" />
+                                <button type="submit" class="plan-remove" aria-label="Remove milestone">&times;</button>
+                            </form>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </section>
+
+    <div class="form-actions">
+        <a href="/Campaigns/Edit/@Model.Campaign.Id" class="btn btn-ghost">Back to Details</a>
+        <a href="/Campaigns/Targeting/@Model.Campaign.Id" class="btn btn-primary">Continue to Targeting</a>
+    </div>
+
+</div>
