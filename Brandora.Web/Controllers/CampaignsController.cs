@@ -127,7 +127,7 @@ public class CampaignsController(UserManager<ApplicationUser> userManager, Appli
             Platform = model.Platform,
             Niche = model.Niche,
             Budget = model.Budget,
-            Deadline = model.Deadline,
+            Deadline = model.Deadline.HasValue ? DateTime.SpecifyKind(model.Deadline.Value, DateTimeKind.Utc) : null,
             Status = CampaignStatus.Draft,
             MediaUrl = mediaUrl,
             MediaType = mediaType
@@ -197,7 +197,7 @@ public class CampaignsController(UserManager<ApplicationUser> userManager, Appli
         campaign.Platform = model.Platform;
         campaign.Niche = model.Niche;
         campaign.Budget = model.Budget;
-        campaign.Deadline = model.Deadline;
+        campaign.Deadline = model.Deadline.HasValue ? DateTime.SpecifyKind(model.Deadline.Value, DateTimeKind.Utc) : null;
 
         if (model.RemoveMedia && campaign.MediaUrl is not null)
         {

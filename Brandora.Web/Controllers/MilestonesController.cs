@@ -64,7 +64,7 @@ public class MilestonesController(UserManager<ApplicationUser> userManager, Appl
             Title = model.Title,
             Description = model.Description,
             Amount = model.Amount,
-            DueDate = model.DueDate,
+            DueDate = model.DueDate.HasValue ? DateTime.SpecifyKind(model.DueDate.Value, DateTimeKind.Utc) : null,
             Status = MilestoneStatus.Pending
         };
 

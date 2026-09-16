@@ -1,0 +1,21 @@
+@{
+    var breadcrumb = ViewData["Breadcrumb"] as List<(string Label, string? Url)> ?? new();
+}
+@if (breadcrumb.Count > 0)
+{
+    <div class="hero-breadcrumb">
+        <a href="/Admin/AdminDashboard/Index">Admin Dashboard</a>
+        @foreach (var crumb in breadcrumb)
+        {
+            <span class="crumb-sep">/</span>
+            if (crumb.Url is not null)
+            {
+                <a href="@crumb.Url">@crumb.Label</a>
+            }
+            else
+            {
+                <span class="crumb-current">@crumb.Label</span>
+            }
+        }
+    </div>
+}
