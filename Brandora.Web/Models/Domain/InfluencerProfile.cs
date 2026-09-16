@@ -21,6 +21,11 @@ public class InfluencerProfile
     public decimal EngagementRate { get; set; }
     public string? RateNote { get; set; }
 
+    public VerificationStatus VerificationStatus { get; set; } = VerificationStatus.Pending;
+    public string? RejectionReason { get; set; }
+    public DateTime? VerifiedAt { get; set; }
+    public string? AdminNotes { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public ICollection<Proposal> Proposals { get; set; } = new List<Proposal>();
