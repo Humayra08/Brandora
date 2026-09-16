@@ -90,12 +90,17 @@ public class CampaignsController(UserManager<ApplicationUser> userManager, Appli
     [HttpPost]
     [ValidateAntiForgeryToken]
     [RequestSizeLimit(100_000_000)]
-    public async Task<IActionResult> Create(CampaignFormViewModel model)
+    public async Task<IActionResult> Create(CampaignFormViewModel model, bool returnToList = false)
     {
         var brand = await GetCurrentBrandAsync();
         if (brand is null)
         {
             return RedirectToAction("Index", "Home");
+        }
+
+        if (model.StartDate.HasValue && model.Deadline.HasValue && model.StartDate.Value > model.Deadline.Value)
+        {
+            ModelState.AddModelError(nameof(model.Deadline), "End date must be on or after the start date.");
         }
 
         if (!ModelState.IsValid)
@@ -127,7 +132,9 @@ public class CampaignsController(UserManager<ApplicationUser> userManager, Appli
             Platform = model.Platform,
             Niche = model.Niche,
             Budget = model.Budget,
+            StartDate = model.StartDate.HasValue ? DateTime.SpecifyKind(model.StartDate.Value, DateTimeKind.Utc) : null,
             Deadline = model.Deadline.HasValue ? DateTime.SpecifyKind(model.Deadline.Value, DateTimeKind.Utc) : null,
+            ContentGuidelines = model.ContentGuidelines,
             Status = CampaignStatus.Draft,
             MediaUrl = mediaUrl,
             MediaType = mediaType
@@ -136,7 +143,9 @@ public class CampaignsController(UserManager<ApplicationUser> userManager, Appli
         db.Campaigns.Add(campaign);
         await db.SaveChangesAsync();
 
-        return RedirectToAction("Milestones", new { id = campaign.Id });
+        return returnToList
+            ? RedirectToAction("Index")
+            : RedirectToAction("Milestones", new { id = campaign.Id });
     }
 
     public async Task<IActionResult> Edit(int id)
@@ -161,7 +170,9 @@ public class CampaignsController(UserManager<ApplicationUser> userManager, Appli
             Platform = campaign.Platform ?? string.Empty,
             Niche = campaign.Niche ?? string.Empty,
             Budget = campaign.Budget,
+            StartDate = campaign.StartDate,
             Deadline = campaign.Deadline,
+            ContentGuidelines = campaign.ContentGuidelines,
             ExistingMediaUrl = campaign.MediaUrl,
             ExistingMediaType = campaign.MediaType
         });
@@ -184,6 +195,11 @@ public class CampaignsController(UserManager<ApplicationUser> userManager, Appli
             return NotFound();
         }
 
+        if (model.StartDate.HasValue && model.Deadline.HasValue && model.StartDate.Value > model.Deadline.Value)
+        {
+            ModelState.AddModelError(nameof(model.Deadline), "End date must be on or after the start date.");
+        }
+
         if (!ModelState.IsValid)
         {
             model.Id = id;
@@ -197,7 +213,9 @@ public class CampaignsController(UserManager<ApplicationUser> userManager, Appli
         campaign.Platform = model.Platform;
         campaign.Niche = model.Niche;
         campaign.Budget = model.Budget;
+        campaign.StartDate = model.StartDate.HasValue ? DateTime.SpecifyKind(model.StartDate.Value, DateTimeKind.Utc) : null;
         campaign.Deadline = model.Deadline.HasValue ? DateTime.SpecifyKind(model.Deadline.Value, DateTimeKind.Utc) : null;
+        campaign.ContentGuidelines = model.ContentGuidelines;
 
         if (model.RemoveMedia && campaign.MediaUrl is not null)
         {
@@ -285,6 +303,7 @@ public class CampaignsController(UserManager<ApplicationUser> userManager, Appli
         {
             CampaignId = campaign.Id,
             Title = model.Title,
+            ContentType = model.ContentType,
             Description = model.Description,
             Amount = model.Amount,
             DueDate = model.DueDate.HasValue ? DateTime.SpecifyKind(model.DueDate.Value, DateTimeKind.Utc) : null,
@@ -332,6 +351,10 @@ public class CampaignsController(UserManager<ApplicationUser> userManager, Appli
         {
             return NotFound();
         }
+
+        ViewData["Platform"] = campaign.Platform;
+        ViewData["MatchingCreatorCount"] = await CountMatchingCreatorsAsync(campaign);
+        ViewData["TotalCreatorCount"] = await db.InfluencerProfiles.CountAsync();
 
         return View(new CampaignTargetingFormViewModel
         {
@@ -414,37 +437,46 @@ public class CampaignsController(UserManager<ApplicationUser> userManager, Appli
 
         if (vm.HasTargeting)
         {
-            var matchQuery = db.InfluencerProfiles.AsQueryable();
-
-            if (!string.IsNullOrWhiteSpace(campaign.TargetLocation))
-            {
-                matchQuery = matchQuery.Where(i => i.Location != null && i.Location.Contains(campaign.TargetLocation));
-            }
-
-            if (campaign.TargetFollowersMin.HasValue)
-            {
-                matchQuery = matchQuery.Where(i => i.Followers >= campaign.TargetFollowersMin.Value);
-            }
-
-            if (campaign.TargetFollowersMax.HasValue)
-            {
-                matchQuery = matchQuery.Where(i => i.Followers <= campaign.TargetFollowersMax.Value);
-            }
-
-            if (campaign.TargetEngagementRateMin.HasValue)
-            {
-                matchQuery = matchQuery.Where(i => i.EngagementRate >= campaign.TargetEngagementRateMin.Value);
-            }
-
-            if (campaign.TargetVerifiedOnly)
-            {
-                matchQuery = matchQuery.Where(i => i.Verified);
-            }
-
-            vm.MatchingCreatorCount = await matchQuery.CountAsync();
+            vm.MatchingCreatorCount = await CountMatchingCreatorsAsync(campaign);
         }
 
         return View(vm);
+    }
+
+    // Real, database-derived count of creators currently matching a
+    // campaign's targeting rules — never a fabricated "estimated reach".
+    // Shared by the Targeting step (so the brand sees a live number while
+    // configuring it) and Review & Publish (the final summary).
+    private async Task<int> CountMatchingCreatorsAsync(Campaign campaign)
+    {
+        var matchQuery = db.InfluencerProfiles.AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(campaign.TargetLocation))
+        {
+            matchQuery = matchQuery.Where(i => i.Location != null && i.Location.Contains(campaign.TargetLocation));
+        }
+
+        if (campaign.TargetFollowersMin.HasValue)
+        {
+            matchQuery = matchQuery.Where(i => i.Followers >= campaign.TargetFollowersMin.Value);
+        }
+
+        if (campaign.TargetFollowersMax.HasValue)
+        {
+            matchQuery = matchQuery.Where(i => i.Followers <= campaign.TargetFollowersMax.Value);
+        }
+
+        if (campaign.TargetEngagementRateMin.HasValue)
+        {
+            matchQuery = matchQuery.Where(i => i.EngagementRate >= campaign.TargetEngagementRateMin.Value);
+        }
+
+        if (campaign.TargetVerifiedOnly)
+        {
+            matchQuery = matchQuery.Where(i => i.Verified);
+        }
+
+        return await matchQuery.CountAsync();
     }
 
     [HttpPost]

@@ -16,7 +16,9 @@ public class Campaign
 
     public string? Platform { get; set; }
     public string? Niche { get; set; }
+    public DateTime? StartDate { get; set; }
     public DateTime? Deadline { get; set; }
+    public string? ContentGuidelines { get; set; }
 
     public string? MediaUrl { get; set; }
     public string? MediaType { get; set; }

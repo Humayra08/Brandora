@@ -220,6 +220,7 @@ public class ProposalsController(UserManager<ApplicationUser> userManager, Appli
             {
                 Collaboration = collaboration,
                 Title = plan.Title,
+                ContentType = plan.ContentType,
                 Description = plan.Description,
                 Amount = plan.Amount,
                 DueDate = plan.DueDate,

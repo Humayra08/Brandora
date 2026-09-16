@@ -62,6 +62,7 @@ public class MilestonesController(UserManager<ApplicationUser> userManager, Appl
         {
             CollaborationId = collaboration.Id,
             Title = model.Title,
+            ContentType = model.ContentType,
             Description = model.Description,
             Amount = model.Amount,
             DueDate = model.DueDate.HasValue ? DateTime.SpecifyKind(model.DueDate.Value, DateTimeKind.Utc) : null,

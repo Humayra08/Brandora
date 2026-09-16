@@ -247,56 +247,24 @@
             transform: rotate(-18deg);
         }
 
-        .hero-portrait {
+        .hero-mark {
             position: absolute;
-            width: 124px;
-            height: 160px;
-            object-fit: cover;
-            border: 5px solid rgba(255,255,255,.95);
-            border-radius: 22px;
-            box-shadow: 0 20px 45px rgba(67, 33, 137, .18);
-            transition: transform .45s cubic-bezier(.22,1,.36,1);
-        }
-
-        .hero-portrait:hover {
-            transform: translateY(-8px) rotate(0deg) scale(1.04);
-        }
-
-        .hero-portrait-main {
-            width: 148px;
-            height: 188px;
             left: 50%;
             top: 50%;
-            transform: translate(-50%, -50%) rotate(-3deg);
+            width: 148px;
+            height: 148px;
+            transform: translate(-50%, -50%);
             z-index: 3;
-        }
 
-        .hero-portrait-main:hover {
-            transform: translate(-50%, -50%) rotate(0deg) scale(1.04);
-        }
+            display: grid;
+            place-items: center;
 
-        .hero-portrait-one {
-            left: 5%;
-            top: 12%;
-            transform: rotate(-11deg);
-        }
+            border-radius: 50%;
+            background: linear-gradient(135deg, #8b35ff, #159cff);
+            box-shadow: 0 20px 45px rgba(67, 33, 137, .25);
 
-        .hero-portrait-two {
-            right: 3%;
-            top: 10%;
-            transform: rotate(9deg);
-        }
-
-        .hero-portrait-three {
-            left: 11%;
-            bottom: 3%;
-            transform: rotate(8deg);
-        }
-
-        .hero-portrait-four {
-            right: 10%;
-            bottom: 0;
-            transform: rotate(-8deg);
+            color: #fff;
+            font: 700 56px 'Playfair Display', serif;
         }
 
         .hero-badge {
@@ -489,20 +457,25 @@
             pointer-events: none;
         }
 
-        .creator-cover {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            transition: transform .65s cubic-bezier(.22,1,.36,1), filter .45s ease;
+        .creator-mark {
+            position: absolute;
+            inset: 0;
+            display: grid;
+            place-items: center;
+
+            color: rgba(255,255,255,.55);
+            font: 700 64px 'Playfair Display', serif;
+
+            transition: transform .65s cubic-bezier(.22,1,.36,1);
         }
 
-        .creator-card:hover .creator-cover {
-            transform: scale(1.055);
-            filter: saturate(1.06);
+        .creator-card:hover .creator-mark {
+            transform: scale(1.08);
         }
 
         .platform-badge,
         .availability-badge,
+        .fit-badge,
         .creator-bookmark {
             position: absolute;
             z-index: 3;
@@ -538,6 +511,21 @@
             border-radius: 50%;
             background: #45bd79;
             box-shadow: 0 0 0 3px rgba(69,189,121,.13);
+        }
+
+        .fit-badge {
+            right: 45px;
+            padding: 7px 10px;
+            border-radius: 999px;
+            color: #7a2df3;
+            font: 750 10px 'Inter', sans-serif;
+        }
+
+        .fit-reasons {
+            margin-bottom: 10px;
+            color: #7a2df3;
+            font: 600 10.5px 'Inter', sans-serif;
+            line-height: 1.5;
         }
 
         .creator-bookmark {
@@ -576,10 +564,11 @@
             transition: transform .45s cubic-bezier(.22,1,.36,1);
         }
 
-        .creator-avatar img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
+        .creator-avatar-initial {
+            display: grid;
+            place-items: center;
+            color: #fff;
+            font: 700 17px 'DM Sans', sans-serif;
         }
 
         .creator-card:hover .creator-avatar {
@@ -944,11 +933,11 @@
                         <div class="hero-stat-label">Creators</div>
                     </div>
                     <div class="hero-stat">
-                        <div class="hero-stat-value">4.5%</div>
+                        <div class="hero-stat-value">@Model.AvgEngagementRate.ToString("0.0")%</div>
                         <div class="hero-stat-label">Avg Engagement</div>
                     </div>
                     <div class="hero-stat">
-                        <div class="hero-stat-value">6</div>
+                        <div class="hero-stat-value">@Model.PlatformCount</div>
                         <div class="hero-stat-label">Platforms</div>
                     </div>
                 </div>
@@ -956,43 +945,20 @@
 
             <div class="hero-visual" aria-hidden="true">
                 <div class="creator-orbit"></div>
-
-                <img class="hero-portrait hero-portrait-one"
-                     src="https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=300&q=80"
-                     alt="" />
-
-                <img class="hero-portrait hero-portrait-main"
-                     src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=85"
-                     alt="" />
-
-                <img class="hero-portrait hero-portrait-two"
-                     src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80"
-                     alt="" />
-
-                <img class="hero-portrait hero-portrait-three"
-                     src="https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?auto=format&fit=crop&w=300&q=80"
-                     alt="" />
-
-                <img class="hero-portrait hero-portrait-four"
-                     src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=300&q=80"
-                     alt="" />
+                <div class="hero-mark">B</div>
 
                 <div class="hero-badge hero-badge-engagement">
                     <span>♡</span>
-                    <span><strong>4.5%</strong><br />Engagement</span>
+                    <span><strong>@Model.AvgEngagementRate.ToString("0.0")%</strong><br />Engagement</span>
                 </div>
 
                 <div class="hero-badge hero-badge-followers">
                     <span>✦</span>
-                    <span><strong>25K</strong><br />Followers</span>
+                    <span><strong>@Model.TotalCount</strong><br />Creators</span>
                 </div>
 
                 <div class="hero-badge hero-badge-social">
-                    <span>Instagram</span>
-                    <span>•</span>
-                    <span>TikTok</span>
-                    <span>•</span>
-                    <span>YouTube</span>
+                    <span>@Model.PlatformCount platform@(Model.PlatformCount == 1 ? "" : "s")</span>
                 </div>
 
                 <span class="hero-spark one">✦</span>
@@ -1036,6 +1002,17 @@
                 <option value="engagement" selected="@(Model.Sort == "engagement")">Highest engagement</option>
             </select>
 
+            @if (Model.AvailableCampaigns.Count > 0)
+            {
+                <select name="campaignId" class="filter-select" onchange="this.form.submit()">
+                    <option value="">Campaign Fit: off</option>
+                    @foreach (var c in Model.AvailableCampaigns)
+                    {
+                        <option value="@c.Id" selected="@(Model.SelectedCampaign?.Id == c.Id)">Fit for "@c.Title"</option>
+                    }
+                </select>
+            }
+
             <button type="submit" class="btn btn-secondary">Search</button>
         </form>
 
@@ -1045,35 +1022,33 @@
                 @foreach (var creator in Model.Creators)
                 {
                     var hue = (creator.Id * 47) % 360;
-                    var imageIndex = (creator.Id % 6) + 1;
-
-                    var creatorImage = imageIndex switch
-                    {
-                        1 => "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=700&q=82",
-                        2 => "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=700&q=82",
-                        3 => "https://images.unsplash.com/photo-1531123897727-8f129e1688ce?auto=format&fit=crop&w=700&q=82",
-                        4 => "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=700&q=82",
-                        5 => "https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?auto=format&fit=crop&w=700&q=82",
-                        _ => "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=700&q=82"
-                    };
+                    var hue2 = (hue + 48) % 360;
+                    var initial = string.IsNullOrEmpty(creator.FullName) ? "?" : creator.FullName[..1].ToUpperInvariant();
+                    Model.FitByCreatorId.TryGetValue(creator.Id, out var fit);
 
                     <article class="creator-card"
                              data-reveal
                              style="--card-accent: hsl(@(hue)deg 85% 58%);">
 
-                        <div class="creator-media">
-                            <img class="creator-cover"
-                                 src="@creatorImage"
-                                 alt="@creator.FullName creator profile"
-                                 loading="lazy" />
+                        <div class="creator-media" style="background: linear-gradient(135deg, hsl(@(hue)deg 85% 62%), hsl(@(hue2)deg 85% 58%));">
+                            <div class="creator-mark" aria-hidden="true">@initial</div>
 
                             <div class="platform-badge">
                                 @creator.PrimaryPlatform
                             </div>
 
-                            <div class="availability-badge">
-                                Available
-                            </div>
+                            @if (Model.SelectedCampaign is not null)
+                            {
+                                <div class="fit-badge" title="@string.Join(" · ", fit.Reasons)">
+                                    @fit.Score% Fit
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="availability-badge">
+                                    Available
+                                </div>
+                            }
 
                             <button class="creator-bookmark"
                                     type="button"
@@ -1083,10 +1058,8 @@
                             </button>
 
                             <div class="creator-overlay">
-                                <div class="creator-avatar">
-                                    <img src="@creatorImage"
-                                         alt=""
-                                         loading="lazy" />
+                                <div class="creator-avatar creator-avatar-initial" style="background: linear-gradient(135deg, hsl(@(hue)deg 80% 55%), hsl(@(hue2)deg 80% 50%));">
+                                    @initial
                                 </div>
 
                                 <div>
@@ -1105,6 +1078,11 @@
                         </div>
 
                         <div class="creator-body">
+                            @if (Model.SelectedCampaign is not null && fit.Reasons.Count > 0)
+                            {
+                                <div class="fit-reasons">@string.Join(" · ", fit.Reasons)</div>
+                            }
+
                             <div class="creator-tags">
                                 <span class="tag">@creator.ContentNiche</span>
                                 @if (!string.IsNullOrEmpty(creator.Location))

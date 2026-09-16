@@ -244,6 +244,18 @@
             color: rgba(255,255,255,.4);
         }
 
+        .nav-chevron {
+            width: 14px;
+            height: 14px;
+            flex-shrink: 0;
+            opacity: 0;
+            transition: opacity .2s ease;
+        }
+
+        .side-nav-item.is-active .nav-chevron {
+            opacity: 1;
+        }
+
         .nav-label {
             flex: 1;
             min-width: 0;
@@ -320,17 +332,50 @@
 
         .side-foot {
             margin-top: auto;
+            padding: 12px 8px 0;
+        }
 
-            padding-top: 14px;
-            border-top: 1px solid rgba(255,255,255,.1);
+        .side-foot-user {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding-bottom: 10px;
+            min-width: 0;
+        }
+
+        .side-foot-avatar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+
+            width: 36px;
+            height: 36px;
+
+            border-radius: 50%;
+            border: 2px solid rgba(255,255,255,.12);
+            background: linear-gradient(145deg, #c93cff, #4e38ff 55%, #159cff);
+
+            font-family: 'DM Sans', sans-serif;
+            font-weight: 700;
+            font-size: 12px;
+            color: #ffffff;
+            overflow: hidden;
+        }
+
+        .side-foot-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .side-foot-identity {
+            min-width: 0;
         }
 
         .side-foot-company {
-            padding: 0 6px;
-
             font-family: 'Inter', sans-serif;
-            font-size: 13px;
-            font-weight: 600;
+            font-size: 14px;
             color: #ffffff;
 
             white-space: nowrap;
@@ -339,31 +384,35 @@
         }
 
         .side-foot-role {
-            padding: 0 6px;
             margin-top: 2px;
 
             font-family: 'Inter', sans-serif;
-            font-size: 11.5px;
-            color: rgba(255,255,255,.5);
+            font-size: 13px;
+            color: #afb4c6;
         }
 
         .side-logout-form {
-            margin-top: 10px;
+            margin-top: 0;
         }
 
         .side-logout-btn {
             width: 100%;
 
-            padding: 10px 14px;
+            padding: 10px;
 
-            border: 1px solid rgba(255,255,255,.14);
-            border-radius: 9px;
+            border: 0;
+            border-top: 1px solid rgba(255,255,255,.08);
             background: transparent;
 
-            color: rgba(255,255,255,.75);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+
+            color: #dce0ea;
 
             font-family: 'Inter', sans-serif;
-            font-size: 13px;
+            font-size: 14px;
             font-weight: 500;
 
             cursor: pointer;
@@ -371,11 +420,17 @@
         }
 
         .logout-mark {
-            display: none;
+            display: flex;
+            width: 16px;
+            height: 16px;
+        }
+
+        .logout-mark svg {
+            width: 100%;
+            height: 100%;
         }
 
         .side-logout-btn:hover {
-            border-color: rgba(255,255,255,.35);
             color: #ffffff;
         }
 
@@ -476,6 +531,7 @@
         .status-pill.revisionrequested { background: #f8f0e3; color: #a05e12; }
         .status-pill.paid { background: #f3e8ff; color: #7a1fd6; }
         .status-pill.failed { background: #fde8ea; color: #c22540; }
+        .status-pill.verified { background: #e2faf1; color: #0d9c6c; }
 
         .form-errors {
             margin-bottom: 18px;
@@ -1088,38 +1144,41 @@
                 // (see Views/Shared/_InfluencerSidebar.cshtml convention), so
                 // this layout only needs to render the Brand nav.
             }
+                @{
+                    var navChevron = Html.Raw("<svg class=\"nav-chevron\" viewBox=\"0 0 24 24\" fill=\"none\"><path d=\"M9 6l6 6-6 6\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg>");
+                }
+
                 <a href="/Dashboard" class="side-nav-item @(activeNav == "Dashboard" ? "is-active" : "")">
-                    <span class="nav-letter">D</span>
                     <span class="nav-label side-toggle-hide">Dashboard</span>
+                    @navChevron
                 </a>
 
                 <a href="/Campaigns" class="side-nav-item @(activeNav == "Campaigns" ? "is-active" : "")">
-                    <span class="nav-letter">C</span>
                     <span class="nav-label side-toggle-hide">Campaigns</span>
+                    @navChevron
                 </a>
 
                 <a href="/Influencers" class="side-nav-item @(activeNav == "Influencers" ? "is-active" : "")">
-                    <span class="nav-letter">I</span>
                     <span class="nav-label side-toggle-hide">Influencers</span>
+                    @navChevron
                 </a>
 
                 <a href="/Messages" class="side-nav-item @(activeNav == "Messages" ? "is-active" : "")">
-                    <span class="nav-letter">M</span>
                     <span class="nav-label side-toggle-hide">Messages</span>
+                    @navChevron
                 </a>
 
                 <a href="/Payments" class="side-nav-item @(activeNav == "Finance" ? "is-active" : "")">
-                    <span class="nav-letter">F</span>
                     <span class="nav-label side-toggle-hide">Finance</span>
+                    @navChevron
                 </a>
 
                 <a href="/Analytics" class="side-nav-item @(activeNav == "Analytics" ? "is-active" : "")">
-                    <span class="nav-letter">A</span>
                     <span class="nav-label side-toggle-hide">Analytics</span>
+                    @navChevron
                 </a>
 
                 <a href="/Notifications" class="side-nav-item @(activeNav == "Notifications" ? "is-active" : "")">
-                    <span class="nav-letter">N@(unread > 0 ? Html.Raw("<span class=\"nav-dot\"></span>") : null)</span>
                     <span class="nav-label side-toggle-hide">
                         Notifications
                         @if (unread > 0)
@@ -1127,11 +1186,12 @@
                             <span class="unread-badge">@unread</span>
                         }
                     </span>
+                    @navChevron
                 </a>
 
                 <a href="/Settings" class="side-nav-item @(activeNav == "Settings" ? "is-active" : "")">
-                    <span class="nav-letter">S</span>
                     <span class="nav-label side-toggle-hide">Settings</span>
+                    @navChevron
                 </a>
 
         </nav>
@@ -1139,14 +1199,36 @@
         </div>
 
         <div class="side-foot">
-            <div class="side-foot-company side-toggle-hide">@ViewData["CompanyName"]</div>
-            <div class="side-foot-role side-toggle-hide">@(isInfluencer ? "Influencer Workspace" : "Brand Workspace")</div>
+
+            <div class="side-foot-user side-toggle-hide">
+                @{
+                    var footPicUrl = ViewData["ProfilePictureUrl"] as string;
+                    var footCompanyName = ViewData["CompanyName"] as string ?? "Brand";
+                    var footInitial = string.IsNullOrEmpty(footCompanyName) ? "B" : footCompanyName[..1].ToUpperInvariant();
+                }
+                <div class="side-foot-avatar">
+                    @if (!string.IsNullOrEmpty(footPicUrl))
+                    {
+                        <img src="@footPicUrl" alt="@footCompanyName" />
+                    }
+                    else
+                    {
+                        @footInitial
+                    }
+                </div>
+                <div class="side-foot-identity">
+                    <div class="side-foot-company">@footCompanyName</div>
+                    <div class="side-foot-role">Brand</div>
+                </div>
+            </div>
 
             <form method="post" action="/Account/Logout" class="side-logout-form">
                 @Html.AntiForgeryToken()
                 <button type="submit" class="side-logout-btn">
-                    <span class="side-toggle-hide">Log Out</span>
-                    <span class="logout-mark">L</span>
+                    <span class="logout-mark">
+                        <svg viewBox="0 0 24 24" fill="none"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </span>
+                    <span class="side-toggle-hide">Logout</span>
                 </button>
             </form>
         </div>
