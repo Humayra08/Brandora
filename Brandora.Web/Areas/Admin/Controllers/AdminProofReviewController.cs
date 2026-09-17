@@ -131,7 +131,7 @@ public class AdminProofReviewController(ApplicationDbContext db, NotificationSer
         {
             milestone.Status = MilestoneStatus.Approved;
 
-            notifications.Notify(
+            await notifications.NotifyAsync(
                 milestone.Collaboration.InfluencerProfile.UserId,
                 "Milestone",
                 "Milestone approved",
@@ -159,7 +159,7 @@ public class AdminProofReviewController(ApplicationDbContext db, NotificationSer
             milestone.Status = MilestoneStatus.RevisionRequested;
             milestone.ProofNotes = comment;
 
-            notifications.Notify(
+            await notifications.NotifyAsync(
                 milestone.Collaboration.InfluencerProfile.UserId,
                 "Milestone",
                 "Revision requested",

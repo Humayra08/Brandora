@@ -10,7 +10,7 @@ namespace Brandora.Web.Controllers;
 
 public class CampaignsController(UserManager<ApplicationUser> userManager, ApplicationDbContext db, MediaUploadService mediaUploads) : BrandControllerBase(userManager, db)
 {
-    public async Task<IActionResult> Index(string? search, CampaignStatus? status, string? platform, string? sort)
+    public async Task<IActionResult> Index(string? search, CampaignStatus? status, string? platform, string? category, string? sort)
     {
         var brand = await GetCurrentBrandAsync();
         if (brand is null)
@@ -42,6 +42,11 @@ public class CampaignsController(UserManager<ApplicationUser> userManager, Appli
             query = query.Where(c => c.Platform == platform);
         }
 
+        if (!string.IsNullOrWhiteSpace(category))
+        {
+            query = query.Where(c => c.Niche == category);
+        }
+
         query = sort switch
         {
             "budget" => query.OrderByDescending(c => c.Budget),
@@ -58,13 +63,21 @@ public class CampaignsController(UserManager<ApplicationUser> userManager, Appli
             .Select(g => new { g.Key, Count = g.Count() })
             .ToDictionaryAsync(x => x.Key, x => x.Count);
 
+        var milestoneCounts = await db.CampaignMilestonePlans
+            .Where(p => campaignIds.Contains(p.CampaignId))
+            .GroupBy(p => p.CampaignId)
+            .Select(g => new { g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.Key, x => x.Count);
+
         var vm = new CampaignListViewModel
         {
             Campaigns = campaigns,
             ApplicantCounts = applicantCounts,
+            MilestoneCounts = milestoneCounts,
             Search = search,
             Status = status,
             Platform = platform,
+            Category = category,
             Sort = sort,
             DraftCount = summary.FirstOrDefault(s => s.Status == CampaignStatus.Draft)?.Count ?? 0,
             PublishedCount = summary.FirstOrDefault(s => s.Status == CampaignStatus.Published)?.Count ?? 0,
@@ -90,12 +103,17 @@ public class CampaignsController(UserManager<ApplicationUser> userManager, Appli
     [HttpPost]
     [ValidateAntiForgeryToken]
     [RequestSizeLimit(100_000_000)]
-    public async Task<IActionResult> Create(CampaignFormViewModel model)
+    public async Task<IActionResult> Create(CampaignFormViewModel model, bool returnToList = false)
     {
         var brand = await GetCurrentBrandAsync();
         if (brand is null)
         {
             return RedirectToAction("Index", "Home");
+        }
+
+        if (model.StartDate.HasValue && model.Deadline.HasValue && model.StartDate.Value > model.Deadline.Value)
+        {
+            ModelState.AddModelError(nameof(model.Deadline), "End date must be on or after the start date.");
         }
 
         if (!ModelState.IsValid)
@@ -127,7 +145,9 @@ public class CampaignsController(UserManager<ApplicationUser> userManager, Appli
             Platform = model.Platform,
             Niche = model.Niche,
             Budget = model.Budget,
+            StartDate = model.StartDate.HasValue ? DateTime.SpecifyKind(model.StartDate.Value, DateTimeKind.Utc) : null,
             Deadline = model.Deadline.HasValue ? DateTime.SpecifyKind(model.Deadline.Value, DateTimeKind.Utc) : null,
+            ContentGuidelines = model.ContentGuidelines,
             Status = CampaignStatus.Draft,
             MediaUrl = mediaUrl,
             MediaType = mediaType
@@ -136,7 +156,9 @@ public class CampaignsController(UserManager<ApplicationUser> userManager, Appli
         db.Campaigns.Add(campaign);
         await db.SaveChangesAsync();
 
-        return RedirectToAction("Preview", new { id = campaign.Id });
+        return returnToList
+            ? RedirectToAction("Index")
+            : RedirectToAction("Milestones", new { id = campaign.Id });
     }
 
     public async Task<IActionResult> Edit(int id)
@@ -161,7 +183,9 @@ public class CampaignsController(UserManager<ApplicationUser> userManager, Appli
             Platform = campaign.Platform ?? string.Empty,
             Niche = campaign.Niche ?? string.Empty,
             Budget = campaign.Budget,
+            StartDate = campaign.StartDate,
             Deadline = campaign.Deadline,
+            ContentGuidelines = campaign.ContentGuidelines,
             ExistingMediaUrl = campaign.MediaUrl,
             ExistingMediaType = campaign.MediaType
         });
@@ -184,6 +208,11 @@ public class CampaignsController(UserManager<ApplicationUser> userManager, Appli
             return NotFound();
         }
 
+        if (model.StartDate.HasValue && model.Deadline.HasValue && model.StartDate.Value > model.Deadline.Value)
+        {
+            ModelState.AddModelError(nameof(model.Deadline), "End date must be on or after the start date.");
+        }
+
         if (!ModelState.IsValid)
         {
             model.Id = id;
@@ -197,7 +226,9 @@ public class CampaignsController(UserManager<ApplicationUser> userManager, Appli
         campaign.Platform = model.Platform;
         campaign.Niche = model.Niche;
         campaign.Budget = model.Budget;
+        campaign.StartDate = model.StartDate.HasValue ? DateTime.SpecifyKind(model.StartDate.Value, DateTimeKind.Utc) : null;
         campaign.Deadline = model.Deadline.HasValue ? DateTime.SpecifyKind(model.Deadline.Value, DateTimeKind.Utc) : null;
+        campaign.ContentGuidelines = model.ContentGuidelines;
 
         if (model.RemoveMedia && campaign.MediaUrl is not null)
         {
@@ -227,6 +258,170 @@ public class CampaignsController(UserManager<ApplicationUser> userManager, Appli
         return RedirectToAction(campaign.Status == CampaignStatus.Draft ? "Preview" : "Detail", new { id = campaign.Id });
     }
 
+    // ---- Wizard Step 2: Milestones ----
+
+    public async Task<IActionResult> Milestones(int id)
+    {
+        var brand = await GetCurrentBrandAsync();
+        if (brand is null)
+        {
+            return RedirectToAction("Index", "Home");
+        }
+
+        var campaign = await db.Campaigns.FirstOrDefaultAsync(c => c.Id == id && c.BrandProfileId == brand.Id);
+        if (campaign is null)
+        {
+            return NotFound();
+        }
+
+        var plans = await db.CampaignMilestonePlans
+            .Where(p => p.CampaignId == id)
+            .OrderBy(p => p.SortOrder).ThenBy(p => p.Id)
+            .ToListAsync();
+
+        return View(new CampaignMilestonesViewModel { Campaign = campaign, Plans = plans });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> AddMilestonePlan(MilestonePlanFormViewModel model)
+    {
+        var brand = await GetCurrentBrandAsync();
+        if (brand is null)
+        {
+            return RedirectToAction("Index", "Home");
+        }
+
+        var campaign = await db.Campaigns.FirstOrDefaultAsync(c => c.Id == model.CampaignId && c.BrandProfileId == brand.Id);
+        if (campaign is null)
+        {
+            return NotFound();
+        }
+
+        var plans = await db.CampaignMilestonePlans.Where(p => p.CampaignId == campaign.Id).ToListAsync();
+
+        if (!ModelState.IsValid)
+        {
+            TempData["MilestoneError"] = string.Join(" ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage));
+            return RedirectToAction("Milestones", new { id = campaign.Id });
+        }
+
+        if (plans.Sum(p => p.Amount) + model.Amount > campaign.Budget)
+        {
+            TempData["MilestoneError"] = "This milestone would push your planned total over the campaign budget.";
+            return RedirectToAction("Milestones", new { id = campaign.Id });
+        }
+
+        db.CampaignMilestonePlans.Add(new CampaignMilestonePlan
+        {
+            CampaignId = campaign.Id,
+            Title = model.Title,
+            ContentType = model.ContentType,
+            Description = model.Description,
+            Amount = model.Amount,
+            DueDate = model.DueDate.HasValue ? DateTime.SpecifyKind(model.DueDate.Value, DateTimeKind.Utc) : null,
+            SortOrder = plans.Count
+        });
+        await db.SaveChangesAsync();
+
+        return RedirectToAction("Milestones", new { id = campaign.Id });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> RemoveMilestonePlan(int id, int campaignId)
+    {
+        var brand = await GetCurrentBrandAsync();
+        if (brand is null)
+        {
+            return RedirectToAction("Index", "Home");
+        }
+
+        var plan = await db.CampaignMilestonePlans
+            .FirstOrDefaultAsync(p => p.Id == id && p.CampaignId == campaignId && p.Campaign.BrandProfileId == brand.Id);
+
+        if (plan is not null)
+        {
+            db.CampaignMilestonePlans.Remove(plan);
+            await db.SaveChangesAsync();
+        }
+
+        return RedirectToAction("Milestones", new { id = campaignId });
+    }
+
+    // ---- Wizard Step 3: Targeting ----
+
+    public async Task<IActionResult> Targeting(int id)
+    {
+        var brand = await GetCurrentBrandAsync();
+        if (brand is null)
+        {
+            return RedirectToAction("Index", "Home");
+        }
+
+        var campaign = await db.Campaigns.FirstOrDefaultAsync(c => c.Id == id && c.BrandProfileId == brand.Id);
+        if (campaign is null)
+        {
+            return NotFound();
+        }
+
+        ViewData["Platform"] = campaign.Platform;
+        ViewData["MatchingCreatorCount"] = await CountMatchingCreatorsAsync(campaign);
+        ViewData["TotalCreatorCount"] = await db.InfluencerProfiles.CountAsync();
+
+        return View(new CampaignTargetingFormViewModel
+        {
+            CampaignId = campaign.Id,
+            TargetLocation = campaign.TargetLocation,
+            TargetFollowersMin = campaign.TargetFollowersMin,
+            TargetFollowersMax = campaign.TargetFollowersMax,
+            TargetEngagementRateMin = campaign.TargetEngagementRateMin,
+            TargetVerifiedOnly = campaign.TargetVerifiedOnly
+        });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Targeting(CampaignTargetingFormViewModel model)
+    {
+        var brand = await GetCurrentBrandAsync();
+        if (brand is null)
+        {
+            return RedirectToAction("Index", "Home");
+        }
+
+        var campaign = await db.Campaigns.FirstOrDefaultAsync(c => c.Id == model.CampaignId && c.BrandProfileId == brand.Id);
+        if (campaign is null)
+        {
+            return NotFound();
+        }
+
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
+
+        if (model.TargetFollowersMin.HasValue && model.TargetFollowersMax.HasValue
+            && model.TargetFollowersMin > model.TargetFollowersMax)
+        {
+            ModelState.AddModelError(nameof(model.TargetFollowersMax), "Maximum followers must be greater than the minimum.");
+            return View(model);
+        }
+
+        campaign.TargetLocation = string.IsNullOrWhiteSpace(model.TargetLocation) ? null : model.TargetLocation.Trim();
+        campaign.TargetFollowersMin = model.TargetFollowersMin;
+        campaign.TargetFollowersMax = model.TargetFollowersMax;
+        campaign.TargetEngagementRateMin = model.TargetEngagementRateMin;
+        campaign.TargetVerifiedOnly = model.TargetVerifiedOnly;
+        campaign.TargetingConfigured = true;
+
+        await db.SaveChangesAsync();
+
+        return RedirectToAction("Preview", new { id = campaign.Id });
+    }
+
+    // ---- Wizard Step 4: Review & Publish ----
+
     public async Task<IActionResult> Preview(int id)
     {
         var brand = await GetCurrentBrandAsync();
@@ -246,7 +441,55 @@ public class CampaignsController(UserManager<ApplicationUser> userManager, Appli
             return RedirectToAction("Detail", new { id });
         }
 
-        return View(campaign);
+        var plans = await db.CampaignMilestonePlans
+            .Where(p => p.CampaignId == id)
+            .OrderBy(p => p.SortOrder).ThenBy(p => p.Id)
+            .ToListAsync();
+
+        var vm = new CampaignReviewViewModel { Campaign = campaign, MilestonePlans = plans };
+
+        if (vm.HasTargeting)
+        {
+            vm.MatchingCreatorCount = await CountMatchingCreatorsAsync(campaign);
+        }
+
+        return View(vm);
+    }
+
+    // Real, database-derived count of creators currently matching a
+    // campaign's targeting rules — never a fabricated "estimated reach".
+    // Shared by the Targeting step (so the brand sees a live number while
+    // configuring it) and Review & Publish (the final summary).
+    private async Task<int> CountMatchingCreatorsAsync(Campaign campaign)
+    {
+        var matchQuery = db.InfluencerProfiles.AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(campaign.TargetLocation))
+        {
+            matchQuery = matchQuery.Where(i => i.Location != null && i.Location.Contains(campaign.TargetLocation));
+        }
+
+        if (campaign.TargetFollowersMin.HasValue)
+        {
+            matchQuery = matchQuery.Where(i => i.Followers >= campaign.TargetFollowersMin.Value);
+        }
+
+        if (campaign.TargetFollowersMax.HasValue)
+        {
+            matchQuery = matchQuery.Where(i => i.Followers <= campaign.TargetFollowersMax.Value);
+        }
+
+        if (campaign.TargetEngagementRateMin.HasValue)
+        {
+            matchQuery = matchQuery.Where(i => i.EngagementRate >= campaign.TargetEngagementRateMin.Value);
+        }
+
+        if (campaign.TargetVerifiedOnly)
+        {
+            matchQuery = matchQuery.Where(i => i.Verified);
+        }
+
+        return await matchQuery.CountAsync();
     }
 
     [HttpPost]
@@ -311,12 +554,29 @@ public class CampaignsController(UserManager<ApplicationUser> userManager, Appli
         var collaborationCount = await db.Collaborations.CountAsync(c => c.CampaignId == id);
         var conversationCount = await db.Conversations.CountAsync(c => c.CampaignId == id);
 
+        var milestonePlans = await db.CampaignMilestonePlans
+            .Where(p => p.CampaignId == id)
+            .OrderBy(p => p.SortOrder).ThenBy(p => p.Id)
+            .ToListAsync();
+
+        var campaignMilestones = await db.Milestones
+            .Where(m => m.Collaboration.CampaignId == id)
+            .ToListAsync();
+
+        var pendingPayments = await db.Payments
+            .Where(p => p.Collaboration.CampaignId == id && p.Status == PaymentStatus.Pending)
+            .SumAsync(p => p.Amount);
+
         return View(new CampaignDetailViewModel
         {
             Campaign = campaign,
             ApplicantCount = applicantCount,
             CollaborationCount = collaborationCount,
-            ConversationCount = conversationCount
+            ConversationCount = conversationCount,
+            MilestonePlans = milestonePlans,
+            TotalMilestoneCount = campaignMilestones.Count,
+            PaidMilestoneCount = campaignMilestones.Count(m => m.Status == MilestoneStatus.Paid),
+            PendingPaymentsAmount = pendingPayments
         });
     }
 }

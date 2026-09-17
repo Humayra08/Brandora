@@ -1,12 +1,13 @@
 using Brandora.Web.Data;
 using Brandora.Web.Models.Domain;
+using Brandora.Web.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace Brandora.Web.Controllers;
 
-public class NotificationsController(UserManager<ApplicationUser> userManager, ApplicationDbContext db) : BrandControllerBase(userManager, db)
+public class NotificationsController(UserManager<ApplicationUser> userManager, ApplicationDbContext db, NotificationService notificationService) : BrandControllerBase(userManager, db)
 {
     public async Task<IActionResult> Index()
     {
@@ -16,7 +17,11 @@ public class NotificationsController(UserManager<ApplicationUser> userManager, A
             return RedirectToAction("Index", "Home");
         }
 
-        var userId = userManager.GetUserId(User);
+        var userId = userManager.GetUserId(User)!;
+
+        // No background scheduler exists — check for newly-close campaign
+        // deadlines on every real Notifications visit too, not just Dashboard.
+        await notificationService.CheckCampaignDeadlinesAsync(brand.Id, userId);
 
         var notifications = await db.Notifications
             .Where(n => n.UserId == userId)

@@ -6,10 +6,12 @@ public class CampaignListViewModel
 {
     public List<Campaign> Campaigns { get; set; } = new();
     public Dictionary<int, int> ApplicantCounts { get; set; } = new();
+    public Dictionary<int, int> MilestoneCounts { get; set; } = new();
 
     public string? Search { get; set; }
     public CampaignStatus? Status { get; set; }
     public string? Platform { get; set; }
+    public string? Category { get; set; }
     public string? Sort { get; set; }
 
     public int DraftCount { get; set; }
@@ -19,4 +21,5 @@ public class CampaignListViewModel
     public int TotalCount { get; set; }
 
     public int ApplicantsFor(int campaignId) => ApplicantCounts.TryGetValue(campaignId, out var count) ? count : 0;
+    public int MilestonesFor(int campaignId) => MilestoneCounts.TryGetValue(campaignId, out var count) ? count : 0;
 }

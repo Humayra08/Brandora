@@ -1,13 +1,14 @@
 using Brandora.Web.Data;
 using Brandora.Web.Models.Dashboard;
 using Brandora.Web.Models.Domain;
+using Brandora.Web.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace Brandora.Web.Controllers;
 
-public class InfluencerCampaignsController(UserManager<ApplicationUser> userManager, ApplicationDbContext db) : InfluencerControllerBase(userManager, db)
+public class InfluencerCampaignsController(UserManager<ApplicationUser> userManager, ApplicationDbContext db, NotificationService notifications) : InfluencerControllerBase(userManager, db)
 {
     public async Task<IActionResult> Index(string? search, string? category, string? platform, string? budget, string? sort, string? tab, int page = 1)
     {
@@ -382,7 +383,7 @@ public class InfluencerCampaignsController(UserManager<ApplicationUser> userMana
             return RedirectToAction("Index", "Home");
         }
 
-        var campaign = await db.Campaigns.FirstOrDefaultAsync(c => c.Id == form.CampaignId);
+        var campaign = await db.Campaigns.Include(c => c.BrandProfile).FirstOrDefaultAsync(c => c.Id == form.CampaignId);
         if (campaign is null)
         {
             return NotFound();
@@ -401,7 +402,7 @@ public class InfluencerCampaignsController(UserManager<ApplicationUser> userMana
             var message = $"Why I'm a good fit: {form.WhyGoodFit}"
                 + (sampleLinks.Count > 0 ? "\n\nSample work:\n" + string.Join("\n", sampleLinks) : "");
 
-            db.Proposals.Add(new Proposal
+            var proposal = new Proposal
             {
                 CampaignId = form.CampaignId,
                 InfluencerProfileId = influencer.Id,
@@ -410,8 +411,16 @@ public class InfluencerCampaignsController(UserManager<ApplicationUser> userMana
                 Deliverables = form.Concept,
                 Message = message,
                 Status = ProposalStatus.Pending
-            });
+            };
+            db.Proposals.Add(proposal);
+            await db.SaveChangesAsync();
 
+            await notifications.NotifyAsync(
+                campaign.BrandProfile.UserId,
+                "Proposal",
+                "New proposal received",
+                $"{influencer.FullName} applied to \"{campaign.Title}\".",
+                $"/Proposals/Detail/{proposal.Id}");
             await db.SaveChangesAsync();
         }
 

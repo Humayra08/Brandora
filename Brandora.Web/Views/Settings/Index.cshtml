@@ -8,6 +8,7 @@
     var passwordErrors = (TempData["PasswordErrors"] as string)?.Split('|', StringSplitOptions.RemoveEmptyEntries) ?? Array.Empty<string>();
     var profileSaved = TempData["ProfileSaved"] as string == "true";
     var passwordChanged = TempData["PasswordChanged"] as string == "true";
+    var notificationPrefsSaved = TempData["NotificationPrefsSaved"] as string == "true";
 }
 
 @section Styles {
@@ -515,6 +516,170 @@
         transform: translateY(-2px);
     }
 
+    /* Notification preference toggles */
+
+    .pref-list {
+        margin-top: 18px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .pref-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+
+        padding: 14px 4px;
+        border-bottom: 1px solid #f0f1f7;
+    }
+
+    .pref-row:last-child {
+        border-bottom: none;
+    }
+
+    .pref-title {
+        font-family: 'Inter', sans-serif;
+        font-size: 13.5px;
+        font-weight: 600;
+        color: #171d3d;
+    }
+
+    .pref-desc {
+        margin-top: 3px;
+        font-family: 'Inter', sans-serif;
+        font-size: 12px;
+        color: #8189a8;
+        max-width: 440px;
+    }
+
+    .pref-toggle {
+        position: relative;
+        flex-shrink: 0;
+        display: inline-block;
+        width: 42px;
+        height: 24px;
+    }
+
+    .pref-toggle input {
+        position: absolute;
+        opacity: 0;
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        cursor: pointer;
+        z-index: 1;
+    }
+
+    .pref-toggle span {
+        position: absolute;
+        inset: 0;
+        border-radius: 999px;
+        background: #e2e5f2;
+        transition: .2s;
+    }
+
+    .pref-toggle span::before {
+        content: "";
+        position: absolute;
+        top: 3px;
+        left: 3px;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: #ffffff;
+        box-shadow: 0 1px 3px rgba(0,0,0,.2);
+        transition: .2s;
+    }
+
+    .pref-toggle input:checked + span {
+        background: linear-gradient(105deg, #a326ff, #236eff);
+    }
+
+    .pref-toggle input:checked + span::before {
+        transform: translateX(18px);
+    }
+
+    /* Billing */
+
+    .billing-grid {
+        margin-top: 18px;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+    }
+
+    .billing-figure {
+        padding: 16px;
+        border-radius: 12px;
+        border: 1px solid #eaecf5;
+        background: #fbfbfe;
+    }
+
+    .billing-value {
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 800;
+        font-size: 18px;
+        color: #171d3d;
+    }
+
+    .billing-label {
+        margin-top: 3px;
+        font-family: 'Inter', sans-serif;
+        font-size: 10.5px;
+        font-weight: 600;
+        letter-spacing: .3px;
+        text-transform: uppercase;
+        color: #9096b3;
+    }
+
+    .billing-note {
+        margin-top: 18px;
+        padding: 14px 16px;
+        border-radius: 12px;
+        background: linear-gradient(105deg, rgba(163,38,255,.06), rgba(24,169,255,.05));
+        border: 1px solid #e3d9ff;
+        font-family: 'Inter', sans-serif;
+        font-size: 12px;
+        color: #56617f;
+        line-height: 1.6;
+    }
+
+    /* Connected accounts */
+
+    .connected-list {
+        margin-top: 16px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .connected-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 4px;
+        border-bottom: 1px solid #f0f1f7;
+    }
+
+    .connected-row:last-child {
+        border-bottom: none;
+    }
+
+    .connected-row-name {
+        font-family: 'Inter', sans-serif;
+        font-size: 13.5px;
+        font-weight: 600;
+        color: #171d3d;
+    }
+
+    @@media(max-width: 700px) {
+        .billing-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    @@media(max-width: 560px) {
+        .pref-row { flex-wrap: wrap; }
+    }
+
     .ps-saved-note,
     .ps-error-note {
         display: flex;
@@ -575,10 +740,24 @@
     Back to Dashboard
 </a>
 
-<div class="page-head">
-    <h1 class="page-title">Settings</h1>
-    <p class="page-sub">Manage your brand profile and account security.</p>
-</div>
+<section class="page-hero">
+    @await Html.PartialAsync("_HeroWaves")
+    <div class="page-hero-intro">
+        <p class="page-hero-eyebrow">Profile Settings</p>
+        <h1 class="page-hero-title">Manage Your <span>Account</span></h1>
+        <p class="page-hero-sub">Manage your Brandora account, preferences, billing connections and communication settings.</p>
+    </div>
+
+    <div class="page-hero-art" aria-hidden="true">
+        <div class="hero-glass hero-glass-back"></div>
+        <div class="hero-glass hero-glass-front">
+            <span class="hero-glass-copy">Your<br />Brand<br />Your Control<span></span></span>
+        </div>
+        <span class="hero-sparkle"></span>
+    </div>
+
+    <div class="page-hero-motto">Stay in<br />Control.<span></span></div>
+</section>
 
 <div class="ps-grid">
 
@@ -601,25 +780,25 @@
                 <span class="ps-nav-title">Password &amp; Security</span>
             </a>
 
-            <a href="#" class="ps-nav-item">
+            <a href="#notifications" class="ps-nav-item" data-ps-nav>
                 <span class="ps-nav-icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9a6 6 0 1 1 12 0c0 4 1.5 5.5 1.5 5.5H4.5S6 13 6 9Z"/><path d="M10 18a2 2 0 0 0 4 0"/></svg>
                 </span>
                 <span class="ps-nav-title">Notification Settings</span>
             </a>
 
-            <a href="#" class="ps-nav-item">
+            <a href="#billing" class="ps-nav-item" data-ps-nav>
                 <span class="ps-nav-icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/></svg>
                 </span>
                 <span class="ps-nav-title">Billing &amp; Payments</span>
             </a>
 
-            <a href="#" class="ps-nav-item">
+            <a href="#connected-accounts" class="ps-nav-item" data-ps-nav>
                 <span class="ps-nav-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 19c0-3.3 2.9-5.8 6.5-5.8s6.5 2.5 6.5 5.8"/><path d="M16 8.2a3 3 0 1 1 3.5 5.9"/><path d="M17 13.6c2.6.5 4.5 2.4 4.5 5.4"/></svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M4.2 7.8l2.1 1.2M17.7 15l2.1 1.2M4.2 16.2l2.1-1.2M17.7 9l2.1-1.2"/></svg>
                 </span>
-                <span class="ps-nav-title">Team Members</span>
+                <span class="ps-nav-title">Connected Accounts</span>
             </a>
 
         </div>
@@ -630,7 +809,7 @@
                 <div class="ps-help-title">Need Help?</div>
             </div>
             <p class="ps-help-desc">If you need any assistance, our support team is here to help.</p>
-            <a href="#" class="ps-support-btn">
+            <a href="/contact" class="ps-support-btn">
                 Contact Support
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </a>
@@ -814,6 +993,157 @@
                     <button type="submit" class="ps-save-btn">Change Password</button>
                 </div>
             </form>
+        </div>
+
+        <div class="ps-card ps-panel" id="notifications">
+
+            <div class="ps-panel-head">
+                <div class="ps-panel-title">Notification Settings</div>
+                <div class="ps-panel-sub">Choose which updates you want to receive while keeping important campaign activity within reach.</div>
+            </div>
+
+            @if (notificationPrefsSaved)
+            {
+                <div class="ps-saved-note">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 12.5l2.5 2.5 5-5"/></svg>
+                    Notification preferences updated.
+                </div>
+            }
+
+            <form method="post" action="/Settings/UpdateNotificationPreferences">
+                @Html.AntiForgeryToken()
+
+                <div class="pref-list">
+                    <div class="pref-row">
+                        <div>
+                            <div class="pref-title">New Proposals</div>
+                            <div class="pref-desc">Receive notifications when a creator submits a proposal for your campaign.</div>
+                        </div>
+                        <label class="pref-toggle">
+                            <input type="checkbox" name="NewProposals" value="true" checked="@Model.NotificationPreferences.NewProposals" />
+                            <span></span>
+                        </label>
+                    </div>
+
+                    <div class="pref-row">
+                        <div>
+                            <div class="pref-title">Proposal &amp; Collaboration Updates</div>
+                            <div class="pref-desc">Stay informed when a proposal changes status or a collaboration begins.</div>
+                        </div>
+                        <label class="pref-toggle">
+                            <input type="checkbox" name="ProposalUpdates" value="true" checked="@Model.NotificationPreferences.ProposalUpdates" />
+                            <span></span>
+                        </label>
+                    </div>
+
+                    <div class="pref-row">
+                        <div>
+                            <div class="pref-title">Messages</div>
+                            <div class="pref-desc">Receive notifications when creators send you new messages.</div>
+                        </div>
+                        <label class="pref-toggle">
+                            <input type="checkbox" name="Messages" value="true" checked="@Model.NotificationPreferences.Messages" />
+                            <span></span>
+                        </label>
+                    </div>
+
+                    <div class="pref-row">
+                        <div>
+                            <div class="pref-title">Milestone Updates</div>
+                            <div class="pref-desc">Stay informed about milestone submissions and approvals.</div>
+                        </div>
+                        <label class="pref-toggle">
+                            <input type="checkbox" name="MilestoneUpdates" value="true" checked="@Model.NotificationPreferences.MilestoneUpdates" />
+                            <span></span>
+                        </label>
+                    </div>
+
+                    <div class="pref-row">
+                        <div>
+                            <div class="pref-title">Payment Updates</div>
+                            <div class="pref-desc">Receive updates about funding and payment activity.</div>
+                        </div>
+                        <label class="pref-toggle">
+                            <input type="checkbox" name="PaymentUpdates" value="true" checked="@Model.NotificationPreferences.PaymentUpdates" />
+                            <span></span>
+                        </label>
+                    </div>
+
+                    <div class="pref-row">
+                        <div>
+                            <div class="pref-title">Campaign Deadlines</div>
+                            <div class="pref-desc">Receive reminders about important campaign dates and upcoming deliverables.</div>
+                        </div>
+                        <label class="pref-toggle">
+                            <input type="checkbox" name="CampaignDeadlines" value="true" checked="@Model.NotificationPreferences.CampaignDeadlines" />
+                            <span></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="ps-actions">
+                    <button type="submit" class="ps-save-btn">Save Preferences</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="ps-card ps-panel" id="billing">
+
+            <div class="ps-panel-head">
+                <div class="ps-panel-title">Billing &amp; Payments</div>
+                <div class="ps-panel-sub">Manage your campaign funding information and keep track of payment activity associated with your Brand account.</div>
+            </div>
+
+            <div class="billing-grid">
+                <div class="billing-figure">
+                    <div class="billing-value">৳@Model.TotalFunded.ToString("N0")</div>
+                    <div class="billing-label">Total Funded</div>
+                </div>
+                <div class="billing-figure">
+                    <div class="billing-value">৳@Model.PendingPayments.ToString("N0")</div>
+                    <div class="billing-label">Pending Payments</div>
+                </div>
+                <div class="billing-figure">
+                    <div class="billing-value">৳@Model.ReleasedPayments.ToString("N0")</div>
+                    <div class="billing-label">Released Payments</div>
+                </div>
+                <div class="billing-figure">
+                    <div class="billing-value">৳@Model.CampaignSpend.ToString("N0")</div>
+                    <div class="billing-label">Campaign Spend</div>
+                </div>
+            </div>
+
+            <div class="billing-note">
+                This is real funding and payment activity from your campaigns' milestones — reflected the moment a payment is released or confirmed. A configured external payment gateway is not yet connected to this account, so releases and confirmations are recorded here directly rather than processed automatically.
+            </div>
+
+            <div class="ps-actions" style="margin-top: 18px;">
+                <a href="/Payments" class="btn btn-secondary">View Full Payment History</a>
+            </div>
+        </div>
+
+        <div class="ps-card ps-panel" id="connected-accounts">
+
+            <div class="ps-panel-head">
+                <div class="ps-panel-title">Connected Accounts</div>
+                <div class="ps-panel-sub">Connect the platforms and services you use to make campaign management and creator collaboration more seamless.</div>
+            </div>
+
+            <div class="connected-list">
+                @foreach (var platform in new[] { "Instagram", "TikTok", "YouTube", "Facebook" })
+                {
+                    <div class="connected-row">
+                        <div class="connected-row-name">@platform</div>
+                        <div class="connected-row-status">
+                            <span class="status-pill pending">Not Connected</span>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <div class="billing-note" style="margin-top: 16px;">
+                Platform connections require an external integration that isn't configured for this Brandora instance yet — nothing here is falsely marked as connected. Once integration credentials are available, connecting an account will let you cross-post campaign briefs and verify your own social presence to creators.
+            </div>
         </div>
 
     </div>

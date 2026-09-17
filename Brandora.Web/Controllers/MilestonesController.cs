@@ -62,6 +62,7 @@ public class MilestonesController(UserManager<ApplicationUser> userManager, Appl
         {
             CollaborationId = collaboration.Id,
             Title = model.Title,
+            ContentType = model.ContentType,
             Description = model.Description,
             Amount = model.Amount,
             DueDate = model.DueDate.HasValue ? DateTime.SpecifyKind(model.DueDate.Value, DateTimeKind.Utc) : null,
@@ -153,7 +154,7 @@ public class MilestonesController(UserManager<ApplicationUser> userManager, Appl
         milestone.ProofNotes = model.ProofNotes;
         milestone.Status = MilestoneStatus.Submitted;
 
-        notifications.Notify(
+        await notifications.NotifyAsync(
             userManager.GetUserId(User)!,
             "Milestone",
             "Submission logged",
@@ -189,12 +190,12 @@ public class MilestonesController(UserManager<ApplicationUser> userManager, Appl
         {
             milestone.Status = MilestoneStatus.Approved;
 
-            notifications.Notify(
-                userManager.GetUserId(User)!,
+            await notifications.NotifyAsync(
+                milestone.Collaboration.InfluencerProfile.UserId,
                 "Milestone",
                 "Milestone approved",
-                $"\"{milestone.Title}\" for {milestone.Collaboration.InfluencerProfile.FullName} is approved and ready for payment.",
-                $"/Milestones/Detail/{milestone.Id}");
+                $"\"{milestone.Title}\" for {milestone.Collaboration.Campaign.Title} is approved and ready for payment.",
+                "/InfluencerEarnings");
 
             await db.SaveChangesAsync();
         }

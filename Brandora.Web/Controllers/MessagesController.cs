@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Brandora.Web.Controllers;
 
-public class MessagesController(UserManager<ApplicationUser> userManager, ApplicationDbContext db, MediaUploadService mediaUploads) : BrandControllerBase(userManager, db)
+public class MessagesController(UserManager<ApplicationUser> userManager, ApplicationDbContext db, MediaUploadService mediaUploads, NotificationService notifications) : BrandControllerBase(userManager, db)
 {
     public async Task<IActionResult> Index(int? open, int? campaignId, string? search)
     {
@@ -105,7 +105,9 @@ public class MessagesController(UserManager<ApplicationUser> userManager, Applic
             return RedirectToAction("Index", "Home");
         }
 
-        var conversation = await db.Conversations.FirstOrDefaultAsync(c => c.Id == conversationId && c.BrandProfileId == brand.Id);
+        var conversation = await db.Conversations
+            .Include(c => c.InfluencerProfile)
+            .FirstOrDefaultAsync(c => c.Id == conversationId && c.BrandProfileId == brand.Id);
         if (conversation is null)
         {
             return NotFound();
@@ -128,18 +130,97 @@ public class MessagesController(UserManager<ApplicationUser> userManager, Applic
         }
 
         var trimmedBody = body?.Trim() ?? string.Empty;
+        var hasBody = !string.IsNullOrEmpty(trimmedBody);
+        var hasMedia = mediaUrl is not null;
 
-        if (!string.IsNullOrEmpty(trimmedBody) || mediaUrl is not null)
+        if (hasBody || hasMedia)
         {
-            db.Messages.Add(new Message
-            {
-                ConversationId = conversation.Id,
-                SenderUserId = userManager.GetUserId(User)!,
-                Body = trimmedBody,
-                MediaUrl = mediaUrl,
-                MediaType = mediaType
-            });
+            var senderId = userManager.GetUserId(User)!;
 
+            // Sent as two separate messages when both an attachment and a
+            // caption are submitted together, so the attachment always
+            // renders in its own bubble rather than a mixed image+text one.
+            if (hasMedia)
+            {
+                db.Messages.Add(new Message
+                {
+                    ConversationId = conversation.Id,
+                    SenderUserId = senderId,
+                    MediaUrl = mediaUrl,
+                    MediaType = mediaType
+                });
+            }
+
+            if (hasBody)
+            {
+                db.Messages.Add(new Message
+                {
+                    ConversationId = conversation.Id,
+                    SenderUserId = senderId,
+                    Body = trimmedBody
+                });
+            }
+
+            await db.SaveChangesAsync();
+
+            await notifications.NotifyAsync(
+                conversation.InfluencerProfile.UserId,
+                "Message",
+                "New message",
+                $"You have a new message from {brand.CompanyName}.",
+                $"/InfluencerMessages?open={conversation.Id}");
+            await db.SaveChangesAsync();
+        }
+
+        return RedirectToAction("Index", new { open = conversationId });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> EditMessage(int messageId, int conversationId, string? body)
+    {
+        var brand = await GetCurrentBrandAsync();
+        if (brand is null)
+        {
+            return RedirectToAction("Index", "Home");
+        }
+
+        var userId = userManager.GetUserId(User);
+        var message = await db.Messages
+            .Include(m => m.Conversation)
+            .FirstOrDefaultAsync(m => m.Id == messageId && m.Conversation.BrandProfileId == brand.Id);
+
+        if (message is not null && message.SenderUserId == userId && string.IsNullOrEmpty(message.MediaUrl))
+        {
+            var trimmed = body?.Trim() ?? string.Empty;
+            if (!string.IsNullOrEmpty(trimmed))
+            {
+                message.Body = trimmed;
+                await db.SaveChangesAsync();
+            }
+        }
+
+        return RedirectToAction("Index", new { open = conversationId });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteMessage(int messageId, int conversationId)
+    {
+        var brand = await GetCurrentBrandAsync();
+        if (brand is null)
+        {
+            return RedirectToAction("Index", "Home");
+        }
+
+        var userId = userManager.GetUserId(User);
+        var message = await db.Messages
+            .Include(m => m.Conversation)
+            .FirstOrDefaultAsync(m => m.Id == messageId && m.Conversation.BrandProfileId == brand.Id);
+
+        if (message is not null && message.SenderUserId == userId)
+        {
+            db.Messages.Remove(message);
             await db.SaveChangesAsync();
         }
 

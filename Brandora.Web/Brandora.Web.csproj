@@ -5,6 +5,16 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>aspnet-Brandora.Web-5a51779d-a8cf-4361-9cb8-2cea108c3cd5</UserSecretsId>
+    <!--
+      CS9107: every controller here follows Controller(deps) : BaseController(deps) —
+      a primary-constructor parameter (db/userManager) is forwarded to the base class
+      *and* used directly in the derived controller's own actions. The base class's
+      captured field is private, so the derived class must hold its own reference to
+      use it — the "duplicate capture" this warns about is structural, not a bug, and
+      both references point to the same scoped instance. Suppressed project-wide
+      rather than restructuring ~20 already-verified controllers for a cosmetic warning.
+    -->
+    <NoWarn>$(NoWarn);CS9107</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
