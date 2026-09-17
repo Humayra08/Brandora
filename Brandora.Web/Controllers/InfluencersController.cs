@@ -10,7 +10,7 @@ namespace Brandora.Web.Controllers;
 
 public class InfluencersController(UserManager<ApplicationUser> userManager, ApplicationDbContext db) : BrandControllerBase(userManager, db)
 {
-    public async Task<IActionResult> Index(string? search, string? niche, string? platform, string? sort)
+    public async Task<IActionResult> Index(string? search, string? niche, string? platform, string? sort, int? campaignId)
     {
         var brand = await GetCurrentBrandAsync();
         if (brand is null)
@@ -49,6 +49,8 @@ public class InfluencersController(UserManager<ApplicationUser> userManager, App
             .Select(s => s.InfluencerProfileId)
             .ToListAsync();
 
+        var allCreators = await db.InfluencerProfiles.AsNoTracking().ToListAsync();
+
         var vm = new CreatorListViewModel
         {
             Creators = creators,
@@ -57,8 +59,25 @@ public class InfluencersController(UserManager<ApplicationUser> userManager, App
             Niche = niche,
             Platform = platform,
             Sort = sort,
-            TotalCount = await db.InfluencerProfiles.CountAsync()
+            TotalCount = allCreators.Count,
+            AvgEngagementRate = allCreators.Count > 0 ? Math.Round(allCreators.Average(c => c.EngagementRate), 1) : 0,
+            PlatformCount = allCreators.Select(c => c.PrimaryPlatform).Where(p => !string.IsNullOrEmpty(p)).Distinct().Count(),
+            AvailableCampaigns = await db.Campaigns
+                .Where(c => c.BrandProfileId == brand.Id && c.Status != CampaignStatus.Cancelled)
+                .OrderByDescending(c => c.CreatedAt)
+                .ToListAsync()
         };
+
+        if (campaignId.HasValue)
+        {
+            vm.SelectedCampaign = await db.Campaigns.FirstOrDefaultAsync(c => c.Id == campaignId.Value && c.BrandProfileId == brand.Id);
+            if (vm.SelectedCampaign is not null)
+            {
+                vm.FitByCreatorId = creators.ToDictionary(
+                    c => c.Id,
+                    c => SmartMatchScorer.ComputeMatch(c, vm.SelectedCampaign));
+            }
+        }
 
         return View(vm);
     }

@@ -112,8 +112,8 @@ public class AdminDisputesController(ApplicationDbContext db, UserManager<Applic
         dispute.ResolutionNotes = notes;
         dispute.ResolvedAt = DateTime.UtcNow;
 
-        notifications.Notify(dispute.InfluencerProfile.UserId, "Dispute", "Dispute resolved", $"Your dispute was resolved: {outcome}.", $"/Admin/AdminDisputes/Details/{dispute.Id}");
-        notifications.Notify(dispute.BrandProfile.UserId, "Dispute", "Dispute resolved", $"The dispute was resolved: {outcome}.", $"/Admin/AdminDisputes/Details/{dispute.Id}");
+        await notifications.NotifyAsync(dispute.InfluencerProfile.UserId, "Dispute", "Dispute resolved", $"Your dispute was resolved: {outcome}.", $"/Admin/AdminDisputes/Details/{dispute.Id}");
+        await notifications.NotifyAsync(dispute.BrandProfile.UserId, "Dispute", "Dispute resolved", $"The dispute was resolved: {outcome}.", $"/Admin/AdminDisputes/Details/{dispute.Id}");
 
         await db.SaveChangesAsync();
 

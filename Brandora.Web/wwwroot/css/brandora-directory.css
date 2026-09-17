@@ -464,6 +464,19 @@ button {
     color: var(--dir-muted);
 }
 
+/* Shown inside a card grid when there are no approved profiles to list. */
+.directory-empty {
+    grid-column: 1 / -1;
+
+    padding: 48px 16px;
+
+    text-align: center;
+
+    font-size: 14px;
+
+    color: var(--dir-muted);
+}
+
 .directory-sort {
     display: flex;
     align-items: center;

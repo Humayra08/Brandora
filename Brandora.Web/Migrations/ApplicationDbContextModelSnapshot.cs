@@ -195,6 +195,9 @@ namespace Brandora.Web.Migrations
                         .HasPrecision(12, 2)
                         .HasColumnType("numeric(12,2)");
 
+                    b.Property<string>("ContentGuidelines")
+                        .HasColumnType("text");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -221,8 +224,30 @@ namespace Brandora.Web.Migrations
                         .HasPrecision(12, 2)
                         .HasColumnType("numeric(12,2)");
 
+                    b.Property<DateTime?>("StartDate")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<int>("Status")
                         .HasColumnType("integer");
+
+                    b.Property<decimal?>("TargetEngagementRateMin")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)");
+
+                    b.Property<int?>("TargetFollowersMax")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("TargetFollowersMin")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("TargetLocation")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("TargetVerifiedOnly")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("TargetingConfigured")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -233,6 +258,47 @@ namespace Brandora.Web.Migrations
                     b.HasIndex("BrandProfileId");
 
                     b.ToTable("Campaigns");
+                });
+
+            modelBuilder.Entity("Brandora.Web.Models.Domain.CampaignMilestonePlan", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)");
+
+                    b.Property<int>("CampaignId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ContentType")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("DueDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CampaignId");
+
+                    b.ToTable("CampaignMilestonePlans");
                 });
 
             modelBuilder.Entity("Brandora.Web.Models.Domain.Collaboration", b =>
@@ -517,6 +583,9 @@ namespace Brandora.Web.Migrations
                     b.Property<int>("CollaborationId")
                         .HasColumnType("integer");
 
+                    b.Property<string>("ContentType")
+                        .HasColumnType("text");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -584,6 +653,44 @@ namespace Brandora.Web.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("Notifications");
+                });
+
+            modelBuilder.Entity("Brandora.Web.Models.Domain.NotificationPreference", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("CampaignDeadlines")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("Messages")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("MilestoneUpdates")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("NewProposals")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("PaymentUpdates")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("ProposalUpdates")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("NotificationPreferences");
                 });
 
             modelBuilder.Entity("Brandora.Web.Models.Domain.PasswordResetCode", b =>
@@ -966,6 +1073,17 @@ namespace Brandora.Web.Migrations
                     b.Navigation("BrandProfile");
                 });
 
+            modelBuilder.Entity("Brandora.Web.Models.Domain.CampaignMilestonePlan", b =>
+                {
+                    b.HasOne("Brandora.Web.Models.Domain.Campaign", "Campaign")
+                        .WithMany("MilestonePlans")
+                        .HasForeignKey("CampaignId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Campaign");
+                });
+
             modelBuilder.Entity("Brandora.Web.Models.Domain.Collaboration", b =>
                 {
                     b.HasOne("Brandora.Web.Models.Domain.Campaign", "Campaign")
@@ -1106,6 +1224,17 @@ namespace Brandora.Web.Migrations
                 });
 
             modelBuilder.Entity("Brandora.Web.Models.Domain.Notification", b =>
+                {
+                    b.HasOne("Brandora.Web.Models.Domain.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Brandora.Web.Models.Domain.NotificationPreference", b =>
                 {
                     b.HasOne("Brandora.Web.Models.Domain.ApplicationUser", "User")
                         .WithMany()
@@ -1275,6 +1404,8 @@ namespace Brandora.Web.Migrations
             modelBuilder.Entity("Brandora.Web.Models.Domain.Campaign", b =>
                 {
                     b.Navigation("Conversations");
+
+                    b.Navigation("MilestonePlans");
 
                     b.Navigation("Proposals");
                 });

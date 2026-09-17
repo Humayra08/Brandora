@@ -16,13 +16,30 @@ public class Campaign
 
     public string? Platform { get; set; }
     public string? Niche { get; set; }
+    public DateTime? StartDate { get; set; }
     public DateTime? Deadline { get; set; }
+    public string? ContentGuidelines { get; set; }
 
     public string? MediaUrl { get; set; }
     public string? MediaType { get; set; }
+
+    // Targeting & audience (campaign wizard Step 3). Each field maps to a
+    // real InfluencerProfile attribute so a "fit" evaluation is always a
+    // transparent, database-derived comparison — never a fabricated score.
+    public string? TargetLocation { get; set; }
+    public int? TargetFollowersMin { get; set; }
+    public int? TargetFollowersMax { get; set; }
+    public decimal? TargetEngagementRateMin { get; set; }
+    public bool TargetVerifiedOnly { get; set; }
+
+    // Set once the wizard's Targeting step (Step 3) has been saved at least
+    // once, so Review & Publish (Step 4) can tell "no targeting rules" apart
+    // from "targeting step not reached yet".
+    public bool TargetingConfigured { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public ICollection<Proposal> Proposals { get; set; } = new List<Proposal>();
     public ICollection<Conversation> Conversations { get; set; } = new List<Conversation>();
+    public ICollection<CampaignMilestonePlan> MilestonePlans { get; set; } = new List<CampaignMilestonePlan>();
 }

@@ -10,6 +10,9 @@ public class MilestoneFormViewModel
     [StringLength(150)]
     public string Title { get; set; } = string.Empty;
 
+    [StringLength(60)]
+    public string? ContentType { get; set; }
+
     [StringLength(1000)]
     public string? Description { get; set; }
 

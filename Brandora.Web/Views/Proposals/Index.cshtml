@@ -138,14 +138,31 @@
     Back to Dashboard
 </a>
 
-<div class="page-head">
-    @if (Model.Campaign is not null)
-    {
-        <div class="detail-crumb"><a href="/Campaigns/Detail/@Model.Campaign.Id">@Model.Campaign.Title</a> / Proposals</div>
-    }
-    <h1 class="page-title">@(Model.Campaign is not null ? $"Proposals for {Model.Campaign.Title}" : "All Proposals")</h1>
-    <p class="page-sub">@Model.Proposals.Count proposal@(Model.Proposals.Count == 1 ? "" : "s").</p>
-</div>
+<section class="page-hero">
+    @await Html.PartialAsync("_HeroWaves")
+    <div class="page-hero-intro">
+        @if (Model.Campaign is not null)
+        {
+            <div class="detail-crumb"><a href="/Campaigns/Detail/@Model.Campaign.Id">@Model.Campaign.Title</a> / Proposals</div>
+        }
+        else
+        {
+            <p class="page-hero-eyebrow">Proposals</p>
+        }
+        <h1 class="page-hero-title">@if (Model.Campaign is not null) { <text>Proposals for @Model.Campaign.Title</text> } else { <text>My <span>Proposals</span></text> }</h1>
+        <p class="page-hero-sub">Review creator proposals, compare collaboration details and keep every campaign conversation moving forward.</p>
+    </div>
+
+    <div class="page-hero-art" aria-hidden="true">
+        <div class="hero-glass hero-glass-back"></div>
+        <div class="hero-glass hero-glass-front">
+            <span class="hero-glass-copy">Ideas<br />Collaborations<br />Real Impact<span></span></span>
+        </div>
+        <span class="hero-sparkle"></span>
+    </div>
+
+    <div class="page-hero-motto">Consistent Effort<br />Creates Greater<br />Opportunities.<span></span></div>
+</section>
 
 <div class="filter-bar">
     <a href="/Proposals@(Model.CampaignId.HasValue ? $"?campaignId={Model.CampaignId}" : "")" class="status-tab @(Model.Status == null ? "is-active" : "")">All</a>

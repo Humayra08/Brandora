@@ -172,6 +172,13 @@
 
             <div class="brand-grid">
 
+                @if (!Model.Brands.Any())
+                {
+                    <p class="directory-empty">
+                        No verified brands to show yet. Check back soon.
+                    </p>
+                }
+
                 @foreach (var brand in Model.Brands)
                 {
                     <article class="brand-card">
@@ -201,13 +208,19 @@
                                 @brand.Industry
                             </p>
 
-                            <p class="brand-card-location">
-                                @brand.Location
-                            </p>
+                            @if (!string.IsNullOrWhiteSpace(brand.Location))
+                            {
+                                <p class="brand-card-location">
+                                    @brand.Location
+                                </p>
+                            }
 
-                            <p class="brand-card-description">
-                                @brand.Description
-                            </p>
+                            @if (!string.IsNullOrWhiteSpace(brand.Description))
+                            {
+                                <p class="brand-card-description">
+                                    @brand.Description
+                                </p>
+                            }
 
                         </div>
 

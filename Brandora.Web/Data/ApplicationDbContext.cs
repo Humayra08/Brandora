@@ -23,6 +23,8 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<AdminAuditLog> AdminAuditLogs => Set<AdminAuditLog>();
     public DbSet<EmailVerificationCode> EmailVerificationCodes => Set<EmailVerificationCode>();
     public DbSet<PasswordResetCode> PasswordResetCodes => Set<PasswordResetCode>();
+    public DbSet<CampaignMilestonePlan> CampaignMilestonePlans => Set<CampaignMilestonePlan>();
+    public DbSet<NotificationPreference> NotificationPreferences => Set<NotificationPreference>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -67,10 +69,21 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         {
             entity.Property(e => e.Budget).HasPrecision(12, 2);
             entity.Property(e => e.SpentAmount).HasPrecision(12, 2);
+            entity.Property(e => e.TargetEngagementRateMin).HasPrecision(5, 2);
 
             entity.HasOne(e => e.BrandProfile)
                 .WithMany(b => b.Campaigns)
                 .HasForeignKey(e => e.BrandProfileId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<CampaignMilestonePlan>(entity =>
+        {
+            entity.Property(e => e.Amount).HasPrecision(12, 2);
+
+            entity.HasOne(e => e.Campaign)
+                .WithMany(c => c.MilestonePlans)
+                .HasForeignKey(e => e.CampaignId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
@@ -225,6 +238,16 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 
         builder.Entity<PasswordResetCode>(entity =>
         {
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<NotificationPreference>(entity =>
+        {
+            entity.HasIndex(e => e.UserId).IsUnique();
+
             entity.HasOne(e => e.User)
                 .WithMany()
                 .HasForeignKey(e => e.UserId)

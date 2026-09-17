@@ -1,0 +1,256 @@
+@model Brandora.Web.Models.Campaigns.CampaignTargetingFormViewModel
+@{
+    ViewData["Title"] = "Targeting & Audience";
+    ViewData["ActiveNav"] = "Campaigns";
+    Layout = "_AppLayout";
+    var matchingCount = ViewData["MatchingCreatorCount"] as int? ?? 0;
+    var totalCreators = ViewData["TotalCreatorCount"] as int? ?? 0;
+    var platform = ViewData["Platform"] as string;
+}
+
+@section Styles {
+
+    .wizard-shell { max-width: 1100px; margin: 0 auto; animation: fade-up .4s ease both; }
+
+    /* Hero — shared .page-hero component (see _AppLayout.cshtml). */
+
+    .wizard-stepper { margin-top: 18px; padding: 18px 26px; display: flex; align-items: flex-start; border-radius: 16px; background: #ffffff; border: 1px solid #eaecf5; }
+    .wizard-step { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+    .wizard-step-circle { width: 32px; height: 32px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: #eef0f8; color: #9096b3; font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 700; transition: .2s; }
+    .wizard-step.is-done .wizard-step-circle { background: linear-gradient(105deg, #a326ff, #236eff, #18a9ff); color: #ffffff; }
+    .wizard-step.is-current .wizard-step-circle { background: #ffffff; border: 2px solid #a326ff; color: #a326ff; box-shadow: 0 0 0 4px rgba(163,38,255,.12); }
+    .wizard-step-text { display: flex; flex-direction: column; }
+    .wizard-step-text strong { font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 700; color: #9096b3; }
+    .wizard-step.is-done .wizard-step-text strong, .wizard-step.is-current .wizard-step-text strong { color: #171d3d; }
+    .wizard-step-text span { margin-top: 1px; font-family: 'Inter', sans-serif; font-size: 10.5px; color: #9096b3; }
+    .wizard-step-line { flex: 1; height: 2px; margin: 15px 14px 0; background: #e8eaf5; }
+    .wizard-step-line.is-done { background: linear-gradient(90deg, #a326ff, #236eff); }
+
+    .wizard-columns { margin-top: 22px; display: grid; grid-template-columns: 1fr 320px; gap: 22px; align-items: start; }
+    .wizard-side { display: flex; flex-direction: column; gap: 18px; position: sticky; top: 20px; }
+    .wizard-side-card { padding: 22px; border-radius: 16px; background: #ffffff; border: 1px solid #eaecf5; }
+    .wizard-side-title { font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 14px; color: #171d3d; display: flex; align-items: center; justify-content: space-between; }
+    .wizard-side-title a { font-size: 11.5px; font-weight: 600; color: #7a2df3; text-decoration: none; }
+    .wizard-side-sub { margin-top: 3px; font-family: 'Inter', sans-serif; font-size: 11.5px; color: #9096b3; }
+
+    .reach-donut-wrap { margin-top: 18px; display: flex; justify-content: center; }
+    .reach-donut {
+        position: relative; width: 128px; height: 128px; border-radius: 50%;
+        background: conic-gradient(#a326ff 0deg 130deg, #236eff 130deg 220deg, #18a9ff 220deg 280deg, #eef0f8 280deg 360deg);
+        display: flex; align-items: center; justify-content: center;
+    }
+    .reach-donut::before { content: ""; position: absolute; inset: 14px; border-radius: 50%; background: #fff; }
+    .reach-donut-value { position: relative; z-index: 1; text-align: center; font-family: 'DM Sans', sans-serif; font-weight: 800; font-size: 16px; color: #171d3d; }
+    .reach-donut-value small { display: block; margin-top: 2px; font-family: 'Inter', sans-serif; font-weight: 600; font-size: 9px; letter-spacing: .04em; text-transform: uppercase; color: #9096b3; }
+
+    .reach-legend { margin-top: 16px; display: flex; flex-direction: column; gap: 8px; }
+    .reach-legend-row { display: flex; align-items: center; gap: 8px; font-family: 'Inter', sans-serif; font-size: 12px; color: #3c4363; }
+    .reach-legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .reach-legend-row span:last-child { margin-left: auto; font-weight: 600; color: #171d3d; }
+    .reach-note { margin-top: 14px; padding-top: 12px; border-top: 1px solid #f0f1f7; font-family: 'Inter', sans-serif; font-size: 11px; color: #9096b3; line-height: 1.5; }
+
+    .summary-row { display: flex; align-items: flex-start; gap: 8px; padding: 8px 0; font-family: 'Inter', sans-serif; font-size: 12px; color: #3c4363; border-bottom: 1px solid #f4f5fa; }
+    .summary-row:last-child { border-bottom: none; }
+    .summary-row-icon { width: 16px; flex-shrink: 0; color: #9096b3; margin-top: 1px; }
+    .summary-row span:last-child { margin-left: auto; font-weight: 600; color: #171d3d; text-align: right; }
+
+    .tip-card { padding: 14px 16px; border-radius: 12px; background: linear-gradient(105deg, rgba(163,38,255,.06), rgba(24,169,255,.05)); border: 1px solid #e3d9ff; font-family: 'Inter', sans-serif; font-size: 12px; color: #56617f; line-height: 1.6; }
+
+    .main-panel { padding: 26px 28px; border-radius: 18px; background: #ffffff; border: 1px solid #eaecf5; }
+    .main-panel-title { font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 18px; color: #171d3d; }
+    .main-panel-sub { margin-top: 4px; font-family: 'Inter', sans-serif; font-size: 12.5px; color: #8189a8; }
+
+    .form-fields { margin-top: 22px; display: grid; grid-template-columns: 1fr 1fr; gap: 18px 16px; }
+    .form-fields.triple { grid-template-columns: 1fr 1fr 1fr; }
+    .form-field { display: flex; flex-direction: column; gap: 7px; }
+    .form-field.span-2 { grid-column: span 2; }
+    .form-field.span-3 { grid-column: span 3; }
+    .form-field label { font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 600; color: #2a3157; }
+    .form-field input { padding: 12px 14px; border-radius: 10px; border: 1px solid #e2e5f2; background: #fbfbfe; font-family: 'Inter', sans-serif; font-size: 13.5px; color: #171d3d; outline: none; transition: .2s; }
+    .form-field input:focus { border-color: #a978ff; background: #fff; box-shadow: 0 0 0 4px rgba(155,44,255,.1); }
+
+    .platform-chip-group { margin-top: 22px; }
+    .platform-chip-group > label { font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 600; color: #2a3157; }
+    .platform-chips { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 10px; }
+    .platform-chip {
+        display: flex; align-items: center; gap: 8px; padding: 10px 16px;
+        border: 1.5px solid #e2e5f2; border-radius: 12px; background: #fbfbfe; cursor: pointer;
+        font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; color: #56617f;
+        transition: .2s;
+    }
+    .platform-chip input { accent-color: #9b2cff; }
+    .platform-chip:has(input:checked) { border-color: #a326ff; background: rgba(163,38,255,.06); color: #7a2df3; }
+
+    .check-row { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 12px; border: 1px solid #e2e5f2; background: #fbfbfe; }
+    .check-row input[type="checkbox"] { width: 18px; height: 18px; accent-color: #9b2cff; }
+    .check-row label { font-family: 'Inter', sans-serif; font-size: 13px; color: #2a3157; }
+
+    .form-actions { margin-top: 24px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .form-errors { margin-top: 18px; padding: 12px 16px; border-radius: 12px; background: #fdeef0; border: 1px solid #f4c6cd; font-family: 'Inter', sans-serif; font-size: 13px; color: #b3273f; }
+    .form-errors ul { margin: 0; padding-left: 18px; }
+
+    @@media(max-width: 960px) { .wizard-columns { grid-template-columns: 1fr; } .wizard-side { position: static; } }
+    @@media(max-width: 700px) { .wizard-stepper { flex-wrap: wrap; gap: 12px 0; } .wizard-step-line { display: none; } .wizard-step-text span { display: none; } }
+    @@media(max-width: 600px) { .form-fields, .form-fields.triple { grid-template-columns: 1fr; } .form-field.span-2, .form-field.span-3 { grid-column: span 1; } .main-panel { padding: 20px 18px; } }
+
+}
+
+<div class="wizard-shell">
+
+    <section class="page-hero">
+        @await Html.PartialAsync("_HeroWaves")
+        <div class="page-hero-intro">
+            <p class="page-hero-eyebrow">Create Campaign</p>
+            <h1 class="page-hero-title">Find the <span>Right Creators</span></h1>
+            <p class="page-hero-sub">Set your targeting preferences to reach the most relevant influencers for your campaign.</p>
+        </div>
+
+        <div class="page-hero-art" aria-hidden="true">
+            <div class="hero-glass hero-glass-back"></div>
+            <div class="hero-glass hero-glass-front">
+                <span class="hero-glass-copy">Right<br />Creators<br />Bigger Impact<span></span></span>
+            </div>
+            <span class="hero-sparkle"></span>
+        </div>
+
+        <div class="page-hero-motto">Real People.<br />Real Results.<span></span></div>
+    </section>
+
+    <div class="wizard-stepper">
+        <div class="wizard-step is-done"><div class="wizard-step-circle">✓</div><div class="wizard-step-text"><strong>Campaign Details</strong><span>Basic information</span></div></div>
+        <div class="wizard-step-line is-done"></div>
+        <div class="wizard-step is-done"><div class="wizard-step-circle">✓</div><div class="wizard-step-text"><strong>Milestones</strong><span>Set deliverables</span></div></div>
+        <div class="wizard-step-line is-done"></div>
+        <div class="wizard-step is-current"><div class="wizard-step-circle">3</div><div class="wizard-step-text"><strong>Targeting</strong><span>Find the right creators</span></div></div>
+        <div class="wizard-step-line"></div>
+        <div class="wizard-step"><div class="wizard-step-circle">4</div><div class="wizard-step-text"><strong>Review &amp; Publish</strong><span>Final check</span></div></div>
+    </div>
+
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div class="form-errors">
+            <ul>
+                @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                {
+                    <li>@error.ErrorMessage</li>
+                }
+            </ul>
+        </div>
+    }
+
+    <form method="post" action="/Campaigns/Targeting" id="targetingForm">
+
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="CampaignId" value="@Model.CampaignId" />
+
+        <div class="wizard-columns">
+
+            <div class="main-panel">
+                <div class="main-panel-title">Targeting &amp; Audience</div>
+                <p class="main-panel-sub">Define who you want to work with. These preferences help surface the best-matching influencers — optional, but recommended.</p>
+
+                <div class="platform-chip-group">
+                    <label>Target Platform</label>
+                    <div class="platform-chips">
+                        <span class="platform-chip" style="cursor: default; border-color: #a326ff; background: rgba(163,38,255,.06); color: #7a2df3;">@(platform ?? "Any platform")</span>
+                    </div>
+                    <p style="margin-top:6px; font-family:'Inter',sans-serif; font-size: 11px; color:#9096b3;">Set from your campaign's platform in Step 1. <a href="/Campaigns/Edit/@Model.CampaignId" style="color:#7a2df3;">Change it there</a>.</p>
+                </div>
+
+                <div class="form-fields" style="margin-top: 22px;">
+                    <div class="form-field span-2">
+                        <label for="TargetLocation">Audience Location (optional)</label>
+                        <input type="text" id="TargetLocation" name="TargetLocation" placeholder="e.g. Dhaka, Bangladesh" value="@Model.TargetLocation" />
+                    </div>
+
+                    <div class="form-field">
+                        <label for="TargetFollowersMin">Minimum Followers</label>
+                        <input type="number" id="TargetFollowersMin" name="TargetFollowersMin" min="1" placeholder="10,000" value="@Model.TargetFollowersMin" />
+                    </div>
+
+                    <div class="form-field">
+                        <label for="TargetFollowersMax">Maximum Followers</label>
+                        <input type="number" id="TargetFollowersMax" name="TargetFollowersMax" min="1" placeholder="500,000" value="@Model.TargetFollowersMax" />
+                    </div>
+
+                    <div class="form-field span-2">
+                        <label for="TargetEngagementRateMin">Minimum Engagement Rate (%)</label>
+                        <input type="number" id="TargetEngagementRateMin" name="TargetEngagementRateMin" min="0.1" max="100" step="0.1" placeholder="3.0" value="@Model.TargetEngagementRateMin" />
+                    </div>
+                </div>
+
+                <div style="margin-top: 18px;">
+                    <div class="check-row">
+                        <input type="checkbox" id="TargetVerifiedOnly" name="TargetVerifiedOnly" value="true" checked="@Model.TargetVerifiedOnly" />
+                        <label for="TargetVerifiedOnly">Verified accounts only</label>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <a href="/Campaigns/Milestones/@Model.CampaignId" class="btn btn-ghost">← Back</a>
+                    <button type="submit" class="btn btn-primary">Next: Review &amp; Publish →</button>
+                </div>
+            </div>
+
+            <aside class="wizard-side">
+
+                <div class="wizard-side-card">
+                    <div class="wizard-side-title">Estimated Reach</div>
+                    <div class="wizard-side-sub">Creators in Brandora matching these criteria right now.</div>
+
+                    <div class="reach-donut-wrap">
+                        <div class="reach-donut" style="background: conic-gradient(#a326ff 0deg @(totalCreators > 0 ? (matchingCount * 360.0 / totalCreators) : 0)deg, #eef0f8 @(totalCreators > 0 ? (matchingCount * 360.0 / totalCreators) : 0)deg 360deg);">
+                            <div class="reach-donut-value">@matchingCount<small>of @totalCreators Creators</small></div>
+                        </div>
+                    </div>
+
+                    <p class="reach-note">A live count from Brandora's own creator database based on your currently saved criteria — never an estimate. Save below to refresh it after changing a field.</p>
+                </div>
+
+                <div class="wizard-side-card">
+                    <div class="wizard-side-title">Targeting Summary</div>
+                    <div style="margin-top: 10px;">
+                        <div class="summary-row"><span class="summary-row-icon">◎</span><span>Location</span><span id="sumLocation">Any</span></div>
+                        <div class="summary-row"><span class="summary-row-icon">☰</span><span>Followers</span><span id="sumFollowers">Any</span></div>
+                        <div class="summary-row"><span class="summary-row-icon">◇</span><span>Engagement</span><span id="sumEngagement">Any</span></div>
+                        <div class="summary-row"><span class="summary-row-icon">✓</span><span>Verification</span><span id="sumVerified">Any</span></div>
+                    </div>
+                </div>
+
+                <div class="tip-card">
+                    <strong>Tip:</strong> A well-defined audience helps you get higher quality applications and better results — but every creator can still apply regardless of these preferences.
+                </div>
+
+            </aside>
+
+        </div>
+
+    </form>
+
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            function fmt(n) { return n ? Number(n).toLocaleString('en-US') : null; }
+
+            var loc = document.getElementById('TargetLocation');
+            var fMin = document.getElementById('TargetFollowersMin');
+            var fMax = document.getElementById('TargetFollowersMax');
+            var eng = document.getElementById('TargetEngagementRateMin');
+            var verified = document.getElementById('TargetVerifiedOnly');
+
+            function update() {
+                document.getElementById('sumLocation').textContent = loc.value || 'Any';
+                var fText = (fMin.value || fMax.value) ? (fmt(fMin.value) || 'Any') + ' – ' + (fmt(fMax.value) || 'Any') : 'Any';
+                document.getElementById('sumFollowers').textContent = fText;
+                document.getElementById('sumEngagement').textContent = eng.value ? eng.value + '%+' : 'Any';
+                document.getElementById('sumVerified').textContent = verified.checked ? 'Verified only' : 'Any';
+            }
+
+            [loc, fMin, fMax, eng].forEach(function (el) { el.addEventListener('input', update); });
+            verified.addEventListener('change', update);
+            update();
+        })();
+    </script>
+}

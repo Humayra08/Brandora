@@ -25,7 +25,13 @@ public class CampaignFormViewModel
     public decimal Budget { get; set; }
 
     [DataType(DataType.Date)]
+    public DateTime? StartDate { get; set; }
+
+    [DataType(DataType.Date)]
     public DateTime? Deadline { get; set; }
+
+    [StringLength(2000)]
+    public string? ContentGuidelines { get; set; }
 
     public IFormFile? MediaFile { get; set; }
 

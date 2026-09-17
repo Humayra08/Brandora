@@ -165,6 +165,68 @@
         margin-top: 24px;
     }
 
+    .profile-name-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .rejection-banner {
+        margin-top: 18px;
+        padding: 12px 16px;
+
+        border-radius: 12px;
+        background: #fde8ea;
+        border: 1px solid #f4c6cd;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 12.5px;
+        color: #c22540;
+    }
+
+    .completeness {
+        margin-top: 24px;
+        padding-top: 22px;
+        border-top: 1px solid #f0f1f7;
+    }
+
+    .completeness-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .completeness-label {
+        font-family: 'Inter', sans-serif;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: .3px;
+        text-transform: uppercase;
+        color: #9096b3;
+    }
+
+    .completeness-value {
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 700;
+        font-size: 13px;
+        color: #171d3d;
+    }
+
+    .completeness-bar {
+        margin-top: 8px;
+        height: 6px;
+        border-radius: 6px;
+        background: #e8eaf5;
+        overflow: hidden;
+    }
+
+    .completeness-bar-fill {
+        height: 100%;
+        border-radius: 6px;
+        background: linear-gradient(90deg, #a326ff, #236eff);
+    }
+
     @@media(max-width: 560px) {
         .profile-fields { grid-template-columns: 1fr; }
         .profile-head { flex-wrap: wrap; }
@@ -197,10 +259,20 @@
                 }
             </div>
             <div class="profile-identity">
-                <div class="profile-name">@Model.CompanyName</div>
+                <div class="profile-name-row">
+                    <div class="profile-name">@Model.CompanyName</div>
+                    <span class="status-pill @Model.VerificationStatus.ToString().ToLowerInvariant()">@Model.VerificationStatus</span>
+                </div>
                 <div class="profile-role">Brand Workspace</div>
             </div>
         </div>
+
+        @if (Model.VerificationStatus == Brandora.Web.Models.Domain.VerificationStatus.Rejected && !string.IsNullOrEmpty(Model.RejectionReason))
+        {
+            <div class="rejection-banner">
+                <strong>Verification was rejected:</strong> @Model.RejectionReason
+            </div>
+        }
 
         <div class="profile-fields">
             <div>
@@ -240,6 +312,35 @@
                 <div class="profile-stat-value">@Model.CreatedAt.ToString("MMM yyyy")</div>
                 <div class="profile-stat-label">Member Since</div>
             </div>
+        </div>
+
+        @{
+            var completenessChecks = new[]
+            {
+                !string.IsNullOrWhiteSpace(Model.CompanyName),
+                !string.IsNullOrWhiteSpace(Model.ContactFullName),
+                !string.IsNullOrWhiteSpace(Model.Industry),
+                !string.IsNullOrWhiteSpace(Model.MonthlyBudget),
+                !string.IsNullOrWhiteSpace(Model.WebsiteUrl),
+                !string.IsNullOrWhiteSpace(Model.ProfilePictureUrl)
+            };
+            var completenessPercent = (int)Math.Round(completenessChecks.Count(c => c) * 100.0 / completenessChecks.Length);
+        }
+
+        <div class="completeness">
+            <div class="completeness-row">
+                <span class="completeness-label">Profile Completeness</span>
+                <span class="completeness-value">@completenessPercent%</span>
+            </div>
+            <div class="completeness-bar">
+                <div class="completeness-bar-fill" style="width: @completenessPercent%;"></div>
+            </div>
+            @if (completenessPercent < 100)
+            {
+                <p class="profile-field-value" style="margin-top: 8px; font-size: 12px; color: #9096b3;">
+                    Add @(string.IsNullOrWhiteSpace(Model.WebsiteUrl) && string.IsNullOrWhiteSpace(Model.ProfilePictureUrl) ? "a website and a logo" : string.IsNullOrWhiteSpace(Model.WebsiteUrl) ? "a website" : "a logo") to complete your profile.
+                </p>
+            }
         </div>
 
         <div class="profile-actions">

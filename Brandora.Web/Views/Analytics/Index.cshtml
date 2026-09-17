@@ -293,10 +293,24 @@
     Back to Dashboard
 </a>
 
-<div class="page-head">
-    <h1 class="page-title">Analytics</h1>
-    <p class="page-sub">A real-time view of your campaign performance and spend.</p>
-</div>
+<section class="page-hero">
+    @await Html.PartialAsync("_HeroWaves")
+    <div class="page-hero-intro">
+        <p class="page-hero-eyebrow">Analytics</p>
+        <h1 class="page-hero-title">Campaign <span>Analytics</span></h1>
+        <p class="page-hero-sub">Understand how your campaigns are progressing and where your creator collaborations are generating activity.</p>
+    </div>
+
+    <div class="page-hero-art" aria-hidden="true">
+        <div class="hero-glass hero-glass-back"></div>
+        <div class="hero-glass hero-glass-front">
+            <span class="hero-glass-copy">Track<br />Measure<br />Grow<span></span></span>
+        </div>
+        <span class="hero-sparkle"></span>
+    </div>
+
+    <div class="page-hero-motto">Real Data.<br />Real Decisions.<span></span></div>
+</section>
 
 <div class="stat-grid">
     <div class="stat-card c1">

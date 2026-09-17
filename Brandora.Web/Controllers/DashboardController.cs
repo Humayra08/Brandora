@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Brandora.Web.Controllers;
 
-public class DashboardController(UserManager<ApplicationUser> userManager, ApplicationDbContext db) : BrandControllerBase(userManager, db)
+public class DashboardController(UserManager<ApplicationUser> userManager, ApplicationDbContext db, NotificationService notifications) : BrandControllerBase(userManager, db)
 {
     public async Task<IActionResult> Index()
     {
@@ -21,6 +21,11 @@ public class DashboardController(UserManager<ApplicationUser> userManager, Appli
 
         var userId = userManager.GetUserId(User)!;
         var today = DateTime.UtcNow.Date;
+
+        // No background scheduler exists — check for newly-close campaign
+        // deadlines on every real Dashboard visit instead (idempotent, see
+        // NotificationService.CheckCampaignDeadlinesAsync).
+        await notifications.CheckCampaignDeadlinesAsync(brand.Id, userId);
 
         var campaigns = await db.Campaigns
             .Where(c => c.BrandProfileId == brand.Id)

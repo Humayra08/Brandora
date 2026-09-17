@@ -102,7 +102,7 @@ public class UploadProofController(UserManager<ApplicationUser> userManager, App
         milestone.ProofNotes = proofNotes;
         milestone.Status = MilestoneStatus.Submitted;
 
-        notifications.Notify(
+        await notifications.NotifyAsync(
             milestone.Collaboration.Campaign.BrandProfile.UserId,
             "Milestone",
             "Proof submitted",
