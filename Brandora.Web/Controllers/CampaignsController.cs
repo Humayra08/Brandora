@@ -10,7 +10,7 @@ namespace Brandora.Web.Controllers;
 
 public class CampaignsController(UserManager<ApplicationUser> userManager, ApplicationDbContext db, MediaUploadService mediaUploads) : BrandControllerBase(userManager, db)
 {
-    public async Task<IActionResult> Index(string? search, CampaignStatus? status, string? platform, string? sort)
+    public async Task<IActionResult> Index(string? search, CampaignStatus? status, string? platform, string? category, string? sort)
     {
         var brand = await GetCurrentBrandAsync();
         if (brand is null)
@@ -42,6 +42,11 @@ public class CampaignsController(UserManager<ApplicationUser> userManager, Appli
             query = query.Where(c => c.Platform == platform);
         }
 
+        if (!string.IsNullOrWhiteSpace(category))
+        {
+            query = query.Where(c => c.Niche == category);
+        }
+
         query = sort switch
         {
             "budget" => query.OrderByDescending(c => c.Budget),
@@ -58,13 +63,21 @@ public class CampaignsController(UserManager<ApplicationUser> userManager, Appli
             .Select(g => new { g.Key, Count = g.Count() })
             .ToDictionaryAsync(x => x.Key, x => x.Count);
 
+        var milestoneCounts = await db.CampaignMilestonePlans
+            .Where(p => campaignIds.Contains(p.CampaignId))
+            .GroupBy(p => p.CampaignId)
+            .Select(g => new { g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.Key, x => x.Count);
+
         var vm = new CampaignListViewModel
         {
             Campaigns = campaigns,
             ApplicantCounts = applicantCounts,
+            MilestoneCounts = milestoneCounts,
             Search = search,
             Status = status,
             Platform = platform,
+            Category = category,
             Sort = sort,
             DraftCount = summary.FirstOrDefault(s => s.Status == CampaignStatus.Draft)?.Count ?? 0,
             PublishedCount = summary.FirstOrDefault(s => s.Status == CampaignStatus.Published)?.Count ?? 0,

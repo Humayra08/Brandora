@@ -33,11 +33,16 @@
 
     .filter-bar {
         margin-top: 26px;
+        padding: 12px;
 
         display: flex;
         flex-wrap: wrap;
         align-items: center;
-        gap: 10px;
+        gap: 6px;
+
+        border-radius: 20px;
+        border: 1px solid #d1e2ff;
+        background: linear-gradient(120deg, #eef6ffcc, #f7fbffcc);
 
         animation: fade-up .45s ease both;
     }
@@ -45,49 +50,64 @@
     .status-tab {
         display: inline-flex;
         align-items: center;
-        gap: 7px;
+        gap: 6px;
 
-        padding: 9px 16px;
+        padding: 10px 18px;
 
-        border-radius: 20px;
-        border: 1px solid #e2e5f2;
-        background: #ffffff;
+        border-radius: 14px;
+        border: 1px solid transparent;
+        background: transparent;
 
         font-family: 'Inter', sans-serif;
-        font-size: 12.5px;
+        font-size: 13px;
         font-weight: 600;
-        color: #545b7d;
+        color: #2a3157;
 
         transition: .2s;
     }
 
     .status-tab:hover {
-        border-color: #c3c9ea;
+        background: #ffffffa8;
     }
 
     .status-tab.is-active {
-        border-color: transparent;
         color: #ffffff;
         background: linear-gradient(105deg, #a326ff, #236eff);
+        box-shadow: 0 6px 16px rgba(114,36,255,.22);
     }
 
     .status-tab .count {
-        opacity: .7;
+        opacity: .75;
         font-weight: 700;
+        font-size: 11.5px;
     }
 
     .filter-spacer {
         flex: 1;
     }
 
+    .filter-input-wrap {
+        position: relative;
+        flex-shrink: 0;
+    }
+
+    .filter-input-wrap svg {
+        position: absolute;
+        left: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #a9c9ff;
+        pointer-events: none;
+    }
+
     .filter-input,
     .filter-select {
-        height: 40px;
+        height: 42px;
 
         padding: 0 14px;
 
-        border-radius: 10px;
-        border: 1px solid #e2e5f2;
+        border-radius: 14px;
+        border: 1px solid #d1e2ff;
         background: #ffffff;
 
         font-family: 'Inter', sans-serif;
@@ -96,6 +116,10 @@
 
         outline: none;
         transition: .2s;
+    }
+
+    .filter-input {
+        padding-left: 38px;
     }
 
     .filter-input:focus,
@@ -108,49 +132,128 @@
         width: 220px;
     }
 
-    .campaign-grid {
-        margin-top: 24px;
-
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-        gap: 18px;
+    .sr-only-submit {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0,0,0,0);
+        white-space: nowrap;
+        border: 0;
     }
 
-    .campaign-card {
-        display: block;
-        padding: 24px 24px 20px;
+    /* Campaign rows — matches the Influencer side's Discover Campaigns
+       row layout exactly, adapted with Brand-appropriate actions. */
+
+    .campaign-list {
+        margin-top: 24px;
+
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+    }
+
+    .campaign-row {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+
+        padding: 20px;
 
         border-radius: 16px;
-        background: #ffffff;
-        border: 1px solid #eaecf5;
+        background: linear-gradient(135deg, #ffffffbd, #f5faff8c 55%, #fafdffd9);
+        border: 1px solid #cfe2ff;
 
-        transition: transform .2s ease, box-shadow .2s ease;
+        transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
 
         animation: fade-up .5s ease both;
     }
 
-    .campaign-card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 16px 34px rgba(30,34,90,.09);
+    .campaign-row:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 16px 34px rgba(30,34,90,.08);
+        border-color: #a9c9ff;
     }
 
-    .campaign-card-head {
+    .campaign-row-thumb {
+        position: relative;
+        flex-shrink: 0;
+        overflow: hidden;
+
+        width: 88px;
+        height: 88px;
+
+        border-radius: 14px;
+        background: linear-gradient(135deg, #7224ff, #3735ff 55%, #087fff);
+
         display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 12px;
-    }
+        align-items: center;
+        justify-content: center;
 
-    .campaign-card-title {
-        font-family: 'DM Sans', sans-serif;
+        color: #ffffff;
+        font-family: 'Playfair Display', serif;
         font-weight: 700;
-        font-size: 16.5px;
-        color: #171d3d;
-
-        line-height: 1.35;
+        font-size: 26px;
     }
 
-    .campaign-card-tags {
+    .campaign-row-thumb img,
+    .campaign-row-thumb video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .campaign-row-body {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .campaign-row-title-line {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .campaign-row-title {
+        font-family: 'Playfair Display', serif;
+        font-weight: 600;
+        font-size: 19px;
+        color: #171d3d;
+        text-decoration: none;
+    }
+
+    .campaign-row-title:hover {
+        text-decoration: underline;
+    }
+
+    .campaign-row-meta {
+        margin-top: 4px;
+        font-family: 'Inter', sans-serif;
+        font-size: 12.5px;
+        color: #56617f;
+    }
+
+    .campaign-row-meta strong {
+        color: #171d3d;
+        font-weight: 600;
+    }
+
+    .campaign-row-desc {
+        margin-top: 6px;
+        max-width: 520px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 12.5px;
+        color: #6b7290;
+
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .campaign-row-tags {
         margin-top: 10px;
 
         display: flex;
@@ -162,30 +265,27 @@
         padding: 3px 10px;
 
         border-radius: 20px;
-        background: #f2f3fa;
+        background: #eaf2ff;
 
         font-family: 'Inter', sans-serif;
         font-size: 11px;
         font-weight: 600;
-        color: #545b7d;
+        color: #2b467d;
     }
 
-    .campaign-card-figures {
-        margin-top: 18px;
+    .campaign-row-figures {
+        flex-shrink: 0;
 
         display: flex;
-        align-items: baseline;
-        justify-content: space-between;
-
-        padding-top: 16px;
-        border-top: 1px solid #f0f1f7;
+        gap: 28px;
     }
 
     .figure-value {
         font-family: 'DM Sans', sans-serif;
         font-weight: 800;
-        font-size: 19px;
+        font-size: 16px;
         color: #171d3d;
+        white-space: nowrap;
     }
 
     .figure-label {
@@ -196,86 +296,45 @@
         font-weight: 600;
         letter-spacing: .3px;
         text-transform: uppercase;
-        color: #9096b3;
+        color: #6681af;
     }
 
-    .campaign-card-deadline {
-        margin-top: 12px;
-
-        font-family: 'Inter', sans-serif;
-        font-size: 12px;
-        color: #6b7290;
-    }
-
-    .campaign-card.has-media {
-        padding: 0 0 20px;
-        overflow: hidden;
-    }
-
-    .campaign-media {
-        position: relative;
-        width: 100%;
-        aspect-ratio: 3 / 4;
-
-        background: #171d3d;
-        overflow: hidden;
-    }
-
-    .campaign-media img,
-    .campaign-media video {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        display: block;
-
-        transition: transform .5s ease;
-    }
-
-    .campaign-card:hover .campaign-media img,
-    .campaign-card:hover .campaign-media video {
-        transform: scale(1.05);
-    }
-
-    .campaign-media-overlay {
-        position: absolute;
-        inset: 0;
-
-        background: linear-gradient(180deg, rgba(10,11,30,0) 38%, rgba(10,11,30,.88) 100%);
+    .campaign-row-actions {
+        flex-shrink: 0;
 
         display: flex;
         flex-direction: column;
-        justify-content: flex-end;
+        align-items: stretch;
+        gap: 8px;
 
-        padding: 16px 18px;
+        min-width: 140px;
     }
 
-    .campaign-media-overlay .status-pill {
-        align-self: flex-start;
-        margin-bottom: 8px;
+    .campaign-row-actions .btn {
+        min-height: 38px;
+        padding: 0 16px;
+        font-size: 12.5px;
+        justify-content: center;
     }
 
-    .campaign-media-title {
-        font-family: 'DM Sans', sans-serif;
-        font-weight: 700;
-        font-size: 16px;
-        color: #ffffff;
-        line-height: 1.3;
+    .campaign-row-applied {
+        text-align: center;
+        font-family: 'Inter', sans-serif;
+        font-size: 11px;
+        color: #6681af;
     }
 
-    .campaign-card.has-media .campaign-card-tags,
-    .campaign-card.has-media .campaign-card-figures,
-    .campaign-card.has-media .campaign-card-deadline {
-        padding-left: 20px;
-        padding-right: 20px;
-    }
-
-    .campaign-card.has-media .campaign-card-tags {
-        margin-top: 14px;
+    @@media(max-width: 900px) {
+        .campaign-row { flex-wrap: wrap; }
+        .campaign-row-figures { order: 3; width: 100%; justify-content: space-between; padding-top: 12px; border-top: 1px solid #e3edff; }
+        .campaign-row-actions { order: 4; width: 100%; flex-direction: row; }
     }
 
     @@media(max-width: 560px) {
         .page-head { flex-direction: column; }
-        .filter-input { width: 100%; }
+        .filter-input, .filter-input-wrap { width: 100%; }
+        .campaign-row-thumb { width: 64px; height: 64px; font-size: 20px; }
+        .campaign-row-desc { max-width: 100%; }
     }
 
 }
@@ -286,6 +345,7 @@
 </a>
 
 <section class="page-hero">
+    @await Html.PartialAsync("_HeroWaves")
     <div class="page-hero-intro">
         <p class="page-hero-eyebrow">Campaigns</p>
         <h1 class="page-hero-title">Your <span>Campaigns</span></h1>
@@ -326,10 +386,29 @@
 
     <div class="filter-spacer"></div>
 
-    <input type="text" name="search" class="filter-input" placeholder="Search your campaigns" value="@Model.Search" />
+    <div class="filter-input-wrap">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="m20 20-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <input type="text" name="search" class="filter-input" placeholder="Search campaigns.." value="@Model.Search" />
+    </div>
+
+    <select name="category" class="filter-select" onchange="this.form.submit()">
+        <option value="" selected="@(string.IsNullOrEmpty(Model.Category))">Category</option>
+        @foreach (var niche in new[] { "Fashion & Style", "Beauty & Skincare", "Food & Cooking", "Travel & Lifestyle", "Fitness & Health", "Gaming", "Tech & Gadgets", "Education", "Comedy & Entertainment", "Home & Lifestyle", "Finance", "Other" })
+        {
+            <option value="@niche" selected="@(Model.Category == niche)">@niche</option>
+        }
+    </select>
+
+    <select name="platform" class="filter-select" onchange="this.form.submit()">
+        <option value="" selected="@(string.IsNullOrEmpty(Model.Platform))">Platform</option>
+        @foreach (var platform in new[] { "Instagram", "TikTok", "YouTube", "Facebook", "X", "LinkedIn", "Multi-Platform" })
+        {
+            <option value="@platform" selected="@(Model.Platform == platform)">@platform</option>
+        }
+    </select>
 
     <select name="sort" class="filter-select" onchange="this.form.submit()">
-        <option value="" selected="@(string.IsNullOrEmpty(Model.Sort))">Newest first</option>
+        <option value="" selected="@(string.IsNullOrEmpty(Model.Sort))">Sort By</option>
         <option value="oldest" selected="@(Model.Sort == "oldest")">Oldest first</option>
         <option value="budget" selected="@(Model.Sort == "budget")">Highest budget</option>
     </select>
@@ -339,20 +418,21 @@
         <input type="hidden" name="status" value="@Model.Status" />
     }
 
-    <button type="submit" class="btn btn-secondary">Search</button>
+    <button type="submit" class="sr-only-submit" aria-label="Search">Search</button>
 
 </form>
 
 @if (Model.Campaigns.Count > 0)
 {
-    <div class="campaign-grid">
+    <div class="campaign-list">
         @foreach (var campaign in Model.Campaigns)
         {
-            <a href="/Campaigns/Detail/@campaign.Id" class="campaign-card @(!string.IsNullOrEmpty(campaign.MediaUrl) ? "has-media" : "")">
+            var milestoneCount = Model.MilestonesFor(campaign.Id);
+            <div class="campaign-row">
 
-                @if (!string.IsNullOrEmpty(campaign.MediaUrl))
-                {
-                    <div class="campaign-media">
+                <div class="campaign-row-thumb">
+                    @if (!string.IsNullOrEmpty(campaign.MediaUrl))
+                    {
                         @if (campaign.MediaType == "video")
                         {
                             <video src="@campaign.MediaUrl" muted loop playsinline preload="metadata"></video>
@@ -361,53 +441,62 @@
                         {
                             <img src="@campaign.MediaUrl" alt="@campaign.Title" />
                         }
-                        <div class="campaign-media-overlay">
-                            <span class="status-pill @campaign.Status.ToString().ToLowerInvariant()">@campaign.Status</span>
-                            <div class="campaign-media-title">@campaign.Title</div>
-                        </div>
-                    </div>
-                }
-                else
-                {
-                    <div class="campaign-card-head">
-                        <div class="campaign-card-title">@campaign.Title</div>
-                        <span class="status-pill @campaign.Status.ToString().ToLowerInvariant()">@campaign.Status</span>
-                    </div>
-                }
-
-                <div class="campaign-card-tags">
-                    @if (!string.IsNullOrEmpty(campaign.Platform))
-                    {
-                        <span class="tag">@campaign.Platform</span>
                     }
-                    @if (!string.IsNullOrEmpty(campaign.Niche))
+                    else
                     {
-                        <span class="tag">@campaign.Niche</span>
+                        @(campaign.Title.Length > 0 ? campaign.Title[..1].ToUpperInvariant() : "C")
                     }
                 </div>
 
-                <div class="campaign-card-figures">
+                <div class="campaign-row-body">
+                    <div class="campaign-row-title-line">
+                        <a href="/Campaigns/Detail/@campaign.Id" class="campaign-row-title">@campaign.Title</a>
+                        <span class="status-pill @campaign.Status.ToString().ToLowerInvariant()">@campaign.Status</span>
+                    </div>
+                    <div class="campaign-row-meta">
+                        @{
+                            var metaParts = new List<string>();
+                            if (!string.IsNullOrEmpty(campaign.Platform)) { metaParts.Add(campaign.Platform); }
+                            if (!string.IsNullOrEmpty(campaign.Niche)) { metaParts.Add(campaign.Niche); }
+                            metaParts.Add("Posted " + campaign.CreatedAt.ToString("MMM d, yyyy"));
+                        }
+                        @string.Join(" · ", metaParts)
+                    </div>
+                    <div class="campaign-row-desc">@campaign.Description</div>
+                    <div class="campaign-row-tags">
+                        @if (!string.IsNullOrEmpty(campaign.Platform))
+                        {
+                            <span class="tag">@campaign.Platform</span>
+                        }
+                        @if (!string.IsNullOrEmpty(campaign.Niche))
+                        {
+                            <span class="tag">@campaign.Niche</span>
+                        }
+                    </div>
+                </div>
+
+                <div class="campaign-row-figures">
                     <div>
                         <div class="figure-value">৳@campaign.Budget.ToString("N0")</div>
                         <div class="figure-label">Budget</div>
                     </div>
                     <div>
-                        <div class="figure-value">@Model.ApplicantsFor(campaign.Id)</div>
-                        <div class="figure-label">Applicants</div>
+                        <div class="figure-value">@(milestoneCount > 0 ? milestoneCount.ToString() : "Not set")</div>
+                        <div class="figure-label">Milestones</div>
+                    </div>
+                    <div>
+                        <div class="figure-value">@(campaign.Deadline?.ToString("MMM d, yyyy") ?? "No deadline")</div>
+                        <div class="figure-label">Deadline</div>
                     </div>
                 </div>
 
-                <div class="campaign-card-deadline">
-                    @if (campaign.Deadline.HasValue)
-                    {
-                        <text>Deadline @campaign.Deadline.Value.ToString("MMM d, yyyy")</text>
-                    }
-                    else
-                    {
-                        <text>No deadline set</text>
-                    }
+                <div class="campaign-row-actions">
+                    <a href="/Campaigns/Detail/@campaign.Id" class="btn btn-secondary">View Details</a>
+                    <a href="/Campaigns/Edit/@campaign.Id" class="btn btn-primary">Edit</a>
+                    <div class="campaign-row-applied">@Model.ApplicantsFor(campaign.Id) applied</div>
                 </div>
-            </a>
+
+            </div>
         }
     </div>
 }
@@ -430,10 +519,10 @@ else
 
 @section Scripts {
     <script>
-        document.querySelectorAll('.campaign-media video').forEach(function (video) {
-            var card = video.closest('.campaign-card');
-            card.addEventListener('mouseenter', function () { video.play().catch(function () {}); });
-            card.addEventListener('mouseleave', function () { video.pause(); video.currentTime = 0; });
+        document.querySelectorAll('.campaign-row-thumb video').forEach(function (video) {
+            var row = video.closest('.campaign-row');
+            row.addEventListener('mouseenter', function () { video.play().catch(function () {}); });
+            row.addEventListener('mouseleave', function () { video.pause(); video.currentTime = 0; });
         });
     </script>
 }

@@ -1,0 +1,28 @@
+@* Reproduces the Influencer side's hero wave background exactly
+   (Views/InfluencerDashboard/_Waves.cshtml, hero variant) so every
+   Brand .page-hero uses the identical flowing-line pattern. *@
+<svg class="page-hero-waves" viewBox="0 0 1200 200" preserveAspectRatio="none" aria-hidden="true">
+    <defs>
+        <linearGradient id="wave-hero" x1="0" y1="0" x2="1" y2=".2">
+            <stop offset=".2" stop-color="#b6e7ff" stop-opacity="0" />
+            <stop offset=".45" stop-color="#58b4ff" stop-opacity=".32" />
+            <stop offset=".68" stop-color="#346aff" stop-opacity=".57" />
+            <stop offset="1" stop-color="#8dccff" stop-opacity=".28" />
+        </linearGradient>
+        <linearGradient id="wave-light-hero" x1="0" y1="0" x2="1" y2="0">
+            <stop offset=".25" stop-color="#e7f7ff" stop-opacity="0" />
+            <stop offset=".53" stop-color="#72cfff" stop-opacity=".3" />
+            <stop offset=".72" stop-color="#5598ff" stop-opacity=".33" />
+            <stop offset="1" stop-color="#d8f0ff" stop-opacity=".4" />
+        </linearGradient>
+    </defs>
+    <path d="M180 210C345 204 391 96 501 81S637 174 728 131 817 94 894 160 1000 230 1090 146 1170 103 1220 108V210Z" fill="url(#wave-hero)" />
+    <path d="M220 210C369 208 414 113 515 94S642 180 731 142 827 106 898 169 1004 237 1094 158 1176 111 1220 122V210Z" fill="url(#wave-light-hero)" />
+    <path d="M290 210C410 198 457 133 535 131S636 218 731 160 826 115 900 176 1014 243 1100 181 1179 139 1220 150V210Z" fill="url(#wave-hero)" opacity=".55" />
+    <path d="M252 211C395 207 441 152 528 153S639 224 733 167 827 116 902 178 1009 243 1098 176 1180 140 1220 151" fill="none" stroke="#fff" stroke-opacity=".8" stroke-width="1" />
+    @for (var line = 0; line < 12; line++)
+    {
+        var offset = line * 3;
+        <path d="M220 @(210 + offset)C369 @(208 + offset) 414 @(113 + offset) 515 @(94 + offset)S642 @(180 + offset) 731 @(142 + offset) 827 @(106 + offset) 898 @(169 + offset) 1004 @(237 + offset) 1094 @(158 + offset) 1176 @(111 + offset) 1220 @(122 + offset)" fill="none" stroke="#e3f4ff" stroke-opacity=".2" stroke-width=".7" />
+    }
+</svg>

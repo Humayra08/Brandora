@@ -26,13 +26,21 @@ public class PaymentsController(UserManager<ApplicationUser> userManager, Applic
             .OrderByDescending(p => p.CreatedAt)
             .ToListAsync();
 
+        var campaigns = await db.Campaigns.Where(c => c.BrandProfileId == brand.Id).ToListAsync();
+
         var vm = new PaymentListViewModel
         {
             Payments = payments,
             TotalPaid = payments.Where(p => p.Status == PaymentStatus.Completed).Sum(p => p.Amount),
             TotalPending = payments.Where(p => p.Status == PaymentStatus.Pending).Sum(p => p.Amount),
             CompletedCount = payments.Count(p => p.Status == PaymentStatus.Completed),
-            PendingCount = payments.Count(p => p.Status == PaymentStatus.Pending)
+            PendingCount = payments.Count(p => p.Status == PaymentStatus.Pending),
+            TotalCampaignBudget = campaigns.Sum(c => c.Budget),
+            TotalCampaignSpend = campaigns.Sum(c => c.SpentAmount),
+            MethodCounts = payments
+                .Where(p => p.Method.HasValue)
+                .GroupBy(p => p.Method!.Value)
+                .ToDictionary(g => g.Key, g => g.Count())
         };
 
         return View(vm);

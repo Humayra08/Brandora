@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Brandora.Web.Controllers;
 
-public class InfluencerMessagesController(UserManager<ApplicationUser> userManager, ApplicationDbContext db, MediaUploadService mediaUploads) : InfluencerControllerBase(userManager, db)
+public class InfluencerMessagesController(UserManager<ApplicationUser> userManager, ApplicationDbContext db, MediaUploadService mediaUploads, NotificationService notifications) : InfluencerControllerBase(userManager, db)
 {
     public async Task<IActionResult> Index(int? open, int? campaignId, string? search)
     {
@@ -105,7 +105,9 @@ public class InfluencerMessagesController(UserManager<ApplicationUser> userManag
             return RedirectToAction("Index", "Home");
         }
 
-        var conversation = await db.Conversations.FirstOrDefaultAsync(c => c.Id == conversationId && c.InfluencerProfileId == influencer.Id);
+        var conversation = await db.Conversations
+            .Include(c => c.BrandProfile)
+            .FirstOrDefaultAsync(c => c.Id == conversationId && c.InfluencerProfileId == influencer.Id);
         if (conversation is null)
         {
             return NotFound();
@@ -140,6 +142,14 @@ public class InfluencerMessagesController(UserManager<ApplicationUser> userManag
                 MediaType = mediaType
             });
 
+            await db.SaveChangesAsync();
+
+            await notifications.NotifyAsync(
+                conversation.BrandProfile.UserId,
+                "Message",
+                "New message",
+                $"You have a new message from {influencer.FullName}.",
+                $"/Messages?open={conversation.Id}");
             await db.SaveChangesAsync();
         }
 

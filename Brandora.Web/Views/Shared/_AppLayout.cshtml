@@ -426,8 +426,15 @@
         .main {
             flex: 1;
             min-width: 0;
+            min-height: 100vh;
 
             padding: 34px 42px 60px;
+
+            /* Exact Influencer-side page wash (brandora-influencer-dashboard.css
+               .dashboard-page) — a soft blue tint, not flat white. */
+            background:
+                radial-gradient(ellipse at 66% 2%, #dceeff88, transparent 50%),
+                linear-gradient(130deg, #f3faff, #f7fbff 65%, #edf6ff);
         }
 
 
@@ -460,6 +467,15 @@
             border: 1px solid #d1e2ff;
 
             animation: fade-up .5s ease both;
+        }
+
+        .page-hero-waves {
+            position: absolute;
+            inset: auto 0 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
         }
 
         .page-hero-intro {
@@ -636,6 +652,185 @@
             .page-hero { padding: 22px 24px; flex-wrap: wrap; }
             .page-hero-art { display: none; }
             .page-hero-intro { max-width: 100%; }
+        }
+
+
+        /* =========================================================
+           SHARED: STAT CARDS
+           Matches the Influencer side's .dashboard-stat/.dashboard-card
+           exactly: icon circle + value/label row, footer accent-dash +
+           link. Every tone stays inside the blue/violet family used by
+           --brand-hero-gradient (#7224ff → #3735ff → #087fff) — no
+           amber/magenta/mint accents anywhere.
+        ========================================================= */
+
+        .metric-band {
+            margin-top: 22px;
+
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 14px;
+        }
+
+        .metric-block {
+            position: relative;
+            overflow: hidden;
+            isolation: isolate;
+
+            min-height: 116px;
+            padding: 16px 17px 12px;
+
+            display: flex;
+            flex-direction: column;
+
+            border-radius: 11px;
+            border: 1px solid #cfe2ff;
+
+            background: linear-gradient(135deg, #ffffffbd, #f5faff8c 55%, #fafdffd9);
+            box-shadow: inset 0 1px 2px #fff, 0 3px 10px #6f9bce07;
+
+            transition: transform .3s cubic-bezier(.22,1,.36,1), box-shadow .3s ease, border-color .3s ease;
+
+            opacity: 0;
+            transform: translateY(18px);
+        }
+
+        .metric-block::before {
+            content: "";
+            position: absolute;
+            width: 150px;
+            height: 240px;
+            right: -57px;
+            top: -25px;
+            transform: rotate(36deg);
+            background: linear-gradient(130deg, #d6eaff77, transparent 75%);
+            border-radius: 65% 38% 0 0;
+            z-index: -1;
+        }
+
+        .metric-block.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+            transition: opacity .5s ease, transform .5s cubic-bezier(.22,1,.36,1), box-shadow .3s ease, border-color .3s ease;
+        }
+
+        a.metric-block:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 18px 34px rgba(30,34,90,.12);
+            border-color: #a9c9ff;
+        }
+
+        .metric-main {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .metric-main > div {
+            min-width: 0;
+        }
+
+        .metric-icon {
+            display: grid;
+            place-items: center;
+            flex-shrink: 0;
+
+            width: 46px;
+            height: 46px;
+
+            border-radius: 50%;
+            color: #ffffff;
+        }
+
+        .metric-icon svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        .metric-block.tone-a .metric-icon { background: linear-gradient(135deg, #7224ff, #3735ff); }
+        .metric-block.tone-b .metric-icon { background: linear-gradient(135deg, #3735ff, #087fff); }
+        .metric-block.tone-c .metric-icon { background: linear-gradient(135deg, #6323ff, #236eff); }
+        .metric-block.tone-d .metric-icon { background: linear-gradient(135deg, #4f12ff, #5086ff); }
+        .metric-block.tone-e .metric-icon { background: linear-gradient(135deg, #236eff, #18a9ff); }
+        .metric-block.tone-f .metric-icon { background: linear-gradient(135deg, #0759ff, #18a9ff); }
+
+        .metric-label {
+            font-family: 'Inter', sans-serif;
+            font-size: 12px;
+            font-weight: 500;
+            color: #56617f;
+            margin-bottom: 5px;
+        }
+
+        .metric-value {
+            display: block;
+            font-family: 'DM Sans', sans-serif;
+            font-weight: 700;
+            font-size: 24px;
+            line-height: 1.25;
+            color: #171d3d;
+        }
+
+        .metric-context {
+            margin-top: 3px;
+            font-family: 'Inter', sans-serif;
+            font-size: 10px;
+            line-height: 1.5;
+            color: #6681af;
+        }
+
+        .metric-footer {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: auto;
+            padding-top: 12px;
+        }
+
+        .metric-accent {
+            flex-shrink: 0;
+            display: block;
+            height: 2px;
+            width: 20px;
+            border-radius: 3px;
+            background: linear-gradient(110deg, #6323ff, #0759ff);
+        }
+
+        .metric-footer-link {
+            font-family: 'Inter', sans-serif;
+            font-size: 11px;
+            font-weight: 600;
+            color: #2b467d;
+            white-space: nowrap;
+        }
+
+        .metric-flag {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            z-index: 1;
+
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+
+            background: linear-gradient(105deg, #3735ff, #087fff);
+            box-shadow: 0 0 0 4px rgba(8,127,255,.16);
+
+            animation: metric-flag-pulse 2s ease-in-out infinite;
+        }
+
+        @@keyframes metric-flag-pulse {
+            0%, 100% { opacity: .7; }
+            50% { opacity: 1; }
+        }
+
+        @@media(max-width: 900px) {
+            .metric-band { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        @@media(max-width: 560px) {
+            .metric-band { grid-template-columns: 1fr; }
         }
 
 
@@ -953,7 +1148,7 @@
             padding: 16px 42px;
             margin: -34px -42px 28px;
 
-            background: rgba(255,255,255,.92);
+            background: linear-gradient(120deg, #eef6ffcc, #f3faffcc);
             backdrop-filter: blur(14px);
             -webkit-backdrop-filter: blur(14px);
             border-bottom: 1px solid #d1e2ff;
@@ -984,21 +1179,21 @@
 
         .topbar-search {
             flex: 1;
-            max-width: 340px;
+            max-width: 465px;
         }
 
         .topbar-search input {
             width: 100%;
-            height: 38px;
+            height: 44px;
 
-            padding: 0 16px;
+            padding: 0 18px;
 
             border-radius: 12px;
             border: 1px solid #d1e2ff;
             background: #ffffffb8;
 
             font-family: 'Inter', sans-serif;
-            font-size: 13px;
+            font-size: 13.5px;
             color: #20365f;
 
             outline: none;
@@ -1030,8 +1225,8 @@
             position: relative;
             flex-shrink: 0;
 
-            width: 32px;
-            height: 32px;
+            width: 38px;
+            height: 38px;
 
             display: flex;
             align-items: center;
@@ -1042,6 +1237,11 @@
 
             color: #101d48;
             transition: .2s;
+        }
+
+        .topbar-icon-btn svg {
+            width: 22px;
+            height: 22px;
         }
 
         .topbar-icon-btn:hover {
@@ -1103,12 +1303,32 @@
             flex-shrink: 0;
         }
 
+        .topbar-account {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+
+            border: none;
+            border-left: 1px solid #c8dfff;
+            background: transparent;
+
+            padding: 0 0 0 18px;
+            max-width: 265px;
+
+            cursor: pointer;
+            transition: .2s;
+        }
+
         .topbar-profile {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+
             width: 38px;
             height: 38px;
             overflow: hidden;
 
-            border: none;
             border-radius: 50%;
 
             background: radial-gradient(circle at 70% 65%, #5086ff, #4f12ff);
@@ -1119,11 +1339,10 @@
             font-weight: 700;
             font-size: 14px;
 
-            cursor: pointer;
             transition: transform .2s ease, box-shadow .2s ease;
         }
 
-        .topbar-profile:hover {
+        .topbar-account:hover .topbar-profile {
             transform: translateY(-1px);
             box-shadow: 0 8px 18px rgba(140,60,255,.3);
         }
@@ -1133,6 +1352,40 @@
             height: 100%;
             object-fit: cover;
             display: block;
+        }
+
+        .topbar-account-text {
+            min-width: 0;
+            text-align: left;
+        }
+
+        .topbar-account-text strong {
+            display: block;
+            font-family: 'Inter', sans-serif;
+            font-size: 12px;
+            font-weight: 700;
+            color: #101d48;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .topbar-account-text small {
+            display: block;
+            margin-top: 2px;
+            font-family: 'Inter', sans-serif;
+            font-size: 11px;
+            color: #476499;
+        }
+
+        .topbar-account-chevron {
+            flex-shrink: 0;
+            color: #476499;
+            transition: transform .2s ease;
+        }
+
+        .topbar-profile-wrap.is-open .topbar-account-chevron {
+            transform: rotate(180deg);
         }
 
         .profile-dropdown {
@@ -1277,10 +1530,13 @@
             .topbar-search { display: none; }
         }
 
+        @@media(max-width: 560px) {
+            .topbar-account-text { display: none; }
+            .topbar-account { padding-left: 10px; }
+        }
+
         @@media(max-width: 480px) {
             .main-topbar { padding: 14px 18px; margin: -18px -14px 22px; gap: 10px; }
-            .topbar-cta span { display: none; }
-            .topbar-cta { padding: 0 14px; }
         }
 
 
@@ -1465,15 +1721,22 @@
                     }
 
                     <div class="topbar-profile-wrap" id="profileMenuWrap">
-                        <button type="button" class="topbar-icon-btn topbar-profile" id="profileMenuBtn" aria-label="Brand account menu" aria-expanded="false">
-                            @if (!string.IsNullOrEmpty(picUrl))
-                            {
-                                <img src="@picUrl" alt="@companyName" class="topbar-profile-img" />
-                            }
-                            else
-                            {
-                                @initial
-                            }
+                        <button type="button" class="topbar-account" id="profileMenuBtn" aria-label="Brand account menu" aria-expanded="false">
+                            <span class="topbar-profile">
+                                @if (!string.IsNullOrEmpty(picUrl))
+                                {
+                                    <img src="@picUrl" alt="@companyName" class="topbar-profile-img" />
+                                }
+                                else
+                                {
+                                    @initial
+                                }
+                            </span>
+                            <span class="topbar-account-text">
+                                <strong>@companyName</strong>
+                                <small>Brand</small>
+                            </span>
+                            <svg class="topbar-account-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                         </button>
 
                         <div class="profile-dropdown" id="profileDropdown">

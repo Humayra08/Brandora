@@ -477,8 +477,24 @@
         color: #fff;
     }
 
-    .msg-bubble {
+    .msg-col {
+        display: flex;
+        flex-direction: column;
         max-width: 68%;
+        min-width: 0;
+    }
+
+    .msg-row.is-mine .msg-col {
+        align-items: flex-end;
+    }
+
+    .msg-row:not(.is-mine) .msg-col {
+        align-items: flex-start;
+    }
+
+    .msg-bubble {
+        width: fit-content;
+        max-width: 100%;
 
         padding: 11px 16px;
 
@@ -487,6 +503,8 @@
         font-family: 'Inter', sans-serif;
         font-size: 13.5px;
         line-height: 1.55;
+        white-space: pre-wrap;
+        word-break: break-word;
 
         animation: fade-up .3s ease both;
     }
@@ -1044,7 +1062,7 @@
                             {
                                 <div class="msg-avatar">@FollowerFormat.InitialsOf(creator.FullName)</div>
                             }
-                            <div>
+                            <div class="msg-col">
                                 <div class="msg-bubble @(hasMedia ? "has-media" : "") @(hasMedia && hasCaption ? "has-caption" : "")">
                                     @if (hasMedia)
                                     {

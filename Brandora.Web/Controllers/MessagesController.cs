@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Brandora.Web.Controllers;
 
-public class MessagesController(UserManager<ApplicationUser> userManager, ApplicationDbContext db, MediaUploadService mediaUploads) : BrandControllerBase(userManager, db)
+public class MessagesController(UserManager<ApplicationUser> userManager, ApplicationDbContext db, MediaUploadService mediaUploads, NotificationService notifications) : BrandControllerBase(userManager, db)
 {
     public async Task<IActionResult> Index(int? open, int? campaignId, string? search)
     {
@@ -105,7 +105,9 @@ public class MessagesController(UserManager<ApplicationUser> userManager, Applic
             return RedirectToAction("Index", "Home");
         }
 
-        var conversation = await db.Conversations.FirstOrDefaultAsync(c => c.Id == conversationId && c.BrandProfileId == brand.Id);
+        var conversation = await db.Conversations
+            .Include(c => c.InfluencerProfile)
+            .FirstOrDefaultAsync(c => c.Id == conversationId && c.BrandProfileId == brand.Id);
         if (conversation is null)
         {
             return NotFound();
@@ -140,6 +142,14 @@ public class MessagesController(UserManager<ApplicationUser> userManager, Applic
                 MediaType = mediaType
             });
 
+            await db.SaveChangesAsync();
+
+            await notifications.NotifyAsync(
+                conversation.InfluencerProfile.UserId,
+                "Message",
+                "New message",
+                $"You have a new message from {brand.CompanyName}.",
+                $"/InfluencerMessages?open={conversation.Id}");
             await db.SaveChangesAsync();
         }
 

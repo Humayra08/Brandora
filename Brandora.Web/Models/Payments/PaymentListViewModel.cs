@@ -9,4 +9,8 @@ public class PaymentListViewModel
     public decimal TotalPending { get; set; }
     public int CompletedCount { get; set; }
     public int PendingCount { get; set; }
+
+    public decimal TotalCampaignBudget { get; set; }
+    public decimal TotalCampaignSpend { get; set; }
+    public Dictionary<PaymentMethod, int> MethodCounts { get; set; } = new();
 }

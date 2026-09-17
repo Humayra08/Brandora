@@ -111,12 +111,12 @@
             flex-wrap: wrap;
             align-items: center;
             gap: 9px;
-            padding: 11px;
+            padding: 12px;
             margin-bottom: 24px;
-            border: 1px solid #e8e7f3;
-            border-radius: 18px;
-            background: rgba(255,255,255,.94);
-            box-shadow: 0 12px 35px rgba(35, 25, 91, .06);
+            border: 1px solid #d1e2ff;
+            border-radius: 20px;
+            background: linear-gradient(120deg, #eef6ffcc, #f7fbffcc);
+            box-shadow: 0 12px 35px rgba(35, 25, 91, .05);
             backdrop-filter: blur(14px);
             animation: hero-enter .7s .08s cubic-bezier(.22,1,.36,1) both;
         }
@@ -124,11 +124,11 @@
         .filter-input,
         .filter-select {
             height: 42px;
-            border: 1px solid #e5e4ef;
-            border-radius: 12px;
+            border: 1px solid #d1e2ff;
+            border-radius: 14px;
             background: #fff;
             color: #2a3157;
-            font: 500 12px 'Inter', sans-serif;
+            font: 500 12.5px 'Inter', sans-serif;
             outline: none;
             transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
         }
@@ -152,7 +152,7 @@
 
         .filter-input:hover,
         .filter-select:hover {
-            border-color: #cfc5ef;
+            border-color: #a9c9ff;
         }
 
         .discovery-toolbar .btn {
@@ -619,6 +619,7 @@
         </a>
 
         <section class="page-hero">
+            @await Html.PartialAsync("_HeroWaves")
             <div class="page-hero-intro">
                 <p class="page-hero-eyebrow">Brandora Creator Network</p>
 

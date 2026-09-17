@@ -480,6 +480,7 @@
 <div class="wizard-shell">
 
     <section class="page-hero">
+        @await Html.PartialAsync("_HeroWaves")
         <div class="page-hero-intro">
             <p class="page-hero-eyebrow">@(isEdit ? "Edit Campaign" : "Create Campaign")</p>
             <h1 class="page-hero-title">@(isEdit ? "Refine Your Campaign" : "Launch Your Next Big Campaign")</h1>
