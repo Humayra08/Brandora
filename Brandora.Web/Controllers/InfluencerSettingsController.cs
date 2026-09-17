@@ -4,6 +4,7 @@ using Brandora.Web.Models.Domain;
 using Brandora.Web.Models.Settings;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace Brandora.Web.Controllers;
 
@@ -22,6 +23,9 @@ public class InfluencerSettingsController(UserManager<ApplicationUser> userManag
         var vm = new InfluencerSettingsViewModel
         {
             Profile = influencer,
+            Notifications = await db.Notifications.AsNoTracking()
+                .Where(n => n.UserId == influencer.UserId)
+                .OrderByDescending(n => n.CreatedAt).Take(5).ToListAsync(),
             Form = new InfluencerProfileFormModel
             {
                 FullName = influencer.FullName,

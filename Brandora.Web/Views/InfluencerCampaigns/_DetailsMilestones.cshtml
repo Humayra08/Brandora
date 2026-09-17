@@ -1,0 +1,17 @@
+@model Brandora.Web.Models.Dashboard.InfluencerCampaignDetailsViewModel
+@if (Model.Milestones.Count == 0)
+{
+    <div class="detail-empty"><i class="bi bi-list-check" aria-hidden="true"></i><div><strong>No milestones assigned yet</strong><p>The brand sets your deliverables and payments after accepting your proposal.</p></div></div>
+}
+else
+{
+    <ol class="detail-milestones">
+        @for (var i = 0; i < Model.Milestones.Count; i++)
+        {
+            var milestone = Model.Milestones[i];
+            var title = milestone.Title.ToLowerInvariant();
+            var platformIcon = title.Contains("instagram") ? "instagram" : title.Contains("facebook") ? "facebook" : title.Contains("tiktok") ? "tiktok" : title.Contains("youtube") ? "youtube" : "file-earmark-check";
+            <li><span class="detail-milestone-number">@(i + 1)</span><div class="detail-milestone-card"><span class="detail-milestone-icon platform-@platformIcon"><i class="bi bi-@platformIcon" aria-hidden="true"></i></span><div><h3>@milestone.Title</h3><p>@(string.IsNullOrWhiteSpace(milestone.Description) ? "No additional description provided." : milestone.Description)</p>@if (milestone.DueDate.HasValue) { <small>Due @milestone.DueDate.Value.ToString("MMM d, yyyy") &middot; @milestone.Status</small> }</div><strong class="detail-milestone-amount">&#2547;@milestone.Amount.ToString("N0")</strong></div></li>
+        }
+    </ol>
+}

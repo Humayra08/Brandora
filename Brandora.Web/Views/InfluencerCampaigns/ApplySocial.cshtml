@@ -68,32 +68,16 @@
                     <input type="hidden" name="YouTubeLink" value="@Model.YouTubeLink" />
 
                     <h2>Connect Your Social Accounts</h2>
-                    <p class="apply-form-intro">Link the social media accounts you'll use for this campaign. This helps the brand understand your reach and content style.</p>
+                    <p class="apply-form-intro">Add links to the social accounts you'll use for this campaign.</p>
 
-                    <ul class="apply-social-list">
-                        @foreach (var platform in Model.Platforms)
-                        {
-                            <li>
-                                <span class="apply-social-icon" style="background:@platform.IconGradient"><i class="bi @platform.Icon" aria-hidden="true"></i></span>
-                                <div class="apply-social-copy">
-                                    <div class="apply-social-name"><strong>@platform.Name</strong><span class="apply-social-connected"><i class="bi bi-check-circle-fill" aria-hidden="true"></i>Connected</span></div>
-                                    <span class="apply-social-handle">@platform.Handle</span>
-                                </div>
-                                <span class="apply-social-followers">@platform.Followers.ToString("N0")<small>@platform.FollowerLabel</small></span>
-                                <button type="button" class="apply-social-remove" aria-label="Remove @platform.Name">×</button>
-                            </li>
-                        }
-                        <li class="apply-social-add">
-                            <span class="apply-social-icon apply-social-add-icon"><i class="bi bi-plus-lg" aria-hidden="true"></i></span>
-                            <div class="apply-social-copy">
-                                <strong>Add Another Account</strong>
-                                <span>You can link more accounts if relevant</span>
-                            </div>
-                        </li>
-                    </ul>
+                    <div class="apply-field">
+                        <label class="apply-link-input"><i class="bi bi-instagram" aria-hidden="true"></i><input type="text" name="InstagramProfileUrl" value="@Model.InstagramProfileUrl" placeholder="https://instagram.com/yourusername" /></label>
+                        <label class="apply-link-input"><i class="bi bi-facebook" aria-hidden="true"></i><input type="text" name="FacebookProfileUrl" value="@Model.FacebookProfileUrl" placeholder="https://facebook.com/yourusername" /></label>
+                        <label class="apply-link-input"><i class="bi bi-tiktok" aria-hidden="true"></i><input type="text" name="TikTokProfileUrl" value="@Model.TikTokProfileUrl" placeholder="https://tiktok.com/@@yourusername" /></label>
+                    </div>
 
                     <div class="apply-form-actions">
-                        <a class="apply-btn-secondary" href="@Url.Action("Apply", new { id = Model.CampaignId, concept = Model.Concept, whyGoodFit = Model.WhyGoodFit, instagramLink = Model.InstagramLink, tikTokLink = Model.TikTokLink, youTubeLink = Model.YouTubeLink })">Back</a>
+                        <a class="apply-btn-secondary" href="@Url.Action("Apply", new { id = Model.CampaignId, concept = Model.Concept, whyGoodFit = Model.WhyGoodFit, instagramLink = Model.InstagramLink, tikTokLink = Model.TikTokLink, youTubeLink = Model.YouTubeLink, instagramProfileUrl = Model.InstagramProfileUrl, facebookProfileUrl = Model.FacebookProfileUrl, tikTokProfileUrl = Model.TikTokProfileUrl })">Back</a>
                         <button type="submit" class="apply-btn-primary">Next Step <i class="bi bi-arrow-right" aria-hidden="true"></i></button>
                     </div>
                 </form>

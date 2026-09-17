@@ -1,0 +1,83 @@
+/* Scoped to campaign details; application pages retain their existing styles. */
+.campaign-detail-reference { padding:16px 16px 28px; }
+.campaign-detail-reference .detail-banner { border-radius:11px; overflow:hidden; background:url('/images/campaign-details-waves.svg') center/100% 100% no-repeat,radial-gradient(ellipse at 62% 0,#b1caff88,transparent 58%),linear-gradient(110deg,#e5f2ff,#eaf5ff); }
+.campaign-detail-reference .campaign-crumb { margin:0; padding:11px 17px; background:#ffffff3d; font-size:12px; }
+.campaign-detail-reference .detail-hero { display:grid; grid-template-columns:126px minmax(0,1fr) 172px; gap:24px; align-items:center; min-height:202px; padding:10px 28px 22px; }
+.campaign-detail-reference .detail-brand { display:grid; justify-items:start; gap:3px; font-size:12px; min-width:0; }
+.campaign-detail-reference .detail-brand>strong { overflow-wrap:anywhere; }
+.campaign-detail-reference .detail-logo { width:118px; height:118px; display:grid; place-items:center; border:1px solid #d6e8ff; border-radius:12px; background:#ffffffd0; box-shadow:0 3px 12px #7aa5d514; font:600 32px 'Playfair Display',Georgia,serif; color:#090840; }
+.campaign-detail-reference .detail-logo img { width:100%; height:100%; object-fit:contain; padding:10px; border-radius:12px; }
+.campaign-detail-reference .detail-verified { font-size:10px; color:#1539d1; background:#f9fcff; border-radius:16px; padding:2px 8px; }
+.campaign-detail-reference .detail-verified i { color:#334cff; }
+.campaign-detail-reference .detail-hero-copy { min-width:0; }
+.campaign-detail-reference .detail-tags { display:flex; flex-wrap:wrap; gap:12px; margin-bottom:10px; }
+.campaign-detail-reference .detail-tags span { padding:3px 11px; background:#ffffffdf; border-radius:20px; font-size:10px; font-weight:600; color:#101052; }
+.campaign-detail-reference .detail-tags span+span { background:#bdd7ff; }
+.campaign-detail-reference .detail-hero h1 { font:700 clamp(25px,2.8vw,34px)/1.2 'Playfair Display',Georgia,serif; color:#0c084b; letter-spacing:-.7px; margin-bottom:6px; overflow-wrap:anywhere; }
+.campaign-detail-reference .detail-hero-copy>p { font-size:12px; line-height:1.55; color:#364b89; max-width:610px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; overflow-wrap:anywhere; }
+.campaign-detail-reference .detail-stats { display:flex; flex-wrap:wrap; margin-top:21px; }
+.campaign-detail-reference .detail-stats>div { padding:0 20px; border-left:1px solid #bcd7f9; }
+.campaign-detail-reference .detail-stats dt { font-size:10px; font-weight:400; color:#32447e; margin-bottom:3px; }
+.campaign-detail-reference .detail-stats dd { font-size:17px; font-weight:700; color:#101043; }
+.campaign-detail-reference .detail-motto { font-size:18px; line-height:1.35; color:#2b448c; align-self:start; margin-top:25px; }
+.campaign-detail-reference .detail-motto>span { display:block; width:38px; height:4px; margin-top:14px; border-radius:6px; background:linear-gradient(90deg,#7826ff,#00b7ea); }
+.campaign-detail-reference .campaign-details-grid { grid-template-columns:minmax(0,1.76fr) minmax(0,1fr); gap:14px; margin-top:14px; }
+.campaign-detail-reference .campaign-details-main { gap:12px; }
+.campaign-detail-reference .campaign-details-side { gap:13px; }
+.campaign-detail-reference .campaign-tabs { width:87%; flex-wrap:nowrap; border:0; gap:0; padding:3px 4px; background:#e8f2fdbf; border-radius:10px; }
+.campaign-detail-reference .campaign-tabs button { min-width:0; padding:9px 6px; font-size:11px; font-weight:400; border-radius:8px; }
+.campaign-detail-reference .campaign-tabs button.is-active { background:linear-gradient(110deg,#3544ff,#0055ff,#00a8f5); }
+.campaign-detail-reference .campaign-tab-panel { padding:16px 19px 22px; }
+.campaign-detail-reference .campaign-tab-panel h2,.campaign-detail-reference .campaign-facts-card h2 { font:700 18px/1.25 'Playfair Display',Georgia,serif; color:#0b084b; margin-bottom:9px; }
+.campaign-detail-reference .campaign-full-description { font-size:12px; line-height:1.6; color:#52649b; }
+.campaign-detail-reference .detail-section { border-top:1px solid #e9f0fa; padding-top:10px; margin-top:12px; }
+.campaign-detail-reference .detail-milestones { list-style:none; padding:0; margin:0; position:relative; display:grid; gap:9px; }
+.campaign-detail-reference .detail-milestones::before { content:''; position:absolute; left:15px; width:1px; top:0; bottom:0; background:linear-gradient(#e2edff,#8cb9ff,#e2edff); }
+.campaign-detail-reference .detail-milestones li { display:flex; align-items:center; gap:14px; position:relative; }
+.campaign-detail-reference .detail-milestone-number { width:28px; height:28px; flex:0 0 28px; border-radius:50%; background:linear-gradient(120deg,#d6e9ff,#aad3ff); display:grid; place-items:center; color:#1551ff; font-size:12px; }
+.campaign-detail-reference .detail-milestone-card { display:flex; align-items:center; gap:18px; flex:1; min-width:0; padding:10px 16px; border:1px solid #e3edfc; border-radius:10px; background:#ffffff45; box-shadow:0 3px 9px #9bbfe90b; }
+.campaign-detail-reference .detail-milestone-icon { width:41px; height:41px; flex:0 0 41px; border-radius:50%; display:grid; place-items:center; color:white; font-size:22px; background:linear-gradient(135deg,#4152ff,#00a8ff); }
+.campaign-detail-reference .detail-milestone-card>div { flex:1; min-width:0; }
+.campaign-detail-reference .detail-milestone-card h3 { font-size:13px; font-weight:600; color:#15164f; }
+.campaign-detail-reference .detail-milestone-card p { color:#56669d; font-size:12px; line-height:1.4; overflow-wrap:anywhere; white-space:pre-wrap; }
+.campaign-detail-reference .detail-milestone-card small { display:block; color:#6375a1; font-size:10px; margin-top:3px; }
+.campaign-detail-reference .detail-milestone-amount { border-left:1px solid #e9f1fd; padding:10px 8px 10px 20px; font-size:16px; color:#0b124e; white-space:nowrap; }
+.campaign-detail-reference .detail-empty { display:flex; align-items:center; gap:15px; padding:22px 16px; border:1px solid #e3edfc; border-radius:10px; background:#f3f8ff; font-size:13px; }
+.campaign-detail-reference .detail-empty>i { font-size:28px; color:#2368ff; }
+.campaign-detail-reference .detail-empty p,.campaign-detail-reference .detail-help { font-size:12px; color:#59709d; margin-top:5px; }
+.campaign-detail-reference .detail-help { margin-bottom:14px; }
+.campaign-detail-reference .detail-timeline { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); list-style:none; padding:0; margin:8px -8px 0; }
+.campaign-detail-reference .detail-timeline li { position:relative; display:flex; flex-direction:column; align-items:center; gap:3px; text-align:center; padding-top:28px; }
+.campaign-detail-reference .detail-timeline li::before { content:''; position:absolute; top:8px; left:0; right:0; height:2px; background:#c1d9ff; }
+.campaign-detail-reference .detail-timeline li:first-child::before { left:50%; }
+.campaign-detail-reference .detail-timeline li:last-child::before { right:50%; }
+.campaign-detail-reference .detail-timeline li>span { position:absolute; top:2px; width:13px; height:13px; background:#88b6ff; border-radius:50%; }
+.campaign-detail-reference .detail-timeline li:first-child>span { background:#009fff; }
+.campaign-detail-reference .detail-timeline strong { font-size:10px; font-weight:500; color:#15164e; }
+.campaign-detail-reference .detail-timeline time { font-size:12px; font-weight:600; color:#15164e; padding:0 4px; }
+.campaign-detail-reference .campaign-apply-card,.campaign-detail-reference .campaign-facts-card { padding:16px 19px; }
+.campaign-detail-reference .campaign-apply-card h2 { font:700 22px/1.2 'Playfair Display',Georgia,serif; color:#0b084b; }
+.campaign-detail-reference .campaign-apply-card p { font-size:12px; margin-bottom:13px; }
+.campaign-detail-reference .campaign-apply-btn { padding:11px; border-radius:8px; background:linear-gradient(110deg,#3630ff,#005bff,#00acf2); color:#fff; }
+.campaign-detail-reference .campaign-apply-card small { font-size:10px; }
+.campaign-detail-reference .detail-proposal-link { display:block; text-align:center; font-size:12px; margin-top:12px; }
+.campaign-detail-reference .campaign-fact-list { gap:0; }
+.campaign-detail-reference .campaign-fact-list>div { display:grid; grid-template-columns:46% minmax(0,1fr); gap:12px; padding:5px 0; font-size:12px; }
+.campaign-detail-reference .campaign-fact-list dt { font-weight:400; color:#35437b; }
+.campaign-detail-reference .campaign-fact-list dd { text-align:left; font-weight:400; color:#56699b; }
+.campaign-detail-reference .campaign-support-card { margin-top:6px; padding:20px; background:radial-gradient(ellipse at 95% 100%,#c1ddff,transparent 65%),linear-gradient(120deg,#eff7ff,#e0eeff); }
+.campaign-detail-reference .campaign-support-card>i { width:44px; height:44px; border-radius:50%; background:#c7e0ff; }
+.campaign-detail-reference .campaign-support-card h6 { font:700 15px/1.3 'Playfair Display',Georgia,serif; }
+.campaign-detail-reference .campaign-support-card p { font-size:11px; }
+.campaign-detail-reference .campaign-support-card a { border:1px solid #b7d3ff; background:#ffffffaa; border-radius:10px; padding:8px 14px; box-shadow:0 3px 8px #548cef12; font-size:11px; }
+.campaign-detail-reference .campaign-support-card a i { width:auto; height:auto; background:none; font-size:12px; }
+@media(max-width:1000px) { .campaign-detail-reference .detail-hero { grid-template-columns:110px minmax(0,1fr); gap:20px; padding:15px 20px 22px; } .campaign-detail-reference .detail-logo { width:105px; height:105px; } .campaign-detail-reference .detail-motto { display:none; } .campaign-detail-reference .detail-stats>div { padding:0 14px; } .campaign-detail-reference .campaign-tabs { width:100%; } .campaign-detail-reference .detail-milestone-card { gap:10px; padding:10px; } .campaign-detail-reference .detail-milestone-amount { padding-left:10px; } }
+@media(max-width:800px) { .campaign-detail-reference .campaign-details-grid { grid-template-columns:1fr; } .campaign-detail-reference .campaign-tabs { flex-direction:row; } }
+@media(max-width:520px) { .campaign-detail-reference { padding:12px; } .campaign-detail-reference .detail-hero { grid-template-columns:1fr; padding:16px; gap:16px; } .campaign-detail-reference .detail-brand { grid-template-columns:64px 1fr; column-gap:12px; align-items:center; } .campaign-detail-reference .detail-logo { grid-row:1/3; width:64px; height:64px; font-size:24px; } .campaign-detail-reference .detail-stats { display:grid; grid-template-columns:1fr 1fr; gap:12px; } .campaign-detail-reference .detail-stats>div { padding:0 10px; } .campaign-detail-reference .detail-hero h1 { font-size:26px; } .campaign-detail-reference .campaign-tab-panel { padding:16px 12px; } .campaign-detail-reference .campaign-tabs button { font-size:10px; padding:10px 3px; } .campaign-detail-reference .detail-milestone-card { flex-wrap:wrap; } .campaign-detail-reference .detail-milestone-icon { width:30px; height:30px; flex-basis:30px; font-size:17px; } .campaign-detail-reference .detail-milestone-card>div { flex-basis:calc(100% - 40px); } .campaign-detail-reference .detail-milestone-amount { margin-left:40px; padding:0; border:0; font-size:14px; } .campaign-detail-reference .detail-timeline { grid-template-columns:1fr 1fr; row-gap:14px; } }
+
+.campaign-detail-reference .detail-milestone-icon.platform-instagram { background:radial-gradient(circle at 20% 100%,#ffd76d 5%,#ff544c 38%,#d9189b 65%,#753bc1); font-size:26px; }
+.campaign-detail-reference .detail-milestone-icon.platform-facebook { background:#0866ff; font-size:34px; }
+.campaign-detail-reference .detail-milestone-icon.platform-tiktok { background:#080909; font-size:27px; text-shadow:-1px 0 #00eff2,1px 1px #ff3654; }
+.campaign-detail-reference .detail-milestone-icon.platform-youtube { background:#f03; font-size:26px; }
+.campaign-detail-reference .campaign-support-card.dashboard-card { background:radial-gradient(ellipse at 95% 100%,#c1ddff,transparent 65%),linear-gradient(120deg,#eff7ff,#e0eeff); }
+@media(max-width:520px) { .campaign-detail-reference .detail-milestone-icon[class*="platform-"] { font-size:20px; } }

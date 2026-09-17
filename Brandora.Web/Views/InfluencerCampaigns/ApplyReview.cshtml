@@ -6,6 +6,7 @@
     Layout = null;
     var name = Model.Profile.FullName;
     var sampleLinks = new[] { Model.InstagramLink, Model.TikTokLink, Model.YouTubeLink }.Where(l => !string.IsNullOrWhiteSpace(l)).ToList();
+    var socialLinks = new[] { Model.InstagramProfileUrl, Model.FacebookProfileUrl, Model.TikTokProfileUrl }.Where(l => !string.IsNullOrWhiteSpace(l)).ToList();
 }
 <!DOCTYPE html>
 <html lang="en">
@@ -67,10 +68,14 @@
                     <input type="hidden" name="InstagramLink" value="@Model.InstagramLink" />
                     <input type="hidden" name="TikTokLink" value="@Model.TikTokLink" />
                     <input type="hidden" name="YouTubeLink" value="@Model.YouTubeLink" />
+                    <input type="hidden" name="InstagramProfileUrl" value="@Model.InstagramProfileUrl" />
+                    <input type="hidden" name="FacebookProfileUrl" value="@Model.FacebookProfileUrl" />
+                    <input type="hidden" name="TikTokProfileUrl" value="@Model.TikTokProfileUrl" />
 
+                    <div asp-validation-summary="All" class="apply-field-error" role="alert"></div>
                     <div class="apply-review-head">
                         <h2>Review Your Application</h2>
-                        <a href="@Url.Action("Apply", new { id = Model.CampaignId, concept = Model.Concept, whyGoodFit = Model.WhyGoodFit, instagramLink = Model.InstagramLink, tikTokLink = Model.TikTokLink, youTubeLink = Model.YouTubeLink })"><i class="bi bi-pencil" aria-hidden="true"></i> Edit</a>
+                        <a href="@Url.Action("Apply", new { id = Model.CampaignId, concept = Model.Concept, whyGoodFit = Model.WhyGoodFit, instagramLink = Model.InstagramLink, tikTokLink = Model.TikTokLink, youTubeLink = Model.YouTubeLink, instagramProfileUrl = Model.InstagramProfileUrl, facebookProfileUrl = Model.FacebookProfileUrl, tikTokProfileUrl = Model.TikTokProfileUrl })"><i class="bi bi-pencil" aria-hidden="true"></i> Edit</a>
                     </div>
                     <p class="apply-form-intro">Please review all the information below before submitting your application.</p>
 
@@ -88,17 +93,17 @@
 
                     <section class="apply-review-section">
                         <h3><i class="bi bi-share" aria-hidden="true"></i> Social Accounts</h3>
-                        <ul class="apply-review-social">
-                            @foreach (var platform in Model.Platforms)
+                        @if (socialLinks.Count > 0)
+                        {
+                            @foreach (var link in socialLinks)
                             {
-                                <li>
-                                    <span class="apply-social-icon small" style="background:@platform.IconGradient"><i class="bi @platform.Icon" aria-hidden="true"></i></span>
-                                    <span class="apply-social-handle">@platform.Handle</span>
-                                    <span class="apply-social-connected"><i class="bi bi-check-circle-fill" aria-hidden="true"></i>Connected</span>
-                                    <span class="apply-social-followers">@platform.Followers.ToString("N0") <small>followers</small></span>
-                                </li>
+                                <p><a href="@link" target="_blank" rel="noopener">@link</a></p>
                             }
-                        </ul>
+                        }
+                        else
+                        {
+                            <p class="apply-review-social-note">No social accounts added yet.</p>
+                        }
                         @if (sampleLinks.Count > 0)
                         {
                             <div class="apply-review-block">
@@ -117,7 +122,7 @@
                     </label>
 
                     <div class="apply-form-actions">
-                        <a class="apply-btn-secondary" href="@Url.Action("ApplySocial", new { id = Model.CampaignId, concept = Model.Concept, whyGoodFit = Model.WhyGoodFit, instagramLink = Model.InstagramLink, tikTokLink = Model.TikTokLink, youTubeLink = Model.YouTubeLink })">Back</a>
+                        <a class="apply-btn-secondary" href="@Url.Action("ApplySocial", new { id = Model.CampaignId, concept = Model.Concept, whyGoodFit = Model.WhyGoodFit, instagramLink = Model.InstagramLink, tikTokLink = Model.TikTokLink, youTubeLink = Model.YouTubeLink, instagramProfileUrl = Model.InstagramProfileUrl, facebookProfileUrl = Model.FacebookProfileUrl, tikTokProfileUrl = Model.TikTokProfileUrl })">Back</a>
                         <button type="submit" class="apply-btn-primary">Submit Application <i class="bi bi-arrow-right" aria-hidden="true"></i></button>
                     </div>
                     <p class="apply-review-note">You can edit your application anytime before the deadline.</p>

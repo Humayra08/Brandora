@@ -22,6 +22,7 @@
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/lib/dashboard-assets/bootstrap-icons.css" />
     <link rel="stylesheet" href="~/lib/dashboard-assets/dashboard-fonts.css" />
+    <link rel="stylesheet" href="~/css/brandora-influencer-dashboard.css" asp-append-version="true" />
     <style>
         * {
             box-sizing: border-box;
@@ -323,49 +324,10 @@
             margin-left: 0;
         }
 
-        .topbar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-
-        .menu-btn {
-            border: 0;
-            background: transparent;
-            font-size: 26px;
-            color: #20283a;
-        }
-
-        .top-actions {
-            display: flex;
-            align-items: center;
-            gap: 22px;
-        }
-
-        .bell {
-            position: relative;
-            font-size: 23px;
-            color: #20283a;
-        }
-
-        .browse-btn {
-            border: 0;
-            color: white;
-            padding: 9px 16px;
-            border-radius: 9px;
-            font-size: 13px;
-            font-weight: 600;
-            background: linear-gradient(105deg, #a326ff, #236eff, #18a9ff);
-            transition: .25s;
-        }
-
-        .browse-btn:hover {
-            transform: translateY(-2px);
-        }
-
-        .browse-btn i {
-            margin-left: 10px;
+        /* .main-content pads 24px 26px but the dashboard pads 12px 20px; pull the shared
+           topbar back to the dashboard's inset so both bars sit identically. */
+        .settings-page .dashboard-topbar {
+            margin: -12px -6px 12px;
         }
 
         /* ==============================
@@ -980,32 +942,35 @@
 
     <!-- ================= MAIN ================= -->
 
-    <main class="main-content" id="dashboardMain">
+    <main class="main-content settings-page" id="dashboardMain">
 
         <!-- TOP BAR -->
 
-        <div class="topbar">
-
-            <button class="menu-btn" id="menuToggleBtn" aria-label="Toggle sidebar" type="button">
-                <i class="bi bi-list"></i>
-            </button>
-
-            <div class="top-actions">
-
-                <div class="bell">
-                    <i class="bi bi-bell"></i>
+        <header class="dashboard-topbar">
+            <button class="dashboard-menu" id="menuToggleBtn" type="button" aria-label="Toggle sidebar" aria-controls="dashboardSidebar"><i class="bi bi-list" aria-hidden="true"></i></button>
+            <form class="dashboard-search" method="get" asp-controller="InfluencerCampaigns" asp-action="Index" role="search">
+                <i class="bi bi-search" aria-hidden="true"></i>
+                <input type="search" name="search" placeholder="Search campaigns, brands..." aria-label="Search campaigns and brands" />
+                <button type="submit" aria-label="Search"><i class="bi bi-search" aria-hidden="true"></i></button>
+            </form>
+            <details class="dashboard-notifications">
+                <summary aria-label="Notifications"><i class="bi bi-bell" aria-hidden="true"></i>@if ((ViewData["UnreadNotifications"] as int? ?? 0) > 0) { <span class="dashboard-unread"></span> }</summary>
+                <div class="dashboard-notification-panel">
+                    <h2>Notifications</h2>
+                    @foreach (var notification in Model.Notifications)
+                    {
+                        <article><strong>@notification.Title</strong><p>@notification.Body</p></article>
+                    }
+                    @if (Model.Notifications.Count == 0) { <p>No notifications yet.</p> }
                 </div>
+            </details>
+            <a class="dashboard-account" href="/InfluencerSettings">
+                <span class="dashboard-avatar">@FollowerFormat.InitialsOf(Model.Profile.FullName)</span>
+                <span><strong>@Model.Profile.FullName</strong><small>Influencer</small></span>
+                <i class="bi bi-chevron-down" aria-hidden="true"></i>
+            </a>
+        </header>
 
-                <a href="/InfluencerCampaigns">
-                    <button class="browse-btn">
-                        Browse Campaigns
-                        <i class="bi bi-arrow-right"></i>
-                    </button>
-                </a>
-
-            </div>
-
-        </div>
 
 
         <!-- ================= PAGE HEADER ================= -->
@@ -1235,6 +1200,7 @@
 
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/brandora-influencer-dashboard.js" asp-append-version="true"></script>
 
     <script>
 
@@ -1254,33 +1220,6 @@
             }
             window.addEventListener('hashchange', showSection);
             showSection();
-        })();
-
-        (function () {
-            var menuBtn = document.getElementById('menuToggleBtn');
-            var sidebar = document.getElementById('dashboardSidebar');
-            var main = document.getElementById('dashboardMain');
-            var backdrop = document.getElementById('sidebarBackdrop');
-            var mobileQuery = window.matchMedia('(max-width: 900px)');
-
-            if (!menuBtn || !sidebar || !main) return;
-
-            function closeMobile() {
-                sidebar.classList.remove('is-open');
-                if (backdrop) backdrop.classList.remove('is-visible');
-            }
-
-            menuBtn.addEventListener('click', function () {
-                if (mobileQuery.matches) {
-                    sidebar.classList.toggle('is-open');
-                    if (backdrop) backdrop.classList.toggle('is-visible');
-                } else {
-                    sidebar.classList.toggle('is-hidden');
-                    main.classList.toggle('sidebar-hidden');
-                }
-            });
-
-            if (backdrop) backdrop.addEventListener('click', closeMobile);
         })();
 
         (function () {
