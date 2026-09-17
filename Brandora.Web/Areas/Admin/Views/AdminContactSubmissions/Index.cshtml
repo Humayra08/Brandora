@@ -17,13 +17,13 @@
     </div>
 
     <form method="get" action="/Admin/AdminContactSubmissions/Index" style="display:flex; gap:10px; flex-wrap:wrap; margin-top:14px; align-items:center;">
-        <select name="status" style="height:40px; padding:0 12px; border-radius:9px; border:1px solid #dde1f0; font-family:'Inter',sans-serif; font-size:13px;">
+        <select name="status" onchange="this.form.submit()" style="height:40px; padding:0 12px; border-radius:9px; border:1px solid #dde1f0; font-family:'Inter',sans-serif; font-size:13px;">
             <option value="">All Statuses</option>
             <option value="New" selected="@(statusFilter == Brandora.Web.Models.Domain.ContactSubmissionStatus.New)">New</option>
             <option value="InProgress" selected="@(statusFilter == Brandora.Web.Models.Domain.ContactSubmissionStatus.InProgress)">In Progress</option>
             <option value="Resolved" selected="@(statusFilter == Brandora.Web.Models.Domain.ContactSubmissionStatus.Resolved)">Resolved</option>
         </select>
-        <button type="submit" class="btn btn-sm btn-secondary">Filter</button>
+        <noscript><button type="submit" class="btn btn-sm btn-secondary">Filter</button></noscript>
     </form>
 
     @if (Model.Count == 0)
