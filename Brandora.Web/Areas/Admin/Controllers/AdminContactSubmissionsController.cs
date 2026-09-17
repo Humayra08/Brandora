@@ -1,12 +1,31 @@
 using Brandora.Web.Data;
 using Brandora.Web.Models.Domain;
+using Brandora.Web.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace Brandora.Web.Areas.Admin.Controllers;
 
-public class AdminContactSubmissionsController(ApplicationDbContext db) : AdminControllerBase(db)
+public class AdminContactSubmissionsController(ApplicationDbContext db, EmailSender email) : AdminControllerBase(db)
 {
+    /// <summary>
+    /// The acknowledgement wording is fixed for every submission, so it is built
+    /// here rather than accepted from the browser. Only the name varies.
+    /// </summary>
+    public const string AcknowledgementSubject = "Thank you for contacting Brandora";
+
+    public static string AcknowledgementBody(string fullName) =>
+        $"""
+        Dear {fullName},
+
+        Thank you for contacting us and sharing your issue with Brandora.
+
+        We have received your request and our team is currently working on it. We appreciate your patience and will get back to you once the issue has been resolved.
+
+        Best regards,
+        Brandora Support Team
+        """;
+
     public async Task<IActionResult> Index(ContactSubmissionStatus? status)
     {
         await LoadAdminChromeAsync();
@@ -24,5 +43,103 @@ public class AdminContactSubmissionsController(ApplicationDbContext db) : AdminC
 
         var submissions = await query.OrderByDescending(c => c.CreatedAt).ToListAsync();
         return View(submissions);
+    }
+
+    public async Task<IActionResult> Details(int id)
+    {
+        await LoadAdminChromeAsync();
+        ViewData["ActiveNav"] = "ContactSubmissions";
+        ViewData["Title"] = "Contact Submission";
+        ViewData["Breadcrumb"] = new List<(string, string?)>
+        {
+            ("Contact Submissions", "/Admin/AdminContactSubmissions/Index"),
+            ("Details", null)
+        };
+
+        var submission = await db.ContactSubmissions.FirstOrDefaultAsync(c => c.Id == id);
+
+        if (submission is null)
+        {
+            return NotFound();
+        }
+
+        ViewData["EmailConfigured"] = email.IsConfigured;
+        return View(submission);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> SendAcknowledgement(int id)
+    {
+        var submission = await db.ContactSubmissions.FirstOrDefaultAsync(c => c.Id == id);
+
+        if (submission is null)
+        {
+            return NotFound();
+        }
+
+        if (submission.Status != ContactSubmissionStatus.New)
+        {
+            TempData["ContactError"] = "This submission has already been acknowledged.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        try
+        {
+            // Recipient comes from the stored record, never from the request.
+            await email.SendAsync(submission.Email, AcknowledgementSubject, AcknowledgementBody(submission.FullName));
+        }
+        catch (Exception ex)
+        {
+            // Status is left untouched so the admin can retry.
+            TempData["ContactError"] = "The email could not be sent, so the status is unchanged. " + ex.Message;
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        submission.Status = ContactSubmissionStatus.InProgress;
+        await db.SaveChangesAsync();
+
+        TempData["ContactMessage"] = $"Acknowledgement sent to {submission.Email}. Status is now In Progress.";
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> SendResolution(int id, string subject, string body)
+    {
+        var submission = await db.ContactSubmissions.FirstOrDefaultAsync(c => c.Id == id);
+
+        if (submission is null)
+        {
+            return NotFound();
+        }
+
+        if (submission.Status != ContactSubmissionStatus.InProgress)
+        {
+            TempData["ContactError"] = "Send the acknowledgement first — only in-progress submissions can be resolved.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        if (string.IsNullOrWhiteSpace(subject) || string.IsNullOrWhiteSpace(body))
+        {
+            TempData["ContactError"] = "Enter both a subject and a message before sending.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        try
+        {
+            await email.SendAsync(submission.Email, subject.Trim(), body.Trim());
+        }
+        catch (Exception ex)
+        {
+            TempData["ContactError"] = "The email could not be sent, so the status stays In Progress. " + ex.Message;
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        submission.Status = ContactSubmissionStatus.Resolved;
+        await db.SaveChangesAsync();
+
+        TempData["ContactMessage"] = $"Resolution sent to {submission.Email}. Status is now Resolved.";
+        return RedirectToAction(nameof(Details), new { id });
     }
 }

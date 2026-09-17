@@ -1,0 +1,166 @@
+@model Brandora.Web.Models.Domain.ContactSubmission
+@using Brandora.Web.Areas.Admin.Controllers
+@{
+    var emailConfigured = ViewData["EmailConfigured"] as bool? ?? false;
+
+    static string PillColor(Brandora.Web.Models.Domain.ContactSubmissionStatus s) => s switch
+    {
+        Brandora.Web.Models.Domain.ContactSubmissionStatus.Resolved => "green",
+        Brandora.Web.Models.Domain.ContactSubmissionStatus.InProgress => "blue",
+        _ => "gray"
+    };
+}
+
+<style>
+    .cs-field { margin-top: 14px; }
+    .cs-field-label { font-size: 11.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .4px; color: #8189a8; }
+    .cs-field-value { margin-top: 4px; font-size: 13.5px; color: #2a3157; white-space: pre-wrap; }
+    .cs-readonly { width: 100%; padding: 10px 12px; margin-top: 6px; border-radius: 9px; border: 1px solid #dde1f0; background: #f6f7fb; font-family: 'Inter', sans-serif; font-size: 13px; color: #2a3157; }
+    .cs-input { width: 100%; padding: 10px 12px; margin-top: 6px; border-radius: 9px; border: 1px solid #dde1f0; font-family: 'Inter', sans-serif; font-size: 13px; color: #2a3157; }
+    .cs-textarea { width: 100%; min-height: 180px; padding: 12px; margin-top: 6px; border-radius: 10px; border: 1px solid #dde1f0; font-family: 'Inter', sans-serif; font-size: 13px; line-height: 1.6; color: #2a3157; resize: vertical; }
+</style>
+
+@if (TempData["ContactMessage"] is string okMsg)
+{
+    <div class="form-success" style="margin-bottom:16px;">@okMsg</div>
+}
+
+@if (TempData["ContactError"] is string errMsg)
+{
+    <div class="form-errors">@errMsg</div>
+}
+
+@if (!emailConfigured)
+{
+    <div class="form-errors">
+        Email is not configured, so sending will fail. Set SMTP_HOST, SMTP_USER, SMTP_PASSWORD and SMTP_FROM in the environment.
+    </div>
+}
+
+<div class="panel">
+    <div class="panel-title">Submission #@Model.Id</div>
+    <div class="panel-sub">
+        Received @Model.CreatedAt.ToString("MMM d, yyyy HH:mm") &middot;
+        <span class="status-pill @PillColor(Model.Status)">@Model.Status</span>
+    </div>
+
+    <div class="cs-field">
+        <div class="cs-field-label">Name</div>
+        <div class="cs-field-value">@Model.FullName</div>
+    </div>
+
+    <div class="cs-field">
+        <div class="cs-field-label">Email</div>
+        <div class="cs-field-value">@Model.Email</div>
+    </div>
+
+    <div class="cs-field">
+        <div class="cs-field-label">Account Type</div>
+        <div class="cs-field-value">@Model.AccountType</div>
+    </div>
+
+    <div class="cs-field">
+        <div class="cs-field-label">Issue Type</div>
+        <div class="cs-field-value">@Model.IssueType</div>
+    </div>
+
+    <div class="cs-field">
+        <div class="cs-field-label">Subject</div>
+        <div class="cs-field-value">@Model.Subject</div>
+    </div>
+
+    <div class="cs-field">
+        <div class="cs-field-label">Description</div>
+        <div class="cs-field-value">@Model.Description</div>
+    </div>
+</div>
+
+@if (Model.Status == Brandora.Web.Models.Domain.ContactSubmissionStatus.New)
+{
+    <div class="panel" style="margin-top:18px;">
+        <div class="panel-title">Start Working / Reply</div>
+        <div class="panel-sub">
+            Review the standard acknowledgement below, then send it. The status moves to In Progress only if the email is sent.
+        </div>
+
+        <form method="post" action="/Admin/AdminContactSubmissions/SendAcknowledgement">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" value="@Model.Id" />
+
+            <div class="cs-field">
+                <div class="cs-field-label">To</div>
+                <input class="cs-readonly" type="text" value="@Model.Email" readonly />
+            </div>
+
+            <div class="cs-field">
+                <div class="cs-field-label">Subject</div>
+                <input class="cs-readonly" type="text" value="@AdminContactSubmissionsController.AcknowledgementSubject" readonly />
+            </div>
+
+            <div class="cs-field">
+                <div class="cs-field-label">Message</div>
+                <textarea class="cs-textarea" readonly>@AdminContactSubmissionsController.AcknowledgementBody(Model.FullName)</textarea>
+            </div>
+
+            <div style="margin-top:16px; display:flex; gap:10px;">
+                <button type="submit" class="btn btn-primary btn-sm">Send Acknowledgement</button>
+                <a href="/Admin/AdminContactSubmissions/Index" class="btn btn-secondary btn-sm">Back</a>
+            </div>
+        </form>
+    </div>
+}
+else if (Model.Status == Brandora.Web.Models.Domain.ContactSubmissionStatus.InProgress)
+{
+    <div class="panel" style="margin-top:18px;">
+        <div class="panel-title">Send Resolution</div>
+        <div class="panel-sub">
+            Write a message for this specific issue. The status moves to Resolved only if the email is sent.
+        </div>
+
+        <form method="post" action="/Admin/AdminContactSubmissions/SendResolution">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" value="@Model.Id" />
+
+            <div class="cs-field">
+                <div class="cs-field-label">To</div>
+                <input class="cs-readonly" type="text" value="@Model.Email" readonly />
+            </div>
+
+            <div class="cs-field">
+                <div class="cs-field-label">Subject</div>
+                <input class="cs-input" type="text" name="subject" required
+                       value="Your Brandora issue has been resolved" />
+            </div>
+
+            <div class="cs-field">
+                <div class="cs-field-label">Message</div>
+                <textarea class="cs-textarea" name="body" required>Dear @Model.FullName,
+
+We have fixed the issue you reported regarding @Model.Subject.
+
+Please try again now and let us know if you experience any further problems.
+
+Thank you for your patience.
+
+Best regards,
+Brandora Support Team</textarea>
+            </div>
+
+            <div style="margin-top:16px; display:flex; gap:10px;">
+                <button type="submit" class="btn btn-primary btn-sm">Send Resolution</button>
+                <a href="/Admin/AdminContactSubmissions/Index" class="btn btn-secondary btn-sm">Back</a>
+            </div>
+        </form>
+    </div>
+}
+else
+{
+    <div class="panel" style="margin-top:18px;">
+        <div class="panel-title">Resolved</div>
+        <div class="panel-sub">The resolution email has been sent. No further action is needed.</div>
+
+        <div style="margin-top:16px;">
+            <a href="/Admin/AdminContactSubmissions/Index" class="btn btn-secondary btn-sm">Back</a>
+        </div>
+    </div>
+}

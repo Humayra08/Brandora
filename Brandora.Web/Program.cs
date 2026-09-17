@@ -30,6 +30,7 @@ builder.Services.ConfigureApplicationCookie(options =>
 builder.Services.AddScoped<NotificationService>();
 builder.Services.AddScoped<MediaUploadService>();
 builder.Services.AddScoped<AdminAuthService>();
+builder.Services.AddScoped<EmailSender>();
 
 builder.Services.AddAuthentication()
     .AddCookie("AdminScheme", options =>

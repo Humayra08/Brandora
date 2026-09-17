@@ -46,6 +46,7 @@
                         <th>Subject</th>
                         <th>Message</th>
                         <th>Status</th>
+                        <th></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -60,6 +61,15 @@
                             <td>@c.Subject</td>
                             <td>@c.Description</td>
                             <td><span class="status-pill @PillColor(c.Status)">@c.Status</span></td>
+                            <td>
+                                <a href="/Admin/AdminContactSubmissions/Details/@c.Id" class="btn btn-sm btn-secondary">
+                                    @(c.Status == Brandora.Web.Models.Domain.ContactSubmissionStatus.New
+                                        ? "Start Working"
+                                        : c.Status == Brandora.Web.Models.Domain.ContactSubmissionStatus.InProgress
+                                            ? "Send Resolution"
+                                            : "View")
+                                </a>
+                            </td>
                         </tr>
                     }
                 </tbody>
