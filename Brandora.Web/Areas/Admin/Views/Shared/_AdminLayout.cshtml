@@ -5,8 +5,9 @@
     var pendingVerifications = ViewData["PendingVerifications"] as int? ?? 0;
     var pendingProofReviews = ViewData["PendingProofReviews"] as int? ?? 0;
     var openDisputes = ViewData["OpenDisputes"] as int? ?? 0;
+    var newContactSubmissions = ViewData["NewContactSubmissions"] as int? ?? 0;
     var recentAlerts = ViewData["RecentAlerts"] as List<Brandora.Web.Areas.Admin.Controllers.AdminAlert> ?? new();
-    var totalAlerts = pendingVerifications + pendingProofReviews + openDisputes;
+    var totalAlerts = pendingVerifications + pendingProofReviews + openDisputes + newContactSubmissions;
     var breadcrumb = ViewData["Breadcrumb"] as List<(string Label, string? Url)> ?? new();
     var adminInitial = string.IsNullOrEmpty(adminName) ? "A" : adminName[..1].ToUpperInvariant();
 
