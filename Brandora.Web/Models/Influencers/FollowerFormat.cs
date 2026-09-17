@@ -29,4 +29,8 @@ public static class FollowerFormat
             ? parts[0][..1].ToUpperInvariant()
             : (parts[0][..1] + parts[^1][..1]).ToUpperInvariant();
     }
+
+    // Bangladesh Standard Time is a fixed UTC+6 offset with no daylight saving,
+    // so a plain add avoids relying on a host-specific timezone database ID.
+    public static DateTime ToBangladeshTime(this DateTime utcDateTime) => utcDateTime.AddHours(6);
 }

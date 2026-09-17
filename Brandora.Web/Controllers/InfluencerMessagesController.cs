@@ -130,17 +130,36 @@ public class InfluencerMessagesController(UserManager<ApplicationUser> userManag
         }
 
         var trimmedBody = body?.Trim() ?? string.Empty;
+        var hasBody = !string.IsNullOrEmpty(trimmedBody);
+        var hasMedia = mediaUrl is not null;
 
-        if (!string.IsNullOrEmpty(trimmedBody) || mediaUrl is not null)
+        if (hasBody || hasMedia)
         {
-            db.Messages.Add(new Message
+            var senderId = userManager.GetUserId(User)!;
+
+            // Sent as two separate messages when both an attachment and a
+            // caption are submitted together, so the attachment always
+            // renders in its own bubble rather than a mixed image+text one.
+            if (hasMedia)
             {
-                ConversationId = conversation.Id,
-                SenderUserId = userManager.GetUserId(User)!,
-                Body = trimmedBody,
-                MediaUrl = mediaUrl,
-                MediaType = mediaType
-            });
+                db.Messages.Add(new Message
+                {
+                    ConversationId = conversation.Id,
+                    SenderUserId = senderId,
+                    MediaUrl = mediaUrl,
+                    MediaType = mediaType
+                });
+            }
+
+            if (hasBody)
+            {
+                db.Messages.Add(new Message
+                {
+                    ConversationId = conversation.Id,
+                    SenderUserId = senderId,
+                    Body = trimmedBody
+                });
+            }
 
             await db.SaveChangesAsync();
 
@@ -150,6 +169,58 @@ public class InfluencerMessagesController(UserManager<ApplicationUser> userManag
                 "New message",
                 $"You have a new message from {influencer.FullName}.",
                 $"/Messages?open={conversation.Id}");
+            await db.SaveChangesAsync();
+        }
+
+        return RedirectToAction("Index", new { open = conversationId });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> EditMessage(int messageId, int conversationId, string? body)
+    {
+        var influencer = await GetCurrentInfluencerAsync();
+        if (influencer is null)
+        {
+            return RedirectToAction("Index", "Home");
+        }
+
+        var userId = userManager.GetUserId(User);
+        var message = await db.Messages
+            .Include(m => m.Conversation)
+            .FirstOrDefaultAsync(m => m.Id == messageId && m.Conversation.InfluencerProfileId == influencer.Id);
+
+        if (message is not null && message.SenderUserId == userId && string.IsNullOrEmpty(message.MediaUrl))
+        {
+            var trimmed = body?.Trim() ?? string.Empty;
+            if (!string.IsNullOrEmpty(trimmed))
+            {
+                message.Body = trimmed;
+                await db.SaveChangesAsync();
+            }
+        }
+
+        return RedirectToAction("Index", new { open = conversationId });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteMessage(int messageId, int conversationId)
+    {
+        var influencer = await GetCurrentInfluencerAsync();
+        if (influencer is null)
+        {
+            return RedirectToAction("Index", "Home");
+        }
+
+        var userId = userManager.GetUserId(User);
+        var message = await db.Messages
+            .Include(m => m.Conversation)
+            .FirstOrDefaultAsync(m => m.Id == messageId && m.Conversation.InfluencerProfileId == influencer.Id);
+
+        if (message is not null && message.SenderUserId == userId)
+        {
+            db.Messages.Remove(message);
             await db.SaveChangesAsync();
         }
 
