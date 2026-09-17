@@ -185,10 +185,12 @@ public class InfluencerCampaignsController(UserManager<ApplicationUser> userMana
             return NotFound();
         }
 
-        var myProposalStatus = await db.Proposals.Where(p => p.CampaignId == campaign.Id && p.InfluencerProfileId == influencer.Id)
-            .OrderByDescending(p => p.CreatedAt).Select(p => (ProposalStatus?)p.Status).FirstOrDefaultAsync();
+        var myProposal = await db.Proposals.Where(p => p.CampaignId == campaign.Id && p.InfluencerProfileId == influencer.Id)
+            .OrderByDescending(p => p.CreatedAt).Select(p => new { p.Id, p.Status }).FirstOrDefaultAsync();
 
-        var collaboration = await db.Collaborations.FirstOrDefaultAsync(c => c.CampaignId == campaign.Id && c.InfluencerProfileId == influencer.Id);
+        var myProposalStatus = myProposal is null ? (ProposalStatus?)null : myProposal.Status;
+
+        var collaboration = await db.Collaborations.AsNoTracking().Include(c => c.Milestones).FirstOrDefaultAsync(c => c.CampaignId == campaign.Id && c.InfluencerProfileId == influencer.Id);
 
         var closed = campaign.Status is CampaignStatus.Completed or CampaignStatus.Cancelled || campaign.Deadline < DateTime.UtcNow;
 
@@ -201,6 +203,11 @@ public class InfluencerCampaignsController(UserManager<ApplicationUser> userMana
             Description = campaign.Description,
             BrandName = campaign.BrandProfile.CompanyName,
             BrandLogoUrl = campaign.BrandProfile.ProfilePictureUrl,
+            BrandVerified = campaign.BrandProfile.VerificationStatus == VerificationStatus.Verified,
+            MyProposalId = myProposal?.Id,
+            Milestones = collaboration?.Milestones.OrderBy(m => m.DueDate ?? DateTime.MaxValue).ThenBy(m => m.Id)
+                .Select(m => new CampaignDetailsMilestone { Title = m.Title, Description = m.Description,
+                    Amount = m.Amount, DueDate = m.DueDate, Status = m.Status }).ToList() ?? new(),
             BrandIndustry = campaign.BrandProfile.Industry,
             BrandWebsiteUrl = campaign.BrandProfile.WebsiteUrl,
             Platform = campaign.Platform,
@@ -242,22 +249,8 @@ public class InfluencerCampaignsController(UserManager<ApplicationUser> userMana
         };
     }
 
-    private List<ConnectedPlatformRow> BuildConnectedPlatforms(InfluencerProfile influencer)
-    {
-        var handle = string.IsNullOrWhiteSpace(influencer.PlatformUsername)
-            ? "@" + influencer.FullName.Split(' ')[0].ToLowerInvariant()
-            : influencer.PlatformUsername;
-        var primaryFollowers = influencer.Followers > 0 ? influencer.Followers : 25400;
 
-        return new List<ConnectedPlatformRow>
-        {
-            new() { Name = "Instagram", Icon = "bi-instagram", IconGradient = "linear-gradient(135deg,#f9ce34,#ee2a7b,#6228d7)", Handle = handle, Verified = true, Followers = primaryFollowers, FollowerLabel = "Followers", Connected = true },
-            new() { Name = "TikTok", Icon = "bi-tiktok", IconGradient = "linear-gradient(135deg,#111112,#2b2b2e)", Handle = handle, Verified = true, Followers = (int)(primaryFollowers * 0.74), FollowerLabel = "Followers", Connected = true },
-            new() { Name = "Facebook", Icon = "bi-facebook", IconGradient = "linear-gradient(135deg,#3f8cff,#1857d6)", Handle = influencer.FullName, Verified = true, Followers = (int)(primaryFollowers * 0.33), FollowerLabel = "Followers", Connected = true },
-        };
-    }
-
-    public async Task<IActionResult> Apply(int id, string? concept, string? whyGoodFit, string? instagramLink, string? tikTokLink, string? youTubeLink)
+    public async Task<IActionResult> Apply(int id, string? concept, string? whyGoodFit, string? instagramLink, string? tikTokLink, string? youTubeLink, string? instagramProfileUrl, string? facebookProfileUrl, string? tikTokProfileUrl)
     {
         var influencer = await GetCurrentInfluencerAsync();
         if (influencer is null)
@@ -277,12 +270,15 @@ public class InfluencerCampaignsController(UserManager<ApplicationUser> userMana
         vm.InstagramLink = instagramLink;
         vm.TikTokLink = tikTokLink;
         vm.YouTubeLink = youTubeLink;
+        vm.InstagramProfileUrl = instagramProfileUrl;
+        vm.FacebookProfileUrl = facebookProfileUrl;
+        vm.TikTokProfileUrl = tikTokProfileUrl;
         return View(vm);
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Apply(CampaignApplyViewModel form)
+    public async Task<IActionResult> Apply(CampaignApplyInputModel form)
     {
         var influencer = await GetCurrentInfluencerAsync();
         if (influencer is null)
@@ -304,6 +300,9 @@ public class InfluencerCampaignsController(UserManager<ApplicationUser> userMana
         vm.InstagramLink = form.InstagramLink;
         vm.TikTokLink = form.TikTokLink;
         vm.YouTubeLink = form.YouTubeLink;
+        vm.InstagramProfileUrl = form.InstagramProfileUrl;
+        vm.FacebookProfileUrl = form.FacebookProfileUrl;
+        vm.TikTokProfileUrl = form.TikTokProfileUrl;
 
         if (string.IsNullOrWhiteSpace(vm.Concept))
         {
@@ -319,11 +318,10 @@ public class InfluencerCampaignsController(UserManager<ApplicationUser> userMana
         }
 
         vm.Step = 3;
-        vm.Platforms = BuildConnectedPlatforms(influencer);
         return View("ApplySocial", vm);
     }
 
-    public async Task<IActionResult> ApplySocial(int id, string? concept, string? whyGoodFit, string? instagramLink, string? tikTokLink, string? youTubeLink)
+    public async Task<IActionResult> ApplySocial(int id, string? concept, string? whyGoodFit, string? instagramLink, string? tikTokLink, string? youTubeLink, string? instagramProfileUrl, string? facebookProfileUrl, string? tikTokProfileUrl)
     {
         var influencer = await GetCurrentInfluencerAsync();
         if (influencer is null)
@@ -343,13 +341,15 @@ public class InfluencerCampaignsController(UserManager<ApplicationUser> userMana
         vm.InstagramLink = instagramLink;
         vm.TikTokLink = tikTokLink;
         vm.YouTubeLink = youTubeLink;
-        vm.Platforms = BuildConnectedPlatforms(influencer);
+        vm.InstagramProfileUrl = instagramProfileUrl;
+        vm.FacebookProfileUrl = facebookProfileUrl;
+        vm.TikTokProfileUrl = tikTokProfileUrl;
         return View(vm);
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> ApplySocial(CampaignApplyViewModel form)
+    public async Task<IActionResult> ApplySocial(CampaignApplyInputModel form)
     {
         var influencer = await GetCurrentInfluencerAsync();
         if (influencer is null)
@@ -369,13 +369,15 @@ public class InfluencerCampaignsController(UserManager<ApplicationUser> userMana
         vm.InstagramLink = form.InstagramLink;
         vm.TikTokLink = form.TikTokLink;
         vm.YouTubeLink = form.YouTubeLink;
-        vm.Platforms = BuildConnectedPlatforms(influencer);
+        vm.InstagramProfileUrl = form.InstagramProfileUrl;
+        vm.FacebookProfileUrl = form.FacebookProfileUrl;
+        vm.TikTokProfileUrl = form.TikTokProfileUrl;
         return View("ApplyReview", vm);
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> ApplySubmit(CampaignApplyViewModel form)
+    public async Task<IActionResult> ApplySubmit(CampaignApplyInputModel form)
     {
         var influencer = await GetCurrentInfluencerAsync();
         if (influencer is null)
@@ -395,7 +397,29 @@ public class InfluencerCampaignsController(UserManager<ApplicationUser> userMana
         }
 
         var alreadyApplied = await db.Proposals.AnyAsync(p => p.CampaignId == form.CampaignId && p.InfluencerProfileId == influencer.Id);
-        if (!alreadyApplied && form.Confirmed && !string.IsNullOrWhiteSpace(form.Concept))
+        if (alreadyApplied)
+        {
+            return RedirectToAction(nameof(ApplicationSubmitted), new { id = form.CampaignId });
+        }
+        if (!form.Confirmed)
+        {
+            ModelState.AddModelError(nameof(form.Confirmed), "Please confirm that your application is accurate and complete.");
+        }
+        if (!ModelState.IsValid)
+        {
+            var vm = await BuildApplyViewModelAsync(form.CampaignId, influencer);
+            vm!.Step = 4;
+            vm.Concept = form.Concept ?? "";
+            vm.WhyGoodFit = form.WhyGoodFit ?? "";
+            vm.InstagramLink = form.InstagramLink;
+            vm.TikTokLink = form.TikTokLink;
+            vm.YouTubeLink = form.YouTubeLink;
+            vm.InstagramProfileUrl = form.InstagramProfileUrl;
+            vm.FacebookProfileUrl = form.FacebookProfileUrl;
+            vm.TikTokProfileUrl = form.TikTokProfileUrl;
+            return View("ApplyReview", vm);
+        }
+        if (!alreadyApplied)
         {
             var sampleLinks = new[] { form.InstagramLink, form.TikTokLink, form.YouTubeLink }
                 .Where(l => !string.IsNullOrWhiteSpace(l)).ToList();
@@ -424,6 +448,30 @@ public class InfluencerCampaignsController(UserManager<ApplicationUser> userMana
             await db.SaveChangesAsync();
         }
 
-        return RedirectToAction("Details", new { id = form.CampaignId });
+        return RedirectToAction(nameof(ApplicationSubmitted), new { id = form.CampaignId });
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> ApplicationSubmitted(int id)
+    {
+        var influencer = await GetCurrentInfluencerAsync();
+        if (influencer is null) return RedirectToAction("Index", "Home");
+        var proposal = await db.Proposals.AsNoTracking()
+            .Include(p => p.Campaign).ThenInclude(c => c.BrandProfile)
+            .Where(p => p.CampaignId == id && p.InfluencerProfileId == influencer.Id)
+            .OrderByDescending(p => p.CreatedAt).FirstOrDefaultAsync();
+        if (proposal is null) return NotFound();
+        var campaign = proposal.Campaign;
+        return View(new CampaignApplicationSubmittedViewModel
+        {
+            Profile = influencer,
+            Notifications = await db.Notifications.AsNoTracking().Where(n => n.UserId == influencer.UserId)
+                .OrderByDescending(n => n.CreatedAt).Take(5).ToListAsync(),
+            CampaignId = campaign.Id, Title = campaign.Title,
+            BrandName = campaign.BrandProfile.CompanyName, BrandLogoUrl = campaign.BrandProfile.ProfilePictureUrl,
+            Niche = campaign.Niche, Platform = campaign.Platform, Budget = campaign.Budget, Deadline = campaign.Deadline,
+            ApplicantCount = await db.Proposals.CountAsync(p => p.CampaignId == campaign.Id),
+            ProposalId = proposal.Id, SubmittedAt = proposal.CreatedAt, Status = proposal.Status
+        });
     }
 }

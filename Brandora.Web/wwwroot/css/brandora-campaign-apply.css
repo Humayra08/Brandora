@@ -63,7 +63,7 @@
 .campaign-apply-page .apply-why-card p { font-size: 12px; color: #5877ac; margin-bottom: 14px; line-height: 1.5; }
 .campaign-apply-page .apply-why-card ul { padding-left: 0; list-style: none; }
 .campaign-apply-page .apply-why-card ul li { display: flex; align-items: flex-start; gap: 8px; }
-.campaign-apply-page .apply-why-card ul li i { color: #1caa6b; margin-top: 2px; }
+.campaign-apply-page .apply-why-card ul li i { color: #1451ff; margin-top: 2px; }
 
 .campaign-apply-page .apply-motivate-card { padding: 22px; background: linear-gradient(135deg,#eef4ffbd,#f5faff8c); }
 .campaign-apply-page .apply-motivate-card h6 { font: 600 15px 'Playfair Display',Georgia,serif; color: #101d48; margin-bottom: 6px; }
@@ -73,21 +73,6 @@
 .campaign-apply-page .apply-secure-note { display: flex; align-items: center; gap: 10px; font-size: 12px; color: #5877ac; background: #eef4ffbd; border: 1px solid #dfebff; border-radius: 11px; padding: 14px 16px; }
 .campaign-apply-page .apply-secure-note i { color: #1451ff; }
 
-.campaign-apply-page .apply-social-list { list-style: none; display: grid; gap: 12px; margin-bottom: 6px; }
-.campaign-apply-page .apply-social-list li { display: flex; align-items: center; gap: 14px; border: 1px solid #e6eeff; border-radius: 11px; padding: 14px 16px; }
-.campaign-apply-page .apply-social-icon { flex: 0 0 40px; width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center; color: #fff; font-size: 17px; }
-.campaign-apply-page .apply-social-icon.small { flex-basis: 28px; width: 28px; height: 28px; font-size: 13px; border-radius: 8px; }
-.campaign-apply-page .apply-social-copy { min-width: 0; flex: 1; }
-.campaign-apply-page .apply-social-name { display: flex; align-items: center; gap: 10px; font-size: 13px; }
-.campaign-apply-page .apply-social-connected { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: #1caa6b; background: #e6f9ef; border-radius: 20px; padding: 2px 9px; }
-.campaign-apply-page .apply-social-handle { font-size: 12px; color: #8095c4; }
-.campaign-apply-page .apply-social-followers { text-align: right; font-size: 13px; font-weight: 700; color: #142652; flex: 0 0 auto; }
-.campaign-apply-page .apply-social-followers small { display: block; font-weight: 400; font-size: 10px; color: #8095c4; }
-.campaign-apply-page .apply-social-remove { flex: 0 0 auto; border: 0; background: transparent; font-size: 20px; color: #b7c4e0; cursor: pointer; }
-.campaign-apply-page .apply-social-add { border-style: dashed; cursor: pointer; }
-.campaign-apply-page .apply-social-add-icon { background: #eef3ff; color: #7a8fc2; }
-.campaign-apply-page .apply-social-add strong { display: block; font-size: 13px; color: #142652; }
-.campaign-apply-page .apply-social-add span { font-size: 11px; color: #8095c4; }
 
 .campaign-apply-page .apply-review-head { display: flex; align-items: center; justify-content: space-between; }
 .campaign-apply-page .apply-review-head a { font-size: 12px; font-weight: 600; color: #1451ff; text-decoration: none; }
@@ -97,9 +82,7 @@
 .campaign-apply-page .apply-review-block { margin-bottom: 12px; }
 .campaign-apply-page .apply-review-block strong { display: block; font-size: 12px; color: #5877ac; margin-bottom: 4px; }
 .campaign-apply-page .apply-review-block p { font-size: 13px; color: #142652; line-height: 1.55; overflow-wrap: anywhere; }
-.campaign-apply-page .apply-review-social { list-style: none; display: grid; gap: 10px; margin-bottom: 12px; }
-.campaign-apply-page .apply-review-social li { display: flex; align-items: center; gap: 10px; font-size: 12px; }
-.campaign-apply-page .apply-review-social .apply-social-handle { flex: 1; color: #142652; }
+.campaign-apply-page .apply-review-social-note { font-size: 13px; color: #5877ac; }
 .campaign-apply-page .apply-confirm { display: flex; gap: 10px; align-items: flex-start; font-size: 12px; color: #33477c; line-height: 1.5; margin: 20px 0; padding: 14px; background: #f5f8ff; border-radius: 10px; }
 .campaign-apply-page .apply-confirm input { margin-top: 3px; flex: 0 0 auto; width: 16px; height: 16px; }
 
@@ -111,6 +94,4 @@
     .campaign-apply-page .apply-form { padding: 20px; }
     .campaign-apply-page .apply-form-actions { flex-direction: column-reverse; align-items: stretch; }
     .campaign-apply-page .apply-btn-secondary,.campaign-apply-page .apply-btn-primary { justify-content: center; width: 100%; }
-    .campaign-apply-page .apply-social-list li { flex-wrap: wrap; }
-    .campaign-apply-page .apply-social-followers { flex: 1 0 100%; text-align: left; }
 }

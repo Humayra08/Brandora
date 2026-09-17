@@ -17,5 +17,6 @@ public class InfluencerProfileFormModel
 public class InfluencerSettingsViewModel
 {
     public InfluencerProfile Profile { get; set; } = null!;
+    public List<Notification> Notifications { get; set; } = new();
     public InfluencerProfileFormModel Form { get; set; } = new();
 }
