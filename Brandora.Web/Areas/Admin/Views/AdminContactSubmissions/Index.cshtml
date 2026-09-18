@@ -1,0 +1,79 @@
+@model List<Brandora.Web.Models.Domain.ContactSubmission>
+@{
+    var statusFilter = ViewData["StatusFilter"] as Brandora.Web.Models.Domain.ContactSubmissionStatus?;
+
+    static string PillColor(Brandora.Web.Models.Domain.ContactSubmissionStatus s) => s switch
+    {
+        Brandora.Web.Models.Domain.ContactSubmissionStatus.Resolved => "green",
+        Brandora.Web.Models.Domain.ContactSubmissionStatus.InProgress => "blue",
+        _ => "gray"
+    };
+}
+
+<div class="panel">
+    <div class="panel-title">Contact Submissions</div>
+    <div class="panel-sub">
+        @Model.Count(c => c.Status == Brandora.Web.Models.Domain.ContactSubmissionStatus.New) new of @Model.Count shown
+    </div>
+
+    <form method="get" action="/Admin/AdminContactSubmissions/Index" style="display:flex; gap:10px; flex-wrap:wrap; margin-top:14px; align-items:center;">
+        <select name="status" onchange="this.form.submit()" style="height:40px; padding:0 12px; border-radius:9px; border:1px solid #dde1f0; font-family:'Inter',sans-serif; font-size:13px;">
+            <option value="">All Statuses</option>
+            <option value="New" selected="@(statusFilter == Brandora.Web.Models.Domain.ContactSubmissionStatus.New)">New</option>
+            <option value="InProgress" selected="@(statusFilter == Brandora.Web.Models.Domain.ContactSubmissionStatus.InProgress)">In Progress</option>
+            <option value="Resolved" selected="@(statusFilter == Brandora.Web.Models.Domain.ContactSubmissionStatus.Resolved)">Resolved</option>
+        </select>
+        <noscript><button type="submit" class="btn btn-sm btn-secondary">Filter</button></noscript>
+    </form>
+
+    @if (Model.Count == 0)
+    {
+        <div class="empty-block">
+            <div class="empty-title">No contact submissions found</div>
+        </div>
+    }
+    else
+    {
+        <div class="admin-table-wrap" style="margin-top: 18px;">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Submitted</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Account Type</th>
+                        <th>Issue Type</th>
+                        <th>Subject</th>
+                        <th>Message</th>
+                        <th>Status</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var c in Model)
+                    {
+                        <tr>
+                            <td>@c.CreatedAt.ToString("MMM d, yyyy HH:mm")</td>
+                            <td>@c.FullName</td>
+                            <td>@c.Email</td>
+                            <td>@c.AccountType</td>
+                            <td>@c.IssueType</td>
+                            <td>@c.Subject</td>
+                            <td>@c.Description</td>
+                            <td><span class="status-pill @PillColor(c.Status)">@c.Status</span></td>
+                            <td>
+                                <a href="/Admin/AdminContactSubmissions/Details/@c.Id" class="btn btn-sm btn-secondary">
+                                    @(c.Status == Brandora.Web.Models.Domain.ContactSubmissionStatus.New
+                                        ? "Start Working"
+                                        : c.Status == Brandora.Web.Models.Domain.ContactSubmissionStatus.InProgress
+                                            ? "Send Resolution"
+                                            : "View")
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

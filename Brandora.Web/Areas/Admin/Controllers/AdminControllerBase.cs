@@ -23,6 +23,7 @@ public abstract class AdminControllerBase(ApplicationDbContext db) : Controller
         ViewData["PendingVerifications"] = await db.InfluencerProfiles.CountAsync(i => !i.Verified);
         ViewData["PendingProofReviews"] = await db.Milestones.CountAsync(m => m.Status == MilestoneStatus.Submitted);
         ViewData["OpenDisputes"] = await db.Disputes.CountAsync(d => d.Status == DisputeStatus.Open);
+        ViewData["NewContactSubmissions"] = await db.ContactSubmissions.CountAsync(c => c.Status == ContactSubmissionStatus.New);
         ViewData["RecentAlerts"] = await BuildRecentAlertsAsync();
     }
 
@@ -49,9 +50,17 @@ public abstract class AdminControllerBase(ApplicationDbContext db) : Controller
             .Select(d => new AdminAlert("Dispute opened: " + d.Reason, "/Admin/AdminDisputes/Details/" + d.Id, d.CreatedAt, "Dispute"))
             .ToListAsync();
 
+        var contactAlerts = await db.ContactSubmissions
+            .Where(c => c.Status == ContactSubmissionStatus.New)
+            .OrderByDescending(c => c.CreatedAt)
+            .Take(5)
+            .Select(c => new AdminAlert("New contact submission from " + c.FullName, "/Admin/AdminContactSubmissions/Index", c.CreatedAt, "Contact"))
+            .ToListAsync();
+
         return verificationAlerts
             .Concat(proofAlerts)
             .Concat(disputeAlerts)
+            .Concat(contactAlerts)
             .OrderByDescending(a => a.CreatedAt)
             .Take(5)
             .ToList();

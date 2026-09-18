@@ -99,15 +99,28 @@ public class HomeController(ApplicationDbContext db) : Controller
 
     [HttpPost("contact")]
     [ValidateAntiForgeryToken]
-    public IActionResult Contact(ContactIssueViewModel model)
+    public async Task<IActionResult> Contact(ContactIssueViewModel model)
     {
         if (!ModelState.IsValid)
         {
             return View(model);
         }
 
-        // Reports are acknowledged in-page; support picks them up over the
-        // channels listed alongside the form.
+        // Stored for the admin portal's Contact Submissions page; attachments are
+        // still not persisted, so support picks those up over the channels listed
+        // alongside the form.
+        db.ContactSubmissions.Add(new ContactSubmission
+        {
+            FullName = model.FullName,
+            Email = model.Email,
+            AccountType = model.AccountType,
+            IssueType = model.IssueType,
+            Subject = model.Subject,
+            Description = model.Description
+        });
+
+        await db.SaveChangesAsync();
+
         TempData["ContactSubmitted"] = true;
 
         return RedirectToAction(nameof(Contact));
