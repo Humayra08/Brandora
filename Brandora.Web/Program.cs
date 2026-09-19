@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Brandora.Web.Data;
 using Brandora.Web.Models.Domain;
 using Brandora.Web.Services;
+using Brandora.Web.Services.Email;
 
 DotNetEnv.Env.TraversePath().Load();
 
@@ -65,6 +66,7 @@ builder.Services.ConfigureApplicationCookie(options =>
 builder.Services.AddScoped<NotificationService>();
 builder.Services.AddScoped<MediaUploadService>();
 builder.Services.AddScoped<AdminAuthService>();
+builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
 
 builder.Services.AddAuthentication()
     .AddCookie("AdminScheme", options =>

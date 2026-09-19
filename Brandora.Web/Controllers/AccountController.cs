@@ -3,6 +3,7 @@ using System.Text;
 using Brandora.Web.Data;
 using Brandora.Web.Models.Account;
 using Brandora.Web.Models.Domain;
+using Brandora.Web.Services.Email;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -14,7 +15,7 @@ public class AccountController(
     UserManager<ApplicationUser> userManager,
     SignInManager<ApplicationUser> signInManager,
     ApplicationDbContext db,
-    IWebHostEnvironment env) : Controller
+    IEmailSender emailSender) : Controller
 {
     private const int CodeExpiryMinutes = 15;
     private const int MaxCodeAttempts = 5;
@@ -41,6 +42,10 @@ public class AccountController(
             ExpiresAt = DateTime.UtcNow.AddMinutes(CodeExpiryMinutes)
         });
         await db.SaveChangesAsync();
+
+        var firstName = user.DisplayName.Split(' ')[0];
+        var (subject, html) = EmailTemplates.VerificationCode(firstName, code);
+        await emailSender.SendAsync(user.Email!, user.DisplayName, subject, html);
 
         return code;
     }
@@ -96,11 +101,7 @@ public class AccountController(
         });
         await db.SaveChangesAsync();
 
-        var code = await IssueEmailVerificationCodeAsync(user);
-        if (env.IsDevelopment())
-        {
-            TempData["DevVerificationCode"] = code;
-        }
+        await IssueEmailVerificationCodeAsync(user);
 
         return RedirectToAction("VerifyEmail", new { email = model.Email });
     }
@@ -150,11 +151,7 @@ public class AccountController(
         });
         await db.SaveChangesAsync();
 
-        var code = await IssueEmailVerificationCodeAsync(user);
-        if (env.IsDevelopment())
-        {
-            TempData["DevVerificationCode"] = code;
-        }
+        await IssueEmailVerificationCodeAsync(user);
 
         return RedirectToAction("VerifyEmail", new { email = model.Email });
     }
@@ -231,11 +228,7 @@ public class AccountController(
         var user = await userManager.FindByEmailAsync(email);
         if (user is not null && !user.EmailConfirmed)
         {
-            var code = await IssueEmailVerificationCodeAsync(user);
-            if (env.IsDevelopment())
-            {
-                TempData["DevVerificationCode"] = code;
-            }
+            await IssueEmailVerificationCodeAsync(user);
         }
 
         TempData["ResendMessage"] = "If that account exists, a new code has been sent.";
@@ -314,20 +307,25 @@ public class AccountController(
             return View(model);
         }
 
+        await signInManager.SignInAsync(user, isPersistent: model.RememberMe);
+
         if (status == VerificationStatus.Rejected)
         {
+            // Rejected users CAN log in — unlike Pending, there's nothing to wait on. They need
+            // account access to fix their profile so an admin can re-review it. Land them on
+            // Settings (not the full dashboard) with the reason so they know what to fix.
             var reason = user.Role == UserRole.Brand
                 ? (await db.BrandProfiles.FirstOrDefaultAsync(b => b.UserId == user.Id))?.RejectionReason
                 : (await db.InfluencerProfiles.FirstOrDefaultAsync(i => i.UserId == user.Id))?.RejectionReason;
 
-            ModelState.AddModelError(string.Empty,
-                string.IsNullOrWhiteSpace(reason)
-                    ? "Your registration was not approved. Please update your profile and resubmit."
-                    : $"Your registration was not approved: {reason}");
-            return View(model);
-        }
+            TempData["RejectionReason"] = string.IsNullOrWhiteSpace(reason)
+                ? "Your registration wasn't approved. Please update your profile."
+                : $"Your registration wasn't approved: {reason}. Please update your profile.";
 
-        await signInManager.SignInAsync(user, isPersistent: model.RememberMe);
+            return user.Role == UserRole.Brand
+                ? RedirectToAction("Index", "Settings")
+                : RedirectToAction("Index", "InfluencerSettings");
+        }
 
         return user.Role == UserRole.Brand
             ? RedirectToAction("Index", "Dashboard")
@@ -345,5 +343,114 @@ public class AccountController(
     public IActionResult ForgotPassword()
     {
         return View();
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ForgotPassword(string email)
+    {
+        // Always show the same message whether or not the account exists — avoids leaking
+        // which emails are registered (account enumeration).
+        TempData["ForgotPasswordMessage"] = "If that email is registered, we've sent a reset code to it.";
+
+        var user = await userManager.FindByEmailAsync(email ?? "");
+        if (user is not null)
+        {
+            var code = RandomNumberGenerator.GetInt32(0, 1_000_000).ToString("D6");
+
+            db.PasswordResetCodes.Add(new PasswordResetCode
+            {
+                UserId = user.Id,
+                CodeHash = HashCode(code),
+                Attempts = 0,
+                Used = false,
+                ExpiresAt = DateTime.UtcNow.AddMinutes(CodeExpiryMinutes)
+            });
+            await db.SaveChangesAsync();
+
+            var firstName = user.DisplayName.Split(' ')[0];
+            var (subject, html) = EmailTemplates.PasswordReset(firstName, code);
+            await emailSender.SendAsync(user.Email!, user.DisplayName, subject, html);
+
+            return RedirectToAction("ResetPassword", new { email = user.Email });
+        }
+
+        return RedirectToAction("ForgotPassword");
+    }
+
+    public IActionResult ResetPassword(string email)
+    {
+        return View(new ResetPasswordViewModel { Email = email });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ResetPassword(ResetPasswordViewModel model)
+    {
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
+
+        var user = await userManager.FindByEmailAsync(model.Email);
+        if (user is null)
+        {
+            ModelState.AddModelError(string.Empty, "Something went wrong. Please request a new code.");
+            return View(model);
+        }
+
+        var pendingCode = await db.PasswordResetCodes
+            .Where(c => c.UserId == user.Id && !c.Used)
+            .OrderByDescending(c => c.CreatedAt)
+            .FirstOrDefaultAsync();
+
+        if (pendingCode is null || pendingCode.ExpiresAt < DateTime.UtcNow)
+        {
+            ModelState.AddModelError(string.Empty, "That code has expired. Request a new one.");
+            return View(model);
+        }
+
+        if (pendingCode.Attempts >= MaxCodeAttempts)
+        {
+            ModelState.AddModelError(string.Empty, "Too many incorrect attempts. Request a new code.");
+            return View(model);
+        }
+
+        if (!string.Equals(pendingCode.CodeHash, HashCode(model.Code.Trim()), StringComparison.Ordinal))
+        {
+            pendingCode.Attempts++;
+            await db.SaveChangesAsync();
+            ModelState.AddModelError(string.Empty, "Incorrect code. Please try again.");
+            return View(model);
+        }
+
+        var removePasswordResult = await userManager.RemovePasswordAsync(user);
+        if (!removePasswordResult.Succeeded)
+        {
+            foreach (var error in removePasswordResult.Errors)
+            {
+                ModelState.AddModelError(string.Empty, error.Description);
+            }
+            return View(model);
+        }
+
+        var addPasswordResult = await userManager.AddPasswordAsync(user, model.NewPassword);
+        if (!addPasswordResult.Succeeded)
+        {
+            foreach (var error in addPasswordResult.Errors)
+            {
+                ModelState.AddModelError(string.Empty, error.Description);
+            }
+            return View(model);
+        }
+
+        pendingCode.Used = true;
+        await db.SaveChangesAsync();
+
+        // Password change bumps the SecurityStamp — logs out every other device/session.
+        await userManager.UpdateSecurityStampAsync(user);
+
+        TempData["VerificationMessage"] = "Your password has been reset. Please log in with your new password.";
+        return RedirectToAction("Login");
     }
 }

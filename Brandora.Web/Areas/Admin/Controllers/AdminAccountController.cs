@@ -1,14 +1,20 @@
 using System.Security.Claims;
 using Brandora.Web.Areas.Admin.Models;
+using Brandora.Web.Data;
+using Brandora.Web.Models.Domain;
 using Brandora.Web.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Brandora.Web.Areas.Admin.Controllers;
 
 [Area("Admin")]
-public class AdminAccountController(AdminAuthService adminAuthService, IWebHostEnvironment env) : Controller
+public class AdminAccountController(
+    AdminAuthService adminAuthService,
+    IWebHostEnvironment env,
+    UserManager<ApplicationUser> userManager) : Controller
 {
     public IActionResult Login()
     {
@@ -76,5 +82,44 @@ public class AdminAccountController(AdminAuthService adminAuthService, IWebHostE
     {
         await HttpContext.SignOutAsync("AdminScheme");
         return RedirectToAction("Login");
+    }
+
+    // Development-only helper: deletes ONE test account by exact email — the ApplicationUser
+    // and its Brand/Influencer profile cascade-delete together. Never available outside
+    // Development, requires typing the exact email as confirmation, and only ever removes
+    // the single account requested — never a bulk/wildcard delete.
+    [HttpGet]
+    public async Task<IActionResult> DeleteTestAccount(string? email, string? confirm)
+    {
+        if (!env.IsDevelopment())
+        {
+            return NotFound();
+        }
+
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            return View();
+        }
+
+        if (!string.Equals(email, confirm, StringComparison.OrdinalIgnoreCase))
+        {
+            ViewData["Error"] = "Type the email again in the confirm box exactly as above.";
+            ViewData["Email"] = email;
+            return View();
+        }
+
+        var user = await userManager.FindByEmailAsync(email);
+        if (user is null)
+        {
+            ViewData["Error"] = $"No account found for {email}.";
+            return View();
+        }
+
+        var result = await userManager.DeleteAsync(user);
+        ViewData["Result"] = result.Succeeded
+            ? $"Deleted account and profile for {email}."
+            : $"Failed: {string.Join(", ", result.Errors.Select(e => e.Description))}";
+
+        return View();
     }
 }

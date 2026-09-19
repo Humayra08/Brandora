@@ -1,5 +1,6 @@
 using Brandora.Web.Data;
 using Brandora.Web.Models.Domain;
+using Brandora.Web.Services.Email;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -7,7 +8,7 @@ namespace Brandora.Web.Areas.Admin.Controllers;
 
 public record VerificationRow(string Type, int Id, string Name, DateTime SubmittedDate, VerificationStatus Status, string FollowersDisplay);
 
-public class AdminUserVerificationController(ApplicationDbContext db) : AdminControllerBase(db)
+public class AdminUserVerificationController(ApplicationDbContext db, IEmailSender emailSender) : AdminControllerBase(db)
 {
     private static string FormatFollowers(int followers) => followers >= 1000
         ? (followers / 1000m).ToString("0.#") + "K"
@@ -109,7 +110,7 @@ public class AdminUserVerificationController(ApplicationDbContext db) : AdminCon
     {
         if (string.Equals(type, "influencer", StringComparison.OrdinalIgnoreCase))
         {
-            var influencer = await db.InfluencerProfiles.FirstOrDefaultAsync(i => i.Id == id);
+            var influencer = await db.InfluencerProfiles.Include(i => i.User).FirstOrDefaultAsync(i => i.Id == id);
             if (influencer is not null)
             {
                 influencer.Verified = true;
@@ -117,17 +118,19 @@ public class AdminUserVerificationController(ApplicationDbContext db) : AdminCon
                 influencer.VerifiedAt = DateTime.UtcNow;
                 influencer.RejectionReason = null;
                 await db.SaveChangesAsync();
+                await SendApprovedEmailAsync(influencer.User.Email!, influencer.FullName);
             }
         }
         else if (string.Equals(type, "brand", StringComparison.OrdinalIgnoreCase))
         {
-            var brand = await db.BrandProfiles.FirstOrDefaultAsync(b => b.Id == id);
+            var brand = await db.BrandProfiles.Include(b => b.User).FirstOrDefaultAsync(b => b.Id == id);
             if (brand is not null)
             {
                 brand.VerificationStatus = VerificationStatus.Verified;
                 brand.VerifiedAt = DateTime.UtcNow;
                 brand.RejectionReason = null;
                 await db.SaveChangesAsync();
+                await SendApprovedEmailAsync(brand.User.Email!, brand.ContactFullName);
             }
         }
 
@@ -141,7 +144,7 @@ public class AdminUserVerificationController(ApplicationDbContext db) : AdminCon
     {
         if (string.Equals(type, "influencer", StringComparison.OrdinalIgnoreCase))
         {
-            var influencer = await db.InfluencerProfiles.FirstOrDefaultAsync(i => i.Id == id);
+            var influencer = await db.InfluencerProfiles.Include(i => i.User).FirstOrDefaultAsync(i => i.Id == id);
             if (influencer is not null)
             {
                 influencer.Verified = false;
@@ -149,22 +152,40 @@ public class AdminUserVerificationController(ApplicationDbContext db) : AdminCon
                 influencer.RejectionReason = reason;
                 influencer.VerifiedAt = null;
                 await db.SaveChangesAsync();
+                await SendRejectedEmailAsync(influencer.User.Email!, influencer.FullName, reason);
             }
         }
         else if (string.Equals(type, "brand", StringComparison.OrdinalIgnoreCase))
         {
-            var brand = await db.BrandProfiles.FirstOrDefaultAsync(b => b.Id == id);
+            var brand = await db.BrandProfiles.Include(b => b.User).FirstOrDefaultAsync(b => b.Id == id);
             if (brand is not null)
             {
                 brand.VerificationStatus = VerificationStatus.Rejected;
                 brand.RejectionReason = reason;
                 brand.VerifiedAt = null;
                 await db.SaveChangesAsync();
+                await SendRejectedEmailAsync(brand.User.Email!, brand.ContactFullName, reason);
             }
         }
 
         TempData["VerificationMessage"] = "User rejected.";
         return RedirectToAction("Details", new { type, id });
+    }
+
+    private async Task SendApprovedEmailAsync(string email, string fullName)
+    {
+        var firstName = fullName.Split(' ')[0];
+        var loginUrl = Url.Action("Login", "Account", null, Request.Scheme)!;
+        var (subject, html) = EmailTemplates.Approved(firstName, loginUrl);
+        await emailSender.SendAsync(email, fullName, subject, html);
+    }
+
+    private async Task SendRejectedEmailAsync(string email, string fullName, string reason)
+    {
+        var firstName = fullName.Split(' ')[0];
+        var loginUrl = Url.Action("Login", "Account", null, Request.Scheme)!;
+        var (subject, html) = EmailTemplates.Rejected(firstName, reason, loginUrl);
+        await emailSender.SendAsync(email, fullName, subject, html);
     }
 
     [HttpPost]

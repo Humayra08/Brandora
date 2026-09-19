@@ -1,9 +1,7 @@
 @model Brandora.Web.Models.Account.VerifyEmailViewModel
-@inject Microsoft.AspNetCore.Hosting.IWebHostEnvironment env
 @{
     ViewData["Title"] = "Verify Your Email";
     Layout = null;
-    var devCode = TempData["DevVerificationCode"] as string;
     var resendMessage = TempData["ResendMessage"] as string;
 }
 
@@ -51,8 +49,6 @@
 
         .form-errors { margin-bottom: 18px; padding: 14px 16px; border-radius: 10px; border: 1px solid rgba(255,90,110,.4); background: rgba(255,60,80,.1); font-family: 'Inter', sans-serif; font-size: 13px; color: #ffb4bd; }
         .form-info { margin-bottom: 18px; padding: 14px 16px; border-radius: 10px; border: 1px solid rgba(90,200,255,.35); background: rgba(60,150,255,.1); font-family: 'Inter', sans-serif; font-size: 13px; color: #bfe4ff; }
-        .dev-code-banner { margin-bottom: 18px; padding: 14px 16px; border-radius: 10px; border: 1px dashed rgba(255,210,90,.5); background: rgba(255,190,60,.08); font-family: 'Inter', sans-serif; font-size: 13px; color: #ffe1a8; text-align: center; }
-        .dev-code-banner .code { display: block; margin-top: 6px; font-size: 22px; font-weight: 800; letter-spacing: 6px; color: #ffffff; }
 
         .resend-row { margin-top: 20px; text-align: center; font-family: 'Inter', sans-serif; font-size: 13px; color: rgba(255,255,255,.62); }
         .resend-row button { background: none; border: none; color: #4d9dff; font-weight: 600; cursor: pointer; font-family: inherit; font-size: inherit; }
@@ -72,14 +68,6 @@
                 <h1 class="auth-title">Verify Your Email</h1>
                 <p class="auth-subtitle">Enter the 6-digit code we sent to <b>@Model.Email</b>.</p>
             </div>
-
-            @if (env.IsDevelopment() && !string.IsNullOrEmpty(devCode))
-            {
-                <div class="dev-code-banner">
-                    Development mode — real email sending isn't built yet (Phase 5). Your code:
-                    <span class="code">@devCode</span>
-                </div>
-            }
 
             @if (!string.IsNullOrEmpty(resendMessage))
             {
