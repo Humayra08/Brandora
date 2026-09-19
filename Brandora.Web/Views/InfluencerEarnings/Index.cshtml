@@ -176,10 +176,57 @@
                 }
                 else
                 {
-                    <div class="earnings-empty earnings-payout-empty">
-                        <span class="earnings-stat-icon blue">@await Html.PartialAsync("~/Views/InfluencerEarnings/_Icon.cshtml", "card")</span>
-                        <h2>Your payout methods</h2><p>bKash and Nagad payout methods are coming soon.</p>
-                        <button class="earnings-primary" disabled>Add Payout Method</button>
+                    <div class="earnings-payout-methods">
+                        @if (TempData["PayoutMethodError"] is string payoutError)
+                        {
+                            <p class="withdrawal-error" role="alert">@payoutError</p>
+                        }
+                        @if (Model.PayoutMethods.Count > 0)
+                        {
+                            <div class="earnings-payout-list">
+                                @foreach (var method in Model.PayoutMethods)
+                                {
+                                    var kind = method.Kind == PayoutMethodKind.Bkash ? "bkash" : method.Kind == PayoutMethodKind.Nagad ? "nagad" : "bank";
+                                    <div class="earnings-method">
+                                        <span class="earnings-provider @kind">
+                                            @if (method.Kind is PayoutMethodKind.Bkash or PayoutMethodKind.Nagad)
+                                            {
+                                                <img src="~/images/payment-methods/@(kind).svg" alt="@method.Name" />
+                                            }
+                                            else
+                                            {
+                                                <i class="bi bi-bank" aria-hidden="true"></i>
+                                            }
+                                        </span>
+                                        <div><strong>@method.Name</strong><small>@method.AccountNumber@(method.IsPrimary ? " · Primary" : "")</small></div>
+                                        <form method="post" asp-action="RemovePayoutMethod">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@method.Id" />
+                                            <button type="submit" class="earnings-remove-method" aria-label="Remove @method.Name">Remove</button>
+                                        </form>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="earnings-empty earnings-payout-empty">
+                                <span class="earnings-stat-icon blue">@await Html.PartialAsync("~/Views/InfluencerEarnings/_Icon.cshtml", "card")</span>
+                                <h2>No payout methods yet</h2><p>Add a bKash, Nagad, or bank account to withdraw your earnings.</p>
+                            </div>
+                        }
+                        <form method="post" asp-action="AddPayoutMethod" class="earnings-add-payout-form">
+                            @Html.AntiForgeryToken()
+                            <label for="payout-kind">Method</label>
+                            <select name="kind" id="payout-kind">
+                                <option value="@PayoutMethodKind.Bkash">bKash</option>
+                                <option value="@PayoutMethodKind.Nagad">Nagad</option>
+                                <option value="@PayoutMethodKind.BankAccount">Bank Account</option>
+                            </select>
+                            <label for="payout-account">Account number</label>
+                            <input type="text" id="payout-account" name="accountNumber" placeholder="e.g. 01712345678" required />
+                            <button type="submit" class="earnings-primary">Add Payout Method</button>
+                        </form>
                     </div>
                 }
             </section>
@@ -187,13 +234,29 @@
             <aside class="earnings-rail" aria-label="Payouts and activity">
                 <section class="earnings-panel earnings-withdrawal">
                     <span class="earnings-stat-icon blue">@await Html.PartialAsync("~/Views/InfluencerEarnings/_Icon.cshtml", "card")</span>
-                    <div><h2>Available for Withdrawal</h2><strong class="earnings-unavailable" aria-label="Balance unavailable">—</strong><p>Withdrawals coming soon</p><a class="earnings-primary earnings-withdraw-link" asp-action="Withdraw">Withdraw Now</a></div>
+                    <div><h2>Available for Withdrawal</h2><strong>@Money(Model.AvailableBalance)</strong><p>@(Model.PayoutMethods.Count == 0 ? "Add a payout method to withdraw" : "Ready to withdraw")</p><a class="earnings-primary earnings-withdraw-link" asp-action="Withdraw">Withdraw Now</a></div>
                 </section>
                 <section class="earnings-panel earnings-methods">
                     <header><h2>Payout Methods</h2><a href="@PageUrl("payout-methods")">Manage</a></header>
-                    <div class="earnings-method"><span class="earnings-provider bkash">b</span><div><strong>bKash</strong><small>Coming soon</small></div></div>
-                    <div class="earnings-method"><span class="earnings-provider nagad">N</span><div><strong>Nagad</strong><small>Coming soon</small></div></div>
-                    <button class="earnings-add-method" disabled><span aria-hidden="true">+</span> Add Payout Method</button>
+                    @foreach (var method in Model.PayoutMethods)
+                    {
+                        var kind = method.Kind == PayoutMethodKind.Bkash ? "bkash" : method.Kind == PayoutMethodKind.Nagad ? "nagad" : "bank";
+                        <div class="earnings-method">
+                            <span class="earnings-provider @kind">
+                                @if (method.Kind is PayoutMethodKind.Bkash or PayoutMethodKind.Nagad)
+                                {
+                                    <img src="~/images/payment-methods/@(kind).svg" alt="@method.Name" />
+                                }
+                                else
+                                {
+                                    <i class="bi bi-bank" aria-hidden="true"></i>
+                                }
+                            </span>
+                            <div><strong>@method.Name</strong><small>@method.AccountNumber</small></div>
+                        </div>
+                    }
+                    @if (Model.PayoutMethods.Count == 0) { <p class="earnings-activity-empty">No payout methods added yet.</p> }
+                    <a class="earnings-add-method" href="@PageUrl("payout-methods")"><span aria-hidden="true">+</span> Add Payout Method</a>
                 </section>
                 <section class="earnings-panel earnings-activity" id="earnings-activity">
                     <header><h2>Recent Activity</h2><a href="@(PageUrl(Model.Tab, !Model.AllActivity))#earnings-activity">@(Model.AllActivity ? "Show Less" : "View All")</a></header>

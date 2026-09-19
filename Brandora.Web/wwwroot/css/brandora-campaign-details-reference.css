@@ -1,8 +1,8 @@
 /* Scoped to campaign details; application pages retain their existing styles. */
 .campaign-detail-reference { padding:16px 16px 28px; }
-.campaign-detail-reference .detail-banner { border-radius:11px; overflow:hidden; background:url('/images/campaign-details-waves.svg') center/100% 100% no-repeat,radial-gradient(ellipse at 62% 0,#b1caff88,transparent 58%),linear-gradient(110deg,#e5f2ff,#eaf5ff); }
-.campaign-detail-reference .campaign-crumb { margin:0; padding:11px 17px; background:#ffffff3d; font-size:12px; }
-.campaign-detail-reference .detail-hero { display:grid; grid-template-columns:126px minmax(0,1fr) 172px; gap:24px; align-items:center; min-height:202px; padding:10px 28px 22px; }
+.campaign-detail-reference .detail-banner { border-radius:11px; overflow:hidden; background:url('/images/campaign-details-waves.svg?v=7') right bottom/100% 100% no-repeat,radial-gradient(ellipse at 62% 0,#b1caff88,transparent 58%),linear-gradient(110deg,#e5f2ff,#eaf5ff); }
+.campaign-detail-reference .campaign-crumb { margin:0; padding:11px 17px; background:transparent; font-size:12px; }
+.campaign-detail-reference .detail-hero { display:grid; grid-template-columns:126px minmax(0,1fr) auto; gap:24px; align-items:center; min-height:202px; padding:10px 28px 22px; }
 .campaign-detail-reference .detail-brand { display:grid; justify-items:start; gap:3px; font-size:12px; min-width:0; }
 .campaign-detail-reference .detail-brand>strong { overflow-wrap:anywhere; }
 .campaign-detail-reference .detail-logo { width:118px; height:118px; display:grid; place-items:center; border:1px solid #d6e8ff; border-radius:12px; background:#ffffffd0; box-shadow:0 3px 12px #7aa5d514; font:600 32px 'Playfair Display',Georgia,serif; color:#090840; }
@@ -19,8 +19,8 @@
 .campaign-detail-reference .detail-stats>div { padding:0 20px; border-left:1px solid #bcd7f9; }
 .campaign-detail-reference .detail-stats dt { font-size:10px; font-weight:400; color:#32447e; margin-bottom:3px; }
 .campaign-detail-reference .detail-stats dd { font-size:17px; font-weight:700; color:#101043; }
-.campaign-detail-reference .detail-motto { font-size:18px; line-height:1.35; color:#2b448c; align-self:start; margin-top:25px; }
-.campaign-detail-reference .detail-motto>span { display:block; width:38px; height:4px; margin-top:14px; border-radius:6px; background:linear-gradient(90deg,#7826ff,#00b7ea); }
+.campaign-detail-reference .detail-motto { align-self:center; margin:0 0 0 auto; padding:4px calc(7cqw - 2px) 4px 35px; border-left:1px solid #adcdec; color:#1e427c; font-size:14px; line-height:1.5; white-space:nowrap; }
+.campaign-detail-reference .detail-motto>span { display:block; width:36px; height:3px; margin-top:12px; border-radius:4px; background:var(--dash-gradient,linear-gradient(110deg,#6323ff,#0759ff)); }
 .campaign-detail-reference .campaign-details-grid { grid-template-columns:minmax(0,1.76fr) minmax(0,1fr); gap:14px; margin-top:14px; }
 .campaign-detail-reference .campaign-details-main { gap:12px; }
 .campaign-detail-reference .campaign-details-side { gap:13px; }
@@ -71,7 +71,7 @@
 .campaign-detail-reference .campaign-support-card p { font-size:11px; }
 .campaign-detail-reference .campaign-support-card a { border:1px solid #b7d3ff; background:#ffffffaa; border-radius:10px; padding:8px 14px; box-shadow:0 3px 8px #548cef12; font-size:11px; }
 .campaign-detail-reference .campaign-support-card a i { width:auto; height:auto; background:none; font-size:12px; }
-@media(max-width:1000px) { .campaign-detail-reference .detail-hero { grid-template-columns:110px minmax(0,1fr); gap:20px; padding:15px 20px 22px; } .campaign-detail-reference .detail-logo { width:105px; height:105px; } .campaign-detail-reference .detail-motto { display:none; } .campaign-detail-reference .detail-stats>div { padding:0 14px; } .campaign-detail-reference .campaign-tabs { width:100%; } .campaign-detail-reference .detail-milestone-card { gap:10px; padding:10px; } .campaign-detail-reference .detail-milestone-amount { padding-left:10px; } }
+@media(max-width:1000px) { .campaign-detail-reference .detail-hero { grid-template-columns:110px minmax(0,1fr); gap:20px; padding:15px 20px 22px; } .campaign-detail-reference .detail-logo { width:105px; height:105px; } .campaign-detail-reference .detail-stats>div { padding:0 14px; } .campaign-detail-reference .campaign-tabs { width:100%; } .campaign-detail-reference .detail-milestone-card { gap:10px; padding:10px; } .campaign-detail-reference .detail-milestone-amount { padding-left:10px; } }
 @media(max-width:800px) { .campaign-detail-reference .campaign-details-grid { grid-template-columns:1fr; } .campaign-detail-reference .campaign-tabs { flex-direction:row; } }
 @media(max-width:520px) { .campaign-detail-reference { padding:12px; } .campaign-detail-reference .detail-hero { grid-template-columns:1fr; padding:16px; gap:16px; } .campaign-detail-reference .detail-brand { grid-template-columns:64px 1fr; column-gap:12px; align-items:center; } .campaign-detail-reference .detail-logo { grid-row:1/3; width:64px; height:64px; font-size:24px; } .campaign-detail-reference .detail-stats { display:grid; grid-template-columns:1fr 1fr; gap:12px; } .campaign-detail-reference .detail-stats>div { padding:0 10px; } .campaign-detail-reference .detail-hero h1 { font-size:26px; } .campaign-detail-reference .campaign-tab-panel { padding:16px 12px; } .campaign-detail-reference .campaign-tabs button { font-size:10px; padding:10px 3px; } .campaign-detail-reference .detail-milestone-card { flex-wrap:wrap; } .campaign-detail-reference .detail-milestone-icon { width:30px; height:30px; flex-basis:30px; font-size:17px; } .campaign-detail-reference .detail-milestone-card>div { flex-basis:calc(100% - 40px); } .campaign-detail-reference .detail-milestone-amount { margin-left:40px; padding:0; border:0; font-size:14px; } .campaign-detail-reference .detail-timeline { grid-template-columns:1fr 1fr; row-gap:14px; } }
 
@@ -81,3 +81,7 @@
 .campaign-detail-reference .detail-milestone-icon.platform-youtube { background:#f03; font-size:26px; }
 .campaign-detail-reference .campaign-support-card.dashboard-card { background:radial-gradient(ellipse at 95% 100%,#c1ddff,transparent 65%),linear-gradient(120deg,#eff7ff,#e0eeff); }
 @media(max-width:520px) { .campaign-detail-reference .detail-milestone-icon[class*="platform-"] { font-size:20px; } }
+
+@container (max-width:1050px) { .campaign-detail-reference .detail-motto { padding-right:15px; padding-left:20px; } }
+@container (max-width:800px) { .campaign-detail-reference .detail-motto { display:none; } }
+@media (min-width:801px) and (max-width:1000px) { .campaign-detail-reference .detail-hero { grid-template-columns:110px minmax(0,1fr) auto; } }

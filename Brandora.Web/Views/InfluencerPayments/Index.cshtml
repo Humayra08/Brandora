@@ -272,7 +272,16 @@
                     @foreach (var method in Model.PayoutMethods)
                     {
                         <div class="payments-method">
-                            <span class="payments-method-icon @method.Kind"><i class="bi @(method.Kind == "bank" ? "bi-bank" : "bi-send-fill")" aria-hidden="true"></i></span>
+                            <span class="payments-method-icon @method.Kind">
+                                @if (method.Kind is "bkash" or "nagad")
+                                {
+                                    <img src="~/images/payment-methods/@(method.Kind).svg" alt="@method.Name" />
+                                }
+                                else
+                                {
+                                    <i class="bi bi-bank" aria-hidden="true"></i>
+                                }
+                            </span>
                             <div>
                                 <strong>@method.Name</strong>
                                 <small>@method.Detail</small>

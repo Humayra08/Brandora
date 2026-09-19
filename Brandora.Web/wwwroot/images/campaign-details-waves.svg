@@ -1,1 +1,59 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 280" preserveAspectRatio="none"><defs><linearGradient id="blue" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#739bff" stop-opacity=".08"/><stop offset=".5" stop-color="#86caff" stop-opacity=".35"/><stop offset="1" stop-color="#008cff" stop-opacity=".36"/></linearGradient><linearGradient id="white"><stop stop-color="#fff" stop-opacity=".04"/><stop offset=".5" stop-color="#fff" stop-opacity=".75"/><stop offset="1" stop-color="#d9f5ff" stop-opacity=".1"/></linearGradient></defs><g fill="url(#blue)"><path d="M410 -30C570 30 600 105 750 113S915 279 1055 207 1140 153 1220 148V310H900C1005 230 913 244 813 197S693 127 565 95 489 20 410 -30Z"/><path d="M535 -30C632 70 660 58 790 130S929 284 1060 228 1166 164 1220 171V300H938C989 267 961 242 851 213S685 135 600 85Z"/><path d="M615 -20C657 75 778 53 822 136S940 263 1041 245 1148 176 1220 195V300H945C1023 251 888 233 814 176S701 135 615 -20Z"/><path d="M497 -30C659 167 707 39 880 197S1074 223 1220 219V310H1055C1052 275 1021 280 960 266S834 204 720 149 582 63 497 -30Z"/></g><g fill="none" stroke="url(#white)"><path d="M436 -10C593 85 559 116 753 121S919 278 1041 229 1155 188 1220 200"/><path d="M573 -20C635 115 734 92 830 160S948 288 1083 253 1154 242 1220 266"/><path d="M677 -20C715 99 828 123 888 198S1053 265 1220 228"/><path d="M536 158C779 155 792 260 991 271S1097 242 1220 271"/></g></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 350" preserveAspectRatio="none">
+  <defs>
+    <linearGradient id="ribbon" x1="420" y1="0" x2="1100" y2="350" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#85bfff" stop-opacity=".12"/>
+      <stop offset=".4" stop-color="#78aaff" stop-opacity=".32"/>
+      <stop offset=".72" stop-color="#258cff" stop-opacity=".48"/>
+      <stop offset="1" stop-color="#5dbfff" stop-opacity=".24"/>
+    </linearGradient>
+    <linearGradient id="sheen" x1="400" y1="0" x2="1110" y2="350" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#a6bcff" stop-opacity=".3"/>
+      <stop offset=".5" stop-color="#b6dcff" stop-opacity=".12"/>
+      <stop offset="1" stop-color="#139cff" stop-opacity=".28"/>
+    </linearGradient>
+    <linearGradient id="edge" x1="300" y1="0" x2="1200" y2="350" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#fff" stop-opacity="0"/>
+      <stop offset=".3" stop-color="#fff" stop-opacity=".75"/>
+      <stop offset=".8" stop-color="#fff" stop-opacity=".65"/>
+      <stop offset="1" stop-color="#fff" stop-opacity=".15"/>
+    </linearGradient>
+    <linearGradient id="upperLight" x1="420" y1="0" x2="900" y2="300" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#b7d8ff" stop-opacity=".48"/>
+      <stop offset=".42" stop-color="#c8e5ff" stop-opacity=".38"/>
+      <stop offset=".75" stop-color="#9bcfff" stop-opacity=".22"/>
+      <stop offset="1" stop-color="#9bcfff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="upperPearl" x1="540" y1="0" x2="850" y2="285" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#d3e8ff" stop-opacity=".48"/>
+      <stop offset=".5" stop-color="#bddcff" stop-opacity=".3"/>
+      <stop offset="1" stop-color="#c0e2ff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="upperBlue" x1="540" y1="0" x2="850" y2="285" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#a9cefa" stop-opacity=".56"/>
+      <stop offset=".5" stop-color="#98c8f8" stop-opacity=".38"/>
+      <stop offset="1" stop-color="#9bcfff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="middleEdge" x1="555" y1="0" x2="919" y2="294" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#fff" stop-opacity="0"/>
+      <stop offset=".3" stop-color="#fff" stop-opacity=".35"/>
+      <stop offset=".6" stop-color="#fff" stop-opacity=".8"/>
+      <stop offset=".85" stop-color="#fff" stop-opacity=".55"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <!-- Broad pale layers fill the upper sweep and fade into the central ribbons. -->
+  <path fill="url(#upperLight)" d="M235-25H740C737 52 762 106 833 172S943 275 1030 280C916 331 816 291 733 222S576 151 463 127 340 37 235-25Z"/>
+  <path fill="url(#upperPearl)" d="M340-25H665C669 49 705 109 785 173S885 270 964 286C868 293 792 257 712 197S564 144 489 105 416 19 340-25Z"/>
+  <path fill="url(#sheen)" d="M330-25H665C671 65 738 104 801 174S914 293 997 271 1123 184 1220 190V350H1020C897 365 777 276 712 211S603 122 520 108 396 28 330-25Z"/>
+  <path fill="url(#ribbon)" d="M375-25C485 8 484 96 644 127S795 228 895 266 1082 207 1220 212V286C1088 266 1027 350 927 337S778 279 703 202 564 155 473 120 413 28 375-25Z"/>
+  <path fill="url(#ribbon)" d="M455-25C549 48 509 102 670 147S813 264 918 292 1100 232 1220 246V318C1100 263 1053 319 972 345S810 326 747 245 622 176 553 132 495 27 455-25Z"/>
+  <path fill="url(#sheen)" d="M510-25C571 57 560 105 686 162S805 287 919 311 1097 266 1220 282V366H943C829 353 792 303 733 240S639 164 587 110 553 19 510-25Z"/>
+  <path fill="url(#upperBlue)" d="M410-25H555C592 47 585 102 691 151S814 263 919 294C828 283 770 237 703 199S588 159 522 119 474 26 410-25Z"/>
+  <g fill="none" stroke="url(#edge)" stroke-width="1.6">
+    <path d="M330-15C469 5 455 97 632 129S782 217 886 266 1096 195 1220 216"/>
+    <path d="M230-10C330 29 317 112 483 133S665 162 737 246 889 345 991 310 1117 231 1220 250"/>
+    <path d="M357 237C499 218 527 255 591 315S678 373 745 364"/>
+    <path d="M693 194C776 263 781 314 900 328S1101 247 1220 337"/>
+  </g>
+  <path fill="none" stroke="url(#middleEdge)" stroke-width="1.6" stroke-linecap="round" d="M555-25C592 47 585 102 691 151S814 263 919 294"/>
+</svg>
