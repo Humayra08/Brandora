@@ -1,0 +1,91 @@
+@model List<Brandora.Web.Models.Domain.Message>
+@using System.Security.Claims
+@using Brandora.Web.Models.Influencers
+@{
+    var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+    var conversationId = ViewData["ConversationId"];
+    var creatorId = ViewData["CreatorId"];
+}
+
+<div class="chat-widget-messages" id="chatWidgetMessages" data-conversation-id="@conversationId" data-influencer-id="@creatorId">
+    @if (Model.Count == 0)
+    {
+        <div class="chat-widget-empty">No messages yet — say hello!</div>
+    }
+    else
+    {
+        foreach (var message in Model)
+        {
+            var isMine = message.SenderUserId == currentUserId;
+            var hasMedia = !string.IsNullOrEmpty(message.MediaUrl);
+            var hasCaption = !string.IsNullOrEmpty(message.Body);
+            var canEdit = isMine && hasCaption && !hasMedia;
+
+            <div class="chat-widget-row @(isMine ? "is-mine" : "")">
+                <div class="chat-widget-bubble-row">
+                    <div class="chat-widget-bubble @(hasMedia ? "has-media" : "") @(hasMedia && hasCaption ? "has-caption" : "")" id="chatWidgetBubble-@message.Id">
+                        @if (hasMedia)
+                        {
+                            <div class="chat-widget-media">
+                                @if (message.MediaType == "video")
+                                {
+                                    <video src="@message.MediaUrl" controls preload="metadata"></video>
+                                }
+                                else
+                                {
+                                    <a href="@message.MediaUrl" target="_blank" rel="noopener noreferrer" class="chat-widget-media-view" aria-label="View full-size attachment">
+                                        <img src="@message.MediaUrl" alt="Shared attachment" />
+                                    </a>
+                                }
+                                <a href="@message.MediaUrl" download="@System.IO.Path.GetFileName(message.MediaUrl)" class="chat-widget-media-download" title="Download attachment" aria-label="Download attachment">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 4v11m0 0 4.5-4.5M12 15l-4.5-4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 18.5h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                                </a>
+                            </div>
+                        }
+                        @if (hasCaption)
+                        {
+                            <span class="chat-widget-text">@message.Body</span>
+                        }
+                    </div>
+
+                    <div class="chat-widget-menu-wrap">
+                        <button type="button" class="chat-widget-menu-btn" data-widget-menu-toggle="@message.Id" aria-label="Message options">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="19" cy="12" r="1.9"/></svg>
+                        </button>
+                        <div class="chat-widget-menu" id="chatWidgetMenu-@message.Id">
+                            @if (canEdit)
+                            {
+                                <button type="button" class="chat-widget-menu-item" data-widget-edit="@message.Id">Edit</button>
+                            }
+                            @if (hasCaption)
+                            {
+                                <button type="button" class="chat-widget-menu-item" data-widget-copy data-copy-text="@message.Body">Copy</button>
+                            }
+                            @if (hasMedia)
+                            {
+                                <button type="button" class="chat-widget-menu-item" data-widget-copy data-copy-text="@($"{Context.Request.Scheme}://{Context.Request.Host}{message.MediaUrl}")">Copy Link</button>
+                            }
+                            @if (isMine)
+                            {
+                                <button type="button" class="chat-widget-menu-item chat-widget-menu-danger" data-widget-unsend="@message.Id">Unsend</button>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                @if (canEdit)
+                {
+                    <div class="chat-widget-edit-form" id="chatWidgetEditForm-@message.Id" hidden>
+                        <textarea class="chat-widget-edit-input" id="chatWidgetEditInput-@message.Id">@message.Body</textarea>
+                        <div class="chat-widget-edit-actions">
+                            <button type="button" class="chat-widget-edit-cancel" data-widget-edit-cancel="@message.Id">Cancel</button>
+                            <button type="button" class="chat-widget-edit-save" data-widget-edit-save="@message.Id">Save</button>
+                        </div>
+                    </div>
+                }
+
+                <div class="chat-widget-time">@message.SentAt.ToBangladeshTime().ToString("h:mm tt")</div>
+            </div>
+        }
+    }
+</div>

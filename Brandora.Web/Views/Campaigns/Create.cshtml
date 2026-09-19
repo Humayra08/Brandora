@@ -547,6 +547,11 @@
 
 <div class="wizard-shell">
 
+    <a href="/Campaigns" class="back-to-dashboard">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Back
+    </a>
+
     <section class="page-hero">
         @await Html.PartialAsync("_HeroWaves")
         <div class="page-hero-intro">
@@ -715,7 +720,7 @@
                 @if (!string.IsNullOrEmpty(Model.ExistingMediaUrl))
                 {
                     <div class="media-remove-row">
-                        <button type="button" class="btn btn-ghost" id="mediaRemoveBtn">Remove current media</button>
+                        <button type="button" class="btn btn-outline-brand" id="mediaRemoveBtn">Remove current media</button>
                     </div>
                 }
 
@@ -725,12 +730,12 @@
             <div class="form-actions">
                 @if (!isEdit)
                 {
-                    <button type="submit" class="btn btn-ghost" name="saveDraft" value="true">Save as Draft</button>
+                    <button type="submit" class="btn btn-outline-brand" name="saveDraft" value="true">Save as Draft</button>
                     <button type="submit" class="btn btn-primary">Next: Set Milestones →</button>
                 }
                 else
                 {
-                    <a href="/Campaigns" class="btn btn-ghost">Cancel</a>
+                    <a href="/Campaigns" class="btn btn-outline-brand">Cancel</a>
                     <button type="submit" class="btn btn-primary">Save Changes</button>
                 }
             </div>

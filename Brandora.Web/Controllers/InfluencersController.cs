@@ -99,7 +99,24 @@ public class InfluencersController(UserManager<ApplicationUser> userManager, App
         var isShortlisted = await db.ShortlistEntries
             .AnyAsync(s => s.BrandProfileId == brand.Id && s.InfluencerProfileId == id);
 
-        return View(new CreatorProfileViewModel { Creator = creator, IsShortlisted = isShortlisted });
+        var existingProposal = await db.Proposals
+            .Where(p => p.InfluencerProfileId == id && p.Campaign.BrandProfileId == brand.Id)
+            .OrderByDescending(p => p.CreatedAt)
+            .FirstOrDefaultAsync();
+
+        var pastCollaborations = await db.Collaborations
+            .Include(c => c.Campaign)
+            .Where(c => c.InfluencerProfileId == id && c.Campaign.BrandProfileId == brand.Id)
+            .OrderByDescending(c => c.CreatedAt)
+            .ToListAsync();
+
+        return View(new CreatorProfileViewModel
+        {
+            Creator = creator,
+            IsShortlisted = isShortlisted,
+            ExistingProposal = existingProposal,
+            PastCollaborations = pastCollaborations
+        });
     }
 
     [HttpPost]

@@ -243,8 +243,11 @@ public class MessagesController(UserManager<ApplicationUser> userManager, Applic
             return NotFound();
         }
 
+        // One conversation per (brand, influencer) pair, regardless of which
+        // campaign the brand messages them about — CampaignId is stored only
+        // as first-contact context, never used to fork a second thread.
         var conversation = await db.Conversations.FirstOrDefaultAsync(c =>
-            c.BrandProfileId == brand.Id && c.InfluencerProfileId == influencerId && c.CampaignId == campaignId);
+            c.BrandProfileId == brand.Id && c.InfluencerProfileId == influencerId);
 
         if (conversation is null)
         {
@@ -260,5 +263,201 @@ public class MessagesController(UserManager<ApplicationUser> userManager, Applic
         }
 
         return RedirectToAction("Index", new { open = conversation.Id });
+    }
+
+    public async Task<IActionResult> Widget(int influencerId)
+    {
+        var brand = await GetCurrentBrandAsync();
+        if (brand is null)
+        {
+            return Unauthorized();
+        }
+
+        var creator = await db.InfluencerProfiles.FirstOrDefaultAsync(i => i.Id == influencerId);
+        if (creator is null)
+        {
+            return NotFound();
+        }
+
+        var conversation = await db.Conversations
+            .Include(c => c.Messages).ThenInclude(m => m.SenderUser)
+            .FirstOrDefaultAsync(c => c.BrandProfileId == brand.Id && c.InfluencerProfileId == influencerId);
+
+        if (conversation is null)
+        {
+            conversation = new Conversation { BrandProfileId = brand.Id, InfluencerProfileId = influencerId };
+            db.Conversations.Add(conversation);
+            await db.SaveChangesAsync();
+        }
+
+        var userId = userManager.GetUserId(User);
+        var unread = conversation.Messages.Where(m => m.SenderUserId != userId && m.ReadAt == null).ToList();
+        if (unread.Count > 0)
+        {
+            foreach (var message in unread)
+            {
+                message.ReadAt = DateTime.UtcNow;
+            }
+
+            await db.SaveChangesAsync();
+        }
+
+        ViewData["ConversationId"] = conversation.Id;
+        ViewData["CreatorName"] = creator.FullName;
+        ViewData["CreatorId"] = creator.Id;
+
+        return PartialView("_WidgetMessages", conversation.Messages.OrderBy(m => m.SentAt).ToList());
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [RequestSizeLimit(100_000_000)]
+    public async Task<IActionResult> SendWidget(int influencerId, string? body, IFormFile? mediaFile)
+    {
+        var brand = await GetCurrentBrandAsync();
+        if (brand is null)
+        {
+            return Unauthorized();
+        }
+
+        var conversation = await db.Conversations
+            .Include(c => c.InfluencerProfile)
+            .Include(c => c.Messages).ThenInclude(m => m.SenderUser)
+            .FirstOrDefaultAsync(c => c.BrandProfileId == brand.Id && c.InfluencerProfileId == influencerId);
+
+        if (conversation is null)
+        {
+            var creatorExists = await db.InfluencerProfiles.AnyAsync(i => i.Id == influencerId);
+            if (!creatorExists)
+            {
+                return NotFound();
+            }
+
+            conversation = new Conversation { BrandProfileId = brand.Id, InfluencerProfileId = influencerId };
+            db.Conversations.Add(conversation);
+            await db.SaveChangesAsync();
+            await db.Entry(conversation).Reference(c => c.InfluencerProfile).LoadAsync();
+        }
+
+        string? mediaUrl = null;
+        string? mediaType = null;
+
+        if (mediaFile is { Length: > 0 })
+        {
+            var (url, type, error) = await mediaUploads.SaveMediaAsync(mediaFile, "messages");
+            if (error is not null)
+            {
+                return BadRequest(error);
+            }
+
+            mediaUrl = url;
+            mediaType = type;
+        }
+
+        var trimmed = body?.Trim() ?? string.Empty;
+        var hasBody = !string.IsNullOrEmpty(trimmed);
+        var hasMedia = mediaUrl is not null;
+
+        if (hasBody || hasMedia)
+        {
+            var senderId = userManager.GetUserId(User)!;
+
+            if (hasMedia)
+            {
+                db.Messages.Add(new Message { ConversationId = conversation.Id, SenderUserId = senderId, MediaUrl = mediaUrl, MediaType = mediaType });
+            }
+
+            if (hasBody)
+            {
+                db.Messages.Add(new Message { ConversationId = conversation.Id, SenderUserId = senderId, Body = trimmed });
+            }
+
+            await db.SaveChangesAsync();
+
+            await notifications.NotifyAsync(
+                conversation.InfluencerProfile.UserId,
+                "Message",
+                "New message",
+                $"You have a new message from {brand.CompanyName}.",
+                $"/InfluencerMessages?open={conversation.Id}");
+            await db.SaveChangesAsync();
+        }
+
+        ViewData["ConversationId"] = conversation.Id;
+        ViewData["CreatorName"] = conversation.InfluencerProfile.FullName;
+        ViewData["CreatorId"] = conversation.InfluencerProfileId;
+
+        return PartialView("_WidgetMessages", conversation.Messages.OrderBy(m => m.SentAt).ToList());
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> EditMessageWidget(int messageId, int influencerId, string? body)
+    {
+        var brand = await GetCurrentBrandAsync();
+        if (brand is null)
+        {
+            return Unauthorized();
+        }
+
+        var userId = userManager.GetUserId(User);
+        var message = await db.Messages
+            .Include(m => m.Conversation).ThenInclude(c => c.InfluencerProfile)
+            .FirstOrDefaultAsync(m => m.Id == messageId && m.Conversation.BrandProfileId == brand.Id);
+
+        if (message is not null && message.SenderUserId == userId && string.IsNullOrEmpty(message.MediaUrl))
+        {
+            var trimmed = body?.Trim() ?? string.Empty;
+            if (!string.IsNullOrEmpty(trimmed))
+            {
+                message.Body = trimmed;
+                await db.SaveChangesAsync();
+            }
+        }
+
+        return await WidgetMessagesPartial(brand.Id, influencerId);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteMessageWidget(int messageId, int influencerId)
+    {
+        var brand = await GetCurrentBrandAsync();
+        if (brand is null)
+        {
+            return Unauthorized();
+        }
+
+        var userId = userManager.GetUserId(User);
+        var message = await db.Messages
+            .Include(m => m.Conversation)
+            .FirstOrDefaultAsync(m => m.Id == messageId && m.Conversation.BrandProfileId == brand.Id);
+
+        if (message is not null && message.SenderUserId == userId)
+        {
+            db.Messages.Remove(message);
+            await db.SaveChangesAsync();
+        }
+
+        return await WidgetMessagesPartial(brand.Id, influencerId);
+    }
+
+    private async Task<IActionResult> WidgetMessagesPartial(int brandId, int influencerId)
+    {
+        var conversation = await db.Conversations
+            .Include(c => c.InfluencerProfile)
+            .Include(c => c.Messages).ThenInclude(m => m.SenderUser)
+            .FirstOrDefaultAsync(c => c.BrandProfileId == brandId && c.InfluencerProfileId == influencerId);
+
+        if (conversation is null)
+        {
+            return NotFound();
+        }
+
+        ViewData["ConversationId"] = conversation.Id;
+        ViewData["CreatorName"] = conversation.InfluencerProfile.FullName;
+        ViewData["CreatorId"] = conversation.InfluencerProfileId;
+
+        return PartialView("_WidgetMessages", conversation.Messages.OrderBy(m => m.SentAt).ToList());
     }
 }

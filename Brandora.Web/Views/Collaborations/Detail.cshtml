@@ -224,6 +224,11 @@
 
 <div class="detail-shell">
 
+    <a href="/Collaborations" class="back-to-dashboard">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Back
+    </a>
+
     <div class="detail-crumb"><a href="/Collaborations">Collaborations</a> / @Model.InfluencerProfile.FullName</div>
 
     <div class="collab-header">
@@ -253,7 +258,7 @@
                 <form method="post" action="/Collaborations/UpdateStatus/@Model.Id">
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="status" value="Cancelled" />
-                    <button type="submit" class="btn btn-ghost">Cancel</button>
+                    <button type="submit" class="btn btn-outline-brand">Cancel</button>
                 </form>
             }
         </div>

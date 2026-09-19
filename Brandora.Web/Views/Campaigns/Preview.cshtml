@@ -201,6 +201,18 @@
                         </div>
                     }
                 </div>
+
+                <div class="review-section">
+                    <div class="confirm-row">
+                        <input type="checkbox" id="confirmPublish" />
+                        <label for="confirmPublish">I confirm that all information provided is accurate and complies with Brandora's campaign guidelines.</label>
+                    </div>
+
+                    <div class="form-actions">
+                        <a href="/Campaigns/Targeting/@campaign.Id" class="btn btn-outline-brand">← Back</a>
+                        <button type="submit" class="btn btn-primary" id="publishBtn" disabled="@Model.OverBudget">Publish Campaign →</button>
+                    </div>
+                </div>
             </div>
 
             <aside class="wizard-side">
@@ -263,16 +275,6 @@
                     <p style="margin-top: 8px; font-family:'Inter',sans-serif; font-size: 12px; color:#6b7290; line-height:1.6;">
                         Once published, your campaign will be visible to relevant creators and start receiving applications immediately.
                     </p>
-
-                    <div class="confirm-row">
-                        <input type="checkbox" id="confirmPublish" />
-                        <label for="confirmPublish">I confirm that all information provided is accurate and complies with Brandora's campaign guidelines.</label>
-                    </div>
-
-                    <div class="form-actions" style="margin-top: 14px;">
-                        <a href="/Campaigns/Targeting/@campaign.Id" class="btn btn-outline-brand">← Back</a>
-                        <button type="submit" class="btn btn-primary" id="publishBtn" disabled="@Model.OverBudget">Publish Campaign →</button>
-                    </div>
                 </div>
 
             </aside>

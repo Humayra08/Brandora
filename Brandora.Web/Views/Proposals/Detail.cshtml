@@ -16,15 +16,7 @@
 
     .detail-crumb { font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 500; color: #8189a8; }
 
-    .app-detail-head {
-        margin-top: 12px;
-        display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap;
-    }
-
-    .app-detail-title { font-family: 'Playfair Display', serif; font-weight: 600; font-size: 27px; color: #171d3d; }
-    .app-detail-sub { margin-top: 6px; font-family: 'Inter', sans-serif; font-size: 13.5px; color: #6b7290; }
-    .app-detail-meta-right { text-align: right; }
-    .app-detail-meta-right .submitted-on { margin-top: 8px; font-family: 'Inter', sans-serif; font-size: 12px; color: #9096b3; }
+    .submitted-on { font-family: 'Inter', sans-serif; font-size: 12px; color: #6b84b3; }
 
     .info-cards { margin-top: 22px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; align-items: stretch; }
 
@@ -128,18 +120,34 @@
 
 <div class="detail-shell">
 
-    <div class="detail-crumb"><a href="/Proposals">Applicants</a> / Application Details</div>
+    <a href="/Proposals" class="back-to-dashboard">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Back
+    </a>
 
-    <div class="app-detail-head">
-        <div>
-            <div class="app-detail-title">Application Details</div>
-            <p class="app-detail-sub">Review @proposal.InfluencerProfile.FullName's application and decide the next step.</p>
+    <section class="page-hero">
+        @await Html.PartialAsync("_HeroWaves")
+        <div class="page-hero-intro">
+            <div class="detail-crumb"><a href="/Proposals">Applicants</a> / Application Details</div>
+            <h1 class="page-hero-title">Application <span>Details</span></h1>
+            <p class="page-hero-sub">Review @proposal.InfluencerProfile.FullName's application and decide the next step.</p>
+
+            <div class="detail-tags" style="display:flex; align-items:center; gap:8px; margin-top: 14px;">
+                <span class="status-pill @proposal.Status.ToString().ToLowerInvariant()">@statusLabel</span>
+                <span class="submitted-on">Submitted @proposal.CreatedAt.ToBangladeshTime().ToString("MMM d, yyyy, h:mm tt")</span>
+            </div>
         </div>
-        <div class="app-detail-meta-right">
-            <span class="status-pill @proposal.Status.ToString().ToLowerInvariant()">@statusLabel</span>
-            <div class="submitted-on">Submitted on @proposal.CreatedAt.ToBangladeshTime().ToString("MMM d, yyyy, h:mm tt")</div>
+
+        <div class="page-hero-art" aria-hidden="true">
+            <div class="hero-glass hero-glass-back"></div>
+            <div class="hero-glass hero-glass-front">
+                <span class="hero-glass-copy">Review<br />Decide<br />Collaborate<span></span></span>
+            </div>
+            <span class="hero-sparkle"></span>
         </div>
-    </div>
+
+        <div class="page-hero-motto">Every Applicant,<br />Clearly Reviewed.<span></span></div>
+    </section>
 
     <div class="info-cards">
 
@@ -345,12 +353,10 @@
                         <a href="/Collaborations/Detail/@proposal.Collaboration.Id" class="btn btn-secondary">Manage Collaboration</a>
                     }
 
-                    <form method="post" action="/Messages/StartWithCreator">
-                        @Html.AntiForgeryToken()
-                        <input type="hidden" name="influencerId" value="@proposal.InfluencerProfileId" />
-                        <input type="hidden" name="campaignId" value="@proposal.CampaignId" />
-                        <button type="submit" class="btn btn-outline-brand">Message Influencer</button>
-                    </form>
+                    <button type="button" class="btn btn-outline-brand js-open-chat"
+                            data-influencer-id="@proposal.InfluencerProfileId"
+                            data-influencer-name="@proposal.InfluencerProfile.FullName"
+                            data-hue="@hue">Message Influencer</button>
 
                     @if (proposal.Status == ProposalStatus.Pending)
                     {

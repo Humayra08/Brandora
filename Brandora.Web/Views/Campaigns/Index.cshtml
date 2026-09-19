@@ -372,7 +372,7 @@
 
 <a href="/Dashboard" class="back-to-dashboard">
     <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    Back to Dashboard
+    Back
 </a>
 
 <section class="page-hero">
@@ -533,21 +533,26 @@
                 <div class="campaign-row-actions">
                     <a href="/Campaigns/Detail/@campaign.Id" class="btn btn-secondary">View Details</a>
                     <a href="/Campaigns/Edit/@campaign.Id" class="btn btn-primary">Edit</a>
-                    @if (campaign.Status == CampaignStatus.Draft)
-                    {
-                        <form method="post" action="/Campaigns/Delete/@campaign.Id">
-                            @Html.AntiForgeryToken()
-                            <button type="button" class="campaign-row-delete js-confirm" aria-label="Delete draft"
-                                    data-confirm-title="Delete this draft?"
-                                    data-confirm-text="Are you sure you want to delete &quot;@campaign.Title&quot;? This cannot be undone."
-                                    data-confirm-label="Delete"
-                                    data-confirm-danger="true">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6h16Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                                Delete
-                            </button>
-                        </form>
+                    @{
+                        var applicantCount = Model.ApplicantsFor(campaign.Id);
+                        var deleteWarning = campaign.Status == CampaignStatus.Draft
+                            ? $"Are you sure you want to delete \"{campaign.Title}\"? This cannot be undone."
+                            : $"Are you sure you want to delete \"{campaign.Title}\"? This is a {campaign.Status.ToString().ToLowerInvariant()} campaign" +
+                              (applicantCount > 0 ? $" with {applicantCount} applicant{(applicantCount == 1 ? "" : "s")}" : "") +
+                              " — deleting it will permanently remove its applicants and any collaborations. This cannot be undone.";
                     }
-                    <div class="campaign-row-applied">@Model.ApplicantsFor(campaign.Id) applied</div>
+                    <form method="post" action="/Campaigns/Delete/@campaign.Id">
+                        @Html.AntiForgeryToken()
+                        <button type="button" class="campaign-row-delete js-confirm" aria-label="Delete campaign"
+                                data-confirm-title="Delete this campaign?"
+                                data-confirm-text="@deleteWarning"
+                                data-confirm-label="Delete"
+                                data-confirm-danger="true">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6h16Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            Delete
+                        </button>
+                    </form>
+                    <div class="campaign-row-applied">@applicantCount applied</div>
                 </div>
 
             </div>

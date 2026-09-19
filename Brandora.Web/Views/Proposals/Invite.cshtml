@@ -162,6 +162,11 @@
 
 <div class="form-shell">
 
+    <a href="/Influencers/Profile/@Model.InfluencerProfileId" class="back-to-dashboard">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Back
+    </a>
+
     <div class="invite-target">
         <div class="creator-avatar" style="background: linear-gradient(135deg, hsl(@(hue)deg 75% 58%), hsl(@((hue + 45) % 360)deg 75% 48%));">
             @FollowerFormat.InitialsOf(Model.Creator.FullName)
@@ -234,7 +239,7 @@
         </div>
 
         <div class="form-actions">
-            <a href="/Influencers/Profile/@Model.InfluencerProfileId" class="btn btn-ghost">Cancel</a>
+            <a href="/Influencers/Profile/@Model.InfluencerProfileId" class="btn btn-outline-brand">Cancel</a>
             <button type="submit" class="btn btn-primary">Send Invite</button>
         </div>
 
