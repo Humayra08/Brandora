@@ -230,6 +230,79 @@
         background: linear-gradient(90deg, #a326ff, #236eff);
     }
 
+    .info-section-head-row {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+    }
+
+    .review-edit-link {
+        flex-shrink: 0;
+        font-family: 'Inter', sans-serif;
+        font-size: 12px;
+        font-weight: 600;
+        color: #6322d4;
+        text-decoration: none;
+    }
+
+    .review-edit-link:hover {
+        text-decoration: underline;
+    }
+
+    .mini-milestone-list {
+        margin-top: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .mini-milestone-card {
+        padding: 16px 18px;
+        border-radius: 14px;
+        border: 1px solid #eaecf5;
+        background: #fbfbfe;
+    }
+
+    .mini-milestone-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 700;
+        font-size: 13.5px;
+        color: #171d3d;
+    }
+
+    .mini-milestone-amount {
+        flex-shrink: 0;
+        color: #171d3d;
+    }
+
+    .mini-milestone-desc {
+        margin-top: 8px;
+        font-family: 'Inter', sans-serif;
+        font-size: 12.5px;
+        line-height: 1.6;
+        color: #6b7290;
+    }
+
+    .mini-milestone-meta {
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px solid #eeeef7;
+
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 11.5px;
+        color: #9096b3;
+    }
+
     @@media(max-width: 760px) {
         .detail-figures { grid-template-columns: repeat(3, 1fr); gap: 12px; }
         .soon-grid { grid-template-columns: 1fr; }
@@ -241,43 +314,70 @@
 
 <div class="detail-shell">
 
-    <div class="detail-crumb"><a href="/Campaigns">Campaigns</a> / @campaign.Title</div>
+    <a href="/Campaigns" class="back-to-dashboard">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Back
+    </a>
 
-    <div class="detail-head">
-        @if (!string.IsNullOrEmpty(campaign.MediaUrl))
-        {
-            <div class="detail-media">
-                @if (campaign.MediaType == "video")
+    <section class="page-hero">
+        @await Html.PartialAsync("_HeroWaves")
+        <div class="page-hero-intro">
+            <div class="detail-crumb"><a href="/Campaigns">Campaigns</a> / @campaign.Title</div>
+
+            <div style="display:flex; align-items:center; gap:14px; margin-top:10px;">
+                @if (!string.IsNullOrEmpty(campaign.MediaUrl))
                 {
-                    <video src="@campaign.MediaUrl" muted loop playsinline autoplay preload="metadata"></video>
+                    <div class="detail-media" style="width:52px; height:52px; border-radius:12px;">
+                        @if (campaign.MediaType == "video")
+                        {
+                            <video src="@campaign.MediaUrl" muted loop playsinline autoplay preload="metadata"></video>
+                        }
+                        else
+                        {
+                            <img src="@campaign.MediaUrl" alt="@campaign.Title" />
+                        }
+                    </div>
                 }
-                else
-                {
-                    <img src="@campaign.MediaUrl" alt="@campaign.Title" />
-                }
+                <h1 class="page-hero-title" style="margin-top:0;">@campaign.Title</h1>
             </div>
-        }
 
-        <div style="flex:1; min-width:0;">
-            <h1 class="detail-title">@campaign.Title</h1>
-            <div class="detail-tags">
+            <p class="page-hero-sub">@campaign.Description</p>
+
+            <div class="detail-tags" style="margin-top: 14px;">
                 <span class="status-pill @campaign.Status.ToString().ToLowerInvariant()">@campaign.Status</span>
-                @if (!string.IsNullOrEmpty(campaign.Platform))
+                @foreach (var p in (campaign.Platform ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
                 {
-                    <span class="tag">@campaign.Platform</span>
+                    <span class="tag">@p</span>
                 }
                 @if (!string.IsNullOrEmpty(campaign.Niche))
                 {
                     <span class="tag">@campaign.Niche</span>
                 }
             </div>
+
+            <div class="hero-actions" style="margin-top: 16px;">
+                <a href="/Campaigns/Edit/@campaign.Id" class="btn btn-secondary">Edit Campaign</a>
+                <form method="post" action="/Campaigns/Delete/@campaign.Id">
+                    @Html.AntiForgeryToken()
+                    <button type="button" class="btn btn-outline-danger js-confirm"
+                            data-confirm-title="Delete this campaign?"
+                            data-confirm-text="Are you sure you want to delete &quot;@campaign.Title&quot;?@(Model.ApplicantCount > 0 ? $" This campaign has {Model.ApplicantCount} applicant(s) — deleting it will permanently remove them and any collaborations." : " This cannot be undone.")"
+                            data-confirm-label="Delete"
+                            data-confirm-danger="true">Delete Campaign</button>
+                </form>
+            </div>
         </div>
 
-        <a href="/Campaigns/Edit/@campaign.Id" class="btn btn-secondary">Edit</a>
-    </div>
+        <div class="page-hero-art" aria-hidden="true">
+            <div class="hero-glass hero-glass-back"></div>
+            <div class="hero-glass hero-glass-front">
+                <span class="hero-glass-copy">Track<br />Manage<br />Grow<span></span></span>
+            </div>
+            <span class="hero-sparkle"></span>
+        </div>
 
-    <div class="detail-crumb" style="margin-top: 18px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; color: #9b2cff;">Campaign Overview</div>
-    <p class="section-desc" style="margin-top: 4px; font-family:'Inter',sans-serif; font-size: 12.5px; color: #8189a8;">Everything you need to monitor your campaign, creators, milestones and progress in one workspace.</p>
+        <div class="page-hero-motto">Every Detail,<br />One Workspace.<span></span></div>
+    </section>
 
     <div class="detail-card">
 
@@ -328,7 +428,11 @@
                 <form method="post" action="/Campaigns/UpdateStatus/@campaign.Id">
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="status" value="Cancelled" />
-                    <button type="submit" class="btn btn-ghost">Cancel Campaign</button>
+                    <button type="button" class="btn btn-outline-danger js-confirm"
+                            data-confirm-title="Cancel this campaign?"
+                            data-confirm-text="Are you sure you want to cancel &quot;@campaign.Title&quot;? Creators will no longer be able to apply."
+                            data-confirm-label="Cancel Campaign"
+                            data-confirm-danger="true">Cancel Campaign</button>
                 </form>
             }
         </div>
@@ -411,25 +515,57 @@
         <a href="/Influencers?campaignId=@campaign.Id" class="btn btn-secondary" style="margin-top: 16px;">Discover Matching Creators</a>
     </div>
 
-    @if (Model.MilestonePlans.Count > 0 || Model.TotalMilestoneCount > 0)
+    @if (Model.MilestonePlans.Count > 0)
+    {
+        <div class="info-section">
+            <div class="info-section-head-row">
+                <div>
+                    <div class="info-section-title">Campaign Milestones (@Model.MilestonePlans.Count)</div>
+                    <p class="info-section-sub">The deliverables and budget breakdown defined for this campaign.</p>
+                </div>
+                <a href="/Campaigns/Milestones/@campaign.Id" class="review-edit-link">Edit</a>
+            </div>
+
+            <div class="mini-milestone-list">
+                @foreach (var plan in Model.MilestonePlans)
+                {
+                    <div class="mini-milestone-card">
+                        <div class="mini-milestone-head">
+                            <span class="mini-milestone-title">@plan.Title</span>
+                            <span class="mini-milestone-amount">৳@plan.Amount.ToString("N0")</span>
+                        </div>
+                        @if (!string.IsNullOrEmpty(plan.Description))
+                        {
+                            <div class="mini-milestone-desc">@plan.Description</div>
+                        }
+                        <div class="mini-milestone-meta">
+                            @if (!string.IsNullOrEmpty(plan.ContentType))
+                            {
+                                <span>@plan.ContentType</span>
+                            }
+                            @if (plan.DueDate.HasValue)
+                            {
+                                <span>Due @plan.DueDate.Value.ToString("MMM d, yyyy")</span>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+
+    @if (Model.TotalMilestoneCount > 0)
     {
         <div class="info-section">
             <div class="info-section-title">Milestone Progress</div>
-            <p class="info-section-sub">Deliverables planned for this campaign and how far real collaborations have progressed.</p>
+            <p class="info-section-sub">How far real, per-creator collaborations have progressed against these milestones.</p>
 
-            @if (Model.TotalMilestoneCount > 0)
-            {
-                var pct = (int)Math.Round(Model.PaidMilestoneCount * 100.0 / Model.TotalMilestoneCount);
-                <div class="info-grid">
-                    <div><div class="info-grid-label">Milestones Paid</div><div class="info-grid-value">@Model.PaidMilestoneCount of @Model.TotalMilestoneCount</div></div>
-                    <div><div class="info-grid-label">Progress</div><div class="info-grid-value">@pct%</div></div>
-                </div>
-                <div class="progress-mini-track"><div class="progress-mini-fill" style="width: @pct%;"></div></div>
-            }
-            else
-            {
-                <p class="info-section-body" style="color:#9096b3;">@Model.MilestonePlans.Count milestone@(Model.MilestonePlans.Count == 1 ? "" : "s") planned — these become real, trackable deliverables once a creator's proposal is accepted.</p>
-            }
+            @{ var pct = (int)Math.Round(Model.PaidMilestoneCount * 100.0 / Model.TotalMilestoneCount); }
+            <div class="info-grid">
+                <div><div class="info-grid-label">Milestones Paid</div><div class="info-grid-value">@Model.PaidMilestoneCount of @Model.TotalMilestoneCount</div></div>
+                <div><div class="info-grid-label">Progress</div><div class="info-grid-value">@pct%</div></div>
+            </div>
+            <div class="progress-mini-track"><div class="progress-mini-fill" style="width: @pct%;"></div></div>
         </div>
     }
 

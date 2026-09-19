@@ -243,8 +243,11 @@ public class InfluencerMessagesController(UserManager<ApplicationUser> userManag
             return NotFound();
         }
 
+        // One conversation per (brand, influencer) pair, regardless of which
+        // campaign started it — CampaignId is stored only as first-contact
+        // context, never used to fork a second thread.
         var conversation = await db.Conversations.FirstOrDefaultAsync(c =>
-            c.BrandProfileId == brandId && c.InfluencerProfileId == influencer.Id && c.CampaignId == campaignId);
+            c.BrandProfileId == brandId && c.InfluencerProfileId == influencer.Id);
 
         if (conversation is null)
         {

@@ -29,6 +29,8 @@ public abstract class BrandControllerBase(UserManager<ApplicationUser> userManag
             ViewData["ProfilePictureUrl"] = brand.ProfilePictureUrl;
             ViewData["ContactFullName"] = brand.ContactFullName;
             ViewData["Email"] = await db.Users.Where(u => u.Id == userId).Select(u => u.Email).FirstOrDefaultAsync();
+            ViewData["PendingApplicantCount"] = await db.Proposals.CountAsync(p =>
+                p.Campaign.BrandProfileId == brand.Id && p.Status == ProposalStatus.Pending);
         }
 
         return brand;

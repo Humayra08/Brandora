@@ -9,9 +9,12 @@ public static class SmartMatchScorer
         var score = 0;
         var reasons = new List<string>();
 
-        if (!string.IsNullOrEmpty(campaign.Platform) &&
-            (string.Equals(creator.PrimaryPlatform, campaign.Platform, StringComparison.OrdinalIgnoreCase)
-             || campaign.Platform == "Multi-Platform"))
+        var campaignPlatforms = (campaign.Platform ?? string.Empty)
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        if (campaignPlatforms.Length > 0 &&
+            (campaignPlatforms.Contains(creator.PrimaryPlatform, StringComparer.OrdinalIgnoreCase)
+             || campaignPlatforms.Contains("Multi-Platform", StringComparer.OrdinalIgnoreCase)))
         {
             score += 50;
             reasons.Add($"Active on {creator.PrimaryPlatform}, your campaign's target platform");

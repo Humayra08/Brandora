@@ -99,7 +99,7 @@ public class ProposalsController(UserManager<ApplicationUser> userManager, Appli
         return RedirectToAction("Detail", new { id = proposal.Id });
     }
 
-    public async Task<IActionResult> Index(int? campaignId, ProposalStatus? status)
+    public async Task<IActionResult> Index(int? campaignId, ProposalStatus? status, string? search, DateTime? from, DateTime? to, int page = 1, int pageSize = 6)
     {
         var brand = await GetCurrentBrandAsync();
         if (brand is null)
@@ -107,7 +107,14 @@ public class ProposalsController(UserManager<ApplicationUser> userManager, Appli
             return RedirectToAction("Index", "Home");
         }
 
-        var query = db.Proposals.Where(p => p.Campaign.BrandProfileId == brand.Id);
+        var baseQuery = db.Proposals.Where(p => p.Campaign.BrandProfileId == brand.Id);
+
+        var counts = await baseQuery
+            .GroupBy(p => p.Status)
+            .Select(g => new { Status = g.Key, Count = g.Count() })
+            .ToListAsync();
+
+        var query = baseQuery;
 
         if (campaignId.HasValue)
         {
@@ -119,10 +126,34 @@ public class ProposalsController(UserManager<ApplicationUser> userManager, Appli
             query = query.Where(p => p.Status == status.Value);
         }
 
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            query = query.Where(p => p.InfluencerProfile.FullName.Contains(search));
+        }
+
+        if (from.HasValue)
+        {
+            var fromUtc = DateTime.SpecifyKind(from.Value.Date, DateTimeKind.Utc);
+            query = query.Where(p => p.CreatedAt >= fromUtc);
+        }
+
+        if (to.HasValue)
+        {
+            var toUtc = DateTime.SpecifyKind(to.Value.Date.AddDays(1), DateTimeKind.Utc);
+            query = query.Where(p => p.CreatedAt < toUtc);
+        }
+
+        var totalCount = await query.CountAsync();
+
+        page = Math.Max(1, page);
+        pageSize = pageSize is 6 or 10 or 25 or 50 ? pageSize : 6;
+
         var proposals = await query
             .Include(p => p.InfluencerProfile)
             .Include(p => p.Campaign)
             .OrderByDescending(p => p.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .ToListAsync();
 
         Campaign? campaign = null;
@@ -131,7 +162,29 @@ public class ProposalsController(UserManager<ApplicationUser> userManager, Appli
             campaign = await db.Campaigns.FirstOrDefaultAsync(c => c.Id == campaignId.Value && c.BrandProfileId == brand.Id);
         }
 
-        return View(new ProposalListViewModel { Proposals = proposals, CampaignId = campaignId, Status = status, Campaign = campaign });
+        var availableCampaigns = await db.Campaigns
+            .Where(c => c.BrandProfileId == brand.Id)
+            .OrderByDescending(c => c.CreatedAt)
+            .ToListAsync();
+
+        return View(new ProposalListViewModel
+        {
+            Proposals = proposals,
+            CampaignId = campaignId,
+            Status = status,
+            Campaign = campaign,
+            Search = search,
+            From = from,
+            To = to,
+            AvailableCampaigns = availableCampaigns,
+            AllCount = counts.Sum(c => c.Count),
+            PendingCount = counts.FirstOrDefault(c => c.Status == ProposalStatus.Pending)?.Count ?? 0,
+            AcceptedCount = counts.FirstOrDefault(c => c.Status == ProposalStatus.Accepted)?.Count ?? 0,
+            RejectedCount = counts.FirstOrDefault(c => c.Status == ProposalStatus.Rejected)?.Count ?? 0,
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = totalCount
+        });
     }
 
     public async Task<IActionResult> Detail(int id)
@@ -153,7 +206,22 @@ public class ProposalsController(UserManager<ApplicationUser> userManager, Appli
             return NotFound();
         }
 
-        return View(proposal);
+        var milestonePlanCount = await db.CampaignMilestonePlans.CountAsync(p => p.CampaignId == proposal.CampaignId);
+
+        var pastCollaborations = await db.Collaborations
+            .Include(c => c.Campaign)
+            .Where(c => c.InfluencerProfileId == proposal.InfluencerProfileId
+                        && c.Campaign.BrandProfileId == brand.Id
+                        && c.ProposalId != proposal.Id)
+            .OrderByDescending(c => c.CreatedAt)
+            .ToListAsync();
+
+        return View(new ProposalDetailViewModel
+        {
+            Proposal = proposal,
+            CampaignMilestonePlanCount = milestonePlanCount,
+            PastCollaborations = pastCollaborations
+        });
     }
 
     [HttpPost]
@@ -182,6 +250,7 @@ public class ProposalsController(UserManager<ApplicationUser> userManager, Appli
         }
 
         proposal.Status = ProposalStatus.Accepted;
+        proposal.DecidedAt = DateTime.UtcNow;
 
         var collaboration = new Collaboration
         {
@@ -263,6 +332,7 @@ public class ProposalsController(UserManager<ApplicationUser> userManager, Appli
         if (proposal.Status == ProposalStatus.Pending)
         {
             proposal.Status = ProposalStatus.Rejected;
+            proposal.DecidedAt = DateTime.UtcNow;
             await db.SaveChangesAsync();
         }
 

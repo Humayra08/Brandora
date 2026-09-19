@@ -47,34 +47,51 @@
 
     .form-error-banner { margin-bottom: 18px; padding: 12px 16px; border-radius: 12px; background: #fdeef0; border: 1px solid #f4c6cd; font-family: 'Inter', sans-serif; font-size: 13px; color: #b3273f; }
 
-    .main-panel { padding: 26px 28px; border-radius: 18px; background: #ffffff; border: 1px solid #eaecf5; }
-    .main-panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-    .main-panel-title { font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 18px; color: #171d3d; }
-    .main-panel-sub { margin-top: 4px; font-family: 'Inter', sans-serif; font-size: 12.5px; color: #8189a8; }
+    .main-panel { padding: 32px 34px; border-radius: 18px; background: #ffffff; border: 1px solid #eaecf5; }
+    .main-panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+    .main-panel-title { font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 19px; color: #171d3d; line-height: 1.3; }
+    .main-panel-sub { margin-top: 8px; font-family: 'Inter', sans-serif; font-size: 13px; line-height: 1.6; color: #8189a8; max-width: 460px; }
 
-    .plan-list { margin-top: 20px; display: flex; flex-direction: column; gap: 12px; }
+    .plan-list { margin-top: 28px; display: flex; flex-direction: column; gap: 16px; }
 
-    .plan-card { padding: 16px 18px; border-radius: 14px; border: 1px solid #eaecf5; background: #fbfbfe; }
-    .plan-card-head { display: flex; align-items: center; gap: 10px; }
-    .plan-number { width: 26px; height: 26px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: linear-gradient(105deg, #a326ff, #236eff, #18a9ff); color: #fff; font: 700 12px 'Inter', sans-serif; }
-    .plan-title-text { font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 13.5px; color: #171d3d; flex: 1; }
-    .plan-remove { width: 26px; height: 26px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: none; background: #f1f2f8; color: #6b7390; font-size: 13px; font-weight: 700; cursor: pointer; transition: .2s; }
+    .plan-card { padding: 20px 22px; border-radius: 14px; border: 1px solid #eaecf5; background: #fbfbfe; }
+    .plan-card-head { display: flex; align-items: center; gap: 12px; }
+    .plan-number { width: 28px; height: 28px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: linear-gradient(105deg, #a326ff, #236eff, #18a9ff); color: #fff; font: 700 12.5px 'Inter', sans-serif; }
+    .plan-title-text { font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 14px; color: #171d3d; flex: 1; line-height: 1.5; }
+    .plan-remove { width: 28px; height: 28px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: none; background: #f1f2f8; color: #6b7390; font-size: 13px; font-weight: 700; cursor: pointer; transition: .2s; }
     .plan-remove:hover { background: rgba(220,50,70,.12); color: #b3273f; }
 
-    .plan-meta-row { margin-top: 10px; padding-top: 10px; border-top: 1px solid #eeeef7; display: flex; flex-wrap: wrap; gap: 16px; font-family: 'Inter', sans-serif; font-size: 12px; color: #6b7290; }
+    .plan-meta-row { margin-top: 14px; padding-top: 14px; border-top: 1px solid #eeeef7; display: flex; flex-wrap: wrap; gap: 10px 20px; font-family: 'Inter', sans-serif; font-size: 12.5px; line-height: 1.6; color: #6b7290; }
     .plan-meta-row strong { color: #171d3d; }
-    .plan-desc-text { margin-top: 6px; font-family: 'Inter', sans-serif; font-size: 11.5px; color: #9096b3; }
+    .plan-desc-text { margin-top: 10px; font-family: 'Inter', sans-serif; font-size: 12px; line-height: 1.6; color: #9096b3; }
 
-    .plan-empty { margin-top: 20px; padding: 30px; text-align: center; border-radius: 14px; border: 1.5px dashed #e2e5f2; font-family: 'Inter', sans-serif; font-size: 13px; color: #9096b3; }
+    .plan-empty { margin-top: 24px; padding: 34px; text-align: center; border-radius: 14px; border: 1.5px dashed #e2e5f2; font-family: 'Inter', sans-serif; font-size: 13px; line-height: 1.7; color: #9096b3; }
 
-    .add-form { margin-top: 22px; padding-top: 22px; border-top: 1px solid #f0f1f7; }
-    .add-form-title { font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 13.5px; color: #171d3d; }
+    .add-milestone-btn {
+        display: inline-flex; align-items: center; gap: 6px;
+        height: 42px; padding: 0 18px; flex-shrink: 0;
+        border-radius: 10px; border: none;
+        background: linear-gradient(105deg, #a326ff, #236eff, #18a9ff);
+        color: #fff; font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 700;
+        cursor: pointer; transition: .2s;
+    }
+    .add-milestone-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(140,60,255,.3); }
 
-    .form-fields { margin-top: 16px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+    .add-form {
+        border-radius: 16px; border: 1.5px dashed #d6c8fb; background: #faf9ff;
+
+        max-height: 0; overflow: hidden; opacity: 0;
+        margin: 0; padding: 0 22px;
+        transition: max-height .35s cubic-bezier(.22,1,.36,1), opacity .3s ease, padding .35s ease, margin .35s ease;
+    }
+    .add-form.is-open { max-height: 700px; opacity: 1; padding: 26px; margin-bottom: 24px; }
+    .add-form-title { font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 14px; color: #171d3d; }
+
+    .form-fields { margin-top: 20px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px 18px; }
     .form-fields.pair { grid-template-columns: 1fr 1fr; }
-    .form-field { display: flex; flex-direction: column; gap: 7px; }
+    .form-field { display: flex; flex-direction: column; gap: 8px; }
     .form-field.span-3 { grid-column: span 3; }
-    .form-field label { font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 600; color: #2a3157; }
+    .form-field label { font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 600; color: #2a3157; line-height: 1.4; }
     .form-field input, .form-field select, .form-field textarea {
         padding: 12px 14px; border-radius: 10px; border: 1px solid #e2e5f2; background: #fff;
         font-family: 'Inter', sans-serif; font-size: 13.5px; color: #171d3d; outline: none; transition: .2s;
@@ -86,7 +103,7 @@
     }
     .form-field input:focus, .form-field select:focus, .form-field textarea:focus { border-color: #a978ff; box-shadow: 0 0 0 4px rgba(155,44,255,.1); }
 
-    .form-actions { margin-top: 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .form-actions { margin-top: 28px; padding-top: 24px; border-top: 1px solid #f0f1f7; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 
     @@media(max-width: 960px) { .wizard-columns { grid-template-columns: 1fr; } .wizard-side { position: static; } }
     @@media(max-width: 700px) { .wizard-stepper { flex-wrap: wrap; gap: 12px 0; } .wizard-step-line { display: none; } .wizard-step-text span { display: none; } }
@@ -138,51 +155,11 @@
                     <div class="main-panel-title">Campaign Milestones</div>
                     <p class="main-panel-sub">Add the tasks, content types, and deliverables you want influencers to complete.</p>
                 </div>
+                <button type="button" class="add-milestone-btn" id="toggleAddMilestone">+ Add Milestone</button>
             </div>
 
-            @if (Model.Plans.Count == 0)
-            {
-                <div class="plan-empty">No milestones planned yet — add your first one below, or continue and add them later per creator.</div>
-            }
-            else
-            {
-                <div class="plan-list">
-                    @foreach (var plan in Model.Plans)
-                    {
-                        var index = Model.Plans.IndexOf(plan) + 1;
-                        <div class="plan-card">
-                            <div class="plan-card-head">
-                                <span class="plan-number">@index</span>
-                                <span class="plan-title-text">@plan.Title</span>
-                                <form method="post" action="/Campaigns/RemoveMilestonePlan">
-                                    @Html.AntiForgeryToken()
-                                    <input type="hidden" name="id" value="@plan.Id" />
-                                    <input type="hidden" name="campaignId" value="@Model.Campaign.Id" />
-                                    <button type="submit" class="plan-remove" aria-label="Remove milestone">&times;</button>
-                                </form>
-                            </div>
-                            @if (!string.IsNullOrEmpty(plan.Description))
-                            {
-                                <div class="plan-desc-text">@plan.Description</div>
-                            }
-                            <div class="plan-meta-row">
-                                @if (!string.IsNullOrEmpty(plan.ContentType))
-                                {
-                                    <span>@plan.ContentType</span>
-                                }
-                                <span>Budget: <strong>৳@plan.Amount.ToString("N0")</strong></span>
-                                @if (plan.DueDate.HasValue)
-                                {
-                                    <span>Deadline: <strong>@plan.DueDate.Value.ToString("MMM d, yyyy")</strong></span>
-                                }
-                            </div>
-                        </div>
-                    }
-                </div>
-            }
-
-            <div class="add-form">
-                <div class="add-form-title">+ Add Milestone</div>
+            <div class="add-form" id="addMilestoneForm">
+                <div class="add-form-title">New Milestone</div>
 
                 <form method="post" action="/Campaigns/AddMilestonePlan">
                     @Html.AntiForgeryToken()
@@ -222,9 +199,62 @@
                     </div>
 
                     <div class="form-actions" style="justify-content: flex-end;">
-                        <button type="submit" class="btn btn-primary">+ Add Milestone</button>
+                        <button type="button" class="btn btn-outline-brand" id="discardMilestone">Discard</button>
+                        <button type="submit" class="btn btn-primary">Add</button>
                     </div>
                 </form>
+            </div>
+
+            @if (Model.Plans.Count == 0)
+            {
+                <div class="plan-empty">No milestones planned yet — click "+ Add Milestone" above to add your first one, or continue and add them later per creator.</div>
+            }
+            else
+            {
+                <div class="plan-list">
+                    @foreach (var plan in Model.Plans)
+                    {
+                        var index = Model.Plans.IndexOf(plan) + 1;
+                        <div class="plan-card">
+                            <div class="plan-card-head">
+                                <span class="plan-number">@index</span>
+                                <span class="plan-title-text">@plan.Title</span>
+                                <form method="post" action="/Campaigns/RemoveMilestonePlan">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@plan.Id" />
+                                    <input type="hidden" name="campaignId" value="@Model.Campaign.Id" />
+                                    <button type="button" class="plan-remove js-confirm" aria-label="Delete milestone"
+                                            data-confirm-title="Delete this milestone?"
+                                            data-confirm-text="Are you sure you want to delete &quot;@plan.Title&quot;? This cannot be undone."
+                                            data-confirm-label="Delete"
+                                            data-confirm-danger="true">
+                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6h16Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                    </button>
+                                </form>
+                            </div>
+                            @if (!string.IsNullOrEmpty(plan.Description))
+                            {
+                                <div class="plan-desc-text">@plan.Description</div>
+                            }
+                            <div class="plan-meta-row">
+                                @if (!string.IsNullOrEmpty(plan.ContentType))
+                                {
+                                    <span>@plan.ContentType</span>
+                                }
+                                <span>Budget: <strong>৳@plan.Amount.ToString("N0")</strong></span>
+                                @if (plan.DueDate.HasValue)
+                                {
+                                    <span>Deadline: <strong>@plan.DueDate.Value.ToString("MMM d, yyyy")</strong></span>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+
+            <div class="form-actions">
+                <a href="/Campaigns/Edit/@Model.Campaign.Id" class="btn btn-outline-brand">← Back</a>
+                <a href="/Campaigns/Targeting/@Model.Campaign.Id" class="btn btn-primary">Next: Targeting →</a>
             </div>
         </div>
 
@@ -274,9 +304,39 @@
 
     </div>
 
-    <div class="form-actions" style="margin-top: 22px;">
-        <a href="/Campaigns/Edit/@Model.Campaign.Id" class="btn btn-ghost">← Back</a>
-        <a href="/Campaigns/Targeting/@Model.Campaign.Id" class="btn btn-primary">Next: Targeting →</a>
-    </div>
-
 </div>
+
+@section Scripts {
+    <script>
+        (function () {
+            var panel = document.getElementById('addMilestoneForm');
+            var toggleBtn = document.getElementById('toggleAddMilestone');
+            var discardBtn = document.getElementById('discardMilestone');
+            var form = panel ? panel.querySelector('form') : null;
+            var hasError = @(string.IsNullOrEmpty(error) ? "false" : "true");
+
+            function openPanel() {
+                panel.classList.add('is-open');
+                toggleBtn.textContent = '− Hide Form';
+            }
+
+            function closePanel() {
+                panel.classList.remove('is-open');
+                toggleBtn.textContent = '+ Add Milestone';
+                if (form) { form.reset(); }
+            }
+
+            if (panel && toggleBtn) {
+                toggleBtn.addEventListener('click', function () {
+                    panel.classList.contains('is-open') ? closePanel() : openPanel();
+                });
+
+                if (hasError) { openPanel(); }
+            }
+
+            if (discardBtn) {
+                discardBtn.addEventListener('click', closePanel);
+            }
+        })();
+    </script>
+}

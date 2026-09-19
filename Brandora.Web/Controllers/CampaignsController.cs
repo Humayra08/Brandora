@@ -39,7 +39,9 @@ public class CampaignsController(UserManager<ApplicationUser> userManager, Appli
 
         if (!string.IsNullOrWhiteSpace(platform))
         {
-            query = query.Where(c => c.Platform == platform);
+            // Platform can hold several comma-separated values (multi-platform
+            // campaigns), so match on substring rather than exact equality.
+            query = query.Where(c => c.Platform != null && c.Platform.Contains(platform));
         }
 
         if (!string.IsNullOrWhiteSpace(category))
@@ -256,6 +258,58 @@ public class CampaignsController(UserManager<ApplicationUser> userManager, Appli
         await db.SaveChangesAsync();
 
         return RedirectToAction(campaign.Status == CampaignStatus.Draft ? "Preview" : "Detail", new { id = campaign.Id });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Delete(int id)
+    {
+        var brand = await GetCurrentBrandAsync();
+        if (brand is null)
+        {
+            return RedirectToAction("Index", "Home");
+        }
+
+        var campaign = await db.Campaigns.FirstOrDefaultAsync(c => c.Id == id && c.BrandProfileId == brand.Id);
+        if (campaign is null)
+        {
+            return NotFound();
+        }
+
+        // Collaborations (and disputes raised on them) are protected against
+        // accidental cascade deletes elsewhere in the app, so deleting a
+        // campaign that has real collaborations must remove them explicitly
+        // and in dependency order — children before the campaign itself.
+        var collaborationIds = await db.Collaborations
+            .Where(c => c.CampaignId == id)
+            .Select(c => c.Id)
+            .ToListAsync();
+
+        if (collaborationIds.Count > 0)
+        {
+            var disputes = await db.Disputes.Where(d => collaborationIds.Contains(d.CollaborationId)).ToListAsync();
+            db.Disputes.RemoveRange(disputes);
+
+            var payments = await db.Payments.Where(p => collaborationIds.Contains(p.CollaborationId)).ToListAsync();
+            db.Payments.RemoveRange(payments);
+
+            var milestones = await db.Milestones.Where(m => collaborationIds.Contains(m.CollaborationId)).ToListAsync();
+            db.Milestones.RemoveRange(milestones);
+
+            var collaborations = await db.Collaborations.Where(c => collaborationIds.Contains(c.Id)).ToListAsync();
+            db.Collaborations.RemoveRange(collaborations);
+        }
+
+        if (!string.IsNullOrEmpty(campaign.MediaUrl))
+        {
+            mediaUploads.DeleteMedia(campaign.MediaUrl);
+        }
+
+        db.Campaigns.Remove(campaign);
+        await db.SaveChangesAsync();
+
+        TempData["CampaignSuccess"] = $"\"{campaign.Title}\" was deleted.";
+        return RedirectToAction("Index");
     }
 
     // ---- Wizard Step 2: Milestones ----

@@ -18,6 +18,7 @@ public class Proposal
     public ProposalStatus Status { get; set; } = ProposalStatus.Pending;
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime? DecidedAt { get; set; }
 
     public Collaboration? Collaboration { get; set; }
 }
