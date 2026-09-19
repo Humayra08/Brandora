@@ -148,6 +148,13 @@
     .collab-item { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border-radius: 12px; background: #fbfbfe; border: 1px solid #f0f1f7; transition: .2s; }
     .collab-item:hover { border-color: #e0dcf8; transform: translateY(-1px); }
 
+    .profile-info-grid { margin-top: 14px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px 24px; }
+    .profile-info-value-full { grid-column: span 2; }
+    .profile-info-label { font-family: 'Inter', sans-serif; font-size: 10.5px; font-weight: 600; letter-spacing: .3px; text-transform: uppercase; color: #9096b3; }
+    .profile-info-value { margin-top: 3px; font-family: 'Inter', sans-serif; font-size: 13px; color: #171d3d; word-break: break-word; }
+
+    @@media(max-width: 480px) { .profile-info-grid { grid-template-columns: 1fr; } .profile-info-value-full { grid-column: span 1; } }
+
     @@media(max-width: 640px) {
         .profile-header { flex-direction: column; }
         .profile-side-actions { margin-left: 0; flex-direction: row; }
@@ -243,6 +250,22 @@
         <div>
             <div class="figure-value">@(string.IsNullOrEmpty(creator.RateNote) ? "Not listed" : creator.RateNote)</div>
             <div class="figure-label">Rate</div>
+        </div>
+    </div>
+
+    <div class="profile-section">
+        <div class="profile-section-title">Creator Details</div>
+        <div class="profile-info-grid">
+            <div><div class="profile-info-label">Primary Platform</div><div class="profile-info-value">@(creator.PrimaryPlatform ?? "Not specified")</div></div>
+            <div><div class="profile-info-label">Handle</div><div class="profile-info-value">@(string.IsNullOrEmpty(creator.PlatformUsername) ? "Not specified" : creator.PlatformUsername)</div></div>
+            <div><div class="profile-info-label">Content Niche</div><div class="profile-info-value">@(creator.ContentNiche ?? "Not specified")</div></div>
+            <div><div class="profile-info-label">Audience Size</div><div class="profile-info-value">@(creator.AudienceSize ?? "Not specified")</div></div>
+            <div><div class="profile-info-label">Location</div><div class="profile-info-value">@(string.IsNullOrEmpty(creator.Location) ? "Not specified" : creator.Location)</div></div>
+            <div><div class="profile-info-label">Verification Status</div><div class="profile-info-value">@creator.VerificationStatus</div></div>
+            @if (!string.IsNullOrEmpty(creator.WebsiteUrl))
+            {
+                <div class="profile-info-value-full"><div class="profile-info-label">Website</div><div class="profile-info-value"><a href="@creator.WebsiteUrl" target="_blank" rel="noopener" style="color:#7a2df3;">@creator.WebsiteUrl</a></div></div>
+            }
         </div>
     </div>
 

@@ -60,16 +60,31 @@
 
     .over-budget-warning { margin-top: 12px; padding: 10px 14px; border-radius: 10px; background: #fdeef0; border: 1px solid #f4c6cd; font-family: 'Inter', sans-serif; font-size: 12.5px; color: #b3273f; }
 
-    .preview-banner-static { margin-top: 14px; aspect-ratio: 16/10; border-radius: 12px; overflow: hidden; position: relative; background: linear-gradient(135deg, #171d3d, #2a1a52); }
-    .preview-banner-static img, .preview-banner-static video { width: 100%; height: 100%; object-fit: cover; display: block; }
-    .preview-banner-static-overlay { position: absolute; inset: 0; background: linear-gradient(180deg, transparent 40%, rgba(10,11,30,.85) 100%); display: flex; flex-direction: column; justify-content: flex-end; padding: 14px; color: #fff; }
-    .preview-banner-static-date { font-family: 'Inter', sans-serif; font-size: 10px; font-weight: 600; color: rgba(255,255,255,.7); }
-    .preview-banner-static-title { margin-top: 4px; font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 15px; }
-    .preview-banner-static-tag { margin-top: 6px; display: inline-block; padding: 3px 8px; border-radius: 999px; background: rgba(255,255,255,.15); font-family: 'Inter', sans-serif; font-size: 9.5px; font-weight: 700; }
+    .preview-card-banner { margin-top: 14px; aspect-ratio: 16/9; border-radius: 14px; overflow: hidden; }
+    .preview-card-banner img, .preview-card-banner video { width: 100%; height: 100%; object-fit: cover; display: block; }
 
-    .preview-mini-figures { margin-top: 12px; display: flex; gap: 18px; }
-    .preview-mini-figure { display: flex; align-items: center; gap: 5px; font-family: 'Inter', sans-serif; font-size: 11.5px; color: #56617f; }
-    .preview-mini-figure strong { color: #171d3d; }
+    .preview-card-head { margin-top: 14px; display: flex; align-items: center; gap: 12px; }
+    .preview-card-thumb {
+        flex-shrink: 0; width: 46px; height: 46px; border-radius: 12px; overflow: hidden;
+        background: linear-gradient(135deg, #7224ff, #3735ff 55%, #087fff);
+        display: flex; align-items: center; justify-content: center;
+        color: #ffffff; font-family: 'Playfair Display', serif; font-weight: 700; font-size: 18px;
+    }
+    .preview-card-thumb img, .preview-card-thumb video { width: 100%; height: 100%; object-fit: cover; }
+    .preview-card-title { font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 15px; color: #171d3d; line-height: 1.35; }
+    .preview-card-sub { margin-top: 2px; font-family: 'Inter', sans-serif; font-size: 11px; color: #9096b3; }
+
+    .preview-card-tags { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 6px; }
+
+    .preview-card-rows { margin-top: 14px; padding-top: 14px; border-top: 1px solid #f0f1f7; display: flex; flex-direction: column; gap: 9px; }
+    .preview-card-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-family: 'Inter', sans-serif; font-size: 12.5px; color: #6b7290; }
+    .preview-card-row strong { font-family: 'DM Sans', sans-serif; font-weight: 700; color: #171d3d; }
+
+    .preview-card-status {
+        margin-top: 14px; padding: 8px 12px; border-radius: 10px; text-align: center;
+        background: #e2faf1; color: #0d9c6c;
+        font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 700;
+    }
 
     .status-note { display: flex; align-items: flex-start; gap: 8px; font-family: 'Inter', sans-serif; font-size: 12px; color: #3c4363; line-height: 1.5; margin-top: 10px; }
     .status-note-mark { width: 16px; height: 16px; flex-shrink: 0; margin-top: 1px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: #e2faf1; color: #0d9c6c; font-size: 9px; font-weight: 700; }
@@ -220,9 +235,9 @@
                 <div class="wizard-side-card">
                     <div class="wizard-side-title">Campaign Preview</div>
 
-                    <div class="preview-banner-static">
-                        @if (!string.IsNullOrEmpty(campaign.MediaUrl))
-                        {
+                    @if (!string.IsNullOrEmpty(campaign.MediaUrl))
+                    {
+                        <div class="preview-card-banner">
                             @if (campaign.MediaType == "video")
                             {
                                 <video src="@campaign.MediaUrl" muted loop playsinline autoplay></video>
@@ -231,24 +246,34 @@
                             {
                                 <img src="@campaign.MediaUrl" alt="@campaign.Title" />
                             }
-                        }
-                        <div class="preview-banner-static-overlay">
-                            <div class="preview-banner-static-date">
-                                @(campaign.StartDate?.ToString("MMM d") ?? "TBD") – @(campaign.Deadline?.ToString("MMM d, yyyy") ?? "TBD")
-                            </div>
-                            <div class="preview-banner-static-title">@campaign.Title</div>
-                            @if (!string.IsNullOrEmpty(campaign.Niche))
-                            {
-                                <span class="preview-banner-static-tag">@campaign.Niche</span>
-                            }
+                        </div>
+                    }
+
+                    <div class="preview-card-head">
+                        <div class="preview-card-thumb">@(campaign.Title.Length > 0 ? campaign.Title[..1].ToUpperInvariant() : "C")</div>
+                        <div>
+                            <div class="preview-card-title">@campaign.Title</div>
+                            <div class="preview-card-sub">@(campaign.StartDate?.ToString("MMM d") ?? "No start") &ndash; @(campaign.Deadline?.ToString("MMM d, yyyy") ?? "No end date")</div>
                         </div>
                     </div>
 
-                    <div class="preview-mini-figures">
-                        <div class="preview-mini-figure">৳<strong>@campaign.Budget.ToString("N0")</strong></div>
-                        <div class="preview-mini-figure"><strong>@Model.MilestonePlans.Count</strong>&nbsp;Milestones</div>
-                        <div class="preview-mini-figure"><strong>Open</strong>&nbsp;for Applications</div>
+                    <div class="preview-card-tags">
+                        @if (!string.IsNullOrEmpty(campaign.Niche))
+                        {
+                            <span class="tag">@campaign.Niche</span>
+                        }
+                        @foreach (var p in (campaign.Platform ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                        {
+                            <span class="tag">@p</span>
+                        }
                     </div>
+
+                    <div class="preview-card-rows">
+                        <div class="preview-card-row"><span>Budget</span><strong>৳@campaign.Budget.ToString("N0")</strong></div>
+                        <div class="preview-card-row"><span>Milestones</span><strong>@Model.MilestonePlans.Count</strong></div>
+                    </div>
+
+                    <div class="preview-card-status">Open for Applications</div>
                 </div>
 
                 <div class="wizard-side-card">
