@@ -1,8 +1,10 @@
 using Brandora.Web.Data;
 using Brandora.Web.Models.Dashboard;
 using Brandora.Web.Models.Domain;
+using Brandora.Web.Models.Settings;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace Brandora.Web.Controllers;
 
@@ -21,6 +23,9 @@ public class InfluencerSettingsController(UserManager<ApplicationUser> userManag
         var vm = new InfluencerSettingsViewModel
         {
             Profile = influencer,
+            Notifications = await db.Notifications.AsNoTracking()
+                .Where(n => n.UserId == influencer.UserId)
+                .OrderByDescending(n => n.CreatedAt).Take(5).ToListAsync(),
             Form = new InfluencerProfileFormModel
             {
                 FullName = influencer.FullName,
@@ -68,5 +73,24 @@ public class InfluencerSettingsController(UserManager<ApplicationUser> userManag
 
         TempData["ProfileSaved"] = "true";
         return RedirectToAction("Index");
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ChangePassword(ChangePasswordViewModel model)
+    {
+        if (await GetCurrentInfluencerAsync() is null) return RedirectToAction("Index", "Home");
+        if (!ModelState.IsValid)
+        {
+            TempData["PasswordMessage"] = string.Join(" ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage));
+            return Redirect("/InfluencerSettings#security");
+        }
+        var user = await userManager.GetUserAsync(User);
+        if (user is null) return Challenge();
+        var result = await userManager.ChangePasswordAsync(user, model.CurrentPassword, model.NewPassword);
+        TempData["PasswordMessage"] = result.Succeeded
+            ? "Your password has been updated."
+            : string.Join(" ", result.Errors.Select(e => e.Description));
+        return Redirect("/InfluencerSettings#security");
     }
 }

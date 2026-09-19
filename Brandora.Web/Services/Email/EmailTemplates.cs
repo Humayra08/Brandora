@@ -205,6 +205,12 @@ public static class EmailTemplates
             ctaText: "Update My Profile", ctaUrl: profileUrl,
             iconEnvelope: false));
 
+    // Wraps a plain-text support message (contact-form replies) in the branded layout.
+    public static string Message(string plainBody) => Wrap(
+        "Brandora Support", "A message from Brandora", "&#9993;",
+        System.Net.WebUtility.HtmlEncode(plainBody).Replace("\r\n", "\n").Replace("\n", "<br />"),
+        iconEnvelope: false);
+
     public static (string Subject, string Html) PasswordReset(string firstName, string code) => (
         "Reset your Brandora password",
         Wrap("Account Security", "Reset your password", "&#128273;",

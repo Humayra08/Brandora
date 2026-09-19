@@ -1,0 +1,105 @@
+@model Brandora.Web.Models.Dashboard.CampaignApplicationSubmittedViewModel
+@using Brandora.Web.Models.Influencers
+@{
+    ViewData["Title"] = "Application Submitted - " + Model.Title;
+    ViewData["ActiveNav"] = "Campaigns";
+    Layout = null;
+    var name = Model.Profile.FullName;
+    var pending = Model.Status == Brandora.Web.Models.Domain.ProposalStatus.Pending;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Application Submitted - @Model.Title - Brandora</title>
+    <link rel="icon" href="~/images/brandora-icon.png" />
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/lib/dashboard-assets/bootstrap-icons.css" />
+    <link rel="stylesheet" href="~/lib/dashboard-assets/dashboard-fonts.css" />
+    <link rel="stylesheet" href="~/css/brandora-influencer-shell.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/brandora-influencer-dashboard.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/brandora-influencer-campaigns.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/brandora-campaign-details.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/brandora-campaign-apply.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/brandora-application-submitted.css" asp-append-version="true" />
+</head>
+<body>
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+    @await Html.PartialAsync("_InfluencerSidebar")
+    <main class="dashboard-page campaigns-page campaign-details-page campaign-apply-page application-submitted-page sidebar-hidden" id="dashboardMain">
+        <header class="dashboard-topbar">
+            <button class="dashboard-menu" id="menuToggleBtn" type="button" aria-label="Toggle sidebar" aria-controls="dashboardSidebar"><i class="bi bi-list" aria-hidden="true"></i></button>
+            <form class="dashboard-search" method="get" asp-controller="InfluencerCampaigns" asp-action="Index" role="search">
+                <i class="bi bi-search" aria-hidden="true"></i>
+                <input type="search" name="search" placeholder="Search campaigns, brands..." aria-label="Search campaigns and brands" />
+                <button type="submit" aria-label="Search"><i class="bi bi-search" aria-hidden="true"></i></button>
+            </form>
+            <details class="dashboard-notifications">
+                <summary aria-label="Notifications"><i class="bi bi-bell" aria-hidden="true"></i>@if ((ViewData["UnreadNotifications"] as int? ?? 0) > 0) { <span class="dashboard-unread"></span> }</summary>
+                <div class="dashboard-notification-panel">
+                    <h2>Notifications</h2>
+                    @foreach (var notification in Model.Notifications)
+                    {
+                        <article><strong>@notification.Title</strong><p>@notification.Body</p></article>
+                    }
+                    @if (Model.Notifications.Count == 0) { <p>No notifications yet.</p> }
+                </div>
+            </details>
+            <a class="dashboard-account" href="/InfluencerSettings">
+                <span class="dashboard-avatar">@FollowerFormat.InitialsOf(name)</span>
+                <span><strong>@name</strong><small>Influencer</small></span>
+                <i class="bi bi-chevron-down" aria-hidden="true"></i>
+            </a>
+        </header>
+
+        <div class="submitted-grid">
+            <section class="dashboard-card submitted-main" aria-labelledby="submitted-heading">
+                <div class="submitted-celebration" aria-hidden="true">
+                    <div class="submitted-check"><i class="bi bi-check-lg"></i></div>
+                    @for (var i = 0; i < 16; i++) { <span class="confetti confetti-@i"></span> }
+                </div>
+                <h1 id="submitted-heading">Application Submitted!</h1>
+                <p class="submitted-lead">Your proposal for <strong>@Model.Title</strong> has been<br class="submitted-break" /> successfully sent to the brand.</p>
+                <p class="submitted-note">We'll notify you once the brand reviews your application.</p>
+                <dl class="submitted-details">
+                    <div><dt><i class="bi bi-file-earmark-text" aria-hidden="true"></i>Campaign</dt><dd><strong>@Model.Title</strong><small>@Model.BrandName <span>&bull;</span> @(Model.Niche ?? "Campaign")</small></dd></div>
+                    <div><dt><i class="bi bi-clock" aria-hidden="true"></i>Status</dt><dd><span class="submitted-status"><i class="bi bi-check-circle-fill" aria-hidden="true"></i> @(pending ? "Pending Review" : Model.Status.ToString())</span><small>@(pending ? "Awaiting brand response." : "View your proposal for the latest update.")</small></dd></div>
+                    <div><dt><i class="bi bi-calendar4-week" aria-hidden="true"></i>Submitted On</dt><dd><strong><time datetime="@Model.SubmittedAt.ToString("O")" data-submitted-date>@Model.SubmittedAt.ToString("MMM dd, yyyy")</time></strong><small data-submitted-time>@Model.SubmittedAt.ToString("hh:mm tt") UTC</small></dd></div>
+                    <div><dt><i class="bi bi-file-earmark-text" aria-hidden="true"></i>Proposal</dt><dd><strong>Submitted successfully</strong><small>You can view your proposal and track its status anytime.</small></dd></div>
+                </dl>
+                <div class="submitted-actions">
+                    <a class="apply-btn-primary" asp-controller="InfluencerProposals" asp-action="Detail" asp-route-id="@Model.ProposalId">View My Proposal <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+                    <a class="apply-btn-secondary" asp-controller="InfluencerCampaigns" asp-action="Index">Browse More Campaigns</a>
+                </div>
+                <a class="submitted-back" asp-controller="InfluencerCampaigns" asp-action="Details" asp-route-id="@Model.CampaignId">Back to Campaign Details</a>
+            </section>
+            <aside class="submitted-aside">
+                <section class="dashboard-card submitted-summary">
+                    <div class="submitted-brand">
+                        <div class="submitted-logo">
+                            @if (!string.IsNullOrWhiteSpace(Model.BrandLogoUrl)) { <img src="@Model.BrandLogoUrl" alt="@Model.BrandName logo" /> }
+                            else { <span>@FollowerFormat.InitialsOf(Model.BrandName)</span> }
+                        </div>
+                        <div><h2>@Model.Title</h2><p>@Model.BrandName <span>&bull;</span> @(Model.Niche ?? "Campaign")</p></div>
+                    </div>
+                    <dl><div><dt>Budget</dt><dd>&#2547;@Model.Budget.ToString("N0")</dd></div><div><dt>Applications</dt><dd>@Model.ApplicantCount</dd></div><div><dt>Deadline</dt><dd>@(Model.Deadline?.ToString("MMM dd, yyyy") ?? "No deadline")</dd></div><div><dt>Platform</dt><dd>@(Model.Platform ?? "All platforms")</dd></div></dl>
+                </section>
+                <section class="submitted-next">
+                    <h2><i class="bi bi-envelope-fill" aria-hidden="true"></i>What's Next?</h2>
+                    <ol><li><h3>Brand Reviews</h3><p>The brand will review your proposal and may shortlist creators.</p></li><li><h3>Get Notified</h3><p>You'll receive a notification once there's an update.</p></li><li><h3>Start Creating</h3><p>If selected, you can begin working on the milestones and submit your content.</p></li></ol>
+                </section>
+                <section class="submitted-motivation"><h2>Keep Creating.<br />More Opportunities<br />Are Waiting.</h2><span></span></section>
+            </aside>
+        </div>
+    </main>
+    <script>document.getElementById('dashboardSidebar').classList.add('is-hidden');</script>
+    <script src="~/js/brandora-influencer-dashboard.js" asp-append-version="true"></script>
+    <script>
+        const submittedDate = document.querySelector('[data-submitted-date]');
+        const submittedAt = new Date(submittedDate.dateTime.replace(/Z?$/, 'Z'));
+        submittedDate.textContent = submittedAt.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+        document.querySelector('[data-submitted-time]').textContent = submittedAt.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+    </script>
+</body>
+</html>

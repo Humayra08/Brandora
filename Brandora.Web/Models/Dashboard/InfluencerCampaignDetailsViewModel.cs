@@ -22,8 +22,21 @@ public class InfluencerCampaignDetailsViewModel
     public CampaignStatus Status { get; set; }
     public int ApplicantCount { get; set; }
 
+    public bool BrandVerified { get; set; }
+    public int? MyProposalId { get; set; }
+    public List<CampaignDetailsMilestone> Milestones { get; set; } = new();
+
     public bool CanApply { get; set; }
     public ProposalStatus? MyProposalStatus { get; set; }
     public bool IsCollaborating { get; set; }
     public bool IsCollabCompleted { get; set; }
+}
+
+public class CampaignDetailsMilestone
+{
+    public string Title { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public decimal Amount { get; set; }
+    public DateTime? DueDate { get; set; }
+    public MilestoneStatus Status { get; set; }
 }

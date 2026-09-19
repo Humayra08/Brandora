@@ -10,7 +10,13 @@ namespace Brandora.Web.Services.Email;
 // touching any of the calling code (AccountController, AdminUserVerificationController).
 public class SmtpEmailSender(IConfiguration configuration, ILogger<SmtpEmailSender> logger) : IEmailSender
 {
-    public async Task SendAsync(string toEmail, string toName, string subject, string htmlBody)
+    public bool IsConfigured =>
+        !string.IsNullOrWhiteSpace(configuration["SMTP_HOST"]) &&
+        !string.IsNullOrWhiteSpace(configuration["SMTP_USER"]) &&
+        !string.IsNullOrWhiteSpace(configuration["SMTP_PASS"]) &&
+        !string.IsNullOrWhiteSpace(configuration["EMAIL_FROM_ADDRESS"] ?? configuration["SMTP_USER"]);
+
+    public async Task<bool> SendAsync(string toEmail, string toName, string subject, string htmlBody)
     {
         var host = configuration["SMTP_HOST"];
         var portRaw = configuration["SMTP_PORT"];
@@ -19,18 +25,18 @@ public class SmtpEmailSender(IConfiguration configuration, ILogger<SmtpEmailSend
         var fromAddress = configuration["EMAIL_FROM_ADDRESS"] ?? user;
         var fromName = configuration["EMAIL_FROM_NAME"] ?? "Brandora";
 
-        if (string.IsNullOrWhiteSpace(host) || string.IsNullOrWhiteSpace(user) || string.IsNullOrWhiteSpace(pass) || string.IsNullOrWhiteSpace(fromAddress))
+        if (!IsConfigured)
         {
             // No SMTP configured (e.g. a teammate's machine without .env email values yet) —
             // log instead of crashing the calling flow (registration/approval must not break).
             logger.LogWarning("Email not sent to {ToEmail} (\"{Subject}\") — SMTP_* values missing from .env.", toEmail, subject);
-            return;
+            return false;
         }
 
         var port = int.TryParse(portRaw, out var parsedPort) ? parsedPort : 587;
 
         var message = new MimeMessage();
-        message.From.Add(new MailboxAddress(fromName, fromAddress));
+        message.From.Add(new MailboxAddress(fromName, fromAddress!));
         message.To.Add(new MailboxAddress(toName, toEmail));
         message.Subject = subject;
         message.Body = new BodyBuilder { HtmlBody = htmlBody }.ToMessageBody();
@@ -38,9 +44,10 @@ public class SmtpEmailSender(IConfiguration configuration, ILogger<SmtpEmailSend
         using var client = new SmtpClient();
         try
         {
-            await client.ConnectAsync(host, port, SecureSocketOptions.StartTls);
-            await client.AuthenticateAsync(user, pass);
+            await client.ConnectAsync(host!, port, SecureSocketOptions.StartTls);
+            await client.AuthenticateAsync(user!, pass!);
             await client.SendAsync(message);
+            return true;
         }
         catch (Exception ex)
         {
@@ -48,6 +55,7 @@ public class SmtpEmailSender(IConfiguration configuration, ILogger<SmtpEmailSend
             // that triggered it (registration, approval, password reset all still need to
             // succeed on the DB side even if this particular email fails to send).
             logger.LogError(ex, "Failed to send email to {ToEmail} (\"{Subject}\").", toEmail, subject);
+            return false;
         }
         finally
         {

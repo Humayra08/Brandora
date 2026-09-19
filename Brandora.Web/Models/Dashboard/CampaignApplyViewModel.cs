@@ -3,12 +3,11 @@ using Brandora.Web.Models.Domain;
 
 namespace Brandora.Web.Models.Dashboard;
 
-public class CampaignApplyViewModel
+public class CampaignApplyViewModel : CampaignApplyInputModel
 {
     public List<Notification> Notifications { get; set; } = new();
     public InfluencerProfile Profile { get; set; } = null!;
 
-    public int CampaignId { get; set; }
     public string Title { get; set; } = string.Empty;
     public string BrandName { get; set; } = string.Empty;
     public string? Platform { get; set; }
@@ -18,6 +17,11 @@ public class CampaignApplyViewModel
     public int ApplicantCount { get; set; }
 
     public int Step { get; set; } = 2;
+}
+
+public class CampaignApplyInputModel
+{
+    public int CampaignId { get; set; }
 
     [Required(ErrorMessage = "Share your creative idea for this campaign.")]
     [StringLength(1000)]
@@ -31,7 +35,17 @@ public class CampaignApplyViewModel
     public string? TikTokLink { get; set; }
     public string? YouTubeLink { get; set; }
 
-    public List<ConnectedPlatformRow> Platforms { get; set; } = new();
+    public string? InstagramProfileUrl { get; set; }
+    public string? FacebookProfileUrl { get; set; }
+    public string? TikTokProfileUrl { get; set; }
 
     public bool Confirmed { get; set; }
+}
+
+public class CampaignApplicationSubmittedViewModel : CampaignApplyViewModel
+{
+    public int ProposalId { get; set; }
+    public DateTime SubmittedAt { get; set; }
+    public ProposalStatus Status { get; set; }
+    public string? BrandLogoUrl { get; set; }
 }

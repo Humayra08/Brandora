@@ -65,6 +65,13 @@ public enum VerificationStatus
     Rejected
 }
 
+public enum ContactSubmissionStatus
+{
+    New,
+    InProgress,
+    Resolved
+}
+
 public enum PaymentMethod
 {
     Bkash,
