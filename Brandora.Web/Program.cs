@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Brandora.Web.Data;
 using Brandora.Web.Models.Domain;
 using Brandora.Web.Services;
+using Brandora.Web.Services.Email;
 
 DotNetEnv.Env.TraversePath().Load();
 
@@ -17,20 +18,55 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(connectionString));
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
-builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options => options.SignIn.RequireConfirmedAccount = false)
+builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
+    {
+        // RequireConfirmedAccount stays false — Identity's built-in email-confirmation link flow
+        // isn't used. Brandora uses its own 6-digit code + admin-approval gate instead, enforced
+        // manually in AccountController's Login action (EmailConfirmed + VerificationStatus checks).
+        options.SignIn.RequireConfirmedAccount = false;
+
+        options.Lockout.MaxFailedAccessAttempts = 5;
+        options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
+        options.Lockout.AllowedForNewUsers = true;
+
+        options.Password.RequiredLength = 8;
+        options.Password.RequireDigit = true;
+        options.Password.RequireLowercase = true;
+        options.Password.RequireUppercase = true;
+        options.Password.RequireNonAlphanumeric = true;
+    })
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders();
+
+builder.Services.Configure<SecurityStampValidatorOptions>(options =>
+{
+    // Logout / password change (which bumps the SecurityStamp) takes effect on other
+    // devices within this interval, not just on next full cookie expiry.
+    options.ValidationInterval = TimeSpan.FromMinutes(1);
+});
 
 builder.Services.ConfigureApplicationCookie(options =>
 {
     options.LoginPath = "/Account/Login";
     options.AccessDeniedPath = "/Account/Login";
+
+    // Sliding session: renews on activity, only expires after this long with NO activity —
+    // matches how mainstream sites behave, not a fixed calendar cutoff (2026-09-17 decision).
+    options.ExpireTimeSpan = TimeSpan.FromDays(60);
+    options.SlidingExpiration = true;
+
+    options.Cookie.Name = "Brandora.Auth";
+    options.Cookie.HttpOnly = true;
+    // SameAsRequest (not Always) — the app has a plain-HTTP local dev profile; in production
+    // (Render, HTTPS-only) requests always arrive as HTTPS so the cookie is still Secure there.
+    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+    options.Cookie.SameSite = SameSiteMode.Lax;
 });
 
 builder.Services.AddScoped<NotificationService>();
 builder.Services.AddScoped<MediaUploadService>();
 builder.Services.AddScoped<AdminAuthService>();
-builder.Services.AddScoped<EmailSender>();
+builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
 
 builder.Services.AddAuthentication()
     .AddCookie("AdminScheme", options =>

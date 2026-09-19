@@ -1,0 +1,45 @@
+@{
+    ViewData["Title"] = "Delete Test Account";
+    Layout = null;
+    var error = ViewData["Error"] as string;
+    var result = ViewData["Result"] as string;
+    var email = ViewData["Email"] as string;
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>@ViewData["Title"]</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; max-width: 640px; margin: 60px auto; padding: 0 20px; color: #171d3d; }
+        h1 { font-size: 20px; }
+        p.warn { background: #fde3e3; border: 1px solid #f5b0b0; padding: 12px 16px; border-radius: 8px; color: #a71b34; font-size: 13px; }
+        p.ok { background: #dff7ec; border: 1px solid #a6e6c8; padding: 12px 16px; border-radius: 8px; color: #0d6e4d; font-size: 13px; }
+        label { display: block; margin-top: 16px; font-size: 13px; font-weight: 600; }
+        input { width: 100%; height: 40px; padding: 0 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; margin-top: 4px; }
+        button { margin-top: 16px; height: 40px; padding: 0 16px; border: none; border-radius: 6px; background: #d92d2d; color: #fff; font-weight: 600; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>Delete Test Account</h1>
+    <p class="warn">Development-only. Deletes exactly ONE account (and its Brand/Influencer profile) by email. This cannot be undone.</p>
+
+    @if (!string.IsNullOrEmpty(result))
+    {
+        <p class="ok">@result</p>
+    }
+    @if (!string.IsNullOrEmpty(error))
+    {
+        <p class="warn">@error</p>
+    }
+
+    <form method="get" action="/Admin/AdminAccount/DeleteTestAccount">
+        <label>Email to delete</label>
+        <input type="text" name="email" value="@email" placeholder="user@example.com" autocomplete="off" />
+        <label>Type the same email again to confirm</label>
+        <input type="text" name="confirm" placeholder="Type it again to confirm" autocomplete="off" />
+        <button type="submit">Delete This Account</button>
+    </form>
+</body>
+</html>

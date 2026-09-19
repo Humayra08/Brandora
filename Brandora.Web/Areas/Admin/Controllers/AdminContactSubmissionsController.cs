@@ -1,12 +1,12 @@
 using Brandora.Web.Data;
 using Brandora.Web.Models.Domain;
-using Brandora.Web.Services;
+using Brandora.Web.Services.Email;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace Brandora.Web.Areas.Admin.Controllers;
 
-public class AdminContactSubmissionsController(ApplicationDbContext db, EmailSender email) : AdminControllerBase(db)
+public class AdminContactSubmissionsController(ApplicationDbContext db, IEmailSender email) : AdminControllerBase(db)
 {
     /// <summary>
     /// The acknowledgement wording is fixed for every submission, so it is built
@@ -84,15 +84,13 @@ public class AdminContactSubmissionsController(ApplicationDbContext db, EmailSen
             return RedirectToAction(nameof(Details), new { id });
         }
 
-        try
-        {
-            // Recipient comes from the stored record, never from the request.
-            await email.SendAsync(submission.Email, AcknowledgementSubject, AcknowledgementBody(submission.FullName));
-        }
-        catch (Exception ex)
+        // Recipient comes from the stored record, never from the request.
+        var sent = await email.SendAsync(submission.Email, submission.FullName, AcknowledgementSubject,
+            EmailTemplates.Message(AcknowledgementBody(submission.FullName)));
+        if (!sent)
         {
             // Status is left untouched so the admin can retry.
-            TempData["ContactError"] = "The email could not be sent, so the status is unchanged. " + ex.Message;
+            TempData["ContactError"] = "The email could not be sent, so the status is unchanged. Check the SMTP settings and try again.";
             return RedirectToAction(nameof(Details), new { id });
         }
 
@@ -126,13 +124,11 @@ public class AdminContactSubmissionsController(ApplicationDbContext db, EmailSen
             return RedirectToAction(nameof(Details), new { id });
         }
 
-        try
+        var sent = await email.SendAsync(submission.Email, submission.FullName, subject.Trim(),
+            EmailTemplates.Message(body.Trim()));
+        if (!sent)
         {
-            await email.SendAsync(submission.Email, subject.Trim(), body.Trim());
-        }
-        catch (Exception ex)
-        {
-            TempData["ContactError"] = "The email could not be sent, so the status stays In Progress. " + ex.Message;
+            TempData["ContactError"] = "The email could not be sent, so the status stays In Progress. Check the SMTP settings and try again.";
             return RedirectToAction(nameof(Details), new { id });
         }
 

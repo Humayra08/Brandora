@@ -523,6 +523,11 @@
             <p class="auth-subtitle">Sign in to manage your influencer partnerships and campaigns.</p>
         </div>
 
+        @if (TempData["VerificationMessage"] is string successMessage)
+        {
+            <div style="margin-bottom:18px;padding:14px 16px;border-radius:10px;border:1px solid rgba(90,200,255,.35);background:rgba(60,150,255,.1);font-family:'Inter',sans-serif;font-size:13px;color:#bfe4ff;">@successMessage</div>
+        }
+
         @if (!ViewData.ModelState.IsValid)
         {
             <div class="form-errors">
