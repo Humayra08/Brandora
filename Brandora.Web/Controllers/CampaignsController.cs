@@ -39,7 +39,9 @@ public class CampaignsController(UserManager<ApplicationUser> userManager, Appli
 
         if (!string.IsNullOrWhiteSpace(platform))
         {
-            query = query.Where(c => c.Platform == platform);
+            // Platform can hold several comma-separated values (multi-platform
+            // campaigns), so match on substring rather than exact equality.
+            query = query.Where(c => c.Platform != null && c.Platform.Contains(platform));
         }
 
         if (!string.IsNullOrWhiteSpace(category))
@@ -256,6 +258,47 @@ public class CampaignsController(UserManager<ApplicationUser> userManager, Appli
         await db.SaveChangesAsync();
 
         return RedirectToAction(campaign.Status == CampaignStatus.Draft ? "Preview" : "Detail", new { id = campaign.Id });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Delete(int id)
+    {
+        var brand = await GetCurrentBrandAsync();
+        if (brand is null)
+        {
+            return RedirectToAction("Index", "Home");
+        }
+
+        var campaign = await db.Campaigns.FirstOrDefaultAsync(c => c.Id == id && c.BrandProfileId == brand.Id);
+        if (campaign is null)
+        {
+            return NotFound();
+        }
+
+        if (campaign.Status != CampaignStatus.Draft)
+        {
+            TempData["CampaignError"] = "Only draft campaigns can be deleted.";
+            return RedirectToAction("Index");
+        }
+
+        var hasProposals = await db.Proposals.AnyAsync(p => p.CampaignId == id);
+        if (hasProposals)
+        {
+            TempData["CampaignError"] = "This draft already has applicants and can't be deleted.";
+            return RedirectToAction("Index");
+        }
+
+        if (!string.IsNullOrEmpty(campaign.MediaUrl))
+        {
+            mediaUploads.DeleteMedia(campaign.MediaUrl);
+        }
+
+        db.Campaigns.Remove(campaign);
+        await db.SaveChangesAsync();
+
+        TempData["CampaignSuccess"] = $"\"{campaign.Title}\" was deleted.";
+        return RedirectToAction("Index");
     }
 
     // ---- Wizard Step 2: Milestones ----

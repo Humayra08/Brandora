@@ -393,6 +393,74 @@
         gap: 12px;
     }
 
+    .platform-pills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 1px solid #e2e5f2;
+        background: #fbfbfe;
+    }
+
+    .platform-pill {
+        position: relative;
+    }
+
+    .platform-pill input {
+        position: absolute;
+        opacity: 0;
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        cursor: pointer;
+    }
+
+    .platform-pill span {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+
+        padding: 8px 14px;
+
+        border-radius: 20px;
+        border: 1.5px solid #e2e5f2;
+        background: #ffffff;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 12.5px;
+        font-weight: 600;
+        color: #545b7d;
+
+        cursor: pointer;
+        transition: transform .2s ease, box-shadow .2s ease, background .2s ease, border-color .2s ease, color .2s ease;
+        user-select: none;
+    }
+
+    .platform-pill span:hover {
+        border-color: #c8b8fa;
+        transform: translateY(-1px);
+    }
+
+    .platform-pill input:checked + span {
+        border-color: transparent;
+        color: #ffffff;
+        background: linear-gradient(105deg, #a326ff, #236eff, #18a9ff);
+        box-shadow: 0 6px 16px rgba(140,60,255,.28);
+    }
+
+    .platform-pill input:focus-visible + span {
+        box-shadow: 0 0 0 3px rgba(155,44,255,.25);
+    }
+
+    .platform-hint {
+        margin-top: 6px;
+        font-family: 'Inter', sans-serif;
+        font-size: 11px;
+        color: #9096b3;
+    }
+
     .dropzone {
         margin-top: 22px;
 
@@ -558,15 +626,25 @@
                         <input type="text" id="Title" name="Title" placeholder="Enter a catchy campaign title" value="@Model.Title" required />
                     </div>
 
-                    <div class="form-field">
-                        <label for="Platform">Platform</label>
-                        <select id="Platform" name="Platform" required>
-                            <option value="" disabled selected="@(string.IsNullOrEmpty(Model.Platform))">Select platform</option>
-                            @foreach (var platform in new[] { "Instagram", "TikTok", "YouTube", "Facebook", "X", "LinkedIn", "Multi-Platform" })
+                    @{
+                        var selectedPlatforms = (Model.Platform ?? string.Empty)
+                            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+                    }
+                    <div class="form-field span-2">
+                        <label for="Platform">Platform(s)</label>
+                        <div class="platform-pills" id="platformPills">
+                            @foreach (var platform in new[] { "Instagram", "TikTok", "YouTube", "Facebook", "X", "LinkedIn" })
                             {
-                                <option selected="@(Model.Platform == platform)">@platform</option>
+                                <label class="platform-pill">
+                                    <input type="checkbox" value="@platform" checked="@selectedPlatforms.Contains(platform)" />
+                                    <span>@platform</span>
+                                </label>
                             }
-                        </select>
+                        </div>
+                        <div class="platform-hint">Select one or more platforms this campaign will run on.</div>
+                        <div class="form-errors" id="platformError" style="display:none; margin-top: 8px; padding: 8px 12px; font-size: 12px;">Select at least one platform.</div>
+                        <input type="hidden" id="Platform" name="Platform" value="@Model.Platform" />
                     </div>
 
                     <div class="form-field">
@@ -765,6 +843,24 @@
                 removeBtn.addEventListener('click', clearMedia);
             }
 
+            // Platform pills → comma-joined hidden field
+            var platformPillsWrap = document.getElementById('platformPills');
+            var platformHidden = document.getElementById('Platform');
+            var platformError = document.getElementById('platformError');
+            if (platformPillsWrap && platformHidden) {
+                var platformChecks = platformPillsWrap.querySelectorAll('input[type="checkbox"]');
+                function syncPlatforms() {
+                    var selected = Array.prototype.filter.call(platformChecks, function (c) { return c.checked; })
+                        .map(function (c) { return c.value; });
+                    platformHidden.value = selected.join(', ');
+                    if (platformError) { platformError.style.display = 'none'; }
+                }
+                platformChecks.forEach(function (c) { c.addEventListener('change', syncPlatforms); });
+                if (Array.prototype.some.call(platformChecks, function (c) { return c.checked; })) {
+                    syncPlatforms();
+                }
+            }
+
             // Live preview text bindings
             var titleInput = document.getElementById('Title');
             var nicheSelect = document.getElementById('Niche');
@@ -806,6 +902,17 @@
             // (every campaign already starts as Draft) — it just skips ahead
             // to the campaign list instead of continuing the wizard.
             var form = document.getElementById('campaignForm');
+
+            if (form && platformHidden) {
+                form.addEventListener('submit', function (e) {
+                    if (!platformHidden.value) {
+                        e.preventDefault();
+                        if (platformError) { platformError.style.display = 'block'; }
+                        platformPillsWrap.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                });
+            }
+
             var draftBtn = form ? form.querySelector('button[name="saveDraft"]') : null;
             if (draftBtn) {
                 draftBtn.addEventListener('click', function () {

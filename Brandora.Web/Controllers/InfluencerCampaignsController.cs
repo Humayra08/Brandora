@@ -58,7 +58,9 @@ public class InfluencerCampaignsController(UserManager<ApplicationUser> userMana
 
         if (!string.IsNullOrWhiteSpace(platform))
         {
-            query = query.Where(c => c.Platform == platform);
+            // Platform can hold several comma-separated values (multi-platform
+            // campaigns), so match on substring rather than exact equality.
+            query = query.Where(c => c.Platform != null && c.Platform.Contains(platform));
         }
 
         query = budget switch
@@ -124,12 +126,14 @@ public class InfluencerCampaignsController(UserManager<ApplicationUser> userMana
         var pageNumber = Math.Clamp(page, 1, Math.Max(1, (int)Math.Ceiling(totalFiltered / (double)pageSize)));
         var pagedRows = tabFiltered.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToList();
 
-        var platformOptions = await browsable
+        var platformOptions = (await browsable
             .Where(c => c.Platform != null)
             .Select(c => c.Platform!)
-            .Distinct()
+            .ToListAsync())
+            .SelectMany(p => p.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
             .OrderBy(p => p)
-            .ToListAsync();
+            .ToList();
 
         var categoryOptions = await browsable
             .Where(c => c.Niche != null)

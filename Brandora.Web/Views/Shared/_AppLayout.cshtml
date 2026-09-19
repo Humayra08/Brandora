@@ -1003,6 +1003,130 @@
             background: rgba(155,44,255,.06);
         }
 
+        .btn-outline-brand {
+            color: #7a2df3;
+            background: #ffffff;
+            border: 1.5px solid rgba(163,38,255,.35);
+        }
+
+        .btn-outline-brand:hover {
+            border-color: #a326ff;
+            background: rgba(155,44,255,.06);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(140,60,255,.15);
+        }
+
+        .btn-danger-solid {
+            color: #ffffff;
+            background: linear-gradient(105deg, #ff4d6b, #d6234a);
+        }
+
+        .btn-danger-solid:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 24px rgba(214,35,74,.3);
+        }
+
+
+        /* =========================================================
+           SHARED: CONFIRM MODAL
+        ========================================================= */
+
+        .confirm-modal-backdrop {
+            position: fixed;
+            inset: 0;
+            z-index: 200;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            padding: 20px;
+
+            background: rgba(10,14,35,.45);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity .2s ease, visibility .2s ease;
+        }
+
+        .confirm-modal-backdrop.is-open {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .confirm-modal {
+            width: 100%;
+            max-width: 380px;
+            padding: 30px 28px 26px;
+
+            border-radius: 20px;
+            background: #ffffff;
+            box-shadow: 0 30px 60px rgba(20,20,60,.25);
+
+            text-align: center;
+
+            transform: translateY(14px) scale(.96);
+            transition: transform .25s cubic-bezier(.22,1,.36,1);
+        }
+
+        .confirm-modal-backdrop.is-open .confirm-modal {
+            transform: translateY(0) scale(1);
+        }
+
+        .confirm-modal-icon {
+            width: 46px;
+            height: 46px;
+            margin: 0 auto;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            border-radius: 50%;
+            background: linear-gradient(105deg, #a326ff, #236eff, #18a9ff);
+            color: #ffffff;
+
+            font-family: 'DM Sans', sans-serif;
+            font-weight: 800;
+            font-size: 20px;
+        }
+
+        .confirm-modal-icon.is-danger {
+            background: linear-gradient(105deg, #ff4d6b, #d6234a);
+        }
+
+        .confirm-modal-title {
+            margin-top: 16px;
+
+            font-family: 'DM Sans', sans-serif;
+            font-weight: 700;
+            font-size: 16.5px;
+            color: #171d3d;
+        }
+
+        .confirm-modal-text {
+            margin-top: 8px;
+
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            line-height: 1.6;
+            color: #6b7290;
+        }
+
+        .confirm-modal-actions {
+            margin-top: 22px;
+
+            display: flex;
+            gap: 10px;
+        }
+
+        .confirm-modal-actions .btn {
+            flex: 1;
+            height: 44px;
+        }
+
 
         /* =========================================================
            SHARED: BACK TO DASHBOARD
@@ -1732,6 +1856,18 @@
                     @navChevron
                 </a>
 
+                <a href="/Proposals" class="side-nav-item @(activeNav == "Applicants" ? "is-active" : "")">
+                    <span class="nav-label side-toggle-hide">
+                        Applicants
+                        @{ var pendingApplicants = ViewData["PendingApplicantCount"] as int? ?? 0; }
+                        @if (pendingApplicants > 0)
+                        {
+                            <span class="unread-badge">@(pendingApplicants > 9 ? "9+" : pendingApplicants.ToString())</span>
+                        }
+                    </span>
+                    @navChevron
+                </a>
+
                 <a href="/Influencers" class="side-nav-item @(activeNav == "Influencers" ? "is-active" : "")">
                     <span class="nav-label side-toggle-hide">Influencers</span>
                     @navChevron
@@ -1938,6 +2074,73 @@
     </main>
 
 </div>
+
+<div class="confirm-modal-backdrop" id="brandoraConfirmModal">
+    <div class="confirm-modal" role="alertdialog" aria-modal="true">
+        <div class="confirm-modal-icon">!</div>
+        <div class="confirm-modal-title">Are you sure?</div>
+        <p class="confirm-modal-text"></p>
+        <div class="confirm-modal-actions">
+            <button type="button" class="btn btn-secondary confirm-modal-cancel">Cancel</button>
+            <button type="button" class="btn btn-primary confirm-modal-confirm">Confirm</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    window.brandoraConfirm = function (triggerEl, opts) {
+        opts = opts || {};
+        var modal = document.getElementById('brandoraConfirmModal');
+        if (!modal) { return; }
+
+        var form = triggerEl && triggerEl.closest ? triggerEl.closest('form') : null;
+
+        modal.querySelector('.confirm-modal-title').textContent = opts.title || 'Are you sure?';
+        modal.querySelector('.confirm-modal-text').textContent = opts.text || '';
+
+        var icon = modal.querySelector('.confirm-modal-icon');
+        icon.classList.toggle('is-danger', !!opts.danger);
+
+        var confirmBtn = modal.querySelector('.confirm-modal-confirm');
+        confirmBtn.textContent = opts.confirmLabel || 'Confirm';
+        confirmBtn.classList.toggle('btn-primary', !opts.danger);
+        confirmBtn.classList.toggle('btn-danger-solid', !!opts.danger);
+
+        function close() {
+            modal.classList.remove('is-open');
+            confirmBtn.onclick = null;
+            document.removeEventListener('keydown', onKeydown);
+        }
+
+        function onKeydown(e) {
+            if (e.key === 'Escape') { close(); }
+        }
+
+        confirmBtn.onclick = function () {
+            close();
+            if (form) { form.submit(); }
+            else if (typeof opts.onConfirm === 'function') { opts.onConfirm(); }
+        };
+
+        modal.querySelector('.confirm-modal-cancel').onclick = close;
+        modal.onclick = function (e) { if (e.target === modal) { close(); } };
+        document.addEventListener('keydown', onKeydown);
+
+        modal.classList.add('is-open');
+    };
+
+    document.addEventListener('click', function (e) {
+        var trigger = e.target.closest('.js-confirm');
+        if (!trigger) { return; }
+        e.preventDefault();
+        window.brandoraConfirm(trigger, {
+            title: trigger.dataset.confirmTitle,
+            text: trigger.dataset.confirmText,
+            confirmLabel: trigger.dataset.confirmLabel,
+            danger: trigger.dataset.confirmDanger === 'true'
+        });
+    });
+</script>
 
 <script>
     (function () {

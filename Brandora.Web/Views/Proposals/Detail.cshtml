@@ -1,269 +1,422 @@
-@model Brandora.Web.Models.Domain.Proposal
+@model Brandora.Web.Models.Proposals.ProposalDetailViewModel
 @using Brandora.Web.Models.Influencers
+@using Brandora.Web.Models.Domain
 @{
-    ViewData["Title"] = "Proposal";
-    ViewData["ActiveNav"] = "Campaigns";
+    var proposal = Model.Proposal;
+    ViewData["Title"] = "Application Details";
+    ViewData["ActiveNav"] = "Applicants";
     Layout = "_AppLayout";
-    var hue = (Model.InfluencerProfile.Id * 47) % 360;
+    var hue = (proposal.InfluencerProfile.Id * 47) % 360;
+    var statusLabel = proposal.Status == ProposalStatus.Rejected ? "Not Selected" : proposal.Status == ProposalStatus.Pending ? "Pending Review" : proposal.Status.ToString();
 }
 
 @section Styles {
 
-    .detail-shell {
-        max-width: 720px;
-        margin: 0 auto;
+    .detail-shell { max-width: 1180px; margin: 0 auto; animation: fade-up .4s ease both; }
 
-        animation: fade-up .4s ease both;
+    .detail-crumb { font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 500; color: #8189a8; }
+
+    .app-detail-head {
+        margin-top: 12px;
+        display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap;
     }
 
-    .detail-crumb {
-        font-family: 'Inter', sans-serif;
-        font-size: 12.5px;
-        font-weight: 500;
-        color: #8189a8;
-    }
+    .app-detail-title { font-family: 'Playfair Display', serif; font-weight: 600; font-size: 27px; color: #171d3d; }
+    .app-detail-sub { margin-top: 6px; font-family: 'Inter', sans-serif; font-size: 13.5px; color: #6b7290; }
+    .app-detail-meta-right { text-align: right; }
+    .app-detail-meta-right .submitted-on { margin-top: 8px; font-family: 'Inter', sans-serif; font-size: 12px; color: #9096b3; }
 
-    .proposal-header {
-        margin-top: 14px;
-        padding: 28px 30px;
+    .info-cards { margin-top: 22px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; align-items: stretch; }
 
+    .info-card {
+        padding: 24px;
         border-radius: 18px;
         background: #ffffff;
         border: 1px solid #eaecf5;
+        transition: transform .25s cubic-bezier(.22,1,.36,1), box-shadow .25s ease, border-color .25s ease;
+    }
+    .info-card:hover { transform: translateY(-3px); box-shadow: 0 16px 32px rgba(30,34,90,.08); border-color: #e0dcf8; }
 
-        display: flex;
-        align-items: flex-start;
-        gap: 18px;
+    .info-card-label {
+        font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: .3px; text-transform: uppercase; color: #9096b3;
     }
 
-    .proposal-title {
-        font-family: 'Playfair Display', serif;
-        font-weight: 600;
-        font-size: 22px;
-        color: #171d3d;
+    .creator-card-head { display: flex; align-items: flex-start; gap: 14px; margin-top: 14px; }
+    .creator-card-name { display: flex; align-items: center; gap: 6px; font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 16px; color: #171d3d; }
+    .creator-card-loc { margin-top: 3px; font-family: 'Inter', sans-serif; font-size: 12px; color: #8189a8; }
+
+    .creator-card-bio { margin-top: 12px; font-family: 'Inter', sans-serif; font-size: 12.5px; line-height: 1.6; color: #6b7290; }
+
+    .creator-stats { margin-top: 16px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .creator-stat { padding: 10px 8px; text-align: center; border-radius: 12px; background: #f8f7ff; }
+    .creator-stat-value { font-family: 'DM Sans', sans-serif; font-weight: 800; font-size: 15px; color: #171d3d; }
+    .creator-stat-label { margin-top: 2px; font-family: 'Inter', sans-serif; font-size: 9.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .3px; color: #9096b3; }
+
+    .creator-card-cta { margin-top: 16px; width: 100%; height: 42px; }
+
+    .campaign-card-title { margin-top: 12px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .campaign-card-title strong { font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 15px; color: #171d3d; }
+    .campaign-card-title a { font-family: 'Inter', sans-serif; font-size: 11.5px; font-weight: 700; color: #7a2df3; }
+    .campaign-card-title a:hover { text-decoration: underline; }
+
+    .campaign-fact-list { margin-top: 14px; display: flex; flex-direction: column; gap: 10px; }
+    .campaign-fact { display: flex; align-items: center; gap: 10px; font-family: 'Inter', sans-serif; font-size: 12.5px; color: #3c4363; }
+    .campaign-fact-icon { width: 26px; height: 26px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border-radius: 8px; background: #f1f2f8; color: #7a2df3; font-size: 12px; }
+    .campaign-fact strong { color: #171d3d; }
+
+    .status-card-pill-row { margin-top: 12px; display: flex; align-items: center; justify-content: space-between; }
+    .status-card-rate { margin-top: 18px; }
+    .status-card-rate-value { font-family: 'DM Sans', sans-serif; font-weight: 800; font-size: 26px; color: #171d3d; }
+    .status-card-rate-label { margin-top: 2px; font-family: 'Inter', sans-serif; font-size: 11px; color: #9096b3; }
+    .status-card-quote {
+        margin-top: 16px; padding: 14px 16px;
+        border-radius: 12px;
+        background: radial-gradient(circle at 100% 0%, rgba(155,44,255,.06), transparent 60%), #faf9ff;
+        border: 1px solid #ece7fb;
+        font-family: 'Inter', sans-serif; font-size: 12px; line-height: 1.6; font-style: italic; color: #3c4363;
     }
 
-    .proposal-sub {
-        margin-top: 4px;
+    .lower-columns { margin-top: 18px; display: grid; grid-template-columns: 1fr 320px; gap: 18px; align-items: start; }
 
-        font-family: 'Inter', sans-serif;
-        font-size: 13px;
-        color: #6b7290;
+    .tabs-card { padding: 0; border-radius: 18px; background: #ffffff; border: 1px solid #eaecf5; overflow: hidden; }
+    .tabs-nav { display: flex; flex-wrap: wrap; border-bottom: 1px solid #eaecf5; }
+    .tab-btn {
+        padding: 15px 18px;
+        font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 700; color: #8189a8;
+        border-bottom: 2px solid transparent;
+        cursor: pointer; background: none; border-top: none; border-left: none; border-right: none;
+        transition: color .2s ease, border-color .2s ease;
     }
+    .tab-btn:hover { color: #3c4363; }
+    .tab-btn.is-active { color: #7a2df3; border-bottom-color: #a326ff; }
+    .tab-panel { display: none; padding: 24px 26px; animation: fade-up .3s ease both; }
+    .tab-panel.is-active { display: block; }
 
-    .proposal-card {
-        margin-top: 18px;
-        padding: 28px 30px;
+    .tab-block { margin-bottom: 20px; }
+    .tab-block:last-child { margin-bottom: 0; }
+    .tab-block-label { font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: .3px; text-transform: uppercase; color: #9096b3; }
+    .tab-block-text { margin-top: 8px; font-family: 'Inter', sans-serif; font-size: 13.5px; line-height: 1.7; color: #3c4363; white-space: pre-wrap; }
 
-        border-radius: 18px;
-        background: #ffffff;
-        border: 1px solid #eaecf5;
-    }
+    .collab-item { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border-radius: 12px; background: #fbfbfe; border: 1px solid #f0f1f7; margin-bottom: 10px; transition: .2s; }
+    .collab-item:hover { border-color: #e0dcf8; transform: translateY(-1px); }
+    .collab-item:last-child { margin-bottom: 0; }
 
-    .proposal-figures {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 20px;
-    }
+    .side-panel { padding: 22px; border-radius: 18px; background: #ffffff; border: 1px solid #eaecf5; }
+    .side-panel-title { font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 14.5px; color: #171d3d; }
+    .side-actions { margin-top: 16px; display: flex; flex-direction: column; gap: 10px; }
+    .side-actions form { display: contents; }
+    .side-actions .btn { width: 100%; height: 46px; }
 
-    .figure-value {
-        font-family: 'DM Sans', sans-serif;
-        font-weight: 800;
-        font-size: 20px;
-        color: #171d3d;
-    }
+    .timeline-card { margin-top: 18px; padding: 22px; border-radius: 18px; background: #ffffff; border: 1px solid #eaecf5; }
+    .timeline-item { position: relative; padding-left: 24px; padding-bottom: 20px; }
+    .timeline-item:last-child { padding-bottom: 0; }
+    .timeline-item::before { content: ""; position: absolute; left: 4px; top: 4px; width: 9px; height: 9px; border-radius: 50%; background: linear-gradient(105deg, #a326ff, #236eff); }
+    .timeline-item::after { content: ""; position: absolute; left: 8px; top: 14px; bottom: 0; width: 1.5px; background: #eaecf5; }
+    .timeline-item:last-child::after { display: none; }
+    .timeline-item.is-pending::before { background: #e2e5f2; }
+    .timeline-title { font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 700; color: #171d3d; }
+    .timeline-item.is-pending .timeline-title { color: #9096b3; }
+    .timeline-date { margin-top: 2px; font-family: 'Inter', sans-serif; font-size: 11.5px; color: #9096b3; }
 
-    .figure-label {
-        margin-top: 3px;
+    .outcome-banner { margin-top: 12px; padding: 14px 16px; border-radius: 14px; display: flex; align-items: center; gap: 10px; font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 600; }
+    .outcome-banner.accepted { background: #e2faf1; color: #0d9c6c; border: 1px solid #b9f1dd; }
+    .outcome-banner.rejected { background: #fde8ea; color: #c22540; border: 1px solid #f6c3ca; }
 
-        font-family: 'Inter', sans-serif;
-        font-size: 10.5px;
-        font-weight: 600;
-        letter-spacing: .3px;
-        text-transform: uppercase;
-        color: #9096b3;
-    }
-
-    .proposal-block {
-        margin-top: 20px;
-        padding-top: 20px;
-        border-top: 1px solid #f0f1f7;
-    }
-
-    .proposal-block-label {
-        font-family: 'Inter', sans-serif;
-        font-size: 11px;
-        font-weight: 700;
-        letter-spacing: .3px;
-        text-transform: uppercase;
-        color: #9096b3;
-    }
-
-    .proposal-block-text {
-        margin-top: 8px;
-
-        font-family: 'Inter', sans-serif;
-        font-size: 13.5px;
-        line-height: 1.7;
-        color: #3c4363;
-
-        white-space: pre-wrap;
-    }
-
-    .decision-panel {
-        margin-top: 18px;
-        padding: 26px 30px;
-
-        border-radius: 18px;
-        border: 1px solid #eaecf5;
-        background:
-            radial-gradient(circle at 100% 0%, rgba(155,44,255,.06), transparent 50%),
-            #ffffff;
-    }
-
-    .decision-title {
-        font-family: 'DM Sans', sans-serif;
-        font-weight: 700;
-        font-size: 15px;
-        color: #171d3d;
-    }
-
-    .decision-sub {
-        margin-top: 4px;
-
-        font-family: 'Inter', sans-serif;
-        font-size: 12.5px;
-        color: #8189a8;
-    }
-
-    .decision-actions {
-        margin-top: 18px;
-
-        display: flex;
-        gap: 12px;
-    }
-
-    .decision-actions form {
-        flex: 1;
-    }
-
-    .decision-actions .btn {
-        width: 100%;
-        height: 50px;
-    }
-
-    .outcome-banner {
-        margin-top: 18px;
-        padding: 20px 24px;
-
-        border-radius: 16px;
-
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 16px;
-    }
-
-    .outcome-banner.accepted {
-        background: #e2faf1;
-        border: 1px solid #b9f1dd;
-    }
-
-    .outcome-banner.rejected {
-        background: #fde8ea;
-        border: 1px solid #f6c3ca;
-    }
-
-    .outcome-text {
-        font-family: 'Inter', sans-serif;
-        font-size: 13.5px;
-        font-weight: 600;
-        color: #2a3157;
-    }
+    @@media(max-width: 1000px) { .info-cards { grid-template-columns: 1fr; } .lower-columns { grid-template-columns: 1fr; } }
 
 }
 
 <div class="detail-shell">
 
-    <div class="detail-crumb"><a href="/Proposals">Proposals</a> / @Model.InfluencerProfile.FullName</div>
+    <div class="detail-crumb"><a href="/Proposals">Applicants</a> / Application Details</div>
 
-    <div class="proposal-header">
-        <div class="creator-avatar" style="background: linear-gradient(135deg, hsl(@(hue)deg 75% 58%), hsl(@((hue + 45) % 360)deg 75% 48%));">
-            @FollowerFormat.InitialsOf(Model.InfluencerProfile.FullName)
-        </div>
+    <div class="app-detail-head">
         <div>
-            <div class="proposal-title">@Model.InfluencerProfile.FullName</div>
-            <div class="proposal-sub">Proposal for <a href="/Campaigns/Detail/@Model.CampaignId">@Model.Campaign.Title</a> &middot; sent @Model.CreatedAt.ToString("MMM d, yyyy")</div>
+            <div class="app-detail-title">Application Details</div>
+            <p class="app-detail-sub">Review @proposal.InfluencerProfile.FullName's application and decide the next step.</p>
         </div>
-        <span class="status-pill @Model.Status.ToString().ToLowerInvariant()" style="margin-left:auto;">@Model.Status</span>
+        <div class="app-detail-meta-right">
+            <span class="status-pill @proposal.Status.ToString().ToLowerInvariant()">@statusLabel</span>
+            <div class="submitted-on">Submitted on @proposal.CreatedAt.ToBangladeshTime().ToString("MMM d, yyyy, h:mm tt")</div>
+        </div>
     </div>
 
-    <div class="proposal-card">
+    <div class="info-cards">
 
-        <div class="proposal-figures">
-            <div>
-                <div class="figure-value">৳@Model.ProposedAmount.ToString("N0")</div>
-                <div class="figure-label">Proposed Amount</div>
+        <div class="info-card">
+            <div class="info-card-label">Applicant</div>
+            <div class="creator-card-head">
+                <div class="creator-avatar" style="width:52px;height:52px;font-size:16px;background: linear-gradient(135deg, hsl(@(hue)deg 75% 58%), hsl(@((hue + 45) % 360)deg 75% 48%));">
+                    @FollowerFormat.InitialsOf(proposal.InfluencerProfile.FullName)
+                </div>
+                <div>
+                    <div class="creator-card-name">
+                        @proposal.InfluencerProfile.FullName
+                        @if (proposal.InfluencerProfile.Verified)
+                        {
+                            <span class="verified-badge">✓ Verified</span>
+                        }
+                    </div>
+                    @if (!string.IsNullOrEmpty(proposal.InfluencerProfile.Location))
+                    {
+                        <div class="creator-card-loc">@proposal.InfluencerProfile.Location</div>
+                    }
+                    @if (!string.IsNullOrEmpty(proposal.InfluencerProfile.ContentNiche))
+                    {
+                        <div style="margin-top:6px;"><span class="tag">@proposal.InfluencerProfile.ContentNiche</span></div>
+                    }
+                </div>
             </div>
-            <div>
-                <div class="figure-value">@(Model.Timeline ?? "Not specified")</div>
-                <div class="figure-label">Timeline</div>
-            </div>
-            <div>
-                <div class="figure-value">@Model.InitiatedBy</div>
-                <div class="figure-label">Initiated By</div>
-            </div>
-        </div>
 
-        <div class="proposal-block">
-            <div class="proposal-block-label">Deliverables</div>
-            <p class="proposal-block-text">@Model.Deliverables</p>
-        </div>
-
-        @if (!string.IsNullOrEmpty(Model.Message))
-        {
-            <div class="proposal-block">
-                <div class="proposal-block-label">Message</div>
-                <p class="proposal-block-text">@Model.Message</p>
-            </div>
-        }
-
-    </div>
-
-    @if (Model.Status == Brandora.Web.Models.Domain.ProposalStatus.Pending)
-    {
-        <div class="decision-panel">
-            <div class="decision-title">Awaiting response</div>
-            <p class="decision-sub">Once @Model.InfluencerProfile.FullName confirms outside Brandora, record the outcome here to move this into a collaboration.</p>
-
-            <div class="decision-actions">
-                <form method="post" action="/Proposals/ConfirmAccept/@Model.Id">
-                    @Html.AntiForgeryToken()
-                    <button type="submit" class="btn btn-primary">Confirm Acceptance</button>
-                </form>
-                <form method="post" action="/Proposals/Reject/@Model.Id">
-                    @Html.AntiForgeryToken()
-                    <button type="submit" class="btn btn-ghost">Withdraw Invite</button>
-                </form>
-            </div>
-        </div>
-    }
-    else if (Model.Status == Brandora.Web.Models.Domain.ProposalStatus.Accepted)
-    {
-        <div class="outcome-banner accepted">
-            <span class="outcome-text">Accepted &mdash; a collaboration has been started.</span>
-            @if (Model.Collaboration is not null)
+            @if (!string.IsNullOrEmpty(proposal.InfluencerProfile.Bio))
             {
-                <a href="/Collaborations/Detail/@Model.Collaboration.Id" class="btn btn-secondary">Manage Collaboration</a>
+                <p class="creator-card-bio">@proposal.InfluencerProfile.Bio</p>
+            }
+
+            <div class="creator-stats">
+                <div class="creator-stat">
+                    <div class="creator-stat-value">@FollowerFormat.Format(proposal.InfluencerProfile.Followers)</div>
+                    <div class="creator-stat-label">Followers</div>
+                </div>
+                <div class="creator-stat">
+                    <div class="creator-stat-value">@proposal.InfluencerProfile.EngagementRate.ToString("0.0")%</div>
+                    <div class="creator-stat-label">Engagement</div>
+                </div>
+                <div class="creator-stat">
+                    <div class="creator-stat-value">@(proposal.InfluencerProfile.AudienceSize ?? "—")</div>
+                    <div class="creator-stat-label">Audience</div>
+                </div>
+            </div>
+
+            <a href="/Influencers/Profile/@proposal.InfluencerProfileId" class="btn btn-secondary creator-card-cta">View Full Profile →</a>
+        </div>
+
+        <div class="info-card">
+            <div class="info-card-label">Application For Campaign</div>
+            <div class="campaign-card-title">
+                <strong>@proposal.Campaign.Title</strong>
+                <a href="/Campaigns/Detail/@proposal.CampaignId">View Campaign →</a>
+            </div>
+
+            <div class="campaign-fact-list">
+                @if (proposal.Campaign.StartDate.HasValue || proposal.Campaign.Deadline.HasValue)
+                {
+                    <div class="campaign-fact">
+                        <span class="campaign-fact-icon">📅</span>
+                        <span>@(proposal.Campaign.StartDate?.ToString("MMM d") ?? "No start") &ndash; @(proposal.Campaign.Deadline?.ToString("MMM d, yyyy") ?? "No end date")</span>
+                    </div>
+                }
+                @if (!string.IsNullOrEmpty(proposal.Campaign.Platform))
+                {
+                    <div class="campaign-fact">
+                        <span class="campaign-fact-icon">▣</span>
+                        <span>@proposal.Campaign.Platform</span>
+                    </div>
+                }
+                <div class="campaign-fact">
+                    <span class="campaign-fact-icon">☰</span>
+                    <span><strong>@Model.CampaignMilestonePlanCount</strong> Milestone@(Model.CampaignMilestonePlanCount == 1 ? "" : "s")</span>
+                </div>
+                <div class="campaign-fact">
+                    <span class="campaign-fact-icon">৳</span>
+                    <span><strong>৳@proposal.Campaign.Budget.ToString("N0")</strong> Total Budget</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="info-card">
+            <div class="info-card-label">Application Status</div>
+            <div class="status-card-pill-row">
+                <span class="status-pill @proposal.Status.ToString().ToLowerInvariant()">@statusLabel</span>
+            </div>
+
+            <div class="status-card-rate">
+                <div class="status-card-rate-value">৳@proposal.ProposedAmount.ToString("N0")</div>
+                <div class="status-card-rate-label">Proposed Rate</div>
+            </div>
+
+            @if (!string.IsNullOrEmpty(proposal.Message))
+            {
+                <div class="status-card-quote">&ldquo;@proposal.Message&rdquo;</div>
             }
         </div>
-    }
-    else if (Model.Status == Brandora.Web.Models.Domain.ProposalStatus.Rejected)
-    {
-        <div class="outcome-banner rejected">
-            <span class="outcome-text">This invite was withdrawn.</span>
-            <a href="/Proposals/Invite?influencerId=@Model.InfluencerProfileId&campaignId=@Model.CampaignId" class="btn btn-secondary">Send New Invite</a>
+
+    </div>
+
+    <div class="lower-columns">
+
+        <div class="tabs-card">
+            <div class="tabs-nav">
+                <button type="button" class="tab-btn is-active" data-tab="details">Application Details</button>
+                <button type="button" class="tab-btn" data-tab="social">Social Account</button>
+                <button type="button" class="tab-btn" data-tab="history">Past Collaborations @(Model.PastCollaborations.Count > 0 ? $"({Model.PastCollaborations.Count})" : "")</button>
+                <button type="button" class="tab-btn" data-tab="more">Additional Information</button>
+            </div>
+
+            <div class="tab-panel is-active" data-panel="details">
+                <div class="tab-block">
+                    <div class="tab-block-label">Proposed Deliverables</div>
+                    <p class="tab-block-text">@proposal.Deliverables</p>
+                </div>
+                <div class="tab-block">
+                    <div class="tab-block-label">Timeline</div>
+                    <p class="tab-block-text">@(proposal.Timeline ?? "Not specified")</p>
+                </div>
+                <div class="tab-block">
+                    <div class="tab-block-label">Initiated By</div>
+                    <p class="tab-block-text">@proposal.InitiatedBy</p>
+                </div>
+            </div>
+
+            <div class="tab-panel" data-panel="social">
+                <div class="tab-block">
+                    <div class="tab-block-label">Primary Platform</div>
+                    <p class="tab-block-text">@(proposal.InfluencerProfile.PrimaryPlatform ?? "Not specified")</p>
+                </div>
+                @if (!string.IsNullOrEmpty(proposal.InfluencerProfile.PlatformUsername))
+                {
+                    <div class="tab-block">
+                        <div class="tab-block-label">Handle</div>
+                        <p class="tab-block-text">@proposal.InfluencerProfile.PlatformUsername</p>
+                    </div>
+                }
+                <div class="tab-block">
+                    <div class="tab-block-label">Followers &amp; Engagement</div>
+                    <p class="tab-block-text">@FollowerFormat.Format(proposal.InfluencerProfile.Followers) followers &middot; @proposal.InfluencerProfile.EngagementRate.ToString("0.0")% engagement rate</p>
+                </div>
+            </div>
+
+            <div class="tab-panel" data-panel="history">
+                @if (Model.PastCollaborations.Count == 0)
+                {
+                    <p class="tab-block-text" style="margin-top:0;">No past collaborations with this creator yet.</p>
+                }
+                else
+                {
+                    foreach (var collab in Model.PastCollaborations)
+                    {
+                        <div class="collab-item">
+                            <div>
+                                <div style="font-family:'DM Sans',sans-serif;font-weight:700;font-size:13px;color:#171d3d;">@collab.Campaign.Title</div>
+                                <div style="margin-top:2px;font-family:'Inter',sans-serif;font-size:11.5px;color:#9096b3;">Started @collab.CreatedAt.ToString("MMM d, yyyy")</div>
+                            </div>
+                            <span class="status-pill @collab.Status.ToString().ToLowerInvariant()">@collab.Status</span>
+                        </div>
+                    }
+                }
+            </div>
+
+            <div class="tab-panel" data-panel="more">
+                @if (!string.IsNullOrEmpty(proposal.InfluencerProfile.WebsiteUrl))
+                {
+                    <div class="tab-block">
+                        <div class="tab-block-label">Website</div>
+                        <p class="tab-block-text"><a href="@proposal.InfluencerProfile.WebsiteUrl" target="_blank" rel="noopener" style="color:#7a2df3;">@proposal.InfluencerProfile.WebsiteUrl</a></p>
+                    </div>
+                }
+                @if (!string.IsNullOrEmpty(proposal.InfluencerProfile.RateNote))
+                {
+                    <div class="tab-block">
+                        <div class="tab-block-label">Rate Note</div>
+                        <p class="tab-block-text">@proposal.InfluencerProfile.RateNote</p>
+                    </div>
+                }
+                <div class="tab-block">
+                    <div class="tab-block-label">Verification Status</div>
+                    <p class="tab-block-text">@proposal.InfluencerProfile.VerificationStatus</p>
+                </div>
+            </div>
         </div>
-    }
+
+        <div>
+            <div class="side-panel">
+                <div class="side-panel-title">Quick Actions</div>
+
+                <div class="side-actions">
+                    @if (proposal.Status == ProposalStatus.Pending)
+                    {
+                        <form method="post" action="/Proposals/ConfirmAccept/@proposal.Id">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-danger-solid" style="background: linear-gradient(105deg, #17c98f, #0d9c6c);">Accept Application</button>
+                        </form>
+                    }
+                    else if (proposal.Status == ProposalStatus.Accepted && proposal.Collaboration is not null)
+                    {
+                        <a href="/Collaborations/Detail/@proposal.Collaboration.Id" class="btn btn-secondary">Manage Collaboration</a>
+                    }
+
+                    <form method="post" action="/Messages/StartWithCreator">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="influencerId" value="@proposal.InfluencerProfileId" />
+                        <input type="hidden" name="campaignId" value="@proposal.CampaignId" />
+                        <button type="submit" class="btn btn-outline-brand">Message Influencer</button>
+                    </form>
+
+                    @if (proposal.Status == ProposalStatus.Pending)
+                    {
+                        <form method="post" action="/Proposals/Reject/@proposal.Id">
+                            @Html.AntiForgeryToken()
+                            <button type="button" class="btn btn-danger-solid js-confirm"
+                                    data-confirm-title="Reject this application?"
+                                    data-confirm-text="Are you sure you want to mark @proposal.InfluencerProfile.FullName as Not Selected? They will be notified."
+                                    data-confirm-label="Not Selected"
+                                    data-confirm-danger="true">Not Selected</button>
+                        </form>
+                    }
+                    else if (proposal.Status == ProposalStatus.Rejected)
+                    {
+                        <a href="/Proposals/Invite?influencerId=@proposal.InfluencerProfileId&campaignId=@proposal.CampaignId" class="btn btn-secondary">Send New Invite</a>
+                    }
+                </div>
+
+                @if (proposal.Status == ProposalStatus.Accepted)
+                {
+                    <div class="outcome-banner accepted">Accepted — a collaboration is active.</div>
+                }
+                else if (proposal.Status == ProposalStatus.Rejected)
+                {
+                    <div class="outcome-banner rejected">This application was not selected.</div>
+                }
+            </div>
+
+            <div class="timeline-card">
+                <div class="side-panel-title">Timeline</div>
+                <div style="margin-top:16px;">
+                    <div class="timeline-item">
+                        <div class="timeline-title">Application Submitted</div>
+                        <div class="timeline-date">@proposal.CreatedAt.ToBangladeshTime().ToString("MMM d, yyyy, h:mm tt")</div>
+                    </div>
+                    @if (proposal.DecidedAt.HasValue)
+                    {
+                        <div class="timeline-item">
+                            <div class="timeline-title">@(proposal.Status == ProposalStatus.Accepted ? "Accepted" : "Not Selected")</div>
+                            <div class="timeline-date">@proposal.DecidedAt.Value.ToBangladeshTime().ToString("MMM d, yyyy, h:mm tt")</div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="timeline-item is-pending">
+                            <div class="timeline-title">Decision Pending</div>
+                            <div class="timeline-date">You haven't taken any action yet.</div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+    </div>
 
 </div>
+
+@section Scripts {
+    <script>
+        document.querySelectorAll('.tab-btn').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                document.querySelectorAll('.tab-btn').forEach(function (b) { b.classList.remove('is-active'); });
+                document.querySelectorAll('.tab-panel').forEach(function (p) { p.classList.remove('is-active'); });
+                btn.classList.add('is-active');
+                document.querySelector('.tab-panel[data-panel="' + btn.dataset.tab + '"]').classList.add('is-active');
+            });
+        });
+    </script>
+}

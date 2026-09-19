@@ -262,9 +262,9 @@
             <h1 class="detail-title">@campaign.Title</h1>
             <div class="detail-tags">
                 <span class="status-pill @campaign.Status.ToString().ToLowerInvariant()">@campaign.Status</span>
-                @if (!string.IsNullOrEmpty(campaign.Platform))
+                @foreach (var p in (campaign.Platform ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
                 {
-                    <span class="tag">@campaign.Platform</span>
+                    <span class="tag">@p</span>
                 }
                 @if (!string.IsNullOrEmpty(campaign.Niche))
                 {

@@ -324,6 +324,37 @@
         color: #6681af;
     }
 
+    .campaign-row-delete {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        width: 100%;
+
+        min-height: 38px;
+        padding: 0 16px;
+
+        border-radius: 10px;
+        border: 1.5px solid #f6c3ca;
+        background: #fff;
+        color: #c22540;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 12.5px;
+        font-weight: 600;
+
+        cursor: pointer;
+        transition: .2s;
+    }
+
+    .campaign-row-delete:hover {
+        border-color: transparent;
+        color: #ffffff;
+        background: linear-gradient(105deg, #ff4d6b, #d6234a);
+        transform: translateY(-1px);
+        box-shadow: 0 8px 18px rgba(214,35,74,.25);
+    }
+
     @@media(max-width: 900px) {
         .campaign-row { flex-wrap: wrap; }
         .campaign-row-figures { order: 3; width: 100%; justify-content: space-between; padding-top: 12px; border-top: 1px solid #e3edff; }
@@ -365,6 +396,15 @@
 
     <div class="page-hero-motto">Real Brands.<br />Real Opportunities.<span></span></div>
 </section>
+
+@if (TempData["CampaignError"] is string campaignError)
+{
+    <div class="form-errors" style="margin-top: 18px;">@campaignError</div>
+}
+@if (TempData["CampaignSuccess"] is string campaignSuccess)
+{
+    <div class="form-errors" style="margin-top: 18px; border-color: rgba(13,156,108,.25); background: rgba(13,156,108,.08); color: #0d9c6c;">@campaignSuccess</div>
+}
 
 <form method="get" action="/Campaigns" class="filter-bar">
 
@@ -464,9 +504,9 @@
                     </div>
                     <div class="campaign-row-desc">@campaign.Description</div>
                     <div class="campaign-row-tags">
-                        @if (!string.IsNullOrEmpty(campaign.Platform))
+                        @foreach (var p in (campaign.Platform ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
                         {
-                            <span class="tag">@campaign.Platform</span>
+                            <span class="tag">@p</span>
                         }
                         @if (!string.IsNullOrEmpty(campaign.Niche))
                         {
@@ -493,6 +533,20 @@
                 <div class="campaign-row-actions">
                     <a href="/Campaigns/Detail/@campaign.Id" class="btn btn-secondary">View Details</a>
                     <a href="/Campaigns/Edit/@campaign.Id" class="btn btn-primary">Edit</a>
+                    @if (campaign.Status == CampaignStatus.Draft)
+                    {
+                        <form method="post" action="/Campaigns/Delete/@campaign.Id">
+                            @Html.AntiForgeryToken()
+                            <button type="button" class="campaign-row-delete js-confirm" aria-label="Delete draft"
+                                    data-confirm-title="Delete this draft?"
+                                    data-confirm-text="Are you sure you want to delete &quot;@campaign.Title&quot;? This cannot be undone."
+                                    data-confirm-label="Delete"
+                                    data-confirm-danger="true">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6h16Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                Delete
+                            </button>
+                        </form>
+                    }
                     <div class="campaign-row-applied">@Model.ApplicantsFor(campaign.Id) applied</div>
                 </div>
 

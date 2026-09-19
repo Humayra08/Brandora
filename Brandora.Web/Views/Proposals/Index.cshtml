@@ -1,135 +1,162 @@
 @model Brandora.Web.Models.Proposals.ProposalListViewModel
 @using Brandora.Web.Models.Influencers
+@using Brandora.Web.Models.Domain
 @{
-    ViewData["Title"] = "Proposals";
-    ViewData["ActiveNav"] = "Campaigns";
+    ViewData["Title"] = "Applicants";
+    ViewData["ActiveNav"] = "Applicants";
     Layout = "_AppLayout";
+
+    string BuildUrl(int? overridePage = null, ProposalStatus? overrideStatus = null, bool clearStatus = false)
+    {
+        var qp = new List<string>();
+        if (Model.CampaignId.HasValue) qp.Add($"campaignId={Model.CampaignId}");
+        var effectiveStatus = clearStatus ? null : (overrideStatus ?? Model.Status);
+        if (effectiveStatus.HasValue) qp.Add($"status={effectiveStatus}");
+        if (!string.IsNullOrWhiteSpace(Model.Search)) qp.Add($"search={Uri.EscapeDataString(Model.Search)}");
+        if (Model.From.HasValue) qp.Add($"from={Model.From:yyyy-MM-dd}");
+        if (Model.To.HasValue) qp.Add($"to={Model.To:yyyy-MM-dd}");
+        qp.Add($"pageSize={Model.PageSize}");
+        qp.Add($"page={overridePage ?? Model.Page}");
+        return "/Proposals?" + string.Join("&", qp);
+    }
 }
 
 @section Styles {
 
-    .page-head {
-        animation: fade-up .4s ease both;
-    }
+    .page-head { animation: fade-up .4s ease both; }
 
-    .detail-crumb {
-        font-family: 'Inter', sans-serif;
-        font-size: 12.5px;
-        font-weight: 500;
-        color: #8189a8;
-    }
+    .detail-crumb { font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 500; color: #8189a8; }
+    .page-title { margin-top: 6px; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 28px; }
+    .page-sub { margin-top: 6px; font-family: 'Inter', sans-serif; font-size: 13.5px; color: #6b7290; }
 
-    .page-title {
-        margin-top: 6px;
-
-        font-family: 'Playfair Display', serif;
-        font-weight: 600;
-        font-size: 28px;
-    }
-
-    .page-sub {
-        margin-top: 6px;
-
-        font-family: 'Inter', sans-serif;
-        font-size: 13.5px;
-        color: #6b7290;
-    }
-
-    .filter-bar {
-        margin-top: 22px;
-
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-
-        animation: fade-up .45s ease both;
-    }
+    .filter-bar { margin-top: 22px; display: flex; flex-wrap: wrap; gap: 8px; animation: fade-up .45s ease both; }
 
     .status-tab {
-        display: inline-flex;
-        align-items: center;
-
+        display: inline-flex; align-items: center; gap: 7px;
         padding: 9px 16px;
-
-        border-radius: 20px;
-        border: 1px solid #e2e5f2;
-        background: #ffffff;
-
-        font-family: 'Inter', sans-serif;
-        font-size: 12.5px;
-        font-weight: 600;
-        color: #545b7d;
-
-        transition: .2s;
+        border-radius: 20px; border: 1px solid #e2e5f2; background: #ffffff;
+        font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 600; color: #545b7d;
+        transition: transform .2s ease, box-shadow .2s ease, background .2s ease, color .2s ease, border-color .2s ease;
     }
+    .status-tab:hover { transform: translateY(-2px); box-shadow: 0 8px 18px rgba(30,34,90,.08); border-color: #d6d0f5; }
+    .status-tab .count { padding: 1px 7px; border-radius: 20px; background: #f1f2f8; font-size: 11px; font-weight: 700; color: #6b7290; transition: .2s; }
+    .status-tab.is-active { border-color: transparent; color: #ffffff; background: linear-gradient(105deg, #a326ff, #236eff, #18a9ff); }
+    .status-tab.is-active .count { background: rgba(255,255,255,.22); color: #ffffff; }
 
-    .status-tab.is-active {
-        border-color: transparent;
-        color: #ffffff;
-        background: linear-gradient(105deg, #a326ff, #236eff);
-    }
-
-    .proposal-list {
-        margin-top: 22px;
-
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-    }
-
-    .proposal-row {
-        display: flex;
-        align-items: center;
-        gap: 18px;
-
-        padding: 20px 24px;
-
+    .toolbar {
+        margin-top: 16px;
+        padding: 16px 18px;
         border-radius: 16px;
         background: #ffffff;
         border: 1px solid #eaecf5;
-
-        transition: transform .2s ease, box-shadow .2s ease;
-
+        display: flex; flex-wrap: wrap; align-items: center; gap: 12px;
         animation: fade-up .5s ease both;
     }
 
-    a.proposal-row:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 14px 30px rgba(30,34,90,.08);
-    }
-
-    .proposal-body {
+    .toolbar-input-wrap {
+        position: relative;
         flex: 1;
-        min-width: 0;
+        min-width: 200px;
+    }
+    .toolbar-input-wrap svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #9096b3; }
+    .toolbar-input-wrap input {
+        width: 100%;
+        padding: 10px 12px 10px 34px;
+        border-radius: 10px; border: 1px solid #e2e5f2; background: #fbfbfe;
+        font-family: 'Inter', sans-serif; font-size: 13px; color: #171d3d; outline: none;
+        transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
+    }
+    .toolbar-input-wrap input:focus { border-color: #a978ff; box-shadow: 0 0 0 4px rgba(155,44,255,.1); background: #fff; }
+
+    .toolbar select, .toolbar input[type="date"] {
+        padding: 10px 30px 10px 12px;
+        border-radius: 10px; border: 1px solid #e2e5f2; background: #fbfbfe;
+        font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 600; color: #3c4363; outline: none;
+        transition: border-color .2s ease, box-shadow .2s ease;
+        appearance: none; -webkit-appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6' fill='none'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%23545b7d' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+        background-repeat: no-repeat; background-position: right 12px center;
+    }
+    .toolbar input[type="date"] { background-image: none; padding-right: 12px; }
+    .toolbar select:focus, .toolbar input[type="date"]:focus { border-color: #a978ff; box-shadow: 0 0 0 4px rgba(155,44,255,.1); }
+
+    .toolbar-reset {
+        display: inline-flex; align-items: center; justify-content: center;
+        height: 38px; padding: 0 16px;
+        border-radius: 10px; border: 1.5px solid #a326ff33;
+        background: #fff; color: #7a2df3;
+        font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 700;
+        cursor: pointer; transition: .2s;
+        text-decoration: none;
+    }
+    .toolbar-reset:hover { background: rgba(155,44,255,.08); border-color: #a326ff; transform: translateY(-1px); }
+
+    .applicants-table-wrap {
+        margin-top: 18px;
+        border-radius: 18px;
+        background: #ffffff;
+        border: 1px solid #eaecf5;
+        overflow: hidden;
+        animation: fade-up .55s ease both;
     }
 
-    .proposal-name-row {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-
-        font-family: 'DM Sans', sans-serif;
-        font-weight: 700;
-        font-size: 15px;
-        color: #171d3d;
+    .applicants-table { width: 100%; border-collapse: collapse; }
+    .applicants-table th {
+        text-align: left;
+        padding: 14px 18px;
+        background: linear-gradient(180deg, #f8f7ff, #f4f5fc);
+        font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: .3px; text-transform: uppercase; color: #7a819e;
+        border-bottom: 1px solid #eaecf5;
+        white-space: nowrap;
     }
-
-    .proposal-meta {
-        margin-top: 3px;
-
-        font-family: 'Inter', sans-serif;
-        font-size: 12px;
-        color: #8189a8;
+    .applicants-table td {
+        padding: 16px 18px;
+        border-bottom: 1px solid #f2f3f9;
+        vertical-align: middle;
+        font-family: 'Inter', sans-serif; font-size: 13px; color: #3c4363;
     }
+    .applicants-table tbody tr { transition: background .2s ease, transform .2s ease; }
+    .applicants-table tbody tr:hover { background: #faf9ff; }
+    .applicants-table tbody tr:last-child td { border-bottom: none; }
 
-    .proposal-amount {
-        font-family: 'DM Sans', sans-serif;
-        font-weight: 800;
-        font-size: 17px;
-        color: #171d3d;
+    .applicant-cell { display: flex; align-items: center; gap: 12px; min-width: 190px; }
+    .applicant-name { font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 13.5px; color: #171d3d; }
+    .applicant-sub { margin-top: 2px; font-size: 11.5px; color: #9096b3; }
 
-        flex-shrink: 0;
+    .cell-campaign-title { font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 13px; color: #171d3d; }
+    .cell-campaign-sub { margin-top: 2px; font-size: 11.5px; color: #9096b3; }
+
+    .cell-content { max-width: 260px; color: #6b7290; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+    .cell-rate { font-family: 'DM Sans', sans-serif; font-weight: 800; font-size: 14px; color: #171d3d; white-space: nowrap; }
+
+    .row-view-btn {
+        display: inline-flex; align-items: center; justify-content: center;
+        height: 36px; padding: 0 16px;
+        border-radius: 9px; border: 1px solid #dde1f0; background: #ffffff;
+        font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 700; color: #2a3157;
+        transition: .2s; white-space: nowrap;
     }
+    .row-view-btn:hover { border-color: transparent; color: #ffffff; background: linear-gradient(105deg, #a326ff, #236eff, #18a9ff); transform: translateY(-1px); box-shadow: 0 8px 18px rgba(140,60,255,.25); }
+
+    .pagination-bar {
+        margin-top: 16px;
+        display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+        font-family: 'Inter', sans-serif; font-size: 12.5px; color: #6b7290;
+    }
+    .pagination-controls { display: flex; align-items: center; gap: 6px; }
+    .page-btn {
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 34px; height: 34px;
+        border-radius: 9px; border: 1px solid #e2e5f2; background: #fff;
+        font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 700; color: #3c4363;
+        transition: .2s;
+    }
+    .page-btn:hover { border-color: #a326ff; color: #7a2df3; transform: translateY(-1px); }
+    .page-btn.is-active { background: linear-gradient(105deg, #a326ff, #236eff, #18a9ff); border-color: transparent; color: #fff; }
+    .page-btn.is-disabled { opacity: .4; pointer-events: none; }
+
+    .page-size-select { padding: 7px 26px 7px 10px; }
 
 }
 
@@ -143,14 +170,14 @@
     <div class="page-hero-intro">
         @if (Model.Campaign is not null)
         {
-            <div class="detail-crumb"><a href="/Campaigns/Detail/@Model.Campaign.Id">@Model.Campaign.Title</a> / Proposals</div>
+            <div class="detail-crumb"><a href="/Campaigns/Detail/@Model.Campaign.Id">@Model.Campaign.Title</a> / Applicants</div>
         }
         else
         {
-            <p class="page-hero-eyebrow">Proposals</p>
+            <p class="page-hero-eyebrow">Applicants</p>
         }
-        <h1 class="page-hero-title">@if (Model.Campaign is not null) { <text>Proposals for @Model.Campaign.Title</text> } else { <text>My <span>Proposals</span></text> }</h1>
-        <p class="page-hero-sub">Review creator proposals, compare collaboration details and keep every campaign conversation moving forward.</p>
+        <h1 class="page-hero-title">@if (Model.Campaign is not null) { <text>Applicants for @Model.Campaign.Title</text> } else { <text>Campaign <span>Applicants</span></text> }</h1>
+        <p class="page-hero-sub">Review every creator who applied to your campaigns, compare their proposals, and accept, decline or message them straight from here.</p>
     </div>
 
     <div class="page-hero-art" aria-hidden="true">
@@ -165,42 +192,121 @@
 </section>
 
 <div class="filter-bar">
-    <a href="/Proposals@(Model.CampaignId.HasValue ? $"?campaignId={Model.CampaignId}" : "")" class="status-tab @(Model.Status == null ? "is-active" : "")">All</a>
-    <a href="/Proposals?status=Pending@(Model.CampaignId.HasValue ? $"&campaignId={Model.CampaignId}" : "")" class="status-tab @(Model.Status == Brandora.Web.Models.Domain.ProposalStatus.Pending ? "is-active" : "")">Pending</a>
-    <a href="/Proposals?status=Accepted@(Model.CampaignId.HasValue ? $"&campaignId={Model.CampaignId}" : "")" class="status-tab @(Model.Status == Brandora.Web.Models.Domain.ProposalStatus.Accepted ? "is-active" : "")">Accepted</a>
-    <a href="/Proposals?status=Rejected@(Model.CampaignId.HasValue ? $"&campaignId={Model.CampaignId}" : "")" class="status-tab @(Model.Status == Brandora.Web.Models.Domain.ProposalStatus.Rejected ? "is-active" : "")">Rejected</a>
+    <a href="@BuildUrl(overridePage: 1, clearStatus: true)" class="status-tab @(Model.Status == null ? "is-active" : "")">All Applications <span class="count">@Model.AllCount</span></a>
+    <a href="@BuildUrl(overridePage: 1, overrideStatus: ProposalStatus.Pending)" class="status-tab @(Model.Status == ProposalStatus.Pending ? "is-active" : "")">Pending <span class="count">@Model.PendingCount</span></a>
+    <a href="@BuildUrl(overridePage: 1, overrideStatus: ProposalStatus.Accepted)" class="status-tab @(Model.Status == ProposalStatus.Accepted ? "is-active" : "")">Accepted <span class="count">@Model.AcceptedCount</span></a>
+    <a href="@BuildUrl(overridePage: 1, overrideStatus: ProposalStatus.Rejected)" class="status-tab @(Model.Status == ProposalStatus.Rejected ? "is-active" : "")">Not Selected <span class="count">@Model.RejectedCount</span></a>
 </div>
+
+<form method="get" action="/Proposals" class="toolbar">
+
+    <div class="toolbar-input-wrap">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="m20 20-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <input type="text" name="search" placeholder="Search by influencer name..." value="@Model.Search" />
+    </div>
+
+    <select name="campaignId" onchange="this.form.submit()">
+        <option value="">All Campaigns</option>
+        @foreach (var c in Model.AvailableCampaigns)
+        {
+            <option value="@c.Id" selected="@(Model.CampaignId == c.Id)">@c.Title</option>
+        }
+    </select>
+
+    <input type="date" name="from" value="@(Model.From?.ToString("yyyy-MM-dd"))" title="From date" />
+    <input type="date" name="to" value="@(Model.To?.ToString("yyyy-MM-dd"))" title="To date" />
+
+    @if (Model.Status.HasValue) { <input type="hidden" name="status" value="@Model.Status" /> }
+    <input type="hidden" name="pageSize" value="@Model.PageSize" />
+
+    <button type="submit" class="btn btn-secondary" style="height:38px;">Filter</button>
+    <a href="/Proposals" class="toolbar-reset">Reset</a>
+
+</form>
 
 @if (Model.Proposals.Count > 0)
 {
-    <div class="proposal-list">
-        @foreach (var proposal in Model.Proposals)
-        {
-            <a href="/Proposals/Detail/@proposal.Id" class="proposal-row">
+    <div class="applicants-table-wrap">
+        <table class="applicants-table">
+            <thead>
+                <tr>
+                    <th>Influencer</th>
+                    <th>Campaign</th>
+                    <th>Proposed Content</th>
+                    <th>Proposed Rate</th>
+                    <th>Submitted On</th>
+                    <th>Status</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var proposal in Model.Proposals)
+                {
+                    var hue = (proposal.InfluencerProfile.Id * 47) % 360;
+                    <tr>
+                        <td>
+                            <div class="applicant-cell">
+                                <div class="creator-avatar" style="width:40px;height:40px;font-size:13px;background: linear-gradient(135deg, hsl(@(hue)deg 75% 58%), hsl(@((hue + 45) % 360)deg 75% 48%));">
+                                    @FollowerFormat.InitialsOf(proposal.InfluencerProfile.FullName)
+                                </div>
+                                <div>
+                                    <div class="applicant-name">@proposal.InfluencerProfile.FullName</div>
+                                    <div class="applicant-sub">@FollowerFormat.Format(proposal.InfluencerProfile.Followers) followers</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="cell-campaign-title">@proposal.Campaign.Title</div>
+                            @if (!string.IsNullOrEmpty(proposal.Campaign.Niche))
+                            {
+                                <div class="cell-campaign-sub">@proposal.Campaign.Niche</div>
+                            }
+                        </td>
+                        <td><div class="cell-content">@proposal.Deliverables</div></td>
+                        <td class="cell-rate">৳@proposal.ProposedAmount.ToString("N0")</td>
+                        <td>@proposal.CreatedAt.ToString("MMM d, yyyy")</td>
+                        <td><span class="status-pill @proposal.Status.ToString().ToLowerInvariant()">@(proposal.Status == ProposalStatus.Rejected ? "Not Selected" : proposal.Status.ToString())</span></td>
+                        <td><a href="/Proposals/Detail/@proposal.Id" class="row-view-btn">View Details</a></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
 
-                <div class="creator-avatar" style="width:44px;height:44px;font-size:14px;background: linear-gradient(135deg, hsl(@((proposal.InfluencerProfile.Id * 47) % 360)deg 75% 58%), hsl(@(((proposal.InfluencerProfile.Id * 47) + 45) % 360)deg 75% 48%));">
-                    @FollowerFormat.InitialsOf(proposal.InfluencerProfile.FullName)
-                </div>
+    <div class="pagination-bar">
+        <div>
+            Showing @((Model.Page - 1) * Model.PageSize + 1)&ndash;@(Math.Min(Model.Page * Model.PageSize, Model.TotalCount)) of @Model.TotalCount applicant@(Model.TotalCount == 1 ? "" : "s")
+        </div>
 
-                <div class="proposal-body">
-                    <div class="proposal-name-row">
-                        @proposal.InfluencerProfile.FullName
-                        <span class="status-pill @proposal.Status.ToString().ToLowerInvariant()">@proposal.Status</span>
-                    </div>
-                    <div class="proposal-meta">@proposal.Campaign.Title &middot; @proposal.CreatedAt.ToString("MMM d, yyyy")</div>
-                </div>
+        <div class="pagination-controls">
+            <a href="@BuildUrl(overridePage: Math.Max(1, Model.Page - 1))" class="page-btn @(Model.Page <= 1 ? "is-disabled" : "")">&lsaquo;</a>
+            @for (var p = 1; p <= Model.TotalPages; p++)
+            {
+                <a href="@BuildUrl(overridePage: p)" class="page-btn @(p == Model.Page ? "is-active" : "")">@p</a>
+            }
+            <a href="@BuildUrl(overridePage: Math.Min(Model.TotalPages, Model.Page + 1))" class="page-btn @(Model.Page >= Model.TotalPages ? "is-disabled" : "")">&rsaquo;</a>
+        </div>
 
-                <div class="proposal-amount">৳@proposal.ProposedAmount.ToString("N0")</div>
-
-            </a>
-        }
+        <form method="get" action="/Proposals" style="display:flex;align-items:center;gap:8px;">
+            @if (Model.CampaignId.HasValue) { <input type="hidden" name="campaignId" value="@Model.CampaignId" /> }
+            @if (Model.Status.HasValue) { <input type="hidden" name="status" value="@Model.Status" /> }
+            @if (!string.IsNullOrWhiteSpace(Model.Search)) { <input type="hidden" name="search" value="@Model.Search" /> }
+            Show
+            <select name="pageSize" class="page-size-select" onchange="this.form.submit()">
+                @foreach (var size in new[] { 6, 10, 25, 50 })
+                {
+                    <option value="@size" selected="@(Model.PageSize == size)">@size</option>
+                }
+            </select>
+            per page
+        </form>
     </div>
 }
 else
 {
     <div class="panel empty-block" style="margin-top: 24px;">
-        <div class="empty-title">No proposals yet</div>
-        <p class="empty-text">Invite a creator from Discovery or Smart Match to send your first proposal.</p>
+        <div class="empty-title">No applicants match these filters</div>
+        <p class="empty-text">Try a different search term, or invite a creator from Discovery or Smart Match to send your first proposal.</p>
         <a href="/Influencers" class="btn btn-primary" style="margin-top: 16px;">Discover Creators</a>
     </div>
 }
