@@ -194,6 +194,21 @@ public class InfluencerCampaignsController(UserManager<ApplicationUser> userMana
 
         var closed = campaign.Status is CampaignStatus.Completed or CampaignStatus.Cancelled || campaign.Deadline < DateTime.UtcNow;
 
+        List<CampaignDetailsMilestone> milestones;
+        if (collaboration is not null)
+        {
+            milestones = collaboration.Milestones.OrderBy(m => m.DueDate ?? DateTime.MaxValue).ThenBy(m => m.Id)
+                .Select(m => new CampaignDetailsMilestone { Title = m.Title, Description = m.Description,
+                    Amount = m.Amount, DueDate = m.DueDate, Status = m.Status }).ToList();
+        }
+        else
+        {
+            milestones = await db.CampaignMilestonePlans.AsNoTracking().Where(p => p.CampaignId == campaign.Id)
+                .OrderBy(p => p.SortOrder).ThenBy(p => p.DueDate ?? DateTime.MaxValue).ThenBy(p => p.Id)
+                .Select(p => new CampaignDetailsMilestone { Title = p.Title, Description = p.Description,
+                    Amount = p.Amount, DueDate = p.DueDate, Status = MilestoneStatus.Pending }).ToListAsync();
+        }
+
         var vm = new InfluencerCampaignDetailsViewModel
         {
             Profile = influencer,
@@ -205,9 +220,7 @@ public class InfluencerCampaignsController(UserManager<ApplicationUser> userMana
             BrandLogoUrl = campaign.BrandProfile.ProfilePictureUrl,
             BrandVerified = campaign.BrandProfile.VerificationStatus == VerificationStatus.Verified,
             MyProposalId = myProposal?.Id,
-            Milestones = collaboration?.Milestones.OrderBy(m => m.DueDate ?? DateTime.MaxValue).ThenBy(m => m.Id)
-                .Select(m => new CampaignDetailsMilestone { Title = m.Title, Description = m.Description,
-                    Amount = m.Amount, DueDate = m.DueDate, Status = m.Status }).ToList() ?? new(),
+            Milestones = milestones,
             BrandIndustry = campaign.BrandProfile.Industry,
             BrandWebsiteUrl = campaign.BrandProfile.WebsiteUrl,
             Platform = campaign.Platform,

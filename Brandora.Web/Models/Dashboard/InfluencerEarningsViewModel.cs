@@ -14,11 +14,13 @@ public class InfluencerEarningsViewModel
     public int ReceivedMilestones { get; set; }
     public int PendingMilestones { get; set; }
     public int ActiveCampaigns { get; set; }
+    public decimal AvailableBalance { get; set; }
     public List<Collaboration> Collaborations { get; set; } = [];
     public List<Payment> Payments { get; set; } = [];
     public List<Campaign> Campaigns { get; set; } = [];
     public List<Notification> Notifications { get; set; } = [];
     public List<EarningsActivity> Activity { get; set; } = [];
+    public List<PayoutMethod> PayoutMethods { get; set; } = [];
 
     public static string? SafeUrl(string? value)
     {
