@@ -1,0 +1,211 @@
+@model Brandora.Web.Models.Search.SearchResultsViewModel
+@using Brandora.Web.Models.Domain
+@{
+    ViewData["Title"] = "Search";
+    Layout = "_AppLayout";
+    var hasQuery = !string.IsNullOrWhiteSpace(Model.Query);
+}
+
+@section Styles {
+
+    .search-shell { max-width: 920px; margin: 0 auto; animation: fade-up .4s ease both; }
+
+    .search-crumb { font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 500; color: #8189a8; }
+    .search-crumb a:hover { color: #545b7d; }
+
+    .search-page-title { margin-top: 14px; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 26px; color: #171d3d; }
+    .search-page-sub { margin-top: 6px; font-family: 'Inter', sans-serif; font-size: 13.5px; color: #6b7290; }
+
+    .search-refine-form { margin-top: 20px; display: flex; gap: 10px; }
+    .search-refine-form input {
+        flex: 1; height: 46px; padding: 0 16px; border-radius: 12px; border: 1px solid #e2e4f1;
+        font-family: 'Inter', sans-serif; font-size: 14px; color: #171d3d; outline: none;
+        transition: border-color .2s ease, box-shadow .2s ease;
+    }
+    .search-refine-form input:focus { border-color: #9b6bff; box-shadow: 0 0 0 3px rgba(122,45,243,.12); }
+    .search-refine-form button {
+        height: 46px; padding: 0 22px; border-radius: 12px; border: none; cursor: pointer;
+        background: linear-gradient(120deg, #7a2df3, #3544ff); color: #fff;
+        font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 13.5px;
+        transition: transform .2s cubic-bezier(.22,1,.36,1), box-shadow .2s ease;
+    }
+    .search-refine-form button:hover { transform: translateY(-2px); box-shadow: 0 10px 22px rgba(122,45,243,.28); }
+
+    .search-section { margin-top: 30px; }
+    .search-section-title {
+        font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: .3px;
+        text-transform: uppercase; color: #9096b3; margin-bottom: 12px;
+    }
+
+    .search-result-row {
+        display: flex; align-items: center; gap: 14px; padding: 16px 18px;
+        border-radius: 14px; background: #ffffff; border: 1px solid #eaecf5;
+        margin-bottom: 10px; transition: transform .2s cubic-bezier(.22,1,.36,1), box-shadow .2s ease, border-color .2s ease;
+    }
+    .search-result-row:hover { transform: translateY(-2px); box-shadow: 0 14px 28px rgba(30,34,90,.08); border-color: #e0dcf8; }
+
+    .search-result-avatar {
+        width: 40px; height: 40px; flex-shrink: 0; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 15px; color: #fff;
+    }
+
+    .search-result-body { flex: 1; min-width: 0; }
+    .search-result-title { font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 14.5px; color: #171d3d; overflow-wrap: anywhere; }
+    .search-result-meta { margin-top: 3px; font-family: 'Inter', sans-serif; font-size: 12.5px; color: #6b7290; overflow-wrap: anywhere; }
+
+    .search-result-pill {
+        flex-shrink: 0; padding: 4px 12px; border-radius: 20px;
+        font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 700;
+        background: #f1f2f8; color: #545b7d; text-transform: capitalize;
+    }
+    .search-result-pill.completed, .search-result-pill.accepted, .search-result-pill.approved, .search-result-pill.paid, .search-result-pill.active { background: #e6f9f1; color: #0d9b6c; }
+    .search-result-pill.pending, .search-result-pill.submitted { background: #fff4e0; color: #b3760c; }
+    .search-result-pill.rejected, .search-result-pill.cancelled, .search-result-pill.failed { background: #fdeaef; color: #c22a55; }
+    .search-result-pill.draft { background: #eef0fb; color: #545b7d; }
+
+    .search-empty {
+        margin-top: 40px; padding: 60px 20px; text-align: center;
+        border-radius: 18px; background: #fafaff; border: 1px dashed #e2e4f1;
+    }
+    .search-empty-title { font-family: 'Playfair Display', serif; font-weight: 600; font-size: 19px; color: #171d3d; }
+    .search-empty-sub { margin-top: 8px; font-family: 'Inter', sans-serif; font-size: 13.5px; color: #6b7290; }
+    .search-empty-links { margin-top: 18px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+    .search-empty-links a {
+        padding: 9px 18px; border-radius: 10px; background: #fff; border: 1px solid #e2e4f1;
+        font-family: 'DM Sans', sans-serif; font-weight: 600; font-size: 13px; color: #171d3d;
+        transition: border-color .2s ease, transform .2s ease;
+    }
+    .search-empty-links a:hover { border-color: #9b6bff; transform: translateY(-2px); }
+}
+
+<div class="search-shell">
+
+    <div class="search-crumb"><a href="/Dashboard">Dashboard</a> / Search</div>
+    <h1 class="search-page-title">
+        @(hasQuery ? $"Results for \"{Model.Query}\"" : "Search Brandora")
+    </h1>
+    <p class="search-page-sub">
+        @if (hasQuery)
+        {
+            @($"{Model.TotalCount} result{(Model.TotalCount == 1 ? "" : "s")} across campaigns, influencers, applications, collaborations and payments.")
+        }
+        else
+        {
+            @:Search across your campaigns, influencers, applications, collaborations and payments.
+        }
+    </p>
+
+    <form method="get" action="/Search" class="search-refine-form">
+        <input type="text" name="q" value="@Model.Query" placeholder="Search campaigns, influencers, applications…" autofocus />
+        <button type="submit">Search</button>
+    </form>
+
+    @if (hasQuery && Model.TotalCount == 0)
+    {
+        <div class="search-empty">
+            <div class="search-empty-title">No results found</div>
+            <div class="search-empty-sub">We couldn't find anything matching "@Model.Query". Try a different name or keyword.</div>
+            <div class="search-empty-links">
+                <a href="/Campaigns">Browse Campaigns</a>
+                <a href="/Influencers">Find Influencers</a>
+                <a href="/Proposals">View Applications</a>
+            </div>
+        </div>
+    }
+
+    @if (Model.Campaigns.Count > 0)
+    {
+        <div class="search-section">
+            <div class="search-section-title">Campaigns</div>
+            @foreach (var c in Model.Campaigns)
+            {
+                <a href="/Campaigns/Detail/@c.Id" class="search-result-row">
+                    <div class="search-result-avatar" style="background: linear-gradient(135deg,#7a2df3,#3544ff);">@(c.Title.Length > 0 ? c.Title[..1].ToUpperInvariant() : "C")</div>
+                    <div class="search-result-body">
+                        <div class="search-result-title">@c.Title</div>
+                        <div class="search-result-meta">Budget ৳@c.Budget.ToString("N0") · @c.Status</div>
+                    </div>
+                    <span class="search-result-pill @c.Status.ToString().ToLowerInvariant()">@c.Status</span>
+                </a>
+            }
+        </div>
+    }
+
+    @if (Model.Influencers.Count > 0)
+    {
+        <div class="search-section">
+            <div class="search-section-title">Influencers</div>
+            @foreach (var i in Model.Influencers)
+            {
+                var hue = (i.Id * 47) % 360;
+                <a href="/Influencers/Profile/@i.Id" class="search-result-row">
+                    <div class="search-result-avatar" style="background: hsl(@hue, 70%, 55%);">@(i.FullName.Length > 0 ? i.FullName[..1].ToUpperInvariant() : "I")</div>
+                    <div class="search-result-body">
+                        <div class="search-result-title">@i.FullName</div>
+                        <div class="search-result-meta">@i.ContentNiche · @i.PrimaryPlatform · @i.Followers.ToString("N0") followers</div>
+                    </div>
+                    @if (i.Verified)
+                    {
+                        <span class="search-result-pill approved">Verified</span>
+                    }
+                </a>
+            }
+        </div>
+    }
+
+    @if (Model.Applications.Count > 0)
+    {
+        <div class="search-section">
+            <div class="search-section-title">Applications</div>
+            @foreach (var p in Model.Applications)
+            {
+                <a href="/Proposals/Detail/@p.Id" class="search-result-row">
+                    <div class="search-result-avatar" style="background: linear-gradient(135deg,#2694ff,#12c48b);">@(p.InfluencerProfile.FullName.Length > 0 ? p.InfluencerProfile.FullName[..1].ToUpperInvariant() : "A")</div>
+                    <div class="search-result-body">
+                        <div class="search-result-title">@p.InfluencerProfile.FullName</div>
+                        <div class="search-result-meta">@p.Campaign.Title · Proposed ৳@p.ProposedAmount.ToString("N0")</div>
+                    </div>
+                    <span class="search-result-pill @p.Status.ToString().ToLowerInvariant()">@p.Status</span>
+                </a>
+            }
+        </div>
+    }
+
+    @if (Model.Collaborations.Count > 0)
+    {
+        <div class="search-section">
+            <div class="search-section-title">Collaborations</div>
+            @foreach (var c in Model.Collaborations)
+            {
+                <a href="/Collaborations/Detail/@c.Id" class="search-result-row">
+                    <div class="search-result-avatar" style="background: linear-gradient(135deg,#ffb648,#e0507a);">@(c.InfluencerProfile.FullName.Length > 0 ? c.InfluencerProfile.FullName[..1].ToUpperInvariant() : "C")</div>
+                    <div class="search-result-body">
+                        <div class="search-result-title">@c.InfluencerProfile.FullName</div>
+                        <div class="search-result-meta">@c.Campaign.Title</div>
+                    </div>
+                    <span class="search-result-pill @c.Status.ToString().ToLowerInvariant()">@c.Status</span>
+                </a>
+            }
+        </div>
+    }
+
+    @if (Model.Payments.Count > 0)
+    {
+        <div class="search-section">
+            <div class="search-section-title">Payments</div>
+            @foreach (var p in Model.Payments)
+            {
+                <a href="/Payments" class="search-result-row">
+                    <div class="search-result-avatar" style="background: linear-gradient(135deg,#12c48b,#2694ff);">৳</div>
+                    <div class="search-result-body">
+                        <div class="search-result-title">৳@p.Amount.ToString("N0") · @p.Collaboration.InfluencerProfile.FullName</div>
+                        <div class="search-result-meta">@p.Collaboration.Campaign.Title</div>
+                    </div>
+                    <span class="search-result-pill @p.Status.ToString().ToLowerInvariant()">@p.Status</span>
+                </a>
+            }
+        </div>
+    }
+
+</div>

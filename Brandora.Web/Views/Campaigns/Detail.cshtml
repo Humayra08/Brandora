@@ -322,7 +322,7 @@
     <section class="page-hero">
         @await Html.PartialAsync("_HeroWaves")
         <div class="page-hero-intro">
-            <div class="detail-crumb"><a href="/Campaigns">Campaigns</a> / @campaign.Title</div>
+            <div class="detail-crumb"><a href="/Dashboard">Dashboard</a> / <a href="/Campaigns">Campaigns</a> / @campaign.Title</div>
 
             <div style="display:flex; align-items:center; gap:14px; margin-top:10px;">
                 @if (!string.IsNullOrEmpty(campaign.MediaUrl))

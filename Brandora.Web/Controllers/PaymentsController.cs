@@ -65,7 +65,11 @@ public class PaymentsController(UserManager<ApplicationUser> userManager, Applic
             return NotFound();
         }
 
-        if (milestone.Status != MilestoneStatus.Approved)
+        // Payment-eligible only once BOTH the Brand (BrandApprovedAt, set by
+        // MilestonesController.Approve) and Admin (Status == Approved, set by
+        // AdminProofReviewController.Approve) have independently signed off —
+        // whichever of the two approves first is not enough on its own.
+        if (milestone.Status != MilestoneStatus.Approved || milestone.BrandApprovedAt is null)
         {
             return RedirectToAction("Detail", "Milestones", new { id = milestoneId });
         }

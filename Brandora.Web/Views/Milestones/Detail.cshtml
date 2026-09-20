@@ -3,10 +3,15 @@
 @using Brandora.Web.Models.Influencers
 @{
     ViewData["Title"] = Model.Title;
-    ViewData["ActiveNav"] = "Campaigns";
+    ViewData["ActiveNav"] = "Collaborations";
     Layout = "_AppLayout";
     var collaboration = Model.Collaboration;
     var hue = (collaboration.InfluencerProfile.Id * 47) % 360;
+    var milestoneError = TempData["MilestoneError"] as string;
+    var bothApproved = Model.Status == MilestoneStatus.Approved && Model.BrandApprovedAt is not null;
+    var brandTurnToReview = Model.BrandApprovedAt is null &&
+        (Model.Status == MilestoneStatus.Submitted || Model.Status == MilestoneStatus.Approved);
+    var awaitingAdmin = Model.BrandApprovedAt is not null && Model.Status != MilestoneStatus.Approved;
 }
 
 @section Styles {
@@ -202,11 +207,66 @@
         color: #2a3157;
     }
 
+    .outcome-banner.waiting {
+        background: #eef4ff;
+        border: 1px solid #cfe0ff;
+    }
+
+    .form-error-banner {
+        margin-bottom: 18px;
+        padding: 12px 16px;
+        border-radius: 12px;
+        background: #fdeef0;
+        border: 1px solid #f4c6cd;
+        font-family: 'Inter', sans-serif;
+        font-size: 13px;
+        color: #b3273f;
+    }
+
+    .revision-form {
+        margin-top: 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .revision-reason-input {
+        width: 100%;
+        padding: 12px 14px;
+        resize: vertical;
+        min-height: 64px;
+
+        border-radius: 10px;
+        border: 1px solid #dfe2ee;
+        background: #f9fafc;
+
+        font-family: 'Inter', sans-serif;
+        font-size: 13px;
+        color: #2a3157;
+
+        transition: border-color .2s ease, background .2s ease;
+    }
+
+    .revision-reason-input:focus {
+        outline: none;
+        border-color: #9b6dff;
+        background: #ffffff;
+    }
+
+    .revision-reason-input::placeholder {
+        color: #a3a9c2;
+    }
+
 }
 
 <div class="detail-shell">
 
-    <div class="detail-crumb"><a href="/Collaborations/Detail/@collaboration.Id">@collaboration.InfluencerProfile.FullName</a> / @Model.Title</div>
+    <div class="detail-crumb"><a href="/Dashboard">Dashboard</a> / <a href="/Collaborations">Manage Collaborations</a> / <a href="/Collaborations/Detail/@collaboration.Id">@collaboration.InfluencerProfile.FullName</a> / @Model.Title</div>
+
+    @if (!string.IsNullOrEmpty(milestoneError))
+    {
+        <div class="form-error-banner" style="margin-top: 14px;">@milestoneError</div>
+    }
 
     <div class="milestone-header">
         <div class="creator-avatar" style="background: linear-gradient(135deg, hsl(@(hue)deg 75% 58%), hsl(@((hue + 45) % 360)deg 75% 48%));">
@@ -254,62 +314,7 @@
 
     </div>
 
-    @if (Model.Status == MilestoneStatus.Pending)
-    {
-        <div class="action-panel">
-            <div class="action-title">Awaiting submission</div>
-            <p class="action-sub">Once @collaboration.InfluencerProfile.FullName shares their post or content, log it here to move this milestone forward.</p>
-            <div class="action-buttons">
-                <a href="/Milestones/LogSubmission/@Model.Id" class="btn btn-primary">Log Submission</a>
-            </div>
-        </div>
-    }
-    else if (Model.Status == MilestoneStatus.Submitted)
-    {
-        <div class="action-panel">
-            <div class="action-title">Review submission</div>
-            <p class="action-sub">Check the proof above, then approve it or request a revision.</p>
-            <div class="action-buttons">
-                <form method="post" action="/Milestones/Approve/@Model.Id">
-                    @Html.AntiForgeryToken()
-                    <button type="submit" class="btn btn-primary">Approve</button>
-                </form>
-                <form method="post" action="/Milestones/RequestRevision/@Model.Id">
-                    @Html.AntiForgeryToken()
-                    <button type="submit" class="btn btn-outline-brand">Request Revision</button>
-                </form>
-            </div>
-        </div>
-    }
-    else if (Model.Status == MilestoneStatus.RevisionRequested)
-    {
-        <div class="outcome-banner revision">
-            <span class="outcome-text">A revision was requested for this milestone.</span>
-            <a href="/Milestones/LogSubmission/@Model.Id" class="btn btn-secondary">Log New Submission</a>
-        </div>
-    }
-    else if (Model.Status == MilestoneStatus.Approved && Model.Payment is null)
-    {
-        <div class="outcome-banner approved">
-            <span class="outcome-text">Approved &mdash; ready to release payment.</span>
-            <form method="post" action="/Payments/Release">
-                @Html.AntiForgeryToken()
-                <input type="hidden" name="milestoneId" value="@Model.Id" />
-                <button type="submit" class="btn btn-primary">Release Payment</button>
-            </form>
-        </div>
-    }
-    else if (Model.Status == MilestoneStatus.Approved && Model.Payment is { Status: PaymentStatus.Pending })
-    {
-        <div class="outcome-banner revision">
-            <span class="outcome-text">Payment released &mdash; confirm once ৳@Model.Amount.ToString("N0") has cleared via bKash or Nagad.</span>
-            <form method="post" action="/Payments/Confirm/@Model.Payment.Id">
-                @Html.AntiForgeryToken()
-                <button type="submit" class="btn btn-primary">Confirm Payment</button>
-            </form>
-        </div>
-    }
-    else if (Model.Status == MilestoneStatus.Paid)
+    @if (Model.Status == MilestoneStatus.Paid)
     {
         <div class="outcome-banner paid">
             <span class="outcome-text">
@@ -320,6 +325,91 @@
                 }
             </span>
             <a href="/Payments" class="btn btn-secondary">View in Finance</a>
+        </div>
+    }
+    else if (Model.Payment is { Status: PaymentStatus.Pending })
+    {
+        <div class="outcome-banner revision">
+            <span class="outcome-text">Payment released &mdash; confirm once ৳@Model.Amount.ToString("N0") has cleared via bKash or Nagad.</span>
+            <form method="post" action="/Payments/Confirm/@Model.Payment.Id">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-primary">Confirm Payment</button>
+            </form>
+        </div>
+    }
+    else if (bothApproved && Model.Payment is null)
+    {
+        <div class="outcome-banner approved">
+            <span class="outcome-text">Approved by Brand and Admin &mdash; ready to release payment.</span>
+            <form method="post" action="/Payments/Release">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="milestoneId" value="@Model.Id" />
+                <button type="submit" class="btn btn-primary">Release Payment</button>
+            </form>
+        </div>
+    }
+    else if (awaitingAdmin)
+    {
+        <div class="outcome-banner waiting">
+            <span class="outcome-text">You approved this milestone &mdash; waiting on Admin's final review before payment.</span>
+        </div>
+        <div class="action-panel">
+            <div class="action-title">Changed your mind?</div>
+            <p class="action-sub">You can still send this back to @collaboration.InfluencerProfile.FullName for changes before Admin reviews it.</p>
+            <form method="post" action="/Milestones/RequestRevision/@Model.Id" class="revision-form">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@Model.Id" />
+                <textarea name="reason" class="revision-reason-input" rows="2" placeholder="What needs to change?" required></textarea>
+                <div class="action-buttons">
+                    <button type="submit" class="btn btn-outline-brand">Request Revision</button>
+                </div>
+            </form>
+        </div>
+    }
+    else if (brandTurnToReview)
+    {
+        <div class="action-panel">
+            <div class="action-title">Review submission</div>
+            <p class="action-sub">
+                @if (Model.Status == MilestoneStatus.Approved)
+                {
+                    <text>Admin already approved this milestone &mdash; check the proof above, then add your own approval or request a revision.</text>
+                }
+                else
+                {
+                    <text>Check the proof above, then approve it or request a revision.</text>
+                }
+            </p>
+            <div class="action-buttons">
+                <form method="post" action="/Milestones/Approve/@Model.Id">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-primary">Approve</button>
+                </form>
+            </div>
+            <form method="post" action="/Milestones/RequestRevision/@Model.Id" class="revision-form">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@Model.Id" />
+                <textarea name="reason" class="revision-reason-input" rows="2" placeholder="What needs to change?" required></textarea>
+                <div class="action-buttons">
+                    <button type="submit" class="btn btn-outline-brand">Request Revision</button>
+                </div>
+            </form>
+        </div>
+    }
+    else if (Model.Status == MilestoneStatus.RevisionRequested)
+    {
+        <div class="outcome-banner revision">
+            <span class="outcome-text">
+                You requested a revision@(string.IsNullOrEmpty(Model.BrandRevisionReason) ? "." : $": {Model.BrandRevisionReason}")
+                Waiting for @collaboration.InfluencerProfile.FullName to resubmit.
+            </span>
+        </div>
+    }
+    else if (Model.Status == MilestoneStatus.Pending)
+    {
+        <div class="action-panel">
+            <div class="action-title">Awaiting submission</div>
+            <p class="action-sub">@collaboration.InfluencerProfile.FullName hasn't submitted their proof of post yet. You'll be able to review it here once they do.</p>
         </div>
     }
 

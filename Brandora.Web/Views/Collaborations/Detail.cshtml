@@ -3,7 +3,7 @@
 @using Brandora.Web.Models.Domain
 @{
     ViewData["Title"] = "Collaboration";
-    ViewData["ActiveNav"] = "Campaigns";
+    ViewData["ActiveNav"] = "Collaborations";
     Layout = "_AppLayout";
     var hue = (Model.InfluencerProfile.Id * 47) % 360;
     var conversationId = ViewData["ConversationId"] as int?;
@@ -229,7 +229,7 @@
         Back
     </a>
 
-    <div class="detail-crumb"><a href="/Collaborations">Collaborations</a> / @Model.InfluencerProfile.FullName</div>
+    <div class="detail-crumb"><a href="/Dashboard">Dashboard</a> / <a href="/Collaborations">Manage Collaborations</a> / @Model.InfluencerProfile.FullName</div>
 
     <div class="collab-header">
         <div class="creator-avatar" style="background: linear-gradient(135deg, hsl(@(hue)deg 75% 58%), hsl(@((hue + 45) % 360)deg 75% 48%));">

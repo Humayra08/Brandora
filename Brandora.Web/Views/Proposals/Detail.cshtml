@@ -4,7 +4,7 @@
 @{
     var proposal = Model.Proposal;
     ViewData["Title"] = "Application Details";
-    ViewData["ActiveNav"] = "Applicants";
+    ViewData["ActiveNav"] = "Applications";
     Layout = "_AppLayout";
     var hue = (proposal.InfluencerProfile.Id * 47) % 360;
     var statusLabel = proposal.Status == ProposalStatus.Rejected ? "Not Selected" : proposal.Status == ProposalStatus.Pending ? "Pending Review" : proposal.Status.ToString();
@@ -128,7 +128,7 @@
     <section class="page-hero">
         @await Html.PartialAsync("_HeroWaves")
         <div class="page-hero-intro">
-            <div class="detail-crumb"><a href="/Proposals">Applicants</a> / Application Details</div>
+            <div class="detail-crumb"><a href="/Dashboard">Dashboard</a> / <a href="/Proposals">Applications</a> / Application Details</div>
             <h1 class="page-hero-title">Application <span>Details</span></h1>
             <p class="page-hero-sub">Review @proposal.InfluencerProfile.FullName's application and decide the next step.</p>
 
