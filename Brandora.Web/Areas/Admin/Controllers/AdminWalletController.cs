@@ -1,13 +1,109 @@
 using Brandora.Web.Areas.Admin.Services;
 using Brandora.Web.Data;
 using Brandora.Web.Models.Domain;
+using Brandora.Web.Services.Email;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace Brandora.Web.Areas.Admin.Controllers;
 
-public class AdminWalletController(ApplicationDbContext db) : AdminControllerBase(db)
+public class AdminWalletController(
+    ApplicationDbContext db,
+    IEmailSender emailSender,
+    IConfiguration config,
+    IWebHostEnvironment env) : AdminControllerBase(db)
 {
+    private static readonly string[] PayoutMethods = { "bKash", "Nagad", "Bank Transfer" };
+
+    private static string MaskAccount(string method, string account)
+    {
+        var d = (account ?? "").Trim();
+        if (d.Length == 0) return "—";
+        if (method == "Bank Transfer") return d.Length > 4 ? "****" + d[^4..] : d;
+        return d.Length > 7 ? d[..5] + " " + d.Substring(5, 2) + "****" : d;
+    }
+
+    // Opened from the "Withdraw from Platform Wallet" button on the Platform Wallet page.
+    [HttpGet]
+    public async Task<IActionResult> Withdraw()
+    {
+        await LoadAdminChromeAsync();
+        ViewData["ActiveNav"] = "Wallet";
+        ViewData["Title"] = "Withdraw from Platform Wallet";
+        ViewData["HasCustomHero"] = true;
+        ViewData["Breadcrumb"] = new List<(string, string?)>
+        {
+            ("Platform Wallet", "/Admin/AdminWallet/Index"),
+            ("Withdraw from Platform Wallet", null)
+        };
+
+        var snap = await PlatformWalletData.LoadAsync(db);
+        var ledger = snap.Ledger;
+        var done = ledger.Cashouts.Where(c => c.Status == "Completed").OrderByDescending(c => c.At).ToList();
+
+        return View(new CashoutPageViewModel
+        {
+            Ledger = ledger,
+            Balance = Math.Max(0m, PlatformWalletData.Balance(snap)),
+            TotalCashedOut = ledger.CashedOutTotal,
+            LastCashout = done.FirstOrDefault(),
+            PendingCount = ledger.Cashouts.Count(c => c.Status == "Processing"),
+            Cashouts = ledger.Cashouts.OrderByDescending(c => c.At).ToList(),
+            GatewayCharge = PlatformPayoutGateway.GatewayCharge
+        });
+    }
+
+    // Called by the confirmation dialog. Returns JSON so the page can show the processing,
+    // success and failed states without a reload.
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Withdraw(decimal amount, string? method, string? account)
+    {
+        var snap = await PlatformWalletData.LoadAsync(db);
+        var balance = Math.Max(0m, PlatformWalletData.Balance(snap));
+        var acct = (account ?? "").Trim();
+
+        // PAYOUT_GATEWAY=simulate (Development only) lets the success flow and the admin email
+        // be tested before the real gateway exists; it skips the balance limit and moves no money.
+        var simulate = env.IsDevelopment() && string.Equals(config["PAYOUT_GATEWAY"], "simulate", StringComparison.OrdinalIgnoreCase);
+
+        if (amount <= 0) return BadRequest(new { ok = false, error = "Enter an amount greater than ৳0." });
+        if (!simulate && amount > balance) return BadRequest(new { ok = false, error = "The amount is more than the available balance." });
+        if (method is null || !PayoutMethods.Contains(method)) return BadRequest(new { ok = false, error = "Choose a payout method." });
+
+        var isMobile = method != "Bank Transfer";
+        var digits = new string(acct.Where(char.IsDigit).ToArray());
+        if (isMobile && (digits.Length != 11 || !digits.StartsWith("01")))
+            return BadRequest(new { ok = false, error = "Enter a valid 11-digit mobile number that starts with 01." });
+        if (!isMobile && acct.Length < 6)
+            return BadRequest(new { ok = false, error = "Enter a valid bank account number." });
+
+        var result = await PlatformPayoutGateway.SendAsync(amount, method, isMobile ? digits : acct, simulate);
+
+        if (!result.Success)
+            return Ok(new { ok = false, error = result.Error ?? "The cash-out could not be processed." });
+
+        var masked = MaskAccount(method, isMobile ? digits : acct);
+
+        // The admin gets an email record of every successful cash-out.
+        if (!string.IsNullOrWhiteSpace(AdminEmail))
+        {
+            var (subject, html) = EmailTemplates.CashoutNotice(AdminName, amount, method, masked, result.Reference ?? "—", DateTime.UtcNow);
+            await emailSender.SendAsync(AdminEmail, AdminName, subject, html);
+        }
+
+        return Ok(new { ok = true, reference = result.Reference, account = masked, amount });
+    }
+
+    public async Task<IActionResult> CashoutDetails(int id)
+    {
+        var ledger = await PlatformWalletLedger.LoadAsync(db);
+        var row = ledger.Cashouts.FirstOrDefault(c => c.Id == id);
+        if (row is null) return NotFound();
+
+        return PartialView("_CashoutDrawer", row);
+    }
+
     public async Task<IActionResult> Index(string? search, DateTime? from, DateTime? to)
     {
         await LoadAdminChromeAsync();
@@ -105,7 +201,7 @@ public class AdminWalletController(ApplicationDbContext db) : AdminControllerBas
             Search = search ?? "",
             From = from,
             To = to,
-            Balance = feesAll - ledger.CompensationPaidAllTime - ledger.CashedOutTotal,
+            Balance = PlatformWalletData.Balance(snap),
             FeesAllTime = feesAll,
             FeesThisMonth = feesThis,
             FeesTrendPct = feesLast > 0 ? Math.Round((feesThis - feesLast) / feesLast * 100, 1) : null,
@@ -238,6 +334,17 @@ public record WalletCampaignRow(
     decimal FeeExpected,
     string StatusLabel,
     string StatusTone);
+
+public class CashoutPageViewModel
+{
+    public WalletLedger Ledger { get; set; } = null!;
+    public decimal Balance { get; set; }
+    public decimal TotalCashedOut { get; set; }
+    public CashoutRow? LastCashout { get; set; }
+    public int PendingCount { get; set; }
+    public List<CashoutRow> Cashouts { get; set; } = new();
+    public decimal GatewayCharge { get; set; }
+}
 
 public record DistributionSlice(string Label, decimal Amount, int Percent, string Color);
 

@@ -85,6 +85,13 @@ public class WalletSnapshot
 
 public static class PlatformWalletData
 {
+    // Platform balance = fees collected from completed withdrawals, minus compensation paid
+    // out, minus money the admin has already cashed out.
+    public static decimal Balance(WalletSnapshot snap) =>
+        snap.Withdrawals.Where(w => w.IsCompleted).Sum(w => w.Fee)
+        - snap.Ledger.CompensationPaidAllTime
+        - snap.Ledger.CashedOutTotal;
+
     public static async Task<WalletSnapshot> LoadAsync(ApplicationDbContext db)
     {
         var payments = await db.Payments

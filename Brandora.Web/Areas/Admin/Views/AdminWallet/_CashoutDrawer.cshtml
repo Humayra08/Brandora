@@ -1,0 +1,119 @@
+@model Brandora.Web.Areas.Admin.Services.CashoutRow
+@using System.Globalization
+@using Brandora.Web.Areas.Admin.Services
+@{
+    var c = Model;
+    string Money(decimal amount) => "৳" + amount.ToString("N0", CultureInfo.InvariantCulture);
+    string Stamp(DateTime d) => d.ToString("MMM d, yyyy, h:mm tt", CultureInfo.InvariantCulture);
+    var tone = c.Status == "Completed" ? "green" : c.Status == "Failed" ? "red" : "blue";
+    var charge = PlatformPayoutGateway.GatewayCharge;
+    string Logo(string method, int height) => method switch
+    {
+        "bKash" => $"<img src=\"/images/payment-methods/bkash.svg\" alt=\"bKash\" style=\"height:{height}px;width:auto;display:block;\" />",
+        "Nagad" => $"<img src=\"/images/payment-methods/nagad.svg\" alt=\"Nagad\" style=\"height:{height}px;width:auto;display:block;\" />",
+        _ => $"<i class=\"bi bi-bank\" style=\"font-size:{height}px;color:#236eff;line-height:1;\"></i>"
+    };
+    var transferred = c.Status == "Completed";
+    var failed = c.Status == "Failed";
+}
+
+<style>
+    .cd { padding: 22px 26px 30px; font-family: 'Inter', sans-serif; color: #2a3157; }
+    .cd-top { display: flex; align-items: center; justify-content: space-between; }
+    .cd h2 { margin: 0 0 16px; font: 700 26px 'Playfair Display', Georgia, serif; color: #171d3d; }
+    .cd h4 { margin: 0 0 10px; font: 700 16px 'Playfair Display', Georgia, serif; color: #171d3d; }
+    .cd-x { border: 0; background: transparent; font-size: 20px; color: #2a3157; cursor: pointer; }
+    .cd-card { padding: 16px 18px; margin-bottom: 14px; border-radius: 14px; border: 1px solid #eef1fb; background: #fff; }
+    .cd-sum { display: flex; justify-content: space-between; gap: 16px; align-items: center; background: #f6f9ff; }
+    .cd-pill { display: inline-block; padding: 4px 10px; border-radius: 8px; font: 600 11.5px 'Inter', sans-serif; }
+    .cd-pill.green { background: #e2f8ee; color: #0d9c6c; } .cd-pill.red { background: #fde8ea; color: #d92d3f; } .cd-pill.blue { background: #e3f0ff; color: #236eff; }
+    .cd-code { margin-top: 6px; font: 800 20px 'DM Sans', sans-serif; color: #171d3d; }
+    .cd small { display: block; font-size: 11px; color: #8189a8; }
+    .cd-row { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; font-size: 13px; color: #6b7290; }
+    .cd-row b { color: #171d3d; font-family: 'DM Sans', sans-serif; text-align: right; }
+    .cd-row.total { padding: 11px 12px; border-radius: 10px; background: #f3f8ff; }
+    .cd-row.total b { font-size: 17px; color: #236eff; }
+    .cd-pay { display: flex; align-items: center; gap: 16px; }
+    .cd-logo { display: flex; align-items: center; justify-content: center; min-width: 64px; }
+    .cd-pay .split { margin-left: auto; padding-left: 16px; border-left: 1px solid #eef1fb; text-align: right; }
+    .cd-time { position: relative; margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 18px; }
+    .cd-time li { position: relative; padding-left: 34px; }
+    .cd-time li::before { content: '\2713'; position: absolute; left: 0; top: 0; width: 22px; height: 22px; border-radius: 50%; background: #1fb872; color: #fff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+    .cd-time li.pending::before { content: ''; background: #dde1f0; }
+    .cd-time li.bad::before { content: '\2715'; background: #e5484d; }
+    .cd-time li:not(:last-child)::after { content: ''; position: absolute; left: 10px; top: 24px; bottom: -14px; width: 2px; background: #e3e7f5; }
+    .cd-time b { display: block; font: 700 13.5px 'DM Sans', sans-serif; color: #171d3d; }
+    .cd-note { display: flex; gap: 12px; align-items: center; padding: 14px; border-radius: 12px; background: #f6f9ff; font-size: 13px; color: #2a3157; }
+    .cd-receipt { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .cd-btn { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 44px; border-radius: 9px; border: 1px solid #cfe0ff; background: #fff; font: 600 13px 'Inter', sans-serif; color: #236eff; cursor: pointer; text-decoration: none; }
+    .cd-btn.primary { border: 0; color: #fff; background: linear-gradient(105deg, #a326ff, #236eff, #18a9ff); }
+    .cd-actions { display: flex; gap: 12px; margin-top: 8px; }
+</style>
+
+<div class="cd">
+    <div class="cd-top">
+        <h2>Cash-out Details</h2>
+        <button type="button" class="cd-x" data-close aria-label="Close"><i class="bi bi-x-lg"></i></button>
+    </div>
+
+    <div class="cd-card cd-sum">
+        <div>
+            <span class="cd-pill @tone">@c.Status</span>
+            <div class="cd-code">@c.Code</div>
+            <small>@Stamp(c.At)</small>
+        </div>
+        <div style="text-align:right;">
+            <small>Gateway Reference</small>
+            <b style="font:700 14px 'DM Sans',sans-serif;color:#171d3d;">@(c.GatewayReference ?? "—")</b>
+        </div>
+    </div>
+
+    <div class="cd-card">
+        <h4>Amount Details</h4>
+        <div class="cd-row"><span>Amount Requested</span><b>@Money(c.Amount)</b></div>
+        <div class="cd-row"><span>Gateway Charge</span><b>@Money(charge)</b></div>
+        <div class="cd-row total"><span>Amount Transferred</span><b>@(failed ? "—" : Money(Math.Max(0m, c.Amount - charge)))</b></div>
+    </div>
+
+    <div class="cd-card">
+        <h4>Payout Information</h4>
+        <div class="cd-pay">
+            <div class="cd-logo">@Html.Raw(Logo(c.Method, 34))</div>
+            <div>
+                <b style="font:700 14px 'DM Sans',sans-serif;color:#171d3d;">@c.Method</b>
+                <small style="font-size:13px;color:#6b7290;">@c.Account@(string.IsNullOrWhiteSpace(c.AccountLabel) ? "" : " (" + c.AccountLabel + ")")</small>
+            </div>
+            <div class="split">
+                <small>Status</small><span class="cd-pill @tone">@c.Status</span>
+                @if (c.CompletedAt.HasValue)
+                {
+                    <small style="margin-top:8px;">Completed on</small><b style="font:600 12.5px 'Inter',sans-serif;color:#171d3d;">@Stamp(c.CompletedAt.Value)</b>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="cd-card">
+        <h4>Timeline</h4>
+        <ul class="cd-time">
+            <li><b>Request submitted</b><small>@Stamp(c.At)</small></li>
+            <li class="@(failed ? "bad" : transferred || c.Status == "Processing" ? "" : "pending")"><b>@(failed ? "Rejected by payment gateway" : "Processed by payment gateway")</b></li>
+            <li class="@(transferred ? "" : failed ? "bad" : "pending")"><b>@(failed ? "Funds not transferred" : "Funds transferred")</b>@if (c.CompletedAt.HasValue) { <small>@Stamp(c.CompletedAt.Value)</small> }</li>
+        </ul>
+    </div>
+
+    <div class="cd-card">
+        <h4>Admin Note</h4>
+        <div class="cd-note"><i class="bi bi-journal-text" style="color:#236eff;"></i>@(string.IsNullOrWhiteSpace(c.Note) ? "No note added." : c.Note)</div>
+    </div>
+
+    <div class="cd-card cd-receipt">
+        <h4 style="margin:0;">Receipt</h4>
+        <button type="button" class="cd-btn" style="flex:0 0 auto;padding:0 18px;" data-print><i class="bi bi-download"></i> Download Receipt (PDF)</button>
+    </div>
+
+    <div class="cd-actions">
+        <button type="button" class="cd-btn" data-close>Back to Cash-out History</button>
+        <button type="button" class="cd-btn primary" data-again>Make Another Cash-out <i class="bi bi-arrow-right"></i></button>
+    </div>
+</div>

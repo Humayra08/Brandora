@@ -11,7 +11,22 @@ public static class PlatformFee
 
 public record MonthAmount(string Label, decimal Amount);
 
-public record CashoutRow(int Id, DateTime At, string Method, string Account, decimal Amount, string? GatewayReference, string Status, string? Note);
+public record CashoutRow(
+    int Id,
+    DateTime At,
+    string Method,
+    string Account,
+    decimal Amount,
+    string? GatewayReference,
+    string Status,
+    string? Note,
+    DateTime? CompletedAt = null,
+    string? AccountLabel = null)
+{
+    public string Code => "CO-" + Id;
+}
+
+public record SavedPayoutAccount(int Id, string Method, string Account, string Label);
 
 public record WalletLedger(
     bool IsLive,
@@ -20,7 +35,8 @@ public record WalletLedger(
     decimal CompensationLastMonth,
     List<MonthAmount> CompensationByMonth,
     List<CashoutRow> Cashouts,
-    Dictionary<int, string> WithdrawalGatewayReferences)
+    Dictionary<int, string> WithdrawalGatewayReferences,
+    List<SavedPayoutAccount> SavedAccounts)
 {
     public decimal CashedOutTotal => Cashouts.Where(c => c.Status == "Completed").Sum(c => c.Amount);
 }
@@ -48,6 +64,7 @@ public static class PlatformWalletLedger
             CompensationLastMonth: 0m,
             CompensationByMonth: months,
             Cashouts: new List<CashoutRow>(),
-            WithdrawalGatewayReferences: new Dictionary<int, string>()));
+            WithdrawalGatewayReferences: new Dictionary<int, string>(),
+            SavedAccounts: new List<SavedPayoutAccount>()));
     }
 }
