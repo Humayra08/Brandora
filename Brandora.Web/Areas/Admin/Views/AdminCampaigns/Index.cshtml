@@ -129,7 +129,7 @@
                     <div class="ac-summary">
                         <div class="ac-thumb">@c.BrandName.Substring(0, Math.Min(2, c.BrandName.Length)).ToUpperInvariant()</div>
                         <div class="ac-copy">
-                            <h2>@c.Title</h2>
+                            <h2><a href="/Admin/AdminCampaigns/Details/@c.Id">@c.Title</a></h2>
                             <p class="ac-meta">
                                 <strong>@c.BrandName</strong>
                                 @if (!string.IsNullOrWhiteSpace(c.Niche)) { <span>@c.Niche</span> }
@@ -153,6 +153,7 @@
                         <span class="status-pill @PillColor(c.Status)">@c.Status</span>
                         <small>@c.ApplicantCount applied &middot; @c.AcceptedInfluencers accepted</small>
                         <small>@c.MilestoneCount milestone@(c.MilestoneCount == 1 ? "" : "s")</small>
+                        <a href="/Admin/AdminCampaigns/Details/@c.Id" style="margin-top:4px;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;color:#236eff;">View details &rarr;</a>
                     </div>
                 </div>
             }
