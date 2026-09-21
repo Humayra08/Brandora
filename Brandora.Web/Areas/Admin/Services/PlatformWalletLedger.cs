@@ -11,35 +11,26 @@ public static class PlatformFee
 
 public record MonthAmount(string Label, decimal Amount);
 
-public record WalletTransactionRow(
-    DateTime At,
-    string Type,
-    string UserName,
-    string Role,
-    string? DisputeRef,
-    decimal Amount,
-    decimal BalanceAfter,
-    string Note,
-    int? CampaignId = null);
+public record CashoutRow(int Id, DateTime At, string Method, string Account, decimal Amount, string? GatewayReference, string Status, string? Note);
 
 public record WalletLedger(
     bool IsLive,
-    decimal FeesCollectedAllTime,
-    decimal FeesCollectedThisMonth,
-    decimal FeesCollectedLastMonth,
     decimal CompensationPaidAllTime,
-    decimal CompensationPaidLastMonth,
-    List<MonthAmount> FeesByMonth,
+    decimal CompensationThisMonth,
+    decimal CompensationLastMonth,
     List<MonthAmount> CompensationByMonth,
-    List<WalletTransactionRow> Transactions,
-    Dictionary<int, decimal> FeesCollectedByCampaign);
+    List<CashoutRow> Cashouts,
+    Dictionary<int, string> WithdrawalGatewayReferences)
+{
+    public decimal CashedOutTotal => Cashouts.Where(c => c.Status == "Completed").Sum(c => c.Amount);
+}
 
-// PLACEHOLDER — the single place where the payment/wallet work (withdrawal fee ledger,
-// compensation payouts) plugs in. Until the wallet tables from the payment gateway work
-// exist, every "collected" and "compensation paid" figure is zero and IsLive is false, so
-// the Wallet page shows an "awaiting payment data" note instead of made-up numbers.
-// When that work is merged, replace the body of LoadAsync with real queries; nothing else
-// in the Wallet page or the campaign fee drawer needs to change.
+// PLACEHOLDER — the single place where the payment gateway work plugs in. Everything about
+// influencer withdrawals and the 5% fee is already real (see PlatformWalletData). What only the
+// gateway / dispute work can supply is: admin cash-outs from the platform wallet, compensation
+// payouts, and the gateway reference of each influencer withdrawal. Until then they are empty,
+// IsLive is false, and the page says so instead of showing made-up numbers. When that work is
+// merged, replace the body of LoadAsync with real queries; nothing else needs to change.
 public static class PlatformWalletLedger
 {
     public static Task<WalletLedger> LoadAsync(ApplicationDbContext db)
@@ -50,18 +41,13 @@ public static class PlatformWalletLedger
             .Select(d => new MonthAmount(d.ToString("MMM"), 0m))
             .ToList();
 
-        var ledger = new WalletLedger(
+        return Task.FromResult(new WalletLedger(
             IsLive: false,
-            FeesCollectedAllTime: 0m,
-            FeesCollectedThisMonth: 0m,
-            FeesCollectedLastMonth: 0m,
             CompensationPaidAllTime: 0m,
-            CompensationPaidLastMonth: 0m,
-            FeesByMonth: months,
-            CompensationByMonth: months.Select(m => m with { }).ToList(),
-            Transactions: new List<WalletTransactionRow>(),
-            FeesCollectedByCampaign: new Dictionary<int, decimal>());
-
-        return Task.FromResult(ledger);
+            CompensationThisMonth: 0m,
+            CompensationLastMonth: 0m,
+            CompensationByMonth: months,
+            Cashouts: new List<CashoutRow>(),
+            WithdrawalGatewayReferences: new Dictionary<int, string>()));
     }
 }

@@ -51,7 +51,7 @@
     .fd-table th { padding: 9px 8px; text-align: left; font-size: 10.5px; font-weight: 700; letter-spacing: .3px; text-transform: uppercase; color: #8189a8; background: #f7f9ff; }
     .fd-table td { padding: 10px 8px; border-top: 1px solid #eef1fb; font-size: 12px; }
     .fd-state { display: inline-block; padding: 4px 9px; border-radius: 7px; font-size: 11px; font-weight: 600; }
-    .fd-state.exp { background: #fff1de; color: #c47410; } .fd-state.col { background: #e2f8ee; color: #0d9c6c; } .fd-state.wait { background: #eef1fb; color: #6b7290; }
+    .fd-state.exp { background: #fff1de; color: #c47410; } .fd-state.col { background: #e2f8ee; color: #0d9c6c; } .fd-state.wait { background: #eef1fb; color: #6b7290; } .fd-state.part { background: #e3f0ff; color: #236eff; }
     .fd-two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 18px; }
     .fd-box { padding: 16px; border-radius: 13px; border: 1px solid #eef1fb; }
     .fd-avatars { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -103,7 +103,7 @@
             <div class="fd-fig"><small>Total Milestones</small><b>@Model.Milestones.Count</b></div>
             <div class="fd-fig">
                 <small>@rate% Collected <span class="fd-pct">@collectedPct%</span></small>
-                <b>@(Model.LedgerIsLive ? Money(Model.FeeCollected) : "—")</b>
+                <b>@Money(Model.FeeCollected)</b>
                 <div class="fd-bar"><span style="width:@collectedPct%;background:#0d9c6c;"></span></div>
             </div>
             <div class="fd-fig">
@@ -132,7 +132,7 @@
                             <td>@m.InfluencerName</td>
                             <td>@Money(m.Amount)</td>
                             <td>@Money(m.Fee)</td>
-                            <td><span class="fd-state @(m.State == "Expected" ? "exp" : m.State == "Collected" ? "col" : "wait")">@m.State</span></td>
+                            <td><span class="fd-state @(m.State == "Expected" ? "exp" : m.State == "Collected" ? "col" : m.State == "Partly collected" ? "part" : "wait")">@m.State</span></td>
                         </tr>
                     }
                 </tbody>
@@ -178,7 +178,7 @@
                 <tbody>
                     @foreach (var m in Model.Milestones)
                     {
-                        <tr><td>@m.No</td><td>@m.Title</td><td>@m.InfluencerName</td><td>@Money(m.Amount)</td><td><span class="fd-state @(m.State == "Expected" ? "exp" : "wait")">@(m.State == "Expected" ? "Paid to influencer" : "Awaiting payment")</span></td></tr>
+                        <tr><td>@m.No</td><td>@m.Title</td><td>@m.InfluencerName</td><td>@Money(m.Amount)</td><td><span class="fd-state @(m.State != "Awaiting payment" ? "exp" : "wait")">@(m.State != "Awaiting payment" ? "Paid to influencer" : "Awaiting payment")</span></td></tr>
                     }
                 </tbody>
             </table>
@@ -188,16 +188,16 @@
     <div data-pane="fees" hidden>
         @if (Model.Transactions.Count == 0)
         {
-            <div class="fd-empty">No fee transactions for this campaign yet. They appear here once influencers withdraw and the wallet ledger is live.</div>
+            <div class="fd-empty">No fee transactions for this campaign yet. They appear here once influencers withdraw money earned from it.</div>
         }
         else
         {
             <table class="fd-table">
-                <thead><tr><th>Date</th><th>Type</th><th>User</th><th>Amount</th><th>Note</th></tr></thead>
+                <thead><tr><th>Date</th><th>Withdrawal</th><th>Influencer</th><th>Fee</th><th>Note</th></tr></thead>
                 <tbody>
                     @foreach (var t in Model.Transactions)
                     {
-                        <tr><td>@t.At.ToString("MMM d, yyyy", CultureInfo.InvariantCulture)</td><td>@t.Type</td><td>@t.UserName</td><td>@Money(Math.Abs(t.Amount))</td><td>@t.Note</td></tr>
+                        <tr><td>@t.At.ToString("MMM d, yyyy", CultureInfo.InvariantCulture)</td><td>@t.Code</td><td>@t.UserName</td><td>@Money(t.Amount)</td><td>@t.Note</td></tr>
                     }
                 </tbody>
             </table>
