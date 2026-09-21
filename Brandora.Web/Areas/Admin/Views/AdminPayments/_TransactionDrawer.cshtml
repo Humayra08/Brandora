@@ -1,0 +1,152 @@
+@model Brandora.Web.Areas.Admin.Controllers.TxnDetailVm
+@using System.Globalization
+@{
+    var v = Model;
+    string Money(decimal a) => "৳" + a.ToString("N0", CultureInfo.InvariantCulture);
+    string Stamp(DateTime t) => t.ToString("MMM d, yyyy, h:mm tt", CultureInfo.InvariantCulture);
+    string Initials(string name) => string.Concat(name.TrimStart('@').Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(p => char.ToUpperInvariant(p[0])));
+    string StatusTone(string s) => s == "Completed" ? "green" : s == "Failed" ? "red" : "amber";
+    string TypeTone(string t) => t == "Brand Payment" ? "purple" : t == "Withdrawal" ? "blue" : "amber";
+    string Logo(string m, int h) => m switch
+    {
+        "bKash" => $"<img src=\"/images/payment-methods/bkash.svg\" alt=\"bKash\" style=\"height:{h}px;width:auto;\" />",
+        "Nagad" => $"<img src=\"/images/payment-methods/nagad.svg\" alt=\"Nagad\" style=\"height:{h}px;width:auto;\" />",
+        "Bank Transfer" => $"<i class=\"bi bi-bank\" style=\"font-size:{h}px;color:#236eff;line-height:1;\"></i>",
+        _ => ""
+    };
+    var icon = v.Type == "Withdrawal" ? "bi-send" : v.Type == "Refund" ? "bi-arrow-counterclockwise" : "bi-credit-card-2-front";
+}
+
+<style>
+    .td { padding: 22px 24px 28px; font-family: 'Inter', sans-serif; color: #2a3157; }
+    .td-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .td-top h2 { margin: 0; display: flex; align-items: center; gap: 12px; font: 700 24px 'Playfair Display', Georgia, serif; color: #171d3d; }
+    .td-x { border: 0; background: transparent; font-size: 20px; color: #2a3157; cursor: pointer; }
+    .td-pill { display: inline-block; padding: 5px 12px; border-radius: 8px; font: 600 12px 'Inter', sans-serif; }
+    .td-pill.green { background: #e2f8ee; color: #0d9c6c; } .td-pill.amber { background: #fff1de; color: #c47410; } .td-pill.red { background: #fde8ea; color: #d92d3f; }
+    .td-pill.purple { background: #f1e6ff; color: #7a2fe0; } .td-pill.blue { background: #e3f0ff; color: #236eff; }
+    .td-sum { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
+    .td-ic { flex: 0 0 54px; height: 54px; border-radius: 14px; background: #fff1de; color: #e08a1e; display: flex; align-items: center; justify-content: center; font-size: 24px; }
+    .td-ic.blue { background: #e3f0ff; color: #236eff; }
+    .td-sum b { display: block; font: 800 17px 'DM Sans', sans-serif; color: #171d3d; }
+    .td-sum small { display: block; margin-top: 2px; font-size: 12px; color: #6b7290; }
+    .td-amt { margin-left: auto; font: 800 24px 'DM Sans', sans-serif; color: #171d3d; }
+    .td-card { padding: 16px 18px; margin-bottom: 14px; border-radius: 14px; border: 1px solid #eef1fb; background: #fff; }
+    .td-card h4 { margin: 0 0 12px; font: 700 16px 'Playfair Display', Georgia, serif; color: #171d3d; }
+    .td-kv { display: flex; flex-direction: column; gap: 10px; font-size: 13px; }
+    .td-kv > div { display: grid; grid-template-columns: 130px minmax(0, 1fr); gap: 10px; align-items: start; }
+    .td-kv > div > span:first-child { color: #6b7290; }
+    .td-kv > div > b, .td-kv > div > span:last-child { color: #171d3d; overflow-wrap: anywhere; font-weight: 500; }
+    .td-meth { display: flex; align-items: center; gap: 8px; }
+    .td-camp { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+    .td-camp-img { flex: 0 0 52px; height: 52px; border-radius: 11px; overflow: hidden; background: linear-gradient(135deg, #f1e6ff, #e3f0ff); display: flex; align-items: center; justify-content: center; color: #7a2fe0; font: 700 18px 'Playfair Display', serif; }
+    .td-camp-img img { width: 100%; height: 100%; object-fit: cover; }
+    .td-camp b { display: block; font: 700 14px 'DM Sans', sans-serif; color: #171d3d; } .td-camp small { color: #8189a8; font-size: 12px; }
+    .td-link { margin-left: auto; padding: 8px 14px; border-radius: 9px; border: 1px solid #cfe0ff; background: #f3f8ff; color: #236eff; font: 600 12px 'Inter', sans-serif; text-decoration: none; white-space: nowrap; }
+    .td-party { display: flex; align-items: center; gap: 12px; margin-bottom: 4px; }
+    .td-plabel { margin: 12px 0 8px; font: 700 13px 'DM Sans', sans-serif; color: #171d3d; }
+    .td-av { flex: 0 0 46px; height: 46px; border-radius: 50%; overflow: hidden; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #a326ff, #236eff); color: #fff; font: 700 15px 'DM Sans', sans-serif; }
+    .td-av.is-brand { background: #171d3d; } .td-av img { width: 100%; height: 100%; object-fit: cover; }
+    .td-party b { display: block; font: 700 13.5px 'DM Sans', sans-serif; color: #171d3d; } .td-party small { color: #6b7290; font-size: 12px; }
+    .td-hist { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 16px; }
+    .td-hist li { position: relative; padding-left: 40px; }
+    .td-hist li::before { content: '\2713'; position: absolute; left: 0; top: 0; width: 26px; height: 26px; border-radius: 50%; background: #1fb872; color: #fff; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+    .td-hist li.pending::before { content: '\25F7'; background: #f0a53a; }
+    .td-hist li.bad::before { content: '\2715'; background: #e5484d; }
+    .td-hist li:not(:last-child)::after { content: ''; position: absolute; left: 12px; top: 28px; bottom: -14px; width: 2px; background: #e3e7f5; }
+    .td-hist b { display: block; font: 700 13px 'DM Sans', sans-serif; color: #171d3d; } .td-hist small { display: block; margin-top: 1px; font-size: 11.5px; color: #8189a8; line-height: 1.45; }
+    .td-note { padding: 12px 14px; border-radius: 12px; background: #f3f8ff; border: 1px solid #cfe0ff; font-size: 12px; line-height: 1.55; margin-bottom: 14px; }
+    .td-dispute { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px; border-radius: 12px; background: #fdeff2; color: #a71b34; font-size: 12.5px; font-weight: 600; margin-bottom: 14px; }
+    .td-dispute a { color: #a71b34; }
+    .td-actions { display: flex; gap: 12px; margin-top: 8px; }
+    .td-btn { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 44px; border-radius: 9px; border: 1px solid #cfe0ff; background: #fff; font: 600 13px 'Inter', sans-serif; color: #236eff; cursor: pointer; text-decoration: none; }
+    .td-btn.primary { border: 0; color: #fff; background: linear-gradient(105deg, #a326ff, #236eff, #18a9ff); }
+</style>
+
+<div class="td">
+    <div class="td-top">
+        <h2>Transaction Details <span class="td-pill @StatusTone(v.Status)">@v.Status</span></h2>
+        <button type="button" class="td-x" data-close aria-label="Close"><i class="bi bi-x-lg"></i></button>
+    </div>
+
+    <div class="td-sum">
+        <div class="td-ic @(v.Type == "Withdrawal" ? "blue" : "")"><i class="bi @icon"></i></div>
+        <div><b>@v.Code</b><small>@v.Type</small><small>@Stamp(v.At)</small></div>
+        <div class="td-amt">@Money(v.Amount)</div>
+    </div>
+
+    @if (v.DisputeId is not null)
+    {
+        <div class="td-dispute"><span><i class="bi bi-exclamation-triangle"></i> A dispute exists for this milestone (@v.DisputeCode, @v.DisputeStatus)</span><a href="/Admin/AdminDisputes/Details/@v.DisputeId">Open →</a></div>
+    }
+
+    <div class="td-card">
+        <h4>Transaction Information</h4>
+        <div class="td-kv">
+            <div><span>Transaction ID</span><b>@v.Code</b></div>
+            <div><span>Type</span><span><span class="td-pill @TypeTone(v.Type)">@v.Type</span></span></div>
+            <div><span>Status</span><span><span class="td-pill @StatusTone(v.Status)">@v.Status</span></span></div>
+            <div><span>Payment Method</span><span class="td-meth">@Html.Raw(Logo(v.Method, 18))@v.Method</span></div>
+            <div><span>Transaction Date</span><span>@Stamp(v.At)</span></div>
+            <div><span>Reference No.</span><span>@(string.IsNullOrWhiteSpace(v.Reference) ? "—" : v.Reference)</span></div>
+            <div><span>Initiated By</span><span>@v.InitiatedBy</span></div>
+            <div><span>Remarks</span><span>@v.Remarks</span></div>
+        </div>
+    </div>
+
+    @if (v.HasCampaign)
+    {
+        <div class="td-card">
+            <h4>Campaign &amp; Milestone</h4>
+            <div class="td-camp">
+                <div class="td-camp-img">@if (!string.IsNullOrWhiteSpace(v.CampaignMedia) && new[] { ".png", ".jpg", ".jpeg", ".webp", ".gif" }.Any(e => v.CampaignMedia.Split('?')[0].EndsWith(e, StringComparison.OrdinalIgnoreCase))) { <img src="@v.CampaignMedia" alt="" /> } else { <text>@v.CampaignTitle.Substring(0, 1).ToUpperInvariant()</text> }</div>
+                <div><b>@v.CampaignTitle</b><small>@v.CampaignCode</small></div>
+                <a class="td-link" href="/Admin/AdminCampaigns/Details/@v.CampaignId">View Campaign →</a>
+            </div>
+            <div class="td-kv">
+                <div><span>Milestone</span><span>@v.MilestoneText</span></div>
+                <div><span>Milestone Title</span><span>@(v.MilestoneTitle ?? "—")</span></div>
+                <div><span>Agreed Amount</span><span>@Money(v.MilestoneAmount)</span></div>
+                <div><span>Due Date</span><span>@(v.DueDate.HasValue ? v.DueDate.Value.ToString("MMM d, yyyy", CultureInfo.InvariantCulture) : "—")</span></div>
+                <div><span>Description</span><span>@(string.IsNullOrWhiteSpace(v.Description) ? "—" : v.Description)</span></div>
+            </div>
+        </div>
+    }
+
+    <div class="td-card">
+        <h4>Parties Involved</h4>
+        @if (v.HasCampaign)
+        {
+            <div class="td-plabel" style="margin-top:0;">@v.BrandLabel</div>
+            <div class="td-party">
+                <div class="td-av is-brand">@if (!string.IsNullOrWhiteSpace(v.BrandPicture)) { <img src="@v.BrandPicture" alt="" /> } else { <text>@Initials(v.BrandName)</text> }</div>
+                <div><b>@v.BrandName</b></div>
+                <a class="td-link" href="/Admin/AdminUserVerification/Details?type=brand&id=@v.BrandProfileId">View Profile</a>
+            </div>
+        }
+        <div class="td-plabel" style="@(v.HasCampaign ? "" : "margin-top:0;")">@v.InfluencerLabel</div>
+        <div class="td-party">
+            <div class="td-av">@Initials(v.InfluencerName)</div>
+            <div><b>@v.InfluencerName</b><small>@@@v.InfluencerHandle.TrimStart('@')</small></div>
+            <a class="td-link" href="/Admin/AdminUserVerification/Details?type=influencer&id=@v.InfluencerProfileId">View Profile</a>
+        </div>
+    </div>
+
+    <div class="td-card">
+        <h4>Payment History</h4>
+        <ul class="td-hist">
+            @foreach (var s in v.History)
+            {
+                <li class="@(s.State == "done" ? "" : s.State)"><b>@s.Title</b>@if (s.At.HasValue) { <small>@Stamp(s.At.Value)</small> }<small>@s.Note</small></li>
+            }
+        </ul>
+    </div>
+
+    <div class="td-note"><i class="bi bi-info-circle" style="color:#236eff;"></i> Payment Oversight is read-only. The admin approves the proof of post; the brand then releases the payment, and the influencer withdraws from their wallet.</div>
+
+    <div class="td-actions">
+        <button type="button" class="td-btn" data-close>Close</button>
+        @if (v.HasCampaign) { <a class="td-btn primary" href="/Admin/AdminCampaigns/Details/@v.CampaignId">View Campaign <i class="bi bi-arrow-right"></i></a> }
+        else { <a class="td-btn primary" href="/Admin/AdminUserVerification/Details?type=influencer&id=@v.InfluencerProfileId">View Influencer <i class="bi bi-arrow-right"></i></a> }
+    </div>
+</div>
