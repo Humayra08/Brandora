@@ -1,191 +1,235 @@
 @model Brandora.Web.Models.Milestones.MilestoneFormViewModel
 @using Brandora.Web.Models.Domain
+@using Brandora.Web.Models.Influencers
 @{
     var collaboration = ViewData["Collaboration"] as Collaboration;
     ViewData["Title"] = "Add Milestone";
     ViewData["ActiveNav"] = "Collaborations";
     Layout = "_AppLayout";
+
+    var creatorName = collaboration?.InfluencerProfile.FullName ?? "the creator";
+    var campaignTitle = collaboration?.Campaign.Title ?? "this campaign";
+    var hue = ((collaboration?.InfluencerProfile.Id ?? 0) * 47) % 360;
+    var contentTypes = new[] { "Instagram Post", "Instagram Reel", "Instagram Story", "TikTok Video", "YouTube Video", "YouTube Short", "Facebook Post", "Blog Post", "Other" };
 }
 
 @section Styles {
 
-    .form-shell {
-        max-width: 620px;
-        margin: 0 auto;
+    .mc-grid { align-items: start; }
 
-        animation: fade-up .4s ease both;
-    }
+    .mc-section + .mc-section { margin-top: 0; }
+    .mc-step-title { display: flex; align-items: center; gap: 10px; }
+    .mc-step-num { display: grid; place-items: center; flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%; background: linear-gradient(130deg, #8a12ff, #0759ff 60%, #00b4ff); color: #ffffff; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 700; }
 
-    .detail-crumb {
-        font-family: 'Inter', sans-serif;
-        font-size: 12.5px;
-        font-weight: 500;
-        color: #8189a8;
-    }
+    .mc-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .mc-field { min-width: 0; }
+    .mc-field.span-2 { grid-column: span 2; }
+    .mc-field label { display: block; margin-bottom: 6px; font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 600; color: #20365f; }
+    .mc-field label small { font-weight: 500; color: #7b8fbf; }
+    .mc-input { display: flex; align-items: center; gap: 9px; min-height: 46px; padding: 0 13px; border-radius: 10px; border: 1px solid #d3e4ff; background: #ffffffcc; transition: border-color .2s ease, box-shadow .2s ease, background .2s ease; }
+    .mc-input:focus-within { border-color: #8f7bff; background: #ffffff; box-shadow: 0 0 0 3px #7862ef22; }
+    .mc-input > i { color: #6b82c4; font-size: 15px; }
+    .mc-input > span.prefix { font-family: 'DM Sans', sans-serif; font-weight: 700; color: #5b4dff; }
+    .mc-input input, .mc-input select, .mc-input textarea { flex: 1; width: 100%; min-width: 0; border: 0; outline: 0; background: transparent; font-family: 'Inter', sans-serif; font-size: 13px; color: #20365f; padding: 12px 0; }
+    .mc-input select { cursor: pointer; }
+    .mc-input.is-area { align-items: flex-start; }
+    .mc-input.is-area > i { margin-top: 14px; }
+    .mc-input textarea { min-height: 110px; resize: vertical; }
+    .mc-input ::placeholder { color: #8195c4; }
+    .mc-help { margin-top: 6px; font-family: 'Inter', sans-serif; font-size: 11.5px; color: #6680ad; }
+    .mc-count { float: right; }
 
-    .form-head {
-        margin-top: 14px;
-        text-align: center;
-    }
+    .mc-actions { display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
 
-    .form-eyebrow {
-        font-family: 'Inter', sans-serif;
-        font-size: 11.5px;
-        font-weight: 700;
-        letter-spacing: 2px;
-        text-transform: uppercase;
-        color: #9b2cff;
-    }
+    .mc-preview-amount { font-family: 'DM Sans', sans-serif; font-size: 26px; font-weight: 700; color: #101d48; }
+    .mc-preview-title { margin-top: 2px; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 700; color: #20365f; overflow-wrap: anywhere; }
 
-    .form-title {
-        margin-top: 10px;
-
-        font-family: 'Playfair Display', serif;
-        font-weight: 600;
-        font-size: 27px;
-    }
-
-    .form-sub {
-        margin-top: 8px;
-
-        font-family: 'Inter', sans-serif;
-        font-size: 13.5px;
-        color: #6b7290;
-    }
-
-    .form-section {
-        margin-top: 24px;
-        padding: 28px 30px;
-
-        border-radius: 18px;
-        background: #ffffff;
-        border: 1px solid #eaecf5;
-    }
-
-    .form-fields {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 18px 16px;
-    }
-
-    .form-field {
-        display: flex;
-        flex-direction: column;
-        gap: 7px;
-    }
-
-    .form-field.span-2 {
-        grid-column: span 2;
-    }
-
-    .form-field label {
-        font-family: 'Inter', sans-serif;
-        font-size: 12.5px;
-        font-weight: 600;
-        color: #2a3157;
-    }
-
-    .form-field input,
-    .form-field textarea {
-        padding: 12px 14px;
-
-        border-radius: 10px;
-        border: 1px solid #e2e5f2;
-        background: #fbfbfe;
-
-        font-family: 'Inter', sans-serif;
-        font-size: 13.5px;
-        color: #171d3d;
-
-        outline: none;
-        transition: .2s;
-    }
-
-    .form-field textarea {
-        min-height: 90px;
-        resize: vertical;
-    }
-
-    .form-field input:focus,
-    .form-field textarea:focus {
-        border-color: #a978ff;
-        background: #ffffff;
-        box-shadow: 0 0 0 4px rgba(155,44,255,.1);
-    }
-
-    .form-actions {
-        margin-top: 24px;
-
-        display: flex;
-        justify-content: flex-end;
-        gap: 12px;
-    }
-
-    @@media(max-width: 600px) {
-        .form-fields { grid-template-columns: 1fr; }
-        .form-field.span-2 { grid-column: span 1; }
+    @@media(max-width: 700px) {
+        .mc-fields { grid-template-columns: 1fr; }
+        .mc-field.span-2 { grid-column: span 1; }
     }
 
 }
 
-<div class="form-shell">
+<nav class="crumb-trail" aria-label="Breadcrumb">
+    <a href="/Dashboard">Dashboard</a><i class="bi bi-chevron-right"></i>
+    <a href="/Collaborations">Manage Collaborations</a><i class="bi bi-chevron-right"></i>
+    <a href="/Collaborations/Detail/@Model.CollaborationId">@creatorName</a><i class="bi bi-chevron-right"></i>
+    <strong>Add Milestone</strong>
+</nav>
 
-    <div class="detail-crumb"><a href="/Collaborations/Detail/@collaboration?.Id">@collaboration?.InfluencerProfile.FullName</a> / Add Milestone</div>
-
-    <div class="form-head">
-        <div class="form-eyebrow">New Milestone</div>
-        <h1 class="form-title">Add a milestone</h1>
-        <p class="form-sub">Define a deliverable for @collaboration?.InfluencerProfile.FullName to complete on @collaboration?.Campaign.Title.</p>
+<section class="page-hero">
+    @await Html.PartialAsync("_HeroWaves")
+    <div class="page-hero-intro">
+        <p class="page-hero-eyebrow">New Milestone</p>
+        <h1 class="page-hero-title">Define the Deliverable. <span>Pay When It's Done.</span></h1>
+        <p class="page-hero-sub">Add a milestone for @creatorName on @campaignTitle. It's paid through bKash only after you approve the proof of post and Brandora verifies it.</p>
+        <ul class="hero-highlights">
+            <li>Clear deliverables</li>
+            <li>Two-step approval</li>
+            <li>Secure bKash payout</li>
+        </ul>
     </div>
-
-    @if (!ViewData.ModelState.IsValid)
-    {
-        <div class="form-errors" style="margin-top: 20px;">
-            <ul>
-                @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
-                {
-                    <li>@error.ErrorMessage</li>
-                }
-            </ul>
+    <div class="page-hero-art" aria-hidden="true">
+        <div class="hero-glass hero-glass-back"></div>
+        <div class="hero-glass hero-glass-front">
+            <span class="hero-glass-copy">Plan.<br />Deliver.<br />Get Results.<span></span></span>
         </div>
-    }
+        <span class="hero-sparkle"></span>
+    </div>
+    <div class="page-hero-motto">Clear Briefs.<br />Great Content.<span></span></div>
+</section>
 
-    <form method="post" action="/Milestones/Create">
+@if (!ViewData.ModelState.IsValid)
+{
+    <div class="notice is-error" role="alert">
+        <i class="bi bi-exclamation-circle-fill"></i>
+        <span>
+            @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+            {
+                <span style="display:block;">@error.ErrorMessage</span>
+            }
+        </span>
+    </div>
+}
 
+<div class="page-grid mc-grid">
+
+    <form method="post" action="/Milestones/Create" class="page-main" id="milestoneForm">
         @Html.AntiForgeryToken()
         <input type="hidden" name="CollaborationId" value="@Model.CollaborationId" />
 
-        <div class="form-section">
-            <div class="form-fields">
-
-                <div class="form-field span-2">
-                    <label for="Title">Milestone Title</label>
-                    <input type="text" id="Title" name="Title" placeholder="e.g. Instagram Reel Post" value="@Model.Title" required />
+        <section class="ui-card mc-section">
+            <div class="ui-card-head">
+                <div>
+                    <div class="ui-card-title mc-step-title"><span class="mc-step-num">1</span>What should be delivered?</div>
+                    <p class="ui-card-sub">Name the deliverable and describe exactly what a successful post looks like.</p>
                 </div>
-
-                <div class="form-field">
-                    <label for="Amount">Amount (৳)</label>
-                    <input type="number" id="Amount" name="Amount" min="1" step="1" placeholder="15000" value="@(Model.Amount == 0 ? "" : Model.Amount.ToString())" required />
-                </div>
-
-                <div class="form-field">
-                    <label for="DueDate">Due Date (optional)</label>
-                    <input type="date" id="DueDate" name="DueDate" value="@(Model.DueDate?.ToString("yyyy-MM-dd"))" />
-                </div>
-
-                <div class="form-field span-2">
-                    <label for="Description">Description (optional)</label>
-                    <textarea id="Description" name="Description" placeholder="What exactly should be delivered?">@Model.Description</textarea>
-                </div>
-
             </div>
-        </div>
+            <div class="mc-fields">
+                <div class="mc-field span-2">
+                    <label for="Title">Milestone Title</label>
+                    <div class="mc-input"><i class="bi bi-flag"></i><input type="text" id="Title" name="Title" maxlength="150" placeholder="e.g. Launch-day Instagram Reel" value="@Model.Title" required /></div>
+                </div>
+                <div class="mc-field span-2">
+                    <label for="ContentType">Content Type <small>(optional)</small></label>
+                    <div class="mc-input">
+                        <i class="bi bi-camera-reels"></i>
+                        <select id="ContentType" name="ContentType">
+                            <option value="">Choose a format</option>
+                            @foreach (var type in contentTypes)
+                            {
+                                <option value="@type" selected="@(Model.ContentType == type)">@type</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+                <div class="mc-field span-2">
+                    <label for="Description">Description <small>(optional)</small><span class="mc-count" id="descCount">0/1000</span></label>
+                    <div class="mc-input is-area"><i class="bi bi-card-text"></i><textarea id="Description" name="Description" maxlength="1000" placeholder="Key messages, hashtags, handles to tag, posting time, anything the creator must include...">@Model.Description</textarea></div>
+                    <p class="mc-help">The creator sees this when they upload their proof, and you'll check the proof against it.</p>
+                </div>
+            </div>
+        </section>
 
-        <div class="form-actions">
-            <a href="/Collaborations/Detail/@Model.CollaborationId" class="btn btn-outline-brand">Cancel</a>
-            <button type="submit" class="btn btn-primary">Add Milestone</button>
-        </div>
+        <section class="ui-card mc-section">
+            <div class="ui-card-head">
+                <div>
+                    <div class="ui-card-title mc-step-title"><span class="mc-step-num">2</span>Payment &amp; timing</div>
+                    <p class="ui-card-sub">What you'll pay for this deliverable and when it's due.</p>
+                </div>
+            </div>
+            <div class="mc-fields">
+                <div class="mc-field">
+                    <label for="Amount">Amount</label>
+                    <div class="mc-input"><span class="prefix">৳</span><input type="number" id="Amount" name="Amount" min="1" step="1" placeholder="15000" value="@(Model.Amount == 0 ? "" : Model.Amount.ToString("0"))" required /></div>
+                    <p class="mc-help">Paid via bKash once the milestone is approved.</p>
+                </div>
+                <div class="mc-field">
+                    <label for="DueDate">Due Date <small>(optional)</small></label>
+                    <div class="mc-input"><i class="bi bi-calendar4-week"></i><input type="date" id="DueDate" name="DueDate" value="@(Model.DueDate?.ToString("yyyy-MM-dd"))" /></div>
+                    <p class="mc-help">Leave empty for a flexible deadline.</p>
+                </div>
+            </div>
+        </section>
 
+        <div class="mc-actions">
+            <a href="/Collaborations/Detail/@Model.CollaborationId" class="btn btn-secondary">Cancel</a>
+            <button type="submit" class="btn btn-primary"><i class="bi bi-plus-lg" style="margin-right:8px;"></i>Add Milestone</button>
+        </div>
     </form>
 
+    <aside class="page-rail">
+
+        <section class="ui-card">
+            <div class="ui-card-head" style="margin-bottom:8px;">
+                <div class="ui-card-title" style="font-size:17px;">Milestone Preview</div>
+                <span class="ui-badge is-neutral">Draft</span>
+            </div>
+            @if (collaboration is not null)
+            {
+                <div class="person-card-top" style="margin-bottom:12px;">
+                    <span class="person-avatar" style="width:40px;height:40px;font-size:13px;background: linear-gradient(135deg, hsl(@(hue)deg 75% 58%), hsl(@((hue + 45) % 360)deg 75% 48%));">@FollowerFormat.InitialsOf(creatorName)</span>
+                    <div style="min-width:0;"><div class="person-name" style="font-size:13.5px;">@creatorName</div><div class="person-handle">@campaignTitle</div></div>
+                </div>
+            }
+            <div class="mc-preview-amount" id="previewAmount">৳0</div>
+            <div class="mc-preview-title" id="previewTitle">Untitled milestone</div>
+            <dl class="fact-list" style="margin-top:10px;">
+                <div><dt>Format</dt><dd id="previewType">Not set</dd></div>
+                <div><dt>Due</dt><dd id="previewDue">Flexible</dd></div>
+                <div><dt>Paid via</dt><dd>bKash Checkout</dd></div>
+            </dl>
+        </section>
+
+        <section class="info-card">
+            <div class="info-card-head">
+                <span class="icon-chip soft"><i class="bi bi-signpost-2"></i></span>
+                <div class="info-card-title">What Happens Next?</div>
+            </div>
+            <ol class="next-steps">
+                <li class="is-current"><h4>Creator is notified</h4><p>The milestone appears on their Upload Proof page.</p></li>
+                <li><h4>They submit proof of post</h4><p>A screenshot, video or link to the live post.</p></li>
+                <li><h4>You approve, Brandora verifies</h4><p>Or send it back with a revision note.</p></li>
+                <li><h4>Release &amp; pay via bKash</h4><p>Only confirmed payments are marked paid.</p></li>
+            </ol>
+        </section>
+
+        <section class="ui-card">
+            <div class="ui-card-head" style="margin-bottom:4px;"><div class="ui-card-title" style="font-size:17px;">Writing a Great Milestone</div></div>
+            <ul class="check-list">
+                <li><i class="bi bi-check-circle-fill"></i>One deliverable per milestone keeps approvals simple.</li>
+                <li><i class="bi bi-check-circle-fill"></i>List handles, hashtags and must-say messages.</li>
+                <li><i class="bi bi-check-circle-fill"></i>Say how long the post must stay live.</li>
+                <li><i class="bi bi-check-circle-fill"></i>Agree the amount and date with the creator in chat first.</li>
+            </ul>
+        </section>
+
+        <section class="help-card">
+            <h3>Need Help?</h3>
+            <p>Not sure how to split a deal into milestones? Our team can advise.</p>
+            <a href="/Home/Contact">Contact Support <i class="bi bi-arrow-right"></i></a>
+            <svg viewBox="0 0 400 170" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="mc-help-wave" x1="0" y1="1" x2="1" y2="0"><stop stop-color="#0955ca" stop-opacity="0"/><stop offset=".65" stop-color="#168cff" stop-opacity=".5"/><stop offset="1" stop-color="#783dff" stop-opacity=".15"/></linearGradient></defs><path d="M-20 160 C100 50 140 220 260 105 S350 85 420 20 L420 190 H-20Z" fill="url(#mc-help-wave)"/><path d="M-20 164 C110 90 140 230 270 120 S360 70 420 40" fill="none" stroke="#2799ff" stroke-opacity=".4"/></svg>
+        </section>
+
+    </aside>
+
 </div>
+
+<script>
+    (function () {
+        var title = document.getElementById('Title'), amount = document.getElementById('Amount'),
+            type = document.getElementById('ContentType'), due = document.getElementById('DueDate'),
+            desc = document.getElementById('Description'), count = document.getElementById('descCount');
+        function update() {
+            var a = parseFloat(amount.value);
+            document.getElementById('previewAmount').textContent = '৳' + (isNaN(a) ? 0 : a).toLocaleString('en-US', { maximumFractionDigits: 0 });
+            document.getElementById('previewTitle').textContent = title.value.trim() || 'Untitled milestone';
+            document.getElementById('previewType').textContent = type.value || 'Not set';
+            document.getElementById('previewDue').textContent = due.value ? new Date(due.value + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : 'Flexible';
+            count.textContent = desc.value.length + '/1000';
+        }
+        [title, amount, type, due, desc].forEach(function (el) { el.addEventListener('input', update); el.addEventListener('change', update); });
+        update();
+    })();
+</script>

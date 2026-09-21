@@ -1,416 +1,529 @@
 @model Brandora.Web.Models.Domain.Milestone
 @using Brandora.Web.Models.Domain
 @using Brandora.Web.Models.Influencers
+@inject Microsoft.Extensions.Configuration.IConfiguration Config
 @{
     ViewData["Title"] = Model.Title;
     ViewData["ActiveNav"] = "Collaborations";
     Layout = "_AppLayout";
+
     var collaboration = Model.Collaboration;
-    var hue = (collaboration.InfluencerProfile.Id * 47) % 360;
+    var creator = collaboration.InfluencerProfile;
+    var campaign = collaboration.Campaign;
+    var hue = (creator.Id * 47) % 360;
+    var avatarGradient = $"linear-gradient(135deg, hsl({hue}deg 75% 58%), hsl({(hue + 45) % 360}deg 75% 48%))";
+
     var milestoneError = TempData["MilestoneError"] as string;
+    var paymentError = TempData["PaymentError"] as string;
+    var paymentSuccess = TempData["PaymentSuccess"] as string;
+
     var bothApproved = Model.Status == MilestoneStatus.Approved && Model.BrandApprovedAt is not null;
     var brandTurnToReview = Model.BrandApprovedAt is null &&
         (Model.Status == MilestoneStatus.Submitted || Model.Status == MilestoneStatus.Approved);
-    var awaitingAdmin = Model.BrandApprovedAt is not null && Model.Status != MilestoneStatus.Approved;
+    var awaitingAdmin = Model.BrandApprovedAt is not null && Model.Status != MilestoneStatus.Approved && Model.Status != MilestoneStatus.Paid;
+    var paymentPending = Model.Payment is { Status: PaymentStatus.Pending };
+    var isPaid = Model.Status == MilestoneStatus.Paid;
+
+    // Fee shown before settlement is an estimate from the configured rate; once paid,
+    // the figures recorded at settlement time are shown instead.
+    var feePercent = decimal.TryParse(Config["PLATFORM_COMMISSION_PERCENT"], out var pct) ? pct : 10m;
+    var settled = Model.Payment is { Status: PaymentStatus.Completed };
+    var feeAmount = settled ? Model.Payment!.PlatformFeeAmount : Math.Round(Model.Amount * feePercent / 100m, 2);
+    var netAmount = settled ? Model.Payment!.NetAmount : Model.Amount - feeAmount;
+
+    // Five-step journey (mirrors the Influencer Upload Proof stepper).
+    var s1 = Model.Status != MilestoneStatus.Pending;
+    var s2 = Model.BrandApprovedAt is not null || isPaid;
+    var s3 = Model.Status == MilestoneStatus.Approved || isPaid;
+    var s4 = Model.Payment is not null;
+    var s5 = isPaid;
+    var steps = new[]
+    {
+        (Done: s1, Title: "Proof Submitted", Sub: "Creator delivers content"),
+        (Done: s2, Title: "Your Approval", Sub: "You check the brief"),
+        (Done: s3, Title: "Brandora Verifies", Sub: "Independent final check"),
+        (Done: s4, Title: "Payment Released", Sub: "bKash checkout opened"),
+        (Done: s5, Title: "Paid", Sub: "Creator credited")
+    };
+    var currentIndex = Array.FindIndex(steps, s => !s.Done);
+
+    (string Label, string Badge) StatusBadge() => Model.Status switch
+    {
+        MilestoneStatus.Pending => ("Awaiting Content", "is-neutral"),
+        MilestoneStatus.Submitted => (Model.BrandApprovedAt is null ? "Needs Your Review" : "Brandora Verifying", "is-info"),
+        MilestoneStatus.RevisionRequested => ("Revision Requested", "is-pending"),
+        MilestoneStatus.Approved => (paymentPending ? "Awaiting bKash Payment" : bothApproved ? "Ready to Release" : "Needs Your Approval", paymentPending ? "is-pending" : "is-violet"),
+        MilestoneStatus.Paid => ("Paid", "is-success"),
+        _ => (Model.Status.ToString(), "is-neutral")
+    };
+    var badge = StatusBadge();
+
+    var proofUrl = Model.ProofUrl;
+    var proofIsImage = !string.IsNullOrWhiteSpace(proofUrl) &&
+        (new[] { ".jpg", ".jpeg", ".png", ".webp", ".gif" }.Any(ext => proofUrl.Split('?')[0].EndsWith(ext, StringComparison.OrdinalIgnoreCase))
+         || proofUrl.Contains("/image/upload/", StringComparison.OrdinalIgnoreCase));
+    var proofIsVideo = !string.IsNullOrWhiteSpace(proofUrl) && !proofIsImage &&
+        (proofUrl.Contains("/video/upload/", StringComparison.OrdinalIgnoreCase) ||
+         new[] { ".mp4", ".webm", ".mov" }.Any(ext => proofUrl.Split('?')[0].EndsWith(ext, StringComparison.OrdinalIgnoreCase)));
+
+    var dueText = Model.DueDate?.ToString("MMM d, yyyy") ?? "Flexible";
+    var daysLeft = Model.DueDate.HasValue ? (int)Math.Ceiling((Model.DueDate.Value - DateTime.UtcNow).TotalDays) : (int?)null;
+
+    var faqs = new[]
+    {
+        ("Why do both I and Brandora approve?", "Your approval confirms the content matches your brief. Brandora's check confirms the post is genuine and live. Money only moves once both sign-offs are in, whichever comes first."),
+        ("What happens when I release payment?", "Releasing opens a real bKash checkout for the milestone amount. Nothing is charged until you confirm on bKash's own page."),
+        ("When is it marked as paid?", "Only after bKash confirms the transaction to our server. A browser redirect alone never marks a payment as paid."),
+        ("Can I ask for changes after approving?", "Yes. Until Brandora's final check is done you can still send the milestone back to the creator with a revision note.")
+    };
 }
 
 @section Styles {
 
-    .detail-shell {
-        max-width: 720px;
-        margin: 0 auto;
+    .ms-flow { margin: 0 0 16px; }
 
-        animation: fade-up .4s ease both;
-    }
+    .ms-body { align-items: start; }
 
-    .detail-crumb {
-        font-family: 'Inter', sans-serif;
-        font-size: 12.5px;
-        font-weight: 500;
-        color: #8189a8;
-    }
+    .ms-meta-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 
-    .milestone-header {
-        margin-top: 14px;
-        padding: 28px 30px;
+    .ms-due { display: inline-flex; align-items: center; gap: 6px; padding: 4px 11px; border-radius: 20px; background: #ffffffcc; border: 1px solid #dbe8ff; font-family: 'Inter', sans-serif; font-size: 11.5px; font-weight: 600; color: #33477c; }
+    .ms-due.is-late { color: #c22540; border-color: #f4c6cd; }
 
-        border-radius: 18px;
-        background: #ffffff;
-        border: 1px solid #eaecf5;
+    .ms-revision-toggle { background: none; border: 0; padding: 0; font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 600; color: #6b52d8; cursor: pointer; }
+    .ms-revision-toggle:hover { text-decoration: underline; }
+    .ms-revision-panel { display: none; margin-top: 14px; padding-top: 14px; border-top: 1px dashed #d3e0f7; }
+    .ms-revision-panel.is-open { display: block; animation: fade-up .3s ease both; }
+    .ms-revision-panel label { font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; color: #33477c; }
+    .ms-revision-panel .decision-card-actions { margin-top: 12px; }
 
-        display: flex;
-        align-items: flex-start;
-        gap: 18px;
-    }
+    .ms-receipt { margin-top: 16px; }
 
-    .milestone-title {
-        font-family: 'Playfair Display', serif;
-        font-weight: 600;
-        font-size: 22px;
-        color: #171d3d;
-    }
+    .ms-empty-proof { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 30px 16px; border: 1px dashed #cfdcf5; border-radius: 12px; background: #f7faffb3; text-align: center; font-family: 'Inter', sans-serif; font-size: 12px; color: #6b7fb1; }
+    .ms-empty-proof strong { font-family: 'DM Sans', sans-serif; font-size: 13.5px; color: #142652; }
 
-    .milestone-sub {
-        margin-top: 4px;
+    .ms-fee-note { margin-top: 12px; padding: 10px 12px; border-radius: 9px; background: #eef4ffbd; border: 1px solid #dfe9ff; font-family: 'Inter', sans-serif; font-size: 11.5px; line-height: 1.5; color: #33477c; }
 
-        font-family: 'Inter', sans-serif;
-        font-size: 13px;
-        color: #6b7290;
-    }
-
-    .milestone-card {
-        margin-top: 18px;
-        padding: 28px 30px;
-
-        border-radius: 18px;
-        background: #ffffff;
-        border: 1px solid #eaecf5;
-    }
-
-    .milestone-figures {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 20px;
-    }
-
-    .figure-value {
-        font-family: 'DM Sans', sans-serif;
-        font-weight: 800;
-        font-size: 20px;
-        color: #171d3d;
-    }
-
-    .figure-label {
-        margin-top: 3px;
-
-        font-family: 'Inter', sans-serif;
-        font-size: 10.5px;
-        font-weight: 600;
-        letter-spacing: .3px;
-        text-transform: uppercase;
-        color: #9096b3;
-    }
-
-    .milestone-block {
-        margin-top: 20px;
-        padding-top: 20px;
-        border-top: 1px solid #f0f1f7;
-    }
-
-    .milestone-block-label {
-        font-family: 'Inter', sans-serif;
-        font-size: 11px;
-        font-weight: 700;
-        letter-spacing: .3px;
-        text-transform: uppercase;
-        color: #9096b3;
-    }
-
-    .milestone-block-text {
-        margin-top: 8px;
-
-        font-family: 'Inter', sans-serif;
-        font-size: 13.5px;
-        line-height: 1.7;
-        color: #3c4363;
-
-        white-space: pre-wrap;
-    }
-
-    .proof-link {
-        display: inline-flex;
-        margin-top: 8px;
-
-        font-family: 'Inter', sans-serif;
-        font-size: 13.5px;
-        font-weight: 600;
-        color: #4d9dff;
-
-        word-break: break-all;
-    }
-
-    .proof-link:hover {
-        text-decoration: underline;
-    }
-
-    .action-panel {
-        margin-top: 18px;
-        padding: 26px 30px;
-
-        border-radius: 18px;
-        border: 1px solid #eaecf5;
-        background:
-            radial-gradient(circle at 100% 0%, rgba(155,44,255,.06), transparent 50%),
-            #ffffff;
-    }
-
-    .action-title {
-        font-family: 'DM Sans', sans-serif;
-        font-weight: 700;
-        font-size: 15px;
-        color: #171d3d;
-    }
-
-    .action-sub {
-        margin-top: 4px;
-
-        font-family: 'Inter', sans-serif;
-        font-size: 12.5px;
-        color: #8189a8;
-    }
-
-    .action-buttons {
-        margin-top: 18px;
-
-        display: flex;
-        gap: 12px;
-    }
-
-    .action-buttons form,
-    .action-buttons a {
-        flex: 1;
-    }
-
-    .action-buttons .btn {
-        width: 100%;
-        height: 50px;
-    }
-
-    .outcome-banner {
-        margin-top: 18px;
-        padding: 20px 24px;
-
-        border-radius: 16px;
-
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 16px;
-        flex-wrap: wrap;
-    }
-
-    .outcome-banner.approved,
-    .outcome-banner.paid {
-        background: #e2faf1;
-        border: 1px solid #b9f1dd;
-    }
-
-    .outcome-banner.revision {
-        background: #fff2e2;
-        border: 1px solid #ffdcae;
-    }
-
-    .outcome-text {
-        font-family: 'Inter', sans-serif;
-        font-size: 13.5px;
-        font-weight: 600;
-        color: #2a3157;
-    }
-
-    .outcome-banner.waiting {
-        background: #eef4ff;
-        border: 1px solid #cfe0ff;
-    }
-
-    .form-error-banner {
-        margin-bottom: 18px;
-        padding: 12px 16px;
-        border-radius: 12px;
-        background: #fdeef0;
-        border: 1px solid #f4c6cd;
-        font-family: 'Inter', sans-serif;
-        font-size: 13px;
-        color: #b3273f;
-    }
-
-    .revision-form {
-        margin-top: 14px;
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-    }
-
-    .revision-reason-input {
-        width: 100%;
-        padding: 12px 14px;
-        resize: vertical;
-        min-height: 64px;
-
-        border-radius: 10px;
-        border: 1px solid #dfe2ee;
-        background: #f9fafc;
-
-        font-family: 'Inter', sans-serif;
-        font-size: 13px;
-        color: #2a3157;
-
-        transition: border-color .2s ease, background .2s ease;
-    }
-
-    .revision-reason-input:focus {
-        outline: none;
-        border-color: #9b6dff;
-        background: #ffffff;
-    }
-
-    .revision-reason-input::placeholder {
-        color: #a3a9c2;
-    }
+    .ms-total dd { font-size: 15px; color: #0b124e; }
 
 }
 
-<div class="detail-shell">
+<nav class="crumb-trail" aria-label="Breadcrumb">
+    <a href="/Dashboard">Dashboard</a><i class="bi bi-chevron-right"></i>
+    <a href="/Collaborations">Manage Collaborations</a><i class="bi bi-chevron-right"></i>
+    <a href="/Collaborations/Detail/@collaboration.Id">@creator.FullName</a><i class="bi bi-chevron-right"></i>
+    <strong>@Model.Title</strong>
+</nav>
 
-    <div class="detail-crumb"><a href="/Dashboard">Dashboard</a> / <a href="/Collaborations">Manage Collaborations</a> / <a href="/Collaborations/Detail/@collaboration.Id">@collaboration.InfluencerProfile.FullName</a> / @Model.Title</div>
+@if (!string.IsNullOrEmpty(milestoneError))
+{
+    <div class="notice is-error" role="alert"><i class="bi bi-exclamation-circle-fill"></i><span>@milestoneError</span></div>
+}
+@if (!string.IsNullOrEmpty(paymentError))
+{
+    <div class="notice is-error" role="alert"><i class="bi bi-exclamation-circle-fill"></i><span>@paymentError</span></div>
+}
+@if (!string.IsNullOrEmpty(paymentSuccess))
+{
+    <div class="notice is-success" role="status"><i class="bi bi-check-circle-fill"></i><span>@paymentSuccess</span></div>
+}
 
-    @if (!string.IsNullOrEmpty(milestoneError))
-    {
-        <div class="form-error-banner" style="margin-top: 14px;">@milestoneError</div>
-    }
-
-    <div class="milestone-header">
-        <div class="creator-avatar" style="background: linear-gradient(135deg, hsl(@(hue)deg 75% 58%), hsl(@((hue + 45) % 360)deg 75% 48%));">
-            @FollowerFormat.InitialsOf(collaboration.InfluencerProfile.FullName)
+<section class="page-hero detail-hero">
+    @await Html.PartialAsync("_HeroWaves")
+    <div class="detail-hero-top">
+        <div class="detail-hero-avatar is-person" style="background: @avatarGradient;">@FollowerFormat.InitialsOf(creator.FullName)</div>
+        <div class="detail-hero-copy">
+            <div class="detail-hero-tags">
+                <span><i class="bi bi-flag-fill"></i> Milestone</span>
+                @if (!string.IsNullOrWhiteSpace(Model.ContentType))
+                {
+                    <span><i class="bi bi-camera-reels"></i> @Model.ContentType</span>
+                }
+                @if (!string.IsNullOrWhiteSpace(campaign.Platform))
+                {
+                    <span><i class="bi bi-broadcast"></i> @campaign.Platform</span>
+                }
+            </div>
+            <h1>@Model.Title</h1>
+            <p>Deliverable by <a href="/Influencers/Profile/@creator.Id">@creator.FullName</a> for <a href="/Campaigns/Detail/@campaign.Id">@campaign.Title</a>.</p>
         </div>
-        <div>
-            <div class="milestone-title">@Model.Title</div>
-            <div class="milestone-sub">@collaboration.InfluencerProfile.FullName &middot; @collaboration.Campaign.Title</div>
+        <div class="detail-hero-side">
+            <span class="ui-badge @badge.Badge">@badge.Label</span>
+            <div class="page-hero-motto" style="margin-left:0;">Real Creators.<br />Real Results.<span></span></div>
         </div>
-        <span class="status-pill @Model.Status.ToString().ToLowerInvariant()" style="margin-left:auto;">@Model.Status</span>
     </div>
+    <dl class="detail-hero-stats">
+        <div><dt>Milestone Amount</dt><dd>৳@Model.Amount.ToString("N0")</dd></div>
+        <div><dt>Creator Receives</dt><dd>৳@netAmount.ToString("N0") <small>@(settled ? "settled" : "est.")</small></dd></div>
+        <div><dt>Due Date</dt><dd>@dueText</dd></div>
+        <div><dt>Created</dt><dd>@Model.CreatedAt.ToString("MMM d, yyyy")</dd></div>
+    </dl>
+</section>
 
-    <div class="milestone-card">
+<ol class="flow-steps ms-flow" aria-label="Milestone progress">
+    @for (var i = 0; i < steps.Length; i++)
+    {
+        var step = steps[i];
+        var cls = step.Done ? "is-done" : i == currentIndex ? "is-current" : "";
+        <li class="@cls" aria-current="@(i == currentIndex ? "step" : null)">
+            <span class="flow-step-num">@if (step.Done) { <i class="bi bi-check-lg"></i> } else { @(i + 1) }</span>
+            <div><strong>@step.Title</strong><small>@step.Sub</small></div>
+        </li>
+    }
+</ol>
 
-        <div class="milestone-figures">
-            <div>
-                <div class="figure-value">৳@Model.Amount.ToString("N0")</div>
-                <div class="figure-label">Amount</div>
-            </div>
-            <div>
-                <div class="figure-value">@(Model.DueDate?.ToString("MMM d, yyyy") ?? "No due date")</div>
-                <div class="figure-label">Due Date</div>
-            </div>
-        </div>
+<div class="page-grid ms-body">
 
-        @if (!string.IsNullOrEmpty(Model.Description))
+    <div class="page-main">
+
+        @* ---------- What to do next ---------- *@
+        @if (isPaid)
         {
-            <div class="milestone-block">
-                <div class="milestone-block-label">Description</div>
-                <p class="milestone-block-text">@Model.Description</p>
-            </div>
+            <section class="decision-card">
+                <div class="decision-card-head">
+                    <span class="icon-chip mint"><i class="bi bi-check2-circle"></i></span>
+                    <div>
+                        <div class="decision-card-eyebrow">Completed</div>
+                        <div class="decision-card-title">Milestone paid in full</div>
+                        <p class="decision-card-text">
+                            ৳@Model.Amount.ToString("N0") was paid via bKash@(Model.Payment?.PaidAt is not null ? $" on {Model.Payment.PaidAt.Value.ToBangladeshTime():MMM d, yyyy 'at' h:mm tt}" : "").
+                            @creator.FullName has been credited ৳@netAmount.ToString("N0").
+                        </p>
+                    </div>
+                </div>
+                <dl class="decision-breakdown">
+                    <div><dt>You paid</dt><dd>৳@Model.Amount.ToString("N0")</dd></div>
+                    <div><dt>Platform fee</dt><dd>৳@feeAmount.ToString("N0")</dd></div>
+                    <div><dt>Creator received</dt><dd>৳@netAmount.ToString("N0")</dd></div>
+                </dl>
+                @if (!string.IsNullOrEmpty(Model.Payment?.TransactionReference))
+                {
+                    <p class="decision-card-note"><i class="bi bi-receipt"></i> bKash transaction ID: <strong>@Model.Payment.TransactionReference</strong></p>
+                }
+                <div class="decision-card-actions">
+                    <a href="/Payments" class="btn btn-secondary"><i class="bi bi-wallet2" style="margin-right:8px;"></i>View in Finance</a>
+                    <a href="/Collaborations/Detail/@collaboration.Id" class="btn btn-ghost">Back to collaboration</a>
+                </div>
+            </section>
+        }
+        else if (paymentPending)
+        {
+            <section class="decision-card">
+                <div class="decision-card-head">
+                    <span class="icon-chip amber"><i class="bi bi-wallet2"></i></span>
+                    <div>
+                        <div class="decision-card-eyebrow">Action needed &middot; Step 5 of 5</div>
+                        <div class="decision-card-title">Complete the payment on bKash</div>
+                        <p class="decision-card-text">The payment is released and waiting for checkout. You'll be taken to bKash's secure page &mdash; the milestone is only marked paid once bKash confirms it.</p>
+                    </div>
+                </div>
+                <dl class="decision-breakdown">
+                    <div><dt>You pay</dt><dd>৳@Model.Amount.ToString("N0")</dd></div>
+                    <div><dt>Platform fee (@feePercent.ToString("0.#")%)</dt><dd>৳@feeAmount.ToString("N0")</dd></div>
+                    <div><dt>Creator receives</dt><dd>৳@netAmount.ToString("N0")</dd></div>
+                </dl>
+                <div class="decision-card-actions">
+                    <form method="post" action="/Payments/InitiatePayment">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="paymentId" value="@Model.Payment!.Id" />
+                        <button type="submit" class="btn-bkash"><span class="bkash-logo"><img src="~/images/payment-methods/bkash.svg" alt="" /></span>Pay ৳@Model.Amount.ToString("N0") with bKash</button>
+                    </form>
+                </div>
+                <p class="decision-card-note"><i class="bi bi-shield-lock"></i> Cancelled or failed checkouts never charge you &mdash; you can retry anytime.</p>
+            </section>
+        }
+        else if (bothApproved && Model.Payment is null)
+        {
+            <section class="decision-card">
+                <div class="decision-card-head">
+                    <span class="icon-chip violet"><i class="bi bi-unlock"></i></span>
+                    <div>
+                        <div class="decision-card-eyebrow">Ready &middot; Step 4 of 5</div>
+                        <div class="decision-card-title">Release payment to @creator.FullName</div>
+                        <p class="decision-card-text">You and Brandora have both approved this proof of post. Releasing opens a bKash checkout for the milestone amount &mdash; nothing is charged until you confirm there.</p>
+                    </div>
+                </div>
+                <dl class="decision-breakdown">
+                    <div><dt>You pay</dt><dd>৳@Model.Amount.ToString("N0")</dd></div>
+                    <div><dt>Platform fee (@feePercent.ToString("0.#")%)</dt><dd>৳@feeAmount.ToString("N0")</dd></div>
+                    <div><dt>Creator receives</dt><dd>৳@netAmount.ToString("N0")</dd></div>
+                </dl>
+                <div class="decision-card-actions">
+                    <form method="post" action="/Payments/Release">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="milestoneId" value="@Model.Id" />
+                        <button type="button" class="btn btn-primary" data-confirm
+                                data-confirm-title="Release ৳@Model.Amount.ToString("N0") to @creator.FullName?"
+                                data-confirm-text="This opens a secure bKash checkout for “@Model.Title”. Nothing is charged until you confirm on bKash."
+                                data-confirm-label="Release payment">
+                            <i class="bi bi-unlock" style="margin-right:8px;"></i>Release Payment
+                        </button>
+                    </form>
+                </div>
+            </section>
+        }
+        else if (brandTurnToReview)
+        {
+            <section class="decision-card">
+                <div class="decision-card-head">
+                    <span class="icon-chip blue"><i class="bi bi-eye"></i></span>
+                    <div>
+                        <div class="decision-card-eyebrow">Your review &middot; Step 2 of 5</div>
+                        <div class="decision-card-title">Does this proof match your brief?</div>
+                        <p class="decision-card-text">
+                            @if (Model.Status == MilestoneStatus.Approved)
+                            {
+                                <text>Brandora has already verified this post. Your approval is the last sign-off before you can release payment.</text>
+                            }
+                            else
+                            {
+                                <text>Check the proof of post below. Approve it if it matches the brief, or send it back with a note on what to change.</text>
+                            }
+                        </p>
+                    </div>
+                </div>
+                <div class="decision-card-actions">
+                    <form method="post" action="/Milestones/Approve/@Model.Id">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-primary"><i class="bi bi-check2-circle" style="margin-right:8px;"></i>Approve Proof</button>
+                    </form>
+                    <button type="button" class="btn btn-outline-brand" data-revision-toggle><i class="bi bi-arrow-repeat" style="margin-right:8px;"></i>Request Revision</button>
+                </div>
+                <div class="ms-revision-panel" data-revision-panel>
+                    <form method="post" action="/Milestones/RequestRevision/@Model.Id">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@Model.Id" />
+                        <label for="revisionReason">What needs to change?</label>
+                        <textarea id="revisionReason" name="reason" class="decision-textarea" maxlength="500" placeholder="Be specific, e.g. tag our handle in the first frame and keep the logo visible." required></textarea>
+                        <div class="decision-card-actions">
+                            <button type="submit" class="btn btn-primary">Send to @creator.FullName</button>
+                            <button type="button" class="btn btn-ghost" data-revision-toggle>Cancel</button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+        }
+        else if (awaitingAdmin)
+        {
+            <section class="decision-card">
+                <div class="decision-card-head">
+                    <span class="icon-chip cyan"><i class="bi bi-shield-check"></i></span>
+                    <div>
+                        <div class="decision-card-eyebrow">In review &middot; Step 3 of 5</div>
+                        <div class="decision-card-title">Brandora is verifying the post</div>
+                        <p class="decision-card-text">You approved this proof @(Model.BrandApprovedAt?.ToBangladeshTime().ToString("MMM d, h:mm tt")). Our team is confirming the post is genuine and live &mdash; you'll be notified the moment it's ready to release.</p>
+                    </div>
+                </div>
+                <div class="decision-card-actions">
+                    <button type="button" class="ms-revision-toggle" data-revision-toggle>Changed your mind? Request a revision instead</button>
+                </div>
+                <div class="ms-revision-panel" data-revision-panel>
+                    <form method="post" action="/Milestones/RequestRevision/@Model.Id">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@Model.Id" />
+                        <label for="revisionReason">What needs to change?</label>
+                        <textarea id="revisionReason" name="reason" class="decision-textarea" maxlength="500" placeholder="Explain what the creator should change." required></textarea>
+                        <div class="decision-card-actions">
+                            <button type="submit" class="btn btn-primary">Send to @creator.FullName</button>
+                            <button type="button" class="btn btn-ghost" data-revision-toggle>Cancel</button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+        }
+        else if (Model.Status == MilestoneStatus.RevisionRequested)
+        {
+            <section class="decision-card">
+                <div class="decision-card-head">
+                    <span class="icon-chip pink"><i class="bi bi-arrow-repeat"></i></span>
+                    <div>
+                        <div class="decision-card-eyebrow">Waiting on creator</div>
+                        <div class="decision-card-title">Revision requested</div>
+                        <p class="decision-card-text">@creator.FullName has been asked to resubmit. You'll be notified as soon as new proof arrives.</p>
+                    </div>
+                </div>
+                @if (!string.IsNullOrEmpty(Model.BrandRevisionReason))
+                {
+                    <div class="proof-quote"><i class="bi bi-chat-quote-fill"></i><span>@Model.BrandRevisionReason</span></div>
+                }
+                <div class="decision-card-actions">
+                    <button type="button" class="btn btn-secondary js-open-chat" data-influencer-id="@creator.Id" data-influencer-name="@creator.FullName" data-hue="@hue"><i class="bi bi-chat-dots" style="margin-right:8px;"></i>Message @creator.FullName</button>
+                </div>
+            </section>
+        }
+        else
+        {
+            <section class="decision-card">
+                <div class="decision-card-head">
+                    <span class="icon-chip soft"><i class="bi bi-hourglass-split"></i></span>
+                    <div>
+                        <div class="decision-card-eyebrow">Step 1 of 5</div>
+                        <div class="decision-card-title">Waiting for proof of post</div>
+                        <p class="decision-card-text">@creator.FullName hasn't submitted proof for this milestone yet@(daysLeft is > 0 ? $" — it's due in {daysLeft} day{(daysLeft == 1 ? "" : "s")}" : daysLeft is <= 0 ? " and the due date has passed" : ""). You'll be notified when it arrives.</p>
+                    </div>
+                </div>
+                <div class="decision-card-actions">
+                    <button type="button" class="btn btn-secondary js-open-chat" data-influencer-id="@creator.Id" data-influencer-name="@creator.FullName" data-hue="@hue"><i class="bi bi-chat-dots" style="margin-right:8px;"></i>Send a reminder</button>
+                </div>
+            </section>
         }
 
-        @if (Model.Status != MilestoneStatus.Pending && !string.IsNullOrEmpty(Model.ProofUrl))
-        {
-            <div class="milestone-block">
-                <div class="milestone-block-label">Submitted Proof</div>
-                <a href="@Model.ProofUrl" target="_blank" rel="noopener" class="proof-link">@Model.ProofUrl</a>
-                @if (!string.IsNullOrEmpty(Model.ProofNotes))
+        @* ---------- Proof of post ---------- *@
+        <section class="ui-card">
+            <div class="ui-card-head">
+                <div>
+                    <div class="ui-card-title">Proof of Post</div>
+                    <p class="ui-card-sub">What @creator.FullName submitted for this milestone.</p>
+                </div>
+                @if (!string.IsNullOrWhiteSpace(proofUrl))
                 {
-                    <p class="milestone-block-text">@Model.ProofNotes</p>
+                    <a href="@proofUrl" target="_blank" rel="noopener" class="ui-card-link">Open original <i class="bi bi-box-arrow-up-right"></i></a>
                 }
             </div>
-        }
+
+            @if (string.IsNullOrWhiteSpace(proofUrl))
+            {
+                <div class="ms-empty-proof">
+                    <span class="icon-chip soft"><i class="bi bi-cloud-arrow-up"></i></span>
+                    <strong>No proof submitted yet</strong>
+                    <span>It will appear here as soon as the creator uploads it.</span>
+                </div>
+            }
+            else
+            {
+                <div class="proof-preview">
+                    @if (proofIsImage)
+                    {
+                        <img src="@proofUrl" alt="Proof of post for @Model.Title" loading="lazy" />
+                    }
+                    else if (proofIsVideo)
+                    {
+                        <video src="@proofUrl" controls preload="metadata"></video>
+                    }
+                    else
+                    {
+                        <div class="proof-preview-link">
+                            <i class="bi bi-link-45deg"></i>
+                            <strong style="color:#142652;">Submitted as a link</strong>
+                            <span>Open it to check the live post.</span>
+                        </div>
+                    }
+                    <div class="proof-preview-bar">
+                        <span><i class="bi bi-cloud-check"></i> Stored securely</span>
+                        <a href="@proofUrl" target="_blank" rel="noopener">View full size <i class="bi bi-arrow-up-right"></i></a>
+                    </div>
+                </div>
+                @if (!string.IsNullOrWhiteSpace(Model.ProofNotes))
+                {
+                    <div class="proof-quote"><i class="bi bi-chat-quote-fill"></i><span>@Model.ProofNotes</span></div>
+                }
+            }
+        </section>
+
+        @* ---------- Brief ---------- *@
+        <section class="ui-card">
+            <div class="ui-card-head">
+                <div>
+                    <div class="ui-card-title">Milestone Brief</div>
+                    <p class="ui-card-sub">The deliverable you agreed with @creator.FullName.</p>
+                </div>
+            </div>
+            <dl class="detail-rows">
+                <div><dt><span class="icon-chip"><i class="bi bi-card-text"></i></span>Description</dt><dd>@(string.IsNullOrWhiteSpace(Model.Description) ? "No description added." : Model.Description)</dd></div>
+                <div><dt><span class="icon-chip"><i class="bi bi-camera-reels"></i></span>Content Type</dt><dd>@(Model.ContentType ?? "Not specified")<small>@(campaign.Platform is null ? "Any platform" : $"Posted on {campaign.Platform}")</small></dd></div>
+                <div><dt><span class="icon-chip"><i class="bi bi-calendar4-week"></i></span>Due Date</dt><dd>@dueText<small>@(daysLeft is null ? "No fixed deadline" : daysLeft > 0 ? $"{daysLeft} day{(daysLeft == 1 ? "" : "s")} left" : daysLeft == 0 ? "Due today" : $"{-daysLeft} day{(daysLeft == -1 ? "" : "s")} overdue")</small></dd></div>
+                <div><dt><span class="icon-chip"><i class="bi bi-megaphone"></i></span>Campaign</dt><dd><a href="/Campaigns/Detail/@campaign.Id" style="color:#1451ff;font-weight:600;">@campaign.Title</a><small>@(campaign.Niche ?? "General")</small></dd></div>
+            </dl>
+        </section>
 
     </div>
 
-    @if (Model.Status == MilestoneStatus.Paid)
-    {
-        <div class="outcome-banner paid">
-            <span class="outcome-text">
-                Paid &mdash; ৳@Model.Amount.ToString("N0")
-                @if (Model.Payment?.PaidAt is not null)
-                {
-                    <text> on @Model.Payment.PaidAt.Value.ToString("MMM d, yyyy")</text>
-                }
-            </span>
-            <a href="/Payments" class="btn btn-secondary">View in Finance</a>
-        </div>
-    }
-    else if (Model.Payment is { Status: PaymentStatus.Pending })
-    {
-        <div class="outcome-banner revision">
-            <span class="outcome-text">Payment released &mdash; confirm once ৳@Model.Amount.ToString("N0") has cleared via bKash or Nagad.</span>
-            <form method="post" action="/Payments/Confirm/@Model.Payment.Id">
-                @Html.AntiForgeryToken()
-                <button type="submit" class="btn btn-primary">Confirm Payment</button>
-            </form>
-        </div>
-    }
-    else if (bothApproved && Model.Payment is null)
-    {
-        <div class="outcome-banner approved">
-            <span class="outcome-text">Approved by Brand and Admin &mdash; ready to release payment.</span>
-            <form method="post" action="/Payments/Release">
-                @Html.AntiForgeryToken()
-                <input type="hidden" name="milestoneId" value="@Model.Id" />
-                <button type="submit" class="btn btn-primary">Release Payment</button>
-            </form>
-        </div>
-    }
-    else if (awaitingAdmin)
-    {
-        <div class="outcome-banner waiting">
-            <span class="outcome-text">You approved this milestone &mdash; waiting on Admin's final review before payment.</span>
-        </div>
-        <div class="action-panel">
-            <div class="action-title">Changed your mind?</div>
-            <p class="action-sub">You can still send this back to @collaboration.InfluencerProfile.FullName for changes before Admin reviews it.</p>
-            <form method="post" action="/Milestones/RequestRevision/@Model.Id" class="revision-form">
-                @Html.AntiForgeryToken()
-                <input type="hidden" name="id" value="@Model.Id" />
-                <textarea name="reason" class="revision-reason-input" rows="2" placeholder="What needs to change?" required></textarea>
-                <div class="action-buttons">
-                    <button type="submit" class="btn btn-outline-brand">Request Revision</button>
-                </div>
-            </form>
-        </div>
-    }
-    else if (brandTurnToReview)
-    {
-        <div class="action-panel">
-            <div class="action-title">Review submission</div>
-            <p class="action-sub">
-                @if (Model.Status == MilestoneStatus.Approved)
-                {
-                    <text>Admin already approved this milestone &mdash; check the proof above, then add your own approval or request a revision.</text>
-                }
-                else
-                {
-                    <text>Check the proof above, then approve it or request a revision.</text>
-                }
-            </p>
-            <div class="action-buttons">
-                <form method="post" action="/Milestones/Approve/@Model.Id">
-                    @Html.AntiForgeryToken()
-                    <button type="submit" class="btn btn-primary">Approve</button>
-                </form>
+    <aside class="page-rail">
+
+        <section class="ui-card">
+            <div class="ui-card-head" style="margin-bottom:6px;">
+                <div class="ui-card-title" style="font-size:17px;">Payment Summary</div>
+                <span class="ui-badge @(isPaid ? "is-success" : "is-violet")">@(isPaid ? "Paid" : settled ? "Settled" : "Estimate")</span>
             </div>
-            <form method="post" action="/Milestones/RequestRevision/@Model.Id" class="revision-form">
-                @Html.AntiForgeryToken()
-                <input type="hidden" name="id" value="@Model.Id" />
-                <textarea name="reason" class="revision-reason-input" rows="2" placeholder="What needs to change?" required></textarea>
-                <div class="action-buttons">
-                    <button type="submit" class="btn btn-outline-brand">Request Revision</button>
+            <dl class="fact-list">
+                <div><dt>Milestone amount</dt><dd>৳@Model.Amount.ToString("N0")</dd></div>
+                <div><dt>Platform fee (@feePercent.ToString("0.#")%)</dt><dd>&minus; ৳@feeAmount.ToString("N0")</dd></div>
+                <div class="ms-total"><dt>Creator receives</dt><dd>৳@netAmount.ToString("N0")</dd></div>
+                <div><dt>Method</dt><dd>bKash Checkout</dd></div>
+            </dl>
+            <p class="ms-fee-note"><i class="bi bi-info-circle"></i> You always pay the agreed amount; the fee is deducted before the creator is credited.</p>
+        </section>
+
+        <section class="ui-card">
+            <div class="person-card-top">
+                <span class="person-avatar" style="background: @avatarGradient;">@FollowerFormat.InitialsOf(creator.FullName)</span>
+                <div style="min-width:0;">
+                    <div class="person-name">@creator.FullName @if (creator.Verified) { <i class="bi bi-patch-check-fill" title="Verified"></i> }</div>
+                    <div class="person-handle">@@@creator.PlatformUsername &middot; @creator.PrimaryPlatform</div>
                 </div>
-            </form>
-        </div>
-    }
-    else if (Model.Status == MilestoneStatus.RevisionRequested)
-    {
-        <div class="outcome-banner revision">
-            <span class="outcome-text">
-                You requested a revision@(string.IsNullOrEmpty(Model.BrandRevisionReason) ? "." : $": {Model.BrandRevisionReason}")
-                Waiting for @collaboration.InfluencerProfile.FullName to resubmit.
-            </span>
-        </div>
-    }
-    else if (Model.Status == MilestoneStatus.Pending)
-    {
-        <div class="action-panel">
-            <div class="action-title">Awaiting submission</div>
-            <p class="action-sub">@collaboration.InfluencerProfile.FullName hasn't submitted their proof of post yet. You'll be able to review it here once they do.</p>
-        </div>
-    }
+            </div>
+            <div class="person-stats">
+                <div><strong>@FollowerFormat.Format(creator.Followers)</strong><span>Followers</span></div>
+                <div><strong>@creator.EngagementRate.ToString("0.#")%</strong><span>Engagement</span></div>
+                <div><strong>@(string.IsNullOrWhiteSpace(creator.ContentNiche) ? "—" : creator.ContentNiche)</strong><span>Niche</span></div>
+            </div>
+            <div class="person-actions">
+                <a href="/Influencers/Profile/@creator.Id"><i class="bi bi-person"></i> Profile</a>
+                <button type="button" class="js-open-chat" data-influencer-id="@creator.Id" data-influencer-name="@creator.FullName" data-hue="@hue"><i class="bi bi-chat-dots"></i> Message</button>
+            </div>
+        </section>
+
+        <section class="info-card">
+            <div class="info-card-head">
+                <span class="icon-chip soft"><i class="bi bi-signpost-2"></i></span>
+                <div class="info-card-title">What's Next?</div>
+            </div>
+            <ol class="next-steps">
+                @for (var i = 0; i < steps.Length; i++)
+                {
+                    var step = steps[i];
+                    <li class="@(step.Done ? "is-done" : i == currentIndex ? "is-current" : "")"><h4>@step.Title</h4><p>@step.Sub</p></li>
+                }
+            </ol>
+        </section>
+
+        <section class="ui-card">
+            <div class="ui-card-head" style="margin-bottom:2px;">
+                <div class="ui-card-title" style="font-size:17px;">Frequently Asked Questions</div>
+            </div>
+            <div class="faq-list">
+                @foreach (var faq in faqs)
+                {
+                    <details>
+                        <summary>@faq.Item1<i class="bi bi-chevron-right"></i></summary>
+                        <p>@faq.Item2</p>
+                    </details>
+                }
+            </div>
+        </section>
+
+        <section class="help-card">
+            <h3>Need Help?</h3>
+            <p>Unsure about a submission or a payment? Our support team can step in.</p>
+            <a href="/Home/Contact">Contact Support <i class="bi bi-arrow-right"></i></a>
+            <svg viewBox="0 0 400 170" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="ms-help-wave" x1="0" y1="1" x2="1" y2="0"><stop stop-color="#0955ca" stop-opacity="0"/><stop offset=".65" stop-color="#168cff" stop-opacity=".5"/><stop offset="1" stop-color="#783dff" stop-opacity=".15"/></linearGradient></defs><path d="M-20 160 C100 50 140 220 260 105 S350 85 420 20 L420 190 H-20Z" fill="url(#ms-help-wave)"/><path d="M-20 164 C110 90 140 230 270 120 S360 70 420 40" fill="none" stroke="#2799ff" stroke-opacity=".4"/></svg>
+        </section>
+
+    </aside>
 
 </div>
+
+<script>
+    document.querySelectorAll('[data-confirm]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            brandoraConfirm(btn, { title: btn.dataset.confirmTitle, text: btn.dataset.confirmText, confirmLabel: btn.dataset.confirmLabel });
+        });
+    });
+    document.querySelectorAll('[data-revision-toggle]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var panel = btn.closest('.decision-card').querySelector('[data-revision-panel]');
+            if (!panel) { return; }
+            panel.classList.toggle('is-open');
+            if (panel.classList.contains('is-open')) { var t = panel.querySelector('textarea'); if (t) { t.focus(); } }
+        });
+    });
+</script>

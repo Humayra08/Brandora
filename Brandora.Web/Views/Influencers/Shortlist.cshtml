@@ -4,192 +4,116 @@
     ViewData["Title"] = "Shortlist";
     ViewData["ActiveNav"] = "Influencers";
     Layout = "_AppLayout";
+
+    var count = Model.Count;
+    var combinedReach = Model.Sum(c => (long)c.Followers);
+    var avgEngagement = count > 0 ? Model.Average(c => c.EngagementRate) : 0m;
+    var verifiedCount = Model.Count(c => c.Verified);
+    var topEngagement = Model.OrderByDescending(c => c.EngagementRate).FirstOrDefault();
+    var topReach = Model.OrderByDescending(c => c.Followers).FirstOrDefault();
+    var platformCount = Model.Select(c => c.PrimaryPlatform).Where(p => !string.IsNullOrEmpty(p)).Distinct().Count();
+    var nicheCount = Model.Select(c => c.ContentNiche).Where(n => !string.IsNullOrEmpty(n)).Distinct().Count();
+
+    string Reach(long followers) => followers >= 1_000_000
+        ? (followers / 1_000_000d).ToString("0.#") + "M"
+        : followers >= 1_000 ? (followers / 1_000d).ToString("0.#") + "K" : followers.ToString();
+
+    var faqs = new[]
+    {
+        ("Do creators know they're on my shortlist?", "No. Your shortlist is private to your brand account — creators are never notified when you save or remove them."),
+        ("Is there a limit to how many I can save?", "No. Save as many creators as you like and remove them any time; removing someone doesn't affect any application or collaboration you already have with them."),
+        ("How do I invite someone from my shortlist?", "Choose Invite on their row. You'll pick a campaign and set the amount, deliverables and timeline before sending."),
+        ("Where else can I shortlist creators?", "From Find Influencers, any creator profile, and Smart Match — the same list is shared across all of them.")
+    };
 }
 
 @section Styles {
 
-    .page-head {
-        animation: fade-up .4s ease both;
-    }
+    .sl-body { align-items: start; }
 
-    .page-title {
-        font-family: 'Playfair Display', serif;
-        font-weight: 600;
-        font-size: 28px;
-    }
+    .sl-list { display: grid; gap: 10px; }
 
-    .page-sub {
-        margin-top: 6px;
-
-        font-family: 'Inter', sans-serif;
-        font-size: 13.5px;
-        color: #6b7290;
-    }
-
-    .creator-grid {
-        margin-top: 26px;
-
+    .sl-row {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-        gap: 18px;
-    }
-
-    .creator-card {
-        position: relative;
-        overflow: hidden;
-
-        padding: 24px 22px 22px;
-
-        border-radius: 18px;
-        background: #ffffff;
-        border: 1px solid #eaecf5;
-
-        transition: transform .45s cubic-bezier(.22,1,.36,1), box-shadow .4s ease;
-
-        opacity: 0;
-        transform: translateY(26px);
-    }
-
-    .creator-card.is-visible {
-        opacity: 1;
-        transform: translateY(0);
-        transition: opacity .6s ease, transform .6s cubic-bezier(.22,1,.36,1), box-shadow .4s ease;
-    }
-
-    .creator-card::before,
-    .creator-card::after {
-        content: "";
-        position: absolute;
-        inset: 0;
-        z-index: 0;
-        pointer-events: none;
-        opacity: 0;
-        transition: opacity .35s ease;
-    }
-
-    .creator-card::before {
-        background: var(--card-wash);
-    }
-
-    .creator-card::after {
-        border-radius: inherit;
-        padding: 1.5px;
-        background: var(--card-border);
-        -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-        -webkit-mask-composite: xor;
-        mask-composite: exclude;
-    }
-
-    .creator-card:hover {
-        transform: translateY(-7px) scale(1.015);
-        box-shadow: 0 26px 46px rgba(30,34,90,.16);
-    }
-
-    .creator-card:hover::before,
-    .creator-card:hover::after {
-        opacity: 1;
-    }
-
-    .creator-card > * {
-        position: relative;
-        z-index: 1;
-    }
-
-    .creator-card:hover .creator-avatar {
-        transform: scale(1.08) rotate(-3deg);
-    }
-
-    .creator-card-head {
-        display: flex;
-        align-items: flex-start;
-        gap: 14px;
-    }
-
-    .creator-name-row {
-        display: flex;
+        grid-template-columns: auto minmax(0, 1fr) auto;
         align-items: center;
-        gap: 7px;
-
-        font-family: 'DM Sans', sans-serif;
-        font-weight: 700;
-        font-size: 16px;
-        color: #171d3d;
+        gap: 18px;
+        padding: 16px 18px;
+        border-radius: 12px;
+        border: 1px solid #e3edfc;
+        background: #ffffff8c;
+        box-shadow: 0 3px 9px #9bbfe90b;
+        opacity: 0;
+        transform: translateY(18px);
+        transition: opacity .55s ease, transform .55s cubic-bezier(.22,1,.36,1), box-shadow .25s ease, border-color .25s ease;
     }
+    .sl-row.is-visible { opacity: 1; transform: translateY(0); }
+    .sl-row.is-visible:hover { transform: translateY(-2px); border-color: #b9d3ff; box-shadow: 0 12px 26px #5b83c41f; transition-delay: 0s !important; }
 
-    .creator-handle {
-        margin-top: 2px;
+    .sl-avatar { display: grid; place-items: center; flex-shrink: 0; width: 48px; height: 48px; border-radius: 50%; color: #ffffff; font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 700; box-shadow: 0 8px 18px -6px #3a2bb055, inset 0 0 6px #ffffff55; transition: transform .35s cubic-bezier(.22,1,.36,1); }
+    .sl-row:hover .sl-avatar { transform: scale(1.06); }
 
-        font-family: 'Inter', sans-serif;
-        font-size: 12px;
-        color: #8189a8;
+    .sl-name { display: flex; align-items: center; gap: 6px; font: 600 16.5px/1.3 'Playfair Display', Georgia, serif; letter-spacing: -.2px; color: #0b084e; }
+    .sl-name a { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: inherit; transition: color .2s ease; }
+    .sl-name a:hover { color: #1451ff; }
+    .sl-name i { flex-shrink: 0; font-size: 13px; color: #1d7bff; }
+    .sl-meta { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 4px; font-family: 'Inter', sans-serif; font-size: 11.5px; color: #5877ac; }
+    .sl-meta span { display: inline-flex; align-items: center; gap: 5px; }
+    .sl-meta i { color: #7d93c8; }
+
+    .sl-stats { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+    .sl-stats > div { display: inline-flex; align-items: baseline; gap: 6px; padding: 5px 11px; border-radius: 8px; border: 1px solid #e1ecfa; background: #fafdff99; }
+    .sl-stats strong { font-family: 'DM Sans', sans-serif; font-size: 14.5px; font-weight: 700; color: #101d48; }
+    .sl-stats span { font-family: 'Inter', sans-serif; font-size: 10.5px; color: #5877ac; }
+
+    .sl-actions { display: flex; align-items: center; gap: 8px; }
+    .sl-actions form { margin: 0; }
+    .sl-actions .btn { height: 36px; padding: 0 14px; font-size: 12px; }
+    .sl-actions .btn i { margin-right: 6px; }
+    .sl-icon-btn { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 9px; border: 1px solid #d7e8ff; background: #ffffffb8; color: #1451ff; font-size: 15px; cursor: pointer; transition: .2s ease; }
+    .sl-icon-btn:hover { border-color: #1451ff; transform: translateY(-1px); }
+    .sl-icon-btn.is-remove { color: #6680ad; }
+    .sl-icon-btn.is-remove:hover { border-color: #c22540; color: #c22540; }
+
+    .sl-empty { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 40px 20px; text-align: center; }
+    .sl-empty strong { font: 600 19px/1.3 'Playfair Display', Georgia, serif; color: #0b084e; }
+    .sl-empty p { max-width: 420px; margin: 0; font-family: 'Inter', sans-serif; font-size: 12.5px; line-height: 1.6; color: #5877ac; }
+    .sl-empty .btn { margin-top: 8px; }
+
+    .sl-leader { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid #e3edfc; }
+    .sl-leader:first-of-type { border-top: 0; }
+    .sl-leader div { min-width: 0; flex: 1; }
+    .sl-leader small { display: block; font-family: 'Inter', sans-serif; font-size: 11px; color: #5877ac; }
+    .sl-leader strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: 'DM Sans', sans-serif; font-size: 13px; color: #101d48; }
+    .sl-leader b { font-family: 'DM Sans', sans-serif; font-size: 13px; color: #3735ff; }
+
+    @@media(max-width: 900px) {
+        .sl-row { grid-template-columns: auto minmax(0, 1fr); }
+        .sl-actions { grid-column: 1 / -1; }
+        .sl-actions { flex-wrap: wrap; }
     }
-
-    .creator-tags {
-        margin-top: 12px;
-
-        display: flex;
-        flex-wrap: wrap;
-        gap: 6px;
-    }
-
-    .creator-figures {
-        margin-top: 18px;
-        padding-top: 16px;
-        border-top: 1px solid #f0f1f7;
-
-        display: flex;
-        justify-content: space-between;
-    }
-
-    .figure-value {
-        font-family: 'DM Sans', sans-serif;
-        font-weight: 800;
-        font-size: 18px;
-        color: #171d3d;
-    }
-
-    .figure-label {
-        margin-top: 2px;
-
-        font-family: 'Inter', sans-serif;
-        font-size: 10px;
-        font-weight: 600;
-        letter-spacing: .3px;
-        text-transform: uppercase;
-        color: #9096b3;
-    }
-
-    .creator-actions {
-        margin-top: 18px;
-
-        display: flex;
-        gap: 8px;
-    }
-
-    .creator-actions .btn {
-        flex: 1;
-        height: 40px;
-        font-size: 12.5px;
-    }
-
-    .creator-actions .shortlist-btn {
-        flex: 1;
-        height: 40px;
-    }
+    @@media (prefers-reduced-motion: reduce) { .sl-row, .sl-row.is-visible { opacity: 1; transform: none; transition: none; } }
 
 }
 
-<a href="/Dashboard" class="back-to-dashboard">
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    Back
-</a>
+<nav class="crumb-trail" aria-label="Breadcrumb">
+    <a href="/Dashboard">Dashboard</a><i class="bi bi-chevron-right"></i>
+    <a href="/Influencers">Find Influencers</a><i class="bi bi-chevron-right"></i>
+    <strong>Shortlist</strong>
+</nav>
 
 <section class="page-hero">
     @await Html.PartialAsync("_HeroWaves")
     <div class="page-hero-intro">
         <p class="page-hero-eyebrow">Shortlist</p>
-        <h1 class="page-hero-title">Your <span>Shortlist</span></h1>
-        <p class="page-hero-sub">@Model.Count creator@(Model.Count == 1 ? "" : "s") saved for comparison.</p>
+        <h1 class="page-hero-title">Your Creator <span>Shortlist</span></h1>
+        <p class="page-hero-sub">@count creator@(count == 1 ? "" : "s") saved for comparison. Weigh up reach and engagement, then invite the best fit to a campaign.</p>
+        <dl class="page-hero-stats">
+            <div><dd>@count</dd><dt>Saved Creators</dt></div>
+            <div><dd>@Reach(combinedReach)</dd><dt>Combined Reach</dt></div>
+            <div><dd>@avgEngagement.ToString("0.0")%</dd><dt>Avg Engagement</dt></div>
+            <div><dd>@verifiedCount</dd><dt>Verified</dt></div>
+        </dl>
     </div>
 
     <div class="page-hero-art" aria-hidden="true">
@@ -203,79 +127,160 @@
     <div class="page-hero-motto">Your Creators.<br />Your Choice.<span></span></div>
 </section>
 
-@if (Model.Count > 0)
-{
-    <div class="creator-grid">
-        @foreach (var creator in Model)
-        {
-            var hue = (creator.Id * 47) % 360;
-            var hue2 = (hue + 50) % 360;
-            <div class="creator-card" data-reveal
-                 style="--card-wash: radial-gradient(circle at 22% -10%, hsla(@(hue), 90%, 65%, .16), transparent 55%), radial-gradient(circle at 100% 110%, hsla(@(hue2), 90%, 60%, .12), transparent 55%); --card-border: linear-gradient(135deg, hsl(@(hue)deg 85% 62%), hsl(@(hue2)deg 85% 55%));">
+<div class="page-grid sl-body">
 
-                <div class="creator-card-head">
-                    <div class="creator-avatar" style="background: linear-gradient(135deg, hsl(@(hue)deg 75% 58%), hsl(@((hue + 45) % 360)deg 75% 48%));">
-                        @FollowerFormat.InitialsOf(creator.FullName)
-                    </div>
-                    <div>
-                        <div class="creator-name-row">
-                            @creator.FullName
-                            @if (creator.Verified)
-                            {
-                                <span class="verified-badge">Verified</span>
-                            }
-                        </div>
-                        <div class="creator-handle">@creator.PrimaryPlatform &middot; @creator.PlatformUsername</div>
-                    </div>
+    <div class="page-main">
+
+        <section class="ui-card">
+            <div class="ui-card-head">
+                <div>
+                    <div class="ui-card-title">Saved Creators</div>
+                    <p class="ui-card-sub">Most recently saved first.</p>
                 </div>
+                <a href="/Influencers" class="ui-card-link">Find more creators <i class="bi bi-arrow-right"></i></a>
+            </div>
 
-                <div class="creator-tags">
-                    <span class="tag">@creator.ContentNiche</span>
-                    @if (!string.IsNullOrEmpty(creator.Location))
+            @if (count > 0)
+            {
+                <div class="sl-list">
+                    @foreach (var creator in Model)
                     {
-                        <span class="tag">@creator.Location</span>
+                        var hue = (creator.Id * 47) % 360;
+                        <article class="sl-row" data-reveal>
+                            <span class="sl-avatar" style="background: linear-gradient(135deg, hsl(@(hue)deg 75% 58%), hsl(@((hue + 45) % 360)deg 75% 48%));">@FollowerFormat.InitialsOf(creator.FullName)</span>
+
+                            <div style="min-width:0;">
+                                <div class="sl-name">
+                                    <a href="/Influencers/Profile/@creator.Id">@creator.FullName</a>
+                                    @if (creator.Verified)
+                                    {
+                                        <i class="bi bi-patch-check-fill" title="Verified"></i>
+                                    }
+                                </div>
+                                <div class="sl-meta">
+                                    <span><i class="bi bi-broadcast"></i> @creator.PrimaryPlatform &middot; @creator.PlatformUsername</span>
+                                    @if (!string.IsNullOrWhiteSpace(creator.ContentNiche))
+                                    {
+                                        <span><i class="bi bi-tags"></i> @creator.ContentNiche</span>
+                                    }
+                                    @if (!string.IsNullOrEmpty(creator.Location))
+                                    {
+                                        <span><i class="bi bi-geo-alt"></i> @creator.Location</span>
+                                    }
+                                </div>
+                                <div class="sl-stats">
+                                    <div><strong>@FollowerFormat.Format(creator.Followers)</strong><span>Followers</span></div>
+                                    <div><strong>@creator.EngagementRate.ToString("0.0")%</strong><span>Engagement</span></div>
+                                </div>
+                            </div>
+
+                            <div class="sl-actions">
+                                <a href="/Proposals/Invite?influencerId=@creator.Id" class="btn btn-primary"><i class="bi bi-send"></i>Invite</a>
+                                <a href="/Influencers/Profile/@creator.Id" class="btn btn-secondary">View Profile</a>
+                                <button type="button" class="sl-icon-btn js-open-chat" title="Message @creator.FullName" aria-label="Message @creator.FullName"
+                                        data-influencer-id="@creator.Id"
+                                        data-influencer-name="@creator.FullName"
+                                        data-hue="@hue"><i class="bi bi-chat-dots"></i></button>
+                                <form method="post" action="/Influencers/ToggleShortlist">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="influencerId" value="@creator.Id" />
+                                    <input type="hidden" name="returnUrl" value="/Influencers/Shortlist" />
+                                    <button type="submit" class="sl-icon-btn is-remove" title="Remove from shortlist" aria-label="Remove @creator.FullName from shortlist"><i class="bi bi-bookmark-x"></i></button>
+                                </form>
+                            </div>
+                        </article>
                     }
                 </div>
-
-                <div class="creator-figures">
-                    <div>
-                        <div class="figure-value">@FollowerFormat.Format(creator.Followers)</div>
-                        <div class="figure-label">Followers</div>
-                    </div>
-                    <div>
-                        <div class="figure-value">@creator.EngagementRate.ToString("0.0")%</div>
-                        <div class="figure-label">Engagement</div>
-                    </div>
+            }
+            else
+            {
+                <div class="sl-empty">
+                    <span class="icon-chip lg soft"><i class="bi bi-bookmark-star"></i></span>
+                    <strong>Your shortlist is empty</strong>
+                    <p>Save creators you're interested in from Find Influencers, a creator's profile or Smart Match, and compare them here.</p>
+                    <a href="/Influencers" class="btn btn-primary">Discover Creators</a>
                 </div>
+            }
+        </section>
 
-                <div class="creator-actions">
-                    <a href="/Influencers/Profile/@creator.Id" class="btn btn-secondary">View Profile</a>
+    </div>
 
-                    <form method="post" action="/Influencers/ToggleShortlist">
-                        @Html.AntiForgeryToken()
-                        <input type="hidden" name="influencerId" value="@creator.Id" />
-                        <input type="hidden" name="returnUrl" value="/Influencers/Shortlist" />
-                        <button type="submit" class="shortlist-btn is-saved">Remove</button>
-                    </form>
+    <aside class="page-rail">
+
+        @if (count > 0)
+        {
+            <section class="ui-card">
+                <div class="ui-card-head" style="margin-bottom:6px;">
+                    <div class="ui-card-title" style="font-size:17px;">Shortlist Summary</div>
+                    <span class="icon-chip sm violet"><i class="bi bi-bar-chart"></i></span>
                 </div>
-
-            </div>
+                @if (topEngagement is not null)
+                {
+                    <div class="sl-leader">
+                        <span class="icon-chip sm blue"><i class="bi bi-activity"></i></span>
+                        <div><small>Highest engagement</small><strong>@topEngagement.FullName</strong></div>
+                        <b>@topEngagement.EngagementRate.ToString("0.0")%</b>
+                    </div>
+                }
+                @if (topReach is not null)
+                {
+                    <div class="sl-leader">
+                        <span class="icon-chip sm violet"><i class="bi bi-people"></i></span>
+                        <div><small>Largest audience</small><strong>@topReach.FullName</strong></div>
+                        <b>@FollowerFormat.Format(topReach.Followers)</b>
+                    </div>
+                }
+                <dl class="fact-list" style="margin-top:6px;">
+                    <div><dt>Platforms covered</dt><dd>@platformCount</dd></div>
+                    <div><dt>Niches covered</dt><dd>@nicheCount</dd></div>
+                    <div><dt>Verified creators</dt><dd>@verifiedCount of @count</dd></div>
+                </dl>
+            </section>
         }
-    </div>
-}
-else
-{
-    <div class="panel empty-block" style="margin-top: 24px;">
-        <div class="empty-title">Your shortlist is empty</div>
-        <p class="empty-text">Save creators you're interested in from Discovery to compare them here.</p>
-        <a href="/Influencers" class="btn btn-primary" style="margin-top: 16px;">Discover Creators</a>
-    </div>
-}
+
+        <section class="info-card">
+            <div class="info-card-head">
+                <span class="icon-chip soft"><i class="bi bi-signpost-2"></i></span>
+                <div class="info-card-title">What's Next?</div>
+            </div>
+            <ol class="next-steps">
+                <li class="@(count > 0 ? "is-done" : "is-current")"><h4>Save creators</h4><p>Shortlist anyone who looks right for your brand.</p></li>
+                <li class="@(count > 0 ? "is-current" : "")"><h4>Compare &amp; message</h4><p>Check reach and engagement, and chat to confirm availability.</p></li>
+                <li><h4>Send an invite</h4><p>Offer an amount, deliverables and timeline for a campaign.</p></li>
+                <li><h4>Collaborate &amp; pay</h4><p>Milestones are paid via bKash after you and Brandora approve the proof.</p></li>
+            </ol>
+        </section>
+
+        <section class="ui-card">
+            <div class="ui-card-head" style="margin-bottom:2px;">
+                <div class="ui-card-title" style="font-size:17px;">Frequently Asked Questions</div>
+            </div>
+            <div class="faq-list">
+                @foreach (var faq in faqs)
+                {
+                    <details>
+                        <summary>@faq.Item1<i class="bi bi-chevron-right"></i></summary>
+                        <p>@faq.Item2</p>
+                    </details>
+                }
+            </div>
+        </section>
+
+        <section class="help-card">
+            <h3>Need Help?</h3>
+            <p>Can't decide between creators? Our team is happy to help you compare.</p>
+            <a href="/Home/Contact">Contact Support <i class="bi bi-arrow-right"></i></a>
+            <svg viewBox="0 0 400 170" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="sl-help-wave" x1="0" y1="1" x2="1" y2="0"><stop stop-color="#0955ca" stop-opacity="0"/><stop offset=".65" stop-color="#168cff" stop-opacity=".5"/><stop offset="1" stop-color="#783dff" stop-opacity=".15"/></linearGradient></defs><path d="M-20 160 C100 50 140 220 260 105 S350 85 420 20 L420 190 H-20Z" fill="url(#sl-help-wave)"/><path d="M-20 164 C110 90 140 230 270 120 S360 70 420 40" fill="none" stroke="#2799ff" stroke-opacity=".4"/></svg>
+        </section>
+
+    </aside>
+
+</div>
 
 @section Scripts {
     <script>
         (function () {
-            var cards = document.querySelectorAll('.creator-card[data-reveal]');
+            var cards = document.querySelectorAll('.sl-row[data-reveal]');
             if (!cards.length) return;
 
             if (!('IntersectionObserver' in window)) {

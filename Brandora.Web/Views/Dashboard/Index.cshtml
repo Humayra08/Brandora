@@ -6,31 +6,76 @@
     ViewData["ActiveNav"] = "Dashboard";
     Layout = "_AppLayout";
 
+    var today = DateTime.UtcNow.Date;
     var maxSpend = Model.SpendByMonth.Count > 0 ? Model.SpendByMonth.Max(p => p.Amount) : 0m;
     var budgetPercent = Model.TotalBudget > 0 ? (int)Math.Round(Math.Min(100, (double)(Model.TotalSpend / Model.TotalBudget * 100))) : 0;
+    var remainingBudget = Math.Max(0m, Model.TotalBudget - Model.TotalSpend);
+    var attentionCount = Model.AttentionItems.Count;
+    var nextUp = Model.UpcomingItems.FirstOrDefault();
+    var liveCampaigns = Model.PublishedCount + Model.ActiveCount;
+    var heroSub = attentionCount > 0
+        ? $"{attentionCount} {(attentionCount == 1 ? "item needs" : "items need")} a decision from you. Review proposals, approve creator proof and release payments to keep every collaboration moving."
+        : Model.HasAnyCampaigns
+            ? "You're all caught up. Check on the campaigns already running, discover new creators or publish your next brief."
+            : "Launch your first campaign, discover the right creators and manage every collaboration, milestone and payment from one place.";
+
+    string Plural(int n, string word) => n == 1 ? $"{n} {word}" : $"{n} {word}s";
+    string Money(decimal value) => "৳" + value.ToString("N0");
+
+    // Soft icon chip + small badge per item kind (attention rows and "Next Up" dates).
+    // Colour lives only in the chip and the badge; the row surface stays white glass.
+    (string Icon, string Chip, string Badge, string Label) KindStyle(string kind) => kind switch
+    {
+        "Proposal" => ("bi-envelope-paper", "violet", "is-violet", "Proposal"),
+        "Milestone" => ("bi-flag", "blue", "is-info", "Proof review"),
+        "Payment" => ("bi-wallet2", "cyan", "is-pending", "Payment due"),
+        "Milestone due" => ("bi-alarm", "blue", "is-info", "Milestone due"),
+        "Campaign deadline" => ("bi-alarm", "amber", "is-pending", "Campaign deadline"),
+        _ => ("bi-bell", "soft", "is-neutral", kind)
+    };
+
+    (string Icon, string Chip, string Badge) StatusStyle(CampaignStatus status) => status switch
+    {
+        CampaignStatus.Draft => ("bi-pencil-square", "soft", "is-neutral"),
+        CampaignStatus.Published => ("bi-globe2", "blue", "is-info"),
+        CampaignStatus.Active => ("bi-rocket-takeoff", "violet", "is-success"),
+        CampaignStatus.Completed => ("bi-check2-circle", "cyan", "is-violet"),
+        _ => ("bi-x-circle", "pink", "is-danger")
+    };
+
+    string DeadlineNote(DateTime? deadline)
+    {
+        if (!deadline.HasValue) return "Open-ended";
+        var days = (deadline.Value.Date - today).Days;
+        return days < 0 ? "Past deadline" : days == 0 ? "Due today" : days == 1 ? "Tomorrow" : $"In {days} days";
+    }
+
+    // "How campaigns work" timeline — each step is marked from the brand's real data.
+    var hasPublished = Model.PublishedCount + Model.ActiveCount + Model.CompletedCount > 0;
+    var hasCollaboration = Model.ActiveCollaborationCount > 0 || Model.CompletedCount > 0;
+    var hasPaid = Model.CompletedPaymentsAmount > 0;
+    var journey = new List<(string Title, string Text, bool Done)>
+    {
+        ("Create your campaign", "Set the brief, budget, platform, niche and milestone plan in the campaign wizard.", Model.HasAnyCampaigns),
+        ("Publish & find creators", "Publishing opens the campaign to creator applications. Invite creators or use Smart Match.", hasPublished),
+        ("Confirm a proposal", "Accepting a creator's proposal starts a collaboration with its milestones.", hasCollaboration),
+        ("Review proof & pay", "Approve each milestone's proof of post, then release payment through bKash.", hasPaid)
+    };
+    var currentStep = journey.FindIndex(s => !s.Done);
 }
 
 @section Styles {
 
     /* =========================================================
-       HERO — actions row only; the hero card itself (background,
-       heading, glass-card visual, motto) is the shared .page-hero
-       component in _AppLayout.cshtml, matching the Influencer side.
+       HERO — the card itself is the shared .page-hero component
+       (_AppLayout). Only the action buttons are page-specific.
     ========================================================= */
 
-    .hero-actions {
-        margin-top: 20px;
-        display: flex;
-        flex-wrap: wrap;
-        gap: 11px;
-    }
+    .dash-hero .page-hero-intro { max-width: 54%; }
+    .dash-hero .page-hero-sub { max-width: 520px; }
+    .dash-hero .page-hero-stats { margin-top: 16px; }
 
-    .hero-cta-caption {
-        margin-top: 10px;
-        font-family: 'Inter', sans-serif;
-        font-size: 11.5px;
-        color: #9096b3;
-    }
+    .dash-hero .hero-actions { margin-top: 18px; }
 
     .hero-cta,
     .hero-cta-ghost {
@@ -38,93 +83,74 @@
         align-items: center;
         justify-content: center;
         gap: 8px;
-        height: 44px;
-        padding: 0 22px;
-        border-radius: 11px;
-        font-family: 'Inter', sans-serif;
+        height: 42px;
+        padding: 0 20px;
+        border-radius: 10px;
+        font-family: 'DM Sans', sans-serif;
         font-size: 13px;
-        font-weight: 750;
+        font-weight: 700;
         transition: transform .28s cubic-bezier(.22,1,.36,1), box-shadow .28s ease, background-position .35s ease, background .25s ease, border-color .25s ease;
     }
 
     .hero-cta {
         border: none;
-        background: linear-gradient(105deg, #a326ff, #6745ff 48%, #179eff);
+        background: linear-gradient(105deg, #6425ff, #004dff 55%, #00a8f0);
         background-size: 180% 180%;
         color: #ffffff;
-        box-shadow: 0 10px 25px rgba(131,48,255,.28);
+        box-shadow: 0 10px 24px -8px #3b4dff80;
     }
 
-    .hero-cta::after {
-        content: "→";
-        font-size: 15px;
-        transition: transform .25s ease;
-    }
+    .hero-cta i { transition: transform .25s ease; }
 
     .hero-cta:hover {
-        transform: translateY(-3px);
+        transform: translateY(-2px);
         background-position: 100% 50%;
-        box-shadow: 0 16px 34px rgba(131,48,255,.42);
+        box-shadow: 0 14px 30px -8px #3b4dffa0;
+        color: #ffffff;
     }
 
-    .hero-cta:hover::after {
-        transform: translateX(4px);
-    }
+    .hero-cta:hover i { transform: translateX(3px); }
 
     .hero-cta-ghost {
-        border: 1.5px solid #a9c9ff;
-        background: #ffffff;
-        color: #2b467d;
+        border: 1px solid #b9d3ff;
+        background: #ffffffc4;
+        color: #1b3170;
     }
 
-    .hero-cta-ghost::before {
-        content: "✦";
-        color: #7224ff;
-        transition: transform .3s ease;
-    }
+    .hero-cta-ghost i { color: #5b4dff; }
 
     .hero-cta-ghost:hover {
-        transform: translateY(-3px);
-        background: #f3f8ff;
-        border-color: #7224ff;
-        color: #171d3d;
-        box-shadow: 0 12px 30px rgba(30,34,90,.12);
+        transform: translateY(-2px);
+        background: #ffffff;
+        border-color: #8f7bff;
+        color: #101d48;
+        box-shadow: 0 12px 26px -10px #3b5bdb55;
     }
 
-    .hero-cta-ghost:hover::before {
-        transform: rotate(90deg) scale(1.15);
+    @@media(max-width: 1100px) {
+        .dash-hero .page-hero-intro { max-width: 62%; }
     }
 
-    /* Social-media / brand partnership visual */
+    @@media(max-width: 760px) {
+        .dash-hero .page-hero-intro { max-width: 100%; }
+        .dash-hero .page-hero-stats { flex-wrap: wrap; gap: 14px; }
+        .dash-hero .page-hero-stats > div + div { border-left: 0; padding-left: 0; }
+    }
 
     @@media(max-width: 560px) {
-        .hero-actions {
-            flex-direction: column;
-            align-items: stretch;
-        }
-
-        .hero-cta,
-        .hero-cta-ghost {
-            width: 100%;
-        }
+        .dash-hero .hero-actions { flex-direction: column; align-items: stretch; }
     }
 
-    /* =========================================================
-       METRIC BAND — varied, editorial, real drill-down links
-    ========================================================= */
-
-    /* Stat cards — shared .metric-* component, see _AppLayout.cshtml. */
-
 
     /* =========================================================
-       SECTION SCAFFOLDING
+       LAYOUT & REVEAL
     ========================================================= */
+
+    .dash-grid { margin-top: 22px; }
 
     .dash-section {
-        margin-top: 34px;
-
         opacity: 0;
-        transform: translateY(22px);
+        transform: translateY(18px);
         transition: opacity .6s ease, transform .6s cubic-bezier(.22,1,.36,1);
     }
 
@@ -133,687 +159,345 @@
         transform: translateY(0);
     }
 
-    .dash-section-head {
-        display: flex;
-        align-items: flex-end;
-        justify-content: space-between;
-        gap: 16px;
-
-        margin-bottom: 18px;
-    }
-
-    .dash-section-title {
-        font-family: 'Playfair Display', serif;
-        font-weight: 600;
-        font-size: 21px;
-        color: #171d3d;
-    }
-
-    .dash-section-sub {
-        margin-top: 4px;
-
-        font-family: 'Inter', sans-serif;
-        font-size: 12.5px;
-        color: #8189a8;
-    }
-
-    .dash-section-link {
-        flex-shrink: 0;
-
-        font-family: 'Inter', sans-serif;
-        font-size: 12.5px;
+    .dash-count {
+        display: inline-grid;
+        place-items: center;
+        min-width: 22px;
+        height: 22px;
+        margin-left: 8px;
+        padding: 0 7px;
+        border-radius: 20px;
+        vertical-align: 3px;
+        background: linear-gradient(110deg, #6425ff, #004dff 60%, #00a8f0);
+        font-family: 'DM Sans', sans-serif;
+        font-size: 11px;
         font-weight: 700;
-        color: #7a1fd6;
-
-        transition: color .2s ease;
+        color: #ffffff;
     }
 
-    .dash-section-link:hover {
-        color: #a326ff;
-    }
-
-
-    /* =========================================================
-       CAMPAIGN WORKSPACE — the heart of the dashboard
-    ========================================================= */
-
-    .campaign-workspace {
+    .dash-empty {
         display: flex;
         flex-direction: column;
-        gap: 14px;
-    }
-
-    .campaign-row-card {
-        position: relative;
-        overflow: hidden;
-
-        padding: 24px 26px;
-
-        border-radius: 18px;
-        background: #ffffff;
-        border: 1px solid #eaecf5;
-
-        display: grid;
-        grid-template-columns: 1.6fr .9fr 1fr 1.1fr .7fr;
         align-items: center;
-        gap: 22px;
-
-        transition: transform .3s cubic-bezier(.22,1,.36,1), box-shadow .3s ease, border-color .3s ease;
+        gap: 8px;
+        padding: 26px 20px;
+        border-radius: 11px;
+        border: 1px dashed #c9dcf8;
+        background: #f3f8ffaa;
+        text-align: center;
     }
 
-    .campaign-row-card::before {
-        content: "";
-        position: absolute;
-        left: 0;
-        top: 0;
-        bottom: 0;
-        width: 4px;
-
-        background: var(--campaign-accent, linear-gradient(180deg, #a326ff, #236eff));
-    }
-
-    a.campaign-row-card:hover {
-        transform: translateY(-3px) translateX(2px);
-        box-shadow: 0 20px 40px rgba(30,34,90,.1);
-        border-color: transparent;
-    }
-
-    .campaign-row-title {
+    .dash-empty strong {
+        margin-top: 4px;
         font-family: 'DM Sans', sans-serif;
+        font-size: 14px;
         font-weight: 700;
-        font-size: 16px;
-        color: #171d3d;
+        color: #101d48;
     }
 
-    .campaign-row-meta {
-        margin-top: 5px;
-
+    .dash-empty p {
+        max-width: 380px;
+        margin: 0;
         font-family: 'Inter', sans-serif;
         font-size: 12px;
-        color: #8189a8;
+        line-height: 1.6;
+        color: #59699e;
     }
 
-    .campaign-row-creators {
-        margin-top: 8px;
+    .dash-empty .btn { margin-top: 8px; }
 
-        font-family: 'Inter', sans-serif;
-        font-size: 11.5px;
-        font-weight: 600;
-        color: #7a1fd6;
-    }
-
-    .campaign-row-budget-value {
-        font-family: 'DM Sans', sans-serif;
-        font-weight: 800;
-        font-size: 17px;
-        color: #171d3d;
-    }
-
-    .campaign-row-budget-label {
-        margin-top: 2px;
-
-        font-family: 'Inter', sans-serif;
-        font-size: 10.5px;
-        font-weight: 600;
-        letter-spacing: .3px;
-        text-transform: uppercase;
-        color: #9096b3;
-    }
-
-    .campaign-row-progress-track {
-        height: 8px;
+    .dash-progress {
+        height: 7px;
         border-radius: 8px;
-        background: #eef0f8;
+        background: #e3edfc;
         overflow: hidden;
     }
 
-    .campaign-row-progress-fill {
+    .dash-progress > span {
+        display: block;
         height: 100%;
-        border-radius: 8px;
         width: 0%;
-        background: var(--campaign-accent, linear-gradient(90deg, #a326ff, #236eff));
+        border-radius: 8px;
+        background: linear-gradient(90deg, #7224ff, #3735ff 55%, #087fff);
         transition: width 1.1s cubic-bezier(.22,1,.36,1);
     }
 
-    .campaign-row-progress-label {
-        margin-top: 6px;
-
-        font-family: 'Inter', sans-serif;
-        font-size: 11px;
-        color: #8189a8;
-    }
-
-    .campaign-row-deadline-value {
-        font-family: 'Inter', sans-serif;
-        font-size: 12.5px;
-        font-weight: 600;
-        color: #3c4363;
-    }
-
-    .campaign-row-deadline-label {
-        margin-top: 2px;
-
-        font-family: 'Inter', sans-serif;
-        font-size: 10.5px;
-        color: #9096b3;
-    }
-
-    @@media(max-width: 940px) {
-        .campaign-row-card { grid-template-columns: 1fr 1fr; row-gap: 14px; }
-    }
-
 
     /* =========================================================
-       SPLIT: ATTENTION + COLLABORATION ACTIVITY
+       WHAT NEEDS YOUR ATTENTION
     ========================================================= */
 
-    .split-grid {
-        display: grid;
-        grid-template-columns: 1.1fr 1fr;
-        gap: 18px;
-        align-items: start;
-    }
-
-    .tinted-panel {
-        padding: 26px 28px;
-        border-radius: 20px;
-
-        background: linear-gradient(160deg, #f8f5ff 0%, #f2f6ff 100%);
-        border: 1px solid #e8e4ff;
-    }
-
     .attention-list {
-        margin-top: 18px;
-
-        display: flex;
-        flex-direction: column;
+        display: grid;
         gap: 10px;
     }
 
     .attention-row {
         display: flex;
         align-items: center;
-        justify-content: space-between;
         gap: 14px;
-
-        padding: 14px 16px;
-
-        border-radius: 13px;
-        background: #ffffff;
-        border: 1px solid #e8e4ff;
-
-        transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+        padding: 13px 16px;
+        border-radius: 11px;
+        border: 1px solid #dde9fc;
+        background: #ffffffc9;
+        transition: transform .25s cubic-bezier(.22,1,.36,1), box-shadow .25s ease, border-color .25s ease;
     }
 
-    a.attention-row:hover {
-        transform: translateX(3px);
-        box-shadow: 0 10px 22px rgba(122,31,214,.1);
-        border-color: #d6bfff;
+    .attention-row:hover {
+        transform: translateY(-2px);
+        border-color: #bcd2ff;
+        box-shadow: 0 12px 26px -12px #3b5bdb40;
+    }
+
+    .attention-body {
+        flex: 1;
+        min-width: 0;
     }
 
     .attention-title {
         font-family: 'DM Sans', sans-serif;
         font-weight: 700;
         font-size: 13.5px;
-        color: #171d3d;
+        color: #101d48;
+        overflow-wrap: anywhere;
     }
 
-    .attention-detail {
-        margin-top: 3px;
-
+    .attention-meta {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px 10px;
+        margin-top: 5px;
         font-family: 'Inter', sans-serif;
         font-size: 11.5px;
-        color: #8189a8;
+        color: #5877ac;
     }
 
     .attention-action {
         flex-shrink: 0;
-
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
         padding: 7px 14px;
-
-        border-radius: 20px;
-        background: linear-gradient(105deg, #a326ff, #236eff, #18a9ff);
-
-        font-family: 'Inter', sans-serif;
-        font-size: 11.5px;
+        border-radius: 8px;
+        border: 1px solid #c9dbff;
+        background: #f3f8ff;
+        font-family: 'DM Sans', sans-serif;
+        font-size: 12px;
         font-weight: 700;
-        color: #ffffff;
+        color: #1451ff;
+        white-space: nowrap;
+        transition: background .2s ease, color .2s ease, border-color .2s ease;
+    }
 
+    .attention-action i { transition: transform .2s ease; }
+
+    .attention-row:hover .attention-action {
+        border-color: transparent;
+        background: linear-gradient(105deg, #6425ff, #004dff 55%, #00a8f0);
+        color: #ffffff;
+    }
+
+    .attention-row:hover .attention-action i { transform: translateX(3px); }
+
+
+    /* =========================================================
+       ACTIVE CAMPAIGNS
+    ========================================================= */
+
+    .campaign-workspace {
+        display: grid;
+        gap: 10px;
+    }
+
+    .campaign-row-card {
+        display: grid;
+        grid-template-columns: minmax(0, 1.7fr) 96px minmax(0, .8fr) minmax(0, 1.1fr) minmax(0, .8fr);
+        align-items: center;
+        gap: 18px;
+        padding: 14px 16px;
+        border-radius: 11px;
+        border: 1px solid #dde9fc;
+        background: #ffffffc9;
+        transition: transform .25s cubic-bezier(.22,1,.36,1), box-shadow .25s ease, border-color .25s ease;
+    }
+
+    .campaign-row-card:hover {
+        transform: translateY(-2px);
+        border-color: #bcd2ff;
+        box-shadow: 0 12px 26px -12px #3b5bdb40;
+    }
+
+    .campaign-row-id {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 0;
+    }
+
+    .campaign-row-title {
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 700;
+        font-size: 14px;
+        color: #101d48;
+        overflow: hidden;
+        text-overflow: ellipsis;
         white-space: nowrap;
     }
 
-    .caught-up {
-        margin-top: 18px;
-        padding: 30px 20px;
-
-        text-align: center;
-    }
-
-    .caught-up-title {
-        font-family: 'Playfair Display', serif;
-        font-weight: 600;
-        font-size: 18px;
-        color: #171d3d;
-    }
-
-    .caught-up-text {
-        margin-top: 6px;
-
+    .campaign-row-meta {
+        margin-top: 3px;
         font-family: 'Inter', sans-serif;
-        font-size: 12.5px;
-        color: #8189a8;
+        font-size: 11.5px;
+        color: #5877ac;
     }
+
+    .campaign-row-creators {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        margin-top: 4px;
+        font-family: 'Inter', sans-serif;
+        font-size: 11px;
+        font-weight: 600;
+        color: #3d4fd6;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .campaign-row-value {
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 700;
+        font-size: 14.5px;
+        color: #101d48;
+    }
+
+    .campaign-row-label {
+        margin-top: 2px;
+        font-family: 'Inter', sans-serif;
+        font-size: 10.5px;
+        color: #6680ad;
+    }
+
+    .campaign-row-progress-label {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 6px;
+        font-family: 'Inter', sans-serif;
+        font-size: 10.5px;
+        color: #6680ad;
+    }
+
+    .campaign-row-progress-label strong {
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 700;
+        color: #101d48;
+    }
+
+    @@media(max-width: 900px) {
+        .campaign-row-card { grid-template-columns: 1fr 1fr; row-gap: 12px; }
+        .campaign-row-id { grid-column: 1 / -1; }
+    }
+
+
+    /* =========================================================
+       COLLABORATION ACTIVITY
+    ========================================================= */
 
     .collab-list {
-        margin-top: 18px;
-
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
     }
 
     .collab-row {
         display: block;
-        padding: 16px 18px;
-
-        border-radius: 14px;
-        background: #ffffff;
-        border: 1px solid #eaecf5;
-
-        transition: transform .2s ease, box-shadow .2s ease;
+        padding: 14px 16px;
+        border-radius: 11px;
+        border: 1px solid #dde9fc;
+        background: #ffffffc9;
+        transition: transform .25s cubic-bezier(.22,1,.36,1), box-shadow .25s ease, border-color .25s ease;
     }
 
-    .collab-row.needs-attention {
-        border-color: #ffd9a8;
-        background: linear-gradient(120deg, #fffaf2, #ffffff);
-    }
-
-    a.collab-row:hover {
+    .collab-row:hover {
         transform: translateY(-2px);
-        box-shadow: 0 14px 26px rgba(30,34,90,.08);
+        border-color: #bcd2ff;
+        box-shadow: 0 12px 26px -12px #3b5bdb40;
     }
 
     .collab-row-head {
         display: flex;
         align-items: center;
-        justify-content: space-between;
-        gap: 10px;
+        gap: 11px;
+    }
+
+    .collab-avatar {
+        display: grid;
+        place-items: center;
+        flex-shrink: 0;
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        background: linear-gradient(130deg, #8a12ff, #0759ff 60%, #00b4ff);
+        box-shadow: inset 0 0 6px #ffffff55;
+        font-family: 'DM Sans', sans-serif;
+        font-size: 13px;
+        font-weight: 700;
+        color: #ffffff;
     }
 
     .collab-row-name {
         font-family: 'DM Sans', sans-serif;
         font-weight: 700;
-        font-size: 14px;
-        color: #171d3d;
+        font-size: 13.5px;
+        color: #101d48;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
 
     .collab-row-campaign {
         margin-top: 2px;
-
         font-family: 'Inter', sans-serif;
-        font-size: 11.5px;
-        color: #8189a8;
-    }
-
-    .collab-row-milestones {
-        flex-shrink: 0;
-
-        font-family: 'Inter', sans-serif;
-        font-size: 11.5px;
-        font-weight: 700;
-        color: #0d9c6c;
-    }
-
-    .collab-row.needs-attention .collab-row-milestones {
-        color: #b5680a;
-    }
-
-    .collab-row-track {
-        margin-top: 10px;
-
-        height: 6px;
-        border-radius: 6px;
-        background: #eef0f8;
+        font-size: 11px;
+        color: #5877ac;
         overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
 
-    .collab-row-fill {
-        height: 100%;
-        border-radius: 6px;
-        width: 0%;
-        background: linear-gradient(90deg, #18a9ff, #0d9c6c);
-        transition: width 1s cubic-bezier(.22,1,.36,1);
+    .collab-row-head > div { min-width: 0; flex: 1; }
+    .collab-row-head .ui-badge { flex-shrink: 0; }
+
+    .collab-row-progress {
+        display: flex;
+        justify-content: space-between;
+        margin: 12px 0 6px;
+        font-family: 'Inter', sans-serif;
+        font-size: 11px;
+        color: #5877ac;
+    }
+
+    .collab-row-progress strong {
+        font-family: 'DM Sans', sans-serif;
+        color: #101d48;
     }
 
     .collab-row-due {
-        margin-top: 8px;
-
-        font-family: 'Inter', sans-serif;
-        font-size: 11px;
-        color: #9096b3;
-    }
-
-
-    /* =========================================================
-       CREATOR DISCOVERY PREVIEW
-    ========================================================= */
-
-    .creator-preview-row {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 16px;
-    }
-
-    .mini-creator-card {
-        position: relative;
-        overflow: hidden;
-
-        padding: 20px 18px;
-
-        border-radius: 16px;
-        background: #ffffff;
-        border: 1px solid #eaecf5;
-
-        transition: transform .3s cubic-bezier(.22,1,.36,1), box-shadow .3s ease;
-    }
-
-    .mini-creator-card::before {
-        content: "";
-        position: absolute;
-        inset: 0;
-        z-index: 0;
-        pointer-events: none;
-        opacity: 0;
-        transition: opacity .3s ease;
-        background: var(--card-wash);
-    }
-
-    .mini-creator-card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 18px 34px rgba(30,34,90,.1);
-    }
-
-    .mini-creator-card:hover::before {
-        opacity: 1;
-    }
-
-    .mini-creator-card > * {
-        position: relative;
-        z-index: 1;
-    }
-
-    .mini-creator-head {
         display: flex;
         align-items: center;
-        gap: 12px;
-    }
-
-    .mini-creator-name {
-        font-family: 'DM Sans', sans-serif;
-        font-weight: 700;
-        font-size: 13.5px;
-        color: #171d3d;
-    }
-
-    .mini-creator-handle {
-        margin-top: 2px;
-
-        font-family: 'Inter', sans-serif;
-        font-size: 11px;
-        color: #8189a8;
-    }
-
-    .mini-creator-figures {
-        margin-top: 14px;
-        padding-top: 12px;
-        border-top: 1px solid #f0f1f7;
-
-        display: flex;
-        justify-content: space-between;
-    }
-
-    .mini-figure-value {
-        font-family: 'DM Sans', sans-serif;
-        font-weight: 800;
-        font-size: 14.5px;
-        color: #171d3d;
-    }
-
-    .mini-figure-label {
-        margin-top: 1px;
-
-        font-family: 'Inter', sans-serif;
-        font-size: 9.5px;
-        font-weight: 600;
-        letter-spacing: .3px;
-        text-transform: uppercase;
-        color: #9096b3;
-    }
-
-    .mini-creator-actions {
-        margin-top: 14px;
-
-        display: flex;
         gap: 6px;
-    }
-
-    .mini-action-btn {
-        flex: 1;
-
-        height: 32px;
-
-        display: flex;
-        align-items: center;
-        justify-content: center;
-
-        border-radius: 8px;
-        border: 1px solid #dde1f0;
-        background: #ffffff;
-
-        font-family: 'Inter', sans-serif;
-        font-size: 10.5px;
-        font-weight: 700;
-        color: #545b7d;
-
-        transition: .2s;
-    }
-
-    .mini-action-btn:hover {
-        border-color: transparent;
-        box-shadow: 0 0 0 1.5px #9b2cff;
-    }
-
-    .mini-action-btn.is-primary {
-        border: none;
-        background: linear-gradient(105deg, #a326ff, #236eff, #18a9ff);
-        color: #ffffff;
-    }
-
-    .mini-action-btn.is-saved {
-        border-color: transparent;
-        background: #f3e8ff;
-        color: #7a1fd6;
-    }
-
-    @@media(max-width: 940px) {
-        .creator-preview-row { grid-template-columns: repeat(2, 1fr); }
-    }
-
-
-    /* =========================================================
-       SMART MATCH — signature feature treatment
-    ========================================================= */
-
-    .smart-match-panel {
-        position: relative;
-        overflow: hidden;
-
-        padding: 30px 32px;
-
-        border-radius: 22px;
-
-        background:
-            radial-gradient(circle at 90% 0%, rgba(114,36,255,.28), transparent 42%),
-            radial-gradient(circle at 0% 100%, rgba(0,169,255,.22), transparent 46%),
-            linear-gradient(135deg, #1a1140 0%, #2c1466 45%, #0d1f5c 100%);
-
-        color: #ffffff;
-    }
-
-    .smart-match-head {
-        display: flex;
-        align-items: flex-end;
-        justify-content: space-between;
-        gap: 16px;
-
-        position: relative;
-        z-index: 1;
-    }
-
-    .smart-match-eyebrow {
+        margin-top: 9px;
         font-family: 'Inter', sans-serif;
         font-size: 11px;
-        font-weight: 700;
-        letter-spacing: 2px;
-        text-transform: uppercase;
-        color: rgba(255,255,255,.6);
+        color: #6680ad;
     }
 
-    .smart-match-title {
-        margin-top: 8px;
+    .collab-row-due i { color: #5b4dff; }
 
-        font-family: 'Playfair Display', serif;
-        font-weight: 600;
-        font-size: 22px;
-    }
-
-    .smart-match-sub {
-        margin-top: 6px;
-
-        font-family: 'Inter', sans-serif;
-        font-size: 12.5px;
-        color: rgba(255,255,255,.65);
-        max-width: 460px;
-    }
-
-    .smart-match-link {
-        flex-shrink: 0;
-
-        font-family: 'Inter', sans-serif;
-        font-size: 12.5px;
-        font-weight: 700;
-        color: #ffffff;
-
-        padding: 10px 18px;
-        border-radius: 20px;
-        border: 1px solid rgba(255,255,255,.35);
-
-        transition: .2s;
-    }
-
-    .smart-match-link:hover {
-        background: rgba(255,255,255,.12);
-        border-color: rgba(255,255,255,.6);
-    }
-
-    .smart-match-list {
-        position: relative;
-        z-index: 1;
-
-        margin-top: 24px;
-
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-    }
-
-    .smart-match-row {
-        display: flex;
-        align-items: center;
-        gap: 18px;
-
-        padding: 16px 18px;
-
-        border-radius: 16px;
-        background: rgba(255,255,255,.07);
-        border: 1px solid rgba(255,255,255,.12);
-        backdrop-filter: blur(10px);
-
-        transition: transform .25s ease, background .25s ease;
-    }
-
-    a.smart-match-row:hover {
-        transform: translateX(4px);
-        background: rgba(255,255,255,.13);
-    }
-
-    .match-score {
-        flex-shrink: 0;
-
-        width: 58px;
-        height: 58px;
-
-        display: flex;
-        align-items: center;
-        justify-content: center;
-
-        border-radius: 50%;
-
-        background: conic-gradient(from -90deg, #18a9ff 0%, #7224ff calc(var(--score) * 1%), rgba(255,255,255,.14) calc(var(--score) * 1%));
-
-        font-family: 'DM Sans', sans-serif;
-        font-weight: 800;
-        font-size: 15px;
-    }
-
-    .match-score-inner {
-        width: 46px;
-        height: 46px;
-        border-radius: 50%;
-        background: #1e1250;
-
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .match-body {
-        flex: 1;
-        min-width: 0;
-    }
-
-    .match-name {
-        font-family: 'DM Sans', sans-serif;
-        font-weight: 700;
-        font-size: 14.5px;
-    }
-
-    .match-reasons {
-        margin-top: 4px;
-
-        font-family: 'Inter', sans-serif;
-        font-size: 11.5px;
-        color: rgba(255,255,255,.65);
-        line-height: 1.5;
-    }
-
-    .smart-match-empty {
-        position: relative;
-        z-index: 1;
-        margin-top: 22px;
-
-        padding: 26px;
-        text-align: center;
-
-        border-radius: 16px;
-        border: 1px dashed rgba(255,255,255,.25);
-    }
-
-    .smart-match-empty p {
-        margin-top: 6px;
-        font-family: 'Inter', sans-serif;
-        font-size: 12.5px;
-        color: rgba(255,255,255,.65);
+    @@media(max-width: 700px) {
+        .collab-list { grid-template-columns: 1fr; }
     }
 
 
@@ -822,113 +506,136 @@
     ========================================================= */
 
     .finance-panel {
-        padding: 30px 32px;
-        border-radius: 22px;
-
-        background: linear-gradient(160deg, #f1fbf6 0%, #eef8ff 100%);
-        border: 1px solid #d7f0e6;
-
         display: grid;
-        grid-template-columns: 1fr 1.2fr;
-        gap: 34px;
-        align-items: center;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+        gap: 28px;
+        align-items: stretch;
+    }
+
+    .finance-kicker {
+        font-family: 'Inter', sans-serif;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: .6px;
+        text-transform: uppercase;
+        color: #5877ac;
     }
 
     .finance-spend-value {
+        margin-top: 4px;
         font-family: 'DM Sans', sans-serif;
-        font-weight: 800;
-        font-size: 36px;
-
-        background: linear-gradient(100deg, #0d9c6c, #18a9ff);
+        font-weight: 700;
+        font-size: 32px;
+        line-height: 1.1;
+        background: linear-gradient(110deg, #7224ff, #3735ff 55%, #087fff);
         -webkit-background-clip: text;
         background-clip: text;
+        -webkit-text-fill-color: transparent;
         color: transparent;
     }
 
     .finance-spend-of {
-        margin-top: 4px;
+        margin-top: 5px;
         font-family: 'Inter', sans-serif;
-        font-size: 13px;
-        color: #4b5273;
+        font-size: 12.5px;
+        color: #33477c;
     }
 
-    .finance-bar-track {
-        margin-top: 16px;
-        height: 10px;
-        border-radius: 10px;
-        background: #dcf0e6;
-        overflow: hidden;
-    }
-
-    .finance-bar-fill {
-        height: 100%;
-        border-radius: 10px;
-        width: 0%;
-        background: linear-gradient(90deg, #0d9c6c, #18a9ff);
-        transition: width 1.1s cubic-bezier(.22,1,.36,1);
-    }
+    .finance-panel .dash-progress { margin-top: 14px; height: 9px; }
 
     .finance-substats {
-        margin-top: 20px;
+        display: grid;
+        gap: 2px;
+        margin-top: 16px;
+    }
 
+    .finance-substat {
         display: flex;
-        gap: 26px;
+        align-items: center;
+        gap: 11px;
+        padding: 8px 0;
+        border-top: 1px solid #e3edfc;
     }
 
-    .finance-substat-value {
-        font-family: 'DM Sans', sans-serif;
-        font-weight: 800;
-        font-size: 17px;
-        color: #171d3d;
-    }
+    .finance-substat:first-child { border-top: 0; }
 
-    .finance-substat-label {
-        margin-top: 2px;
+    .finance-substat > span:not(.icon-chip) {
+        flex: 1;
         font-family: 'Inter', sans-serif;
-        font-size: 10.5px;
-        font-weight: 600;
-        letter-spacing: .3px;
-        text-transform: uppercase;
-        color: #6b8478;
+        font-size: 12px;
+        color: #5877ac;
+    }
+
+    .finance-substat strong {
+        font-family: 'DM Sans', sans-serif;
+        font-size: 14px;
+        font-weight: 700;
+        color: #101d48;
+    }
+
+    .finance-chart-wrap {
+        display: flex;
+        flex-direction: column;
+        padding: 16px 18px 12px;
+        border-radius: 11px;
+        border: 1px solid #e0ecfc;
+        background: #ffffff9e;
+    }
+
+    .finance-chart-title {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        font-family: 'DM Sans', sans-serif;
+        font-size: 12.5px;
+        font-weight: 700;
+        color: #101d48;
+    }
+
+    .finance-chart-title small {
+        font-family: 'Inter', sans-serif;
+        font-size: 11px;
+        font-weight: 500;
+        color: #6680ad;
     }
 
     .finance-chart {
+        flex: 1;
         display: flex;
         align-items: flex-end;
         justify-content: space-between;
         gap: 10px;
-
-        height: 140px;
-        padding: 0 4px;
+        min-height: 160px;
+        margin-top: 14px;
     }
 
     .finance-chart-col {
         flex: 1;
-
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 8px;
+        gap: 7px;
     }
 
     .finance-chart-bar-track {
         width: 100%;
         max-width: 34px;
-        height: 100px;
-
+        height: 130px;
         display: flex;
         align-items: flex-end;
-
-        border-radius: 8px;
-        background: rgba(13,156,108,.08);
+        border-radius: 7px;
+        background: #eaf2fe;
         overflow: hidden;
+        transition: box-shadow .2s ease;
     }
+
+    .finance-chart-col:hover .finance-chart-bar-track { box-shadow: 0 0 0 2px #c9dbff; }
 
     .finance-chart-bar-fill {
         width: 100%;
         height: 0%;
-        border-radius: 8px;
-        background: linear-gradient(180deg, #18a9ff, #0d9c6c);
+        border-radius: 7px;
+        background: linear-gradient(180deg, #087fff, #3735ff 55%, #7224ff);
         transition: height 1s cubic-bezier(.22,1,.36,1);
     }
 
@@ -936,7 +643,7 @@
         font-family: 'Inter', sans-serif;
         font-size: 10.5px;
         font-weight: 600;
-        color: #4b5273;
+        color: #4a6099;
     }
 
     @@media(max-width: 900px) {
@@ -945,131 +652,484 @@
 
 
     /* =========================================================
-       UPCOMING + ACTIVITY
+       SMART MATCH — dark navy signature panel
     ========================================================= */
 
-    .list-panel {
+    .smart-match-panel {
+        position: relative;
+        isolation: isolate;
+        overflow: hidden;
         padding: 24px 26px;
-        border-radius: 18px;
-        background: #ffffff;
-        border: 1px solid #eaecf5;
+        border-radius: 12px;
+        background: radial-gradient(circle at 100% 0%, rgba(114,36,255,.22), transparent 40%), radial-gradient(circle at 0% 100%, rgba(8,127,255,.18), transparent 45%), linear-gradient(135deg, #070c22 0%, #0a1433 60%, #0d1b4a 100%);
+        box-shadow: 0 18px 36px -14px rgba(7,12,34,.45), inset 0 1px 0 rgba(255,255,255,.1);
+        color: #ffffff;
     }
 
-    .list-row {
+    .smart-match-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+    }
+
+    .smart-match-eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-family: 'Inter', sans-serif;
+        font-size: 10.5px;
+        font-weight: 700;
+        letter-spacing: 1.4px;
+        text-transform: uppercase;
+        color: #9fb8ff;
+    }
+
+    .smart-match-title {
+        margin-top: 6px;
+        font: 600 21px/1.3 'Playfair Display', Georgia, serif;
+        color: #ffffff;
+    }
+
+    .smart-match-sub {
+        margin-top: 5px;
+        max-width: 480px;
+        font-family: 'Inter', sans-serif;
+        font-size: 12.5px;
+        line-height: 1.55;
+        color: #b8c6e8;
+    }
+
+    .smart-match-link {
+        flex-shrink: 0;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 16px;
+        border-radius: 10px;
+        border: 1px solid #64beff;
+        background: linear-gradient(120deg, #258bff55, #468fff88);
+        font-family: 'Inter', sans-serif;
+        font-size: 12px;
+        font-weight: 600;
+        color: #ffffff;
+        white-space: nowrap;
+        transition: .2s ease;
+    }
+
+    .smart-match-link:hover {
+        color: #ffffff;
+        transform: translateY(-2px);
+        box-shadow: 0 0 22px rgba(35,110,255,.35);
+    }
+
+    .smart-match-list {
+        display: grid;
+        gap: 10px;
+        margin-top: 20px;
+    }
+
+    .smart-match-row {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 13px 16px;
+        border-radius: 11px;
+        background: rgba(255,255,255,.06);
+        border: 1px solid rgba(255,255,255,.11);
+        color: #ffffff;
+        transition: transform .25s ease, background .25s ease, border-color .25s ease;
+    }
+
+    .smart-match-row:hover {
+        color: #ffffff;
+        transform: translateY(-2px);
+        background: rgba(255,255,255,.11);
+        border-color: rgba(120,160,255,.4);
+    }
+
+    .match-score {
+        flex-shrink: 0;
+        display: grid;
+        place-items: center;
+        width: 54px;
+        height: 54px;
+        border-radius: 50%;
+        background: conic-gradient(from -90deg, #00a8f0 0%, #6425ff calc(var(--score) * 1%), rgba(255,255,255,.12) calc(var(--score) * 1%));
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 700;
+        font-size: 13.5px;
+    }
+
+    .match-score-inner {
+        display: grid;
+        place-items: center;
+        width: 43px;
+        height: 43px;
+        border-radius: 50%;
+        background: #0b1433;
+    }
+
+    .match-body { flex: 1; min-width: 0; }
+
+    .match-name {
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 700;
+        font-size: 14px;
+    }
+
+    .match-name small {
+        font-family: 'Inter', sans-serif;
+        font-weight: 500;
+        font-size: 11.5px;
+        color: #9fb8ff;
+    }
+
+    .match-reasons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 7px;
+    }
+
+    .match-reasons span {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 3px 9px;
+        border-radius: 20px;
+        background: rgba(255,255,255,.08);
+        font-family: 'Inter', sans-serif;
+        font-size: 10.5px;
+        color: #cdd8f5;
+    }
+
+    .match-reasons i { color: #6fc3ff; }
+
+    .smart-match-row > .bi-arrow-right { color: #9fb8ff; transition: transform .2s ease; }
+    .smart-match-row:hover > .bi-arrow-right { transform: translateX(3px); }
+
+    .smart-match-empty {
         display: flex;
         align-items: center;
         gap: 14px;
-
-        padding: 12px 0;
-        border-top: 1px solid #f0f1f7;
-
-        transition: transform .2s ease;
+        margin-top: 20px;
+        padding: 18px 20px;
+        border-radius: 11px;
+        border: 1px dashed rgba(255,255,255,.22);
     }
 
-    .list-row:first-of-type {
-        border-top: none;
-    }
+    .smart-match-empty .icon-chip { background: rgba(255,255,255,.1); color: #9fb8ff; }
 
-    a.list-row:hover {
-        transform: translateX(3px);
-    }
-
-    .list-row-date {
-        flex-shrink: 0;
-
-        width: 46px;
-        text-align: center;
-
+    .smart-match-empty strong {
         font-family: 'DM Sans', sans-serif;
-        font-weight: 800;
-        font-size: 15px;
-        color: #7a1fd6;
+        font-size: 14px;
+        color: #ffffff;
     }
 
-    .list-row-date-month {
-        display: block;
-        margin-top: 1px;
-
+    .smart-match-empty p {
+        margin-top: 3px;
         font-family: 'Inter', sans-serif;
-        font-size: 9px;
+        font-size: 12px;
+        line-height: 1.55;
+        color: #b8c6e8;
+    }
+
+
+    /* =========================================================
+       DISCOVER CREATORS
+    ========================================================= */
+
+    .creator-preview-row {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+    }
+
+    .mini-creator-card {
+        padding: 16px;
+        border-radius: 11px;
+        border: 1px solid #dde9fc;
+        background: #ffffffc9;
+        transition: transform .25s cubic-bezier(.22,1,.36,1), box-shadow .25s ease, border-color .25s ease;
+    }
+
+    .mini-creator-card:hover {
+        transform: translateY(-3px);
+        border-color: #bcd2ff;
+        box-shadow: 0 14px 28px -12px #3b5bdb40;
+    }
+
+    .mini-creator-head {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .mini-creator-head > div { min-width: 0; }
+
+    .mini-creator-name {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-family: 'DM Sans', sans-serif;
         font-weight: 700;
-        letter-spacing: .5px;
-        text-transform: uppercase;
-        color: #a3a8c3;
+        font-size: 13.5px;
+        color: #101d48;
     }
 
-    .list-row-body {
-        min-width: 0;
-    }
-
-    .list-row-title {
-        font-family: 'Inter', sans-serif;
-        font-size: 13px;
-        font-weight: 600;
-        color: #2a3157;
-
+    .mini-creator-name > span:first-child {
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
     }
 
-    .list-row-kind {
-        margin-top: 2px;
+    .mini-creator-handle {
+        margin-top: 3px;
         font-family: 'Inter', sans-serif;
         font-size: 11px;
-        color: #9096b3;
+        color: #5877ac;
     }
 
-    .activity-dot {
-        flex-shrink: 0;
-
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-
-        background: linear-gradient(105deg, #a326ff, #18a9ff);
+    .mini-creator-figures {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        margin-top: 13px;
+        border: 1px solid #e3edfc;
+        border-radius: 9px;
+        background: #f6faffcc;
     }
 
-    .activity-row-time {
-        margin-left: auto;
-        flex-shrink: 0;
+    .mini-creator-figures > div { padding: 8px 12px; }
+    .mini-creator-figures > div + div { border-left: 1px solid #e3edfc; }
 
+    .mini-figure-value {
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 700;
+        font-size: 14px;
+        color: #101d48;
+    }
+
+    .mini-figure-label {
+        margin-top: 1px;
         font-family: 'Inter', sans-serif;
         font-size: 10.5px;
-        color: #b0b5cc;
+        color: #6680ad;
+    }
+
+    .mini-creator-actions {
+        display: flex;
+        gap: 6px;
+        margin-top: 12px;
+    }
+
+    .mini-creator-actions form { flex: 1; margin: 0; }
+
+    .mini-action-btn {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        height: 32px;
+        border-radius: 8px;
+        border: 1px solid #d3e2fb;
+        background: #ffffff;
+        font-family: 'Inter', sans-serif;
+        font-size: 11.5px;
+        font-weight: 600;
+        color: #33477c;
+        cursor: pointer;
+        transition: .2s ease;
+    }
+
+    .mini-action-btn:hover {
+        border-color: #8f7bff;
+        color: #1451ff;
+    }
+
+    .mini-action-btn.is-primary {
+        border: none;
+        background: linear-gradient(105deg, #6425ff, #004dff 55%, #00a8f0);
+        color: #ffffff;
+    }
+
+    .mini-action-btn.is-primary:hover {
+        color: #ffffff;
+        box-shadow: 0 8px 18px -8px #3b4dff90;
+    }
+
+    .mini-action-btn.is-saved {
+        border-color: transparent;
+        background: #ebe8ff;
+        color: #5b3df0;
+    }
+
+    @@media(max-width: 700px) {
+        .creator-preview-row { grid-template-columns: 1fr; }
     }
 
 
     /* =========================================================
-       RESPONSIVE
+       RAIL — Next Up, quick actions, activity
     ========================================================= */
 
-    @@media(max-width: 1100px) {
-        .split-grid { grid-template-columns: 1fr; }
+    .rail-title { font-size: 17px; }
+
+    .rail-list { display: grid; grid-template-columns: minmax(0, 1fr); }
+
+    .rail-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin: 0 -8px;
+        padding: 10px 8px;
+        border-radius: 9px;
+        border-top: 1px solid #e3edfc;
+        transition: background .2s ease, transform .2s ease;
+    }
+
+    .rail-row:first-child { border-top-color: transparent; }
+
+    .rail-row:hover {
+        background: #eef5ffcc;
+        transform: translateX(2px);
+    }
+
+    .rail-row-body { flex: 1; min-width: 0; }
+
+    .rail-row-title {
+        font-family: 'DM Sans', sans-serif;
+        font-size: 12.5px;
+        font-weight: 700;
+        color: #101d48;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .rail-row-meta {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 4px;
+        font-family: 'Inter', sans-serif;
+        font-size: 11px;
+        color: #6680ad;
+    }
+
+    .rail-row-text {
+        margin-top: 2px;
+        font-family: 'Inter', sans-serif;
+        font-size: 11px;
+        line-height: 1.45;
+        color: #5877ac;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .rail-row .ui-badge { padding: 2px 8px; font-size: 10px; }
+
+    .rail-row > .bi-chevron-right {
+        flex-shrink: 0;
+        font-size: 11px;
+        color: #8095c4;
+        transition: transform .2s ease, color .2s ease;
+    }
+
+    .rail-row:hover > .bi-chevron-right { transform: translateX(3px); color: #1451ff; }
+
+    .date-tile {
+        flex-shrink: 0;
+        display: grid;
+        place-items: center;
+        align-content: center;
+        width: 42px;
+        height: 44px;
+        border-radius: 10px;
+        background: linear-gradient(135deg, #e4eeff, #cce2ff);
+        font-family: 'DM Sans', sans-serif;
+        font-size: 16px;
+        font-weight: 700;
+        line-height: 1;
+        color: #135bff;
+    }
+
+    .date-tile small {
+        margin-top: 3px;
+        font-family: 'Inter', sans-serif;
+        font-size: 9px;
+        font-weight: 700;
+        letter-spacing: .6px;
+        text-transform: uppercase;
+        color: #4a6099;
+    }
+
+    .activity-time {
+        flex-shrink: 0;
+        align-self: flex-start;
+        margin-top: 2px;
+        font-family: 'Inter', sans-serif;
+        font-size: 10.5px;
+        color: #8095c4;
+    }
+
+    .rail-empty {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 6px 0 2px;
+        font-family: 'Inter', sans-serif;
+        font-size: 12px;
+        line-height: 1.55;
+        color: #59699e;
+    }
+
+    .dash-cta { margin-top: 18px; }
+
+    .dash-cta-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .cta-banner a.is-quiet {
+        border-color: rgba(255,255,255,.22);
+        background: rgba(255,255,255,.06);
     }
 
 }
 
-<section class="page-hero" id="dashHero">
+<section class="page-hero dash-hero" id="dashHero">
     @await Html.PartialAsync("_HeroWaves")
 
     <div class="page-hero-intro">
-        <p class="page-hero-eyebrow">Good to see you again,</p>
+        <p class="page-hero-eyebrow">Brand Dashboard &middot; Good to see you again</p>
 
-        <h1 class="page-hero-title">
-            <span>@Model.CompanyName</span>
-        </h1>
+        <h1 class="page-hero-title">Welcome back, <span>@Model.CompanyName</span></h1>
 
         <p class="page-hero-sub">
-            Your next great creator collaboration starts here. Discover the right voices,
-            manage your campaigns and keep every collaboration moving forward.
+            @heroSub
         </p>
 
+        <ul class="hero-highlights">
+            <li>@Plural(Model.ActiveCollaborationCount, "active collaboration")</li>
+            <li>@Plural(Model.PendingProposalCount, "pending proposal")</li>
+            <li>@(nextUp is not null ? $"Next date: {nextUp.Date:MMM d}" : "No upcoming deadlines")</li>
+        </ul>
+
+        <dl class="page-hero-stats">
+            <div><dd>@Money(Model.TotalBudget)</dd><dt>Total budget</dt></div>
+            <div><dd>@Money(Model.TotalSpend)</dd><dt>Spent (@budgetPercent%)</dt></div>
+            <div><dd>@liveCampaigns</dd><dt>Live campaigns</dt></div>
+        </dl>
+
         <div class="hero-actions">
-            <a href="/Campaigns/Create" class="hero-cta">Create a Campaign</a>
-            <a href="/Influencers" class="hero-cta-ghost">Discover Creators</a>
+            <a href="/Campaigns/Create" class="hero-cta"><i class="bi bi-plus-lg"></i> Create a Campaign</a>
+            <a href="/Influencers" class="hero-cta-ghost"><i class="bi bi-search"></i> Discover Creators</a>
         </div>
-        <p class="hero-cta-caption">Turn your next idea into a structured creator campaign.</p>
     </div>
 
     <div class="page-hero-art" aria-hidden="true">
@@ -1116,7 +1176,7 @@
         </div>
         <div class="metric-footer">
             <span class="metric-accent"></span>
-            <span class="metric-footer-link">View all →</span>
+            <span class="metric-footer-link">View drafts →</span>
         </div>
     </a>
 
@@ -1150,7 +1210,7 @@
         </div>
         <div class="metric-footer">
             <span class="metric-accent"></span>
-            <span class="metric-footer-link">View all →</span>
+            <span class="metric-footer-link">View history →</span>
         </div>
     </a>
 
@@ -1171,7 +1231,7 @@
         </div>
         <div class="metric-footer">
             <span class="metric-accent"></span>
-            <span class="metric-footer-link">View earnings →</span>
+            <span class="metric-footer-link">Review proposals →</span>
         </div>
     </a>
 
@@ -1188,392 +1248,578 @@
         </div>
         <div class="metric-footer">
             <span class="metric-accent"></span>
-            <span class="metric-footer-link">View details →</span>
+            <span class="metric-footer-link">View shortlist →</span>
         </div>
     </a>
 
 </section>
 
-<section class="dash-section" data-reveal>
-    <div class="dash-section-head">
-        <div>
-            <div class="dash-section-title">Your Active Campaigns</div>
-            <div class="dash-section-sub">Keep track of the campaigns currently moving from planning to creator delivery.</div>
-        </div>
-        <a href="/Campaigns" class="dash-section-link">View All Campaigns &rarr;</a>
-    </div>
+<div class="page-grid dash-grid">
 
-    @if (Model.CampaignWorkspace.Count > 0)
-    {
-        <div class="campaign-workspace">
-            @foreach (var item in Model.CampaignWorkspace)
-            {
-                var c = item.Campaign;
-                var accent = c.Status switch
-                {
-                    CampaignStatus.Draft => "linear-gradient(180deg, #ffb648, #ff8a3d)",
-                    CampaignStatus.Published => "linear-gradient(180deg, #2694ff, #6bb7ff)",
-                    CampaignStatus.Active => "linear-gradient(180deg, #12c48b, #5be2b4)",
-                    CampaignStatus.Completed => "linear-gradient(180deg, #9b2cff, #c98bff)",
-                    _ => "linear-gradient(180deg, #e0507a, #ff8fae)"
-                };
-                <a href="/Campaigns/Detail/@c.Id" class="campaign-row-card" style="--campaign-accent: @accent;">
+    <div class="page-main">
 
-                    <div>
-                        <div class="campaign-row-title">@c.Title</div>
-                        <div class="campaign-row-meta">@(c.Platform ?? "Any platform") &middot; @(c.Niche ?? "General")</div>
-                        @if (item.CreatorNames.Count > 0)
+        @* ---------- What needs your attention ---------- *@
+        <section class="ui-card dash-section" id="attention" data-reveal>
+            <div class="ui-card-head">
+                <div>
+                    <div class="ui-card-title">
+                        What Needs Your Attention
+                        @if (attentionCount > 0)
                         {
-                            <div class="campaign-row-creators">@string.Join(", ", item.CreatorNames.Take(2))@(item.CreatorNames.Count > 2 ? $" +{item.CreatorNames.Count - 2}" : "")</div>
-                        }
-                        else if (item.ApplicantCount > 0)
-                        {
-                            <div class="campaign-row-creators">@item.ApplicantCount proposal@(item.ApplicantCount == 1 ? "" : "s") sent</div>
+                            <span class="dash-count">@attentionCount</span>
                         }
                     </div>
-
-                    <span class="status-pill @c.Status.ToString().ToLowerInvariant()">@c.Status</span>
-
-                    <div>
-                        <div class="campaign-row-budget-value">৳@c.Budget.ToString("N0")</div>
-                        <div class="campaign-row-budget-label">Budget</div>
-                    </div>
-
-                    <div>
-                        <div class="campaign-row-progress-track">
-                            <div class="campaign-row-progress-fill" data-fill-to="@item.ProgressPercent" style="--campaign-accent: @accent;"></div>
-                        </div>
-                        <div class="campaign-row-progress-label">@item.ProgressPercent% complete</div>
-                    </div>
-
-                    <div>
-                        <div class="campaign-row-deadline-value">@(c.Deadline?.ToString("MMM d") ?? "No deadline")</div>
-                        <div class="campaign-row-deadline-label">@(c.Deadline.HasValue ? "Deadline" : "Open-ended")</div>
-                    </div>
-
-                </a>
-            }
-        </div>
-    }
-    else
-    {
-        <div class="empty-block">
-            <div class="empty-title">Your next campaign starts here</div>
-            <p class="empty-text">You haven't launched a campaign yet. Define your goals, set your milestones and discover creators who can bring your campaign to life.</p>
-            <a href="/Campaigns/Create" class="btn btn-primary" style="margin-top: 16px;">Create Your First Campaign</a>
-        </div>
-    }
-</section>
-
-<section class="dash-section split-grid" data-reveal>
-
-    <div class="tinted-panel">
-        <div class="panel-title">What Needs Your Attention</div>
-        <div class="panel-sub">Stay ahead of proposals, milestones and approvals that need a decision from you.</div>
-
-        @if (Model.AttentionItems.Count > 0)
-        {
-            <div class="attention-list">
-                @foreach (var item in Model.AttentionItems)
-                {
-                    <a href="@item.LinkUrl" class="attention-row">
-                        <div>
-                            <div class="attention-title">@item.Title</div>
-                            <div class="attention-detail">@item.Detail</div>
-                        </div>
-                        <span class="attention-action">@item.ActionLabel</span>
-                    </a>
-                }
-            </div>
-        }
-        else
-        {
-            <div class="caught-up">
-                <div class="caught-up-title">You're all caught up</div>
-                <p class="caught-up-text">No proposals, milestones, or payments are waiting on you right now.</p>
-                <a href="/Influencers" class="btn btn-primary" style="margin-top: 16px;">Discover Creators</a>
-            </div>
-        }
-    </div>
-
-    <div class="panel">
-        <div class="panel-title">Collaboration Activity</div>
-        <div class="panel-sub">Live progress across active creator collaborations.</div>
-
-        @if (Model.CollaborationActivity.Count > 0)
-        {
-            <div class="collab-list">
-                @foreach (var item in Model.CollaborationActivity)
-                {
-                    var pct = item.TotalMilestones > 0 ? (int)Math.Round(item.PaidMilestones * 100.0 / item.TotalMilestones) : 0;
-                    <a href="/Collaborations/Detail/@item.Collaboration.Id" class="collab-row @(item.NeedsAttention ? "needs-attention" : "")">
-                        <div class="collab-row-head">
-                            <div>
-                                <div class="collab-row-name">@item.Collaboration.InfluencerProfile.FullName</div>
-                                <div class="collab-row-campaign">@item.Collaboration.Campaign.Title</div>
-                            </div>
-                            <div class="collab-row-milestones">@item.PaidMilestones/@item.TotalMilestones paid</div>
-                        </div>
-                        <div class="collab-row-track">
-                            <div class="collab-row-fill" data-fill-to="@pct"></div>
-                        </div>
-                        <div class="collab-row-due">
-                            @(item.NeedsAttention
-                                ? "Needs your review"
-                                : item.NextDueDate.HasValue
-                                    ? $"Next milestone due {item.NextDueDate.Value:MMM d}"
-                                    : "On track")
-                        </div>
-                    </a>
-                }
-            </div>
-        }
-        else
-        {
-            <div class="empty-block">
-                <div class="empty-title">No active collaborations yet</div>
-                <p class="empty-text">Once a creator confirms a proposal, the collaboration will appear here with live milestone progress.</p>
-            </div>
-        }
-    </div>
-
-</section>
-
-<section class="dash-section" data-reveal>
-    <div class="dash-section-head">
-        <div>
-            <div class="dash-section-title">Discover Creators</div>
-            <div class="dash-section-sub">Fresh profiles from the Brandora creator marketplace.</div>
-        </div>
-        <a href="/Influencers" class="dash-section-link">Browse All Creators &rarr;</a>
-    </div>
-
-    @if (Model.CreatorPreview.Count > 0)
-    {
-        <div class="creator-preview-row">
-            @foreach (var creator in Model.CreatorPreview)
-            {
-                var hue = (creator.Id * 47) % 360;
-                var hue2 = (hue + 50) % 360;
-                <div class="mini-creator-card" style="--card-wash: radial-gradient(circle at 20% -10%, hsla(@(hue), 90%, 65%, .12), transparent 55%);">
-
-                    <div class="mini-creator-head">
-                        <div class="creator-avatar" style="width:44px;height:44px;font-size:14px;background: linear-gradient(135deg, hsl(@(hue)deg 75% 58%), hsl(@(hue2)deg 75% 48%));">
-                            @FollowerFormat.InitialsOf(creator.FullName)
-                        </div>
-                        <div>
-                            <div class="mini-creator-name">
-                                @creator.FullName
-                                @if (creator.Verified)
-                                {
-                                    <span class="verified-badge" style="margin-left:4px;">Verified</span>
-                                }
-                            </div>
-                            <div class="mini-creator-handle">@creator.PrimaryPlatform &middot; @creator.ContentNiche</div>
-                        </div>
-                    </div>
-
-                    <div class="mini-creator-figures">
-                        <div>
-                            <div class="mini-figure-value">@FollowerFormat.Format(creator.Followers)</div>
-                            <div class="mini-figure-label">Followers</div>
-                        </div>
-                        <div>
-                            <div class="mini-figure-value">@creator.EngagementRate.ToString("0.0")%</div>
-                            <div class="mini-figure-label">Engagement</div>
-                        </div>
-                    </div>
-
-                    <div class="mini-creator-actions">
-                        <a href="/Influencers/Profile/@creator.Id" class="mini-action-btn">Profile</a>
-
-                        <form method="post" action="/Influencers/ToggleShortlist" style="flex:1;">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="influencerId" value="@creator.Id" />
-                            <input type="hidden" name="returnUrl" value="/Dashboard" />
-                            <button type="submit" class="mini-action-btn @(Model.IsShortlisted(creator.Id) ? "is-saved" : "")" style="width:100%;">
-                                @(Model.IsShortlisted(creator.Id) ? "Saved" : "Shortlist")
-                            </button>
-                        </form>
-
-                        <a href="/Proposals/Invite?influencerId=@creator.Id" class="mini-action-btn is-primary">Invite</a>
-                    </div>
-
+                    <p class="ui-card-sub">Proposals, proof reviews and payments waiting on a decision from you.</p>
                 </div>
-            }
-        </div>
-    }
-    else
-    {
-        <div class="empty-block">
-            <div class="empty-title">No creators to show yet</div>
-            <p class="empty-text">Once influencers join Brandora, fresh profiles will appear here for you to discover and shortlist.</p>
-        </div>
-    }
-</section>
-
-<section class="dash-section" data-reveal>
-    <div class="smart-match-panel">
-        <div class="smart-match-head">
-            <div>
-                <div class="smart-match-eyebrow">Signature Feature</div>
-                <div class="smart-match-title">Smart Match</div>
-                <p class="smart-match-sub">Rule-based creator matching against your campaign's platform, niche, and engagement criteria &mdash; fully transparent, never a black box.</p>
-            </div>
-            @if (Model.SmartMatchCampaign is not null)
-            {
-                <a href="/Influencers/SmartMatch?campaignId=@Model.SmartMatchCampaign.Id" class="smart-match-link">View Full Match &rarr;</a>
-            }
-        </div>
-
-        @if (Model.SmartMatchCampaign is not null && Model.SmartMatchPreview.Count > 0)
-        {
-            <div class="smart-match-list">
-                @foreach (var result in Model.SmartMatchPreview)
+                @if (attentionCount == 0)
                 {
-                    <a href="/Influencers/Profile/@result.Creator.Id" class="smart-match-row">
-                        <div class="match-score" style="--score: @result.Score;">
-                            <div class="match-score-inner">@result.Score%</div>
-                        </div>
-                        <div class="match-body">
-                            <div class="match-name">@result.Creator.FullName &middot; for "@Model.SmartMatchCampaign.Title"</div>
-                            <div class="match-reasons">@string.Join(" · ", result.Reasons)</div>
-                        </div>
-                    </a>
+                    <span class="ui-badge is-success"><i class="bi bi-check2"></i> All clear</span>
                 }
             </div>
-        }
-        else
-        {
-            <div class="smart-match-empty">
-                <div class="caught-up-title" style="color:#fff;">No matches to show yet</div>
-                <p>Set a platform or niche on a published campaign, and Smart Match will surface the creators who fit it best.</p>
-            </div>
-        }
-    </div>
-</section>
 
-<section class="dash-section" data-reveal>
-    <div class="dash-section-head">
-        <div>
-            <div class="dash-section-title">Finance Overview</div>
-            <div class="dash-section-sub">Spend, budget, and payment activity across your campaigns.</div>
-        </div>
-        <a href="/Payments" class="dash-section-link">Open Finance &rarr;</a>
-    </div>
-
-    <div class="finance-panel">
-        <div>
-            @if (Model.TotalBudget > 0)
+            @if (attentionCount > 0)
             {
-                <div class="finance-spend-value">৳@Model.TotalSpend.ToString("N0")</div>
-                <div class="finance-spend-of">of ৳@Model.TotalBudget.ToString("N0") budgeted</div>
-                <div class="finance-bar-track">
-                    <div class="finance-bar-fill" data-fill-to="@budgetPercent"></div>
+                <div class="attention-list">
+                    @foreach (var item in Model.AttentionItems)
+                    {
+                        var style = KindStyle(item.Kind);
+                        <a href="@item.LinkUrl" class="attention-row">
+                            <span class="icon-chip @style.Chip" aria-hidden="true"><i class="bi @style.Icon"></i></span>
+                            <div class="attention-body">
+                                <div class="attention-title">@item.Title</div>
+                                <div class="attention-meta">
+                                    <span class="ui-badge @style.Badge">@style.Label</span>
+                                    <span>@item.Detail</span>
+                                </div>
+                            </div>
+                            <span class="attention-action">@item.ActionLabel <i class="bi bi-arrow-right"></i></span>
+                        </a>
+                    }
                 </div>
             }
             else
             {
-                <div class="finance-spend-value">৳0</div>
-                <div class="finance-spend-of">Fund a campaign to start tracking spend</div>
+                <div class="dash-empty">
+                    <span class="icon-chip lg soft"><i class="bi bi-check2-circle"></i></span>
+                    <strong>You're all caught up</strong>
+                    <p>No proposals, milestone proofs or payments are waiting on you right now. A good moment to find your next creator.</p>
+                    <a href="/Influencers" class="btn btn-primary">Discover Creators</a>
+                </div>
             }
+        </section>
 
-            <div class="finance-substats">
+        @* ---------- Active campaigns ---------- *@
+        <section class="ui-card dash-section" id="campaigns" data-reveal>
+            <div class="ui-card-head">
                 <div>
-                    <div class="finance-substat-value">৳@Model.PendingPaymentsAmount.ToString("N0")</div>
-                    <div class="finance-substat-label">Pending</div>
+                    <div class="ui-card-title">Your Active Campaigns</div>
+                    <p class="ui-card-sub">Campaigns moving from planning to creator delivery, with milestone progress.</p>
                 </div>
-                <div>
-                    <div class="finance-substat-value">৳@Model.CompletedPaymentsAmount.ToString("N0")</div>
-                    <div class="finance-substat-label">Paid Out</div>
-                </div>
+                <a href="/Campaigns" class="ui-card-link">View all campaigns <i class="bi bi-arrow-right"></i></a>
             </div>
-        </div>
 
-        <div class="finance-chart">
-            @foreach (var point in Model.SpendByMonth)
+            @if (Model.CampaignWorkspace.Count > 0)
             {
-                var pct = maxSpend > 0 ? (int)Math.Round((double)(point.Amount / maxSpend * 100)) : 0;
-                <div class="finance-chart-col">
-                    <div class="finance-chart-bar-track">
-                        <div class="finance-chart-bar-fill" data-fill-height-to="@pct"></div>
-                    </div>
-                    <div class="finance-chart-label">@point.Month</div>
+                <div class="campaign-workspace">
+                    @foreach (var item in Model.CampaignWorkspace)
+                    {
+                        var c = item.Campaign;
+                        var status = StatusStyle(c.Status);
+                        <a href="/Campaigns/Detail/@c.Id" class="campaign-row-card">
+
+                            <div class="campaign-row-id">
+                                <span class="icon-chip sm @status.Chip" aria-hidden="true"><i class="bi @status.Icon"></i></span>
+                                <div style="min-width:0;">
+                                    <div class="campaign-row-title">@c.Title</div>
+                                    <div class="campaign-row-meta">@(c.Platform ?? "Any platform") &middot; @(c.Niche ?? "General")</div>
+                                    @if (item.CreatorNames.Count > 0)
+                                    {
+                                        <div class="campaign-row-creators"><i class="bi bi-people"></i> @string.Join(", ", item.CreatorNames.Take(2))@(item.CreatorNames.Count > 2 ? $" +{item.CreatorNames.Count - 2}" : "")</div>
+                                    }
+                                    else if (item.ApplicantCount > 0)
+                                    {
+                                        <div class="campaign-row-creators"><i class="bi bi-envelope-paper"></i> @Plural(item.ApplicantCount, "proposal")</div>
+                                    }
+                                </div>
+                            </div>
+
+                            <span class="ui-badge @status.Badge">@c.Status</span>
+
+                            <div>
+                                <div class="campaign-row-value">@Money(c.Budget)</div>
+                                <div class="campaign-row-label">Budget</div>
+                            </div>
+
+                            <div>
+                                <div class="dash-progress"><span data-fill-to="@item.ProgressPercent"></span></div>
+                                <div class="campaign-row-progress-label"><span>Progress</span><strong>@item.ProgressPercent%</strong></div>
+                            </div>
+
+                            <div>
+                                <div class="campaign-row-value" style="font-size:13px;">@(c.Deadline?.ToString("MMM d, yyyy") ?? "No deadline")</div>
+                                <div class="campaign-row-label">@DeadlineNote(c.Deadline)</div>
+                            </div>
+
+                        </a>
+                    }
                 </div>
             }
-        </div>
-    </div>
-</section>
+            else
+            {
+                <div class="dash-empty">
+                    <span class="icon-chip lg soft"><i class="bi bi-rocket-takeoff"></i></span>
+                    <strong>Your next campaign starts here</strong>
+                    <p>You haven't launched a campaign yet. Define your goals, set your milestones and discover creators who can bring it to life.</p>
+                    <a href="/Campaigns/Create" class="btn btn-primary">Create Your First Campaign</a>
+                </div>
+            }
+        </section>
 
-<section class="dash-section split-grid" data-reveal>
+        @* ---------- Collaboration activity ---------- *@
+        <section class="ui-card dash-section" id="collaborations" data-reveal>
+            <div class="ui-card-head">
+                <div>
+                    <div class="ui-card-title">Collaboration Activity</div>
+                    <p class="ui-card-sub">Live milestone progress across your active creator collaborations.</p>
+                </div>
+                <a href="/Collaborations" class="ui-card-link">Manage collaborations <i class="bi bi-arrow-right"></i></a>
+            </div>
 
-    <div class="list-panel">
-        <div class="panel-title">Next Up</div>
-        <div class="panel-sub">Deadlines and milestones ahead.</div>
+            @if (Model.CollaborationActivity.Count > 0)
+            {
+                <div class="collab-list">
+                    @foreach (var item in Model.CollaborationActivity)
+                    {
+                        var pct = item.TotalMilestones > 0 ? (int)Math.Round(item.PaidMilestones * 100.0 / item.TotalMilestones) : 0;
+                        <a href="/Collaborations/Detail/@item.Collaboration.Id" class="collab-row">
+                            <div class="collab-row-head">
+                                <span class="collab-avatar" aria-hidden="true">@FollowerFormat.InitialsOf(item.Collaboration.InfluencerProfile.FullName)</span>
+                                <div>
+                                    <div class="collab-row-name">@item.Collaboration.InfluencerProfile.FullName</div>
+                                    <div class="collab-row-campaign">@item.Collaboration.Campaign.Title</div>
+                                </div>
+                                @if (item.NeedsAttention)
+                                {
+                                    <span class="ui-badge is-pending">Needs review</span>
+                                }
+                                else
+                                {
+                                    <span class="ui-badge is-success">On track</span>
+                                }
+                            </div>
+                            <div class="collab-row-progress"><span>Milestones paid</span><strong>@item.PaidMilestones/@item.TotalMilestones</strong></div>
+                            <div class="dash-progress"><span data-fill-to="@pct"></span></div>
+                            <div class="collab-row-due">
+                                <i class="bi @(item.NeedsAttention ? "bi-exclamation-circle" : "bi-calendar-event")"></i>
+                                @(item.NeedsAttention
+                                    ? "Proof submitted or a milestone is overdue"
+                                    : item.NextDueDate.HasValue
+                                        ? $"Next milestone due {item.NextDueDate.Value:MMM d}"
+                                        : "No upcoming due dates")
+                            </div>
+                        </a>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="dash-empty">
+                    <span class="icon-chip lg soft"><i class="bi bi-people"></i></span>
+                    <strong>No active collaborations yet</strong>
+                    <p>When you accept a creator's proposal, the collaboration appears here with live milestone progress.</p>
+                    <a href="/Proposals" class="btn btn-secondary">View Proposals</a>
+                </div>
+            }
+        </section>
 
-        @if (Model.UpcomingItems.Count > 0)
-        {
-            <div style="margin-top: 14px;">
-                @foreach (var item in Model.UpcomingItems)
+        @* ---------- Finance overview ---------- *@
+        <section class="ui-card dash-section" id="finance" data-reveal>
+            <div class="ui-card-head">
+                <div>
+                    <div class="ui-card-title">Finance Overview</div>
+                    <p class="ui-card-sub">Spend, budget and bKash payment activity across your campaigns.</p>
+                </div>
+                <a href="/Payments" class="ui-card-link">Open finance <i class="bi bi-arrow-right"></i></a>
+            </div>
+
+            <div class="finance-panel">
+                <div>
+                    <div class="finance-kicker">Spent so far</div>
+                    <div class="finance-spend-value">@Money(Model.TotalSpend)</div>
+                    @if (Model.TotalBudget > 0)
+                    {
+                        <div class="finance-spend-of">of @Money(Model.TotalBudget) budgeted &middot; <strong>@budgetPercent%</strong> used</div>
+                        <div class="dash-progress"><span data-fill-to="@budgetPercent"></span></div>
+                    }
+                    else
+                    {
+                        <div class="finance-spend-of">Set a campaign budget to start tracking spend.</div>
+                    }
+
+                    <div class="finance-substats">
+                        <div class="finance-substat">
+                            <span class="icon-chip sm amber" aria-hidden="true"><i class="bi bi-hourglass-split"></i></span>
+                            <span>Pending payments</span>
+                            <strong>@Money(Model.PendingPaymentsAmount)</strong>
+                        </div>
+                        <div class="finance-substat">
+                            <span class="icon-chip sm violet" aria-hidden="true"><i class="bi bi-check2-circle"></i></span>
+                            <span>Paid out to creators</span>
+                            <strong>@Money(Model.CompletedPaymentsAmount)</strong>
+                        </div>
+                        <div class="finance-substat">
+                            <span class="icon-chip sm blue" aria-hidden="true"><i class="bi bi-piggy-bank"></i></span>
+                            <span>Budget remaining</span>
+                            <strong>@Money(remainingBudget)</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="finance-chart-wrap">
+                    <div class="finance-chart-title">Monthly spend <small>Completed payments &middot; last 6 months</small></div>
+                    <div class="finance-chart">
+                        @foreach (var point in Model.SpendByMonth)
+                        {
+                            var pct = maxSpend > 0 ? (int)Math.Round((double)(point.Amount / maxSpend * 100)) : 0;
+                            <div class="finance-chart-col" title="@point.Month: @Money(point.Amount)">
+                                <div class="finance-chart-bar-track">
+                                    <div class="finance-chart-bar-fill" data-fill-height-to="@pct"></div>
+                                </div>
+                                <div class="finance-chart-label">@point.Month</div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        @* ---------- Smart Match ---------- *@
+        <section class="dash-section" id="smart-match" data-reveal>
+            <div class="smart-match-panel">
+                <div class="smart-match-head">
+                    <div>
+                        <div class="smart-match-eyebrow"><i class="bi bi-stars"></i> Signature Feature</div>
+                        <div class="smart-match-title">Smart Match</div>
+                        <p class="smart-match-sub">
+                            Rule-based creator matching against your campaign's platform, niche and engagement criteria &mdash; fully transparent, never a black box.
+                        </p>
+                    </div>
+                    @if (Model.SmartMatchCampaign is not null)
+                    {
+                        <a href="/Influencers/SmartMatch?campaignId=@Model.SmartMatchCampaign.Id" class="smart-match-link">View full match <i class="bi bi-arrow-right"></i></a>
+                    }
+                </div>
+
+                @if (Model.SmartMatchCampaign is not null && Model.SmartMatchPreview.Count > 0)
                 {
-                    <a href="@item.LinkUrl" class="list-row">
-                        <div class="list-row-date">
-                            @item.Date.Day
-                            <span class="list-row-date-month">@item.Date.ToString("MMM")</span>
+                    <div class="smart-match-list">
+                        @foreach (var result in Model.SmartMatchPreview)
+                        {
+                            <a href="/Influencers/Profile/@result.Creator.Id" class="smart-match-row">
+                                <div class="match-score" style="--score: @result.Score;">
+                                    <div class="match-score-inner">@result.Score%</div>
+                                </div>
+                                <div class="match-body">
+                                    <div class="match-name">@result.Creator.FullName <small>&middot; for "@Model.SmartMatchCampaign.Title"</small></div>
+                                    <div class="match-reasons">
+                                        @foreach (var reason in result.Reasons)
+                                        {
+                                            <span><i class="bi bi-check2"></i> @reason</span>
+                                        }
+                                    </div>
+                                </div>
+                                <i class="bi bi-arrow-right" aria-hidden="true"></i>
+                            </a>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="smart-match-empty">
+                        <span class="icon-chip" aria-hidden="true"><i class="bi bi-stars"></i></span>
+                        <div>
+                            <strong>No matches to show yet</strong>
+                            <p>Set a platform or niche on a published campaign, and Smart Match will surface the creators who fit it best.</p>
                         </div>
-                        <div class="list-row-body">
-                            <div class="list-row-title">@item.Title</div>
-                            <div class="list-row-kind">@item.Kind</div>
-                        </div>
-                    </a>
+                    </div>
                 }
             </div>
-        }
-        else
-        {
-            <div class="empty-block" style="margin-top: 14px;">
-                <div class="empty-title">Nothing scheduled</div>
-                <p class="empty-text">Campaign deadlines and milestone due dates will appear here as you set them.</p>
+        </section>
+
+        @* ---------- Discover creators ---------- *@
+        <section class="ui-card dash-section" id="discover" data-reveal>
+            <div class="ui-card-head">
+                <div>
+                    <div class="ui-card-title">Discover Creators</div>
+                    <p class="ui-card-sub">Fresh profiles from the Brandora creator marketplace you haven't shortlisted yet.</p>
+                </div>
+                <a href="/Influencers" class="ui-card-link">Browse all creators <i class="bi bi-arrow-right"></i></a>
             </div>
-        }
-    </div>
 
-    <div class="list-panel">
-        <div class="panel-title">Recent Activity</div>
-        <div class="panel-sub">A quick look at what has changed across your campaigns and creator collaborations.</div>
+            @if (Model.CreatorPreview.Count > 0)
+            {
+                <div class="creator-preview-row">
+                    @foreach (var creator in Model.CreatorPreview)
+                    {
+                        var hue = (creator.Id * 47) % 360;
+                        var hue2 = (hue + 50) % 360;
+                        <div class="mini-creator-card">
 
-        @if (Model.RecentActivity.Count > 0)
-        {
-            <div style="margin-top: 14px;">
-                @foreach (var activity in Model.RecentActivity)
-                {
-                    <a href="/Notifications/Open/@activity.Id" class="list-row">
-                        <span class="activity-dot"></span>
-                        <div class="list-row-body">
-                            <div class="list-row-title">@activity.Title</div>
-                            <div class="list-row-kind">@activity.Body</div>
+                            <div class="mini-creator-head">
+                                <div class="creator-avatar" style="width:44px;height:44px;font-size:14px;background: linear-gradient(135deg, hsl(@(hue)deg 75% 58%), hsl(@(hue2)deg 75% 48%));">
+                                    @FollowerFormat.InitialsOf(creator.FullName)
+                                </div>
+                                <div>
+                                    <div class="mini-creator-name">
+                                        <span>@creator.FullName</span>
+                                        @if (creator.Verified)
+                                        {
+                                            <span class="verified-badge"><i class="bi bi-patch-check-fill"></i> Verified</span>
+                                        }
+                                    </div>
+                                    <div class="mini-creator-handle">@creator.PrimaryPlatform &middot; @creator.ContentNiche</div>
+                                </div>
+                            </div>
+
+                            <div class="mini-creator-figures">
+                                <div>
+                                    <div class="mini-figure-value">@FollowerFormat.Format(creator.Followers)</div>
+                                    <div class="mini-figure-label">Followers</div>
+                                </div>
+                                <div>
+                                    <div class="mini-figure-value">@creator.EngagementRate.ToString("0.0")%</div>
+                                    <div class="mini-figure-label">Engagement</div>
+                                </div>
+                            </div>
+
+                            <div class="mini-creator-actions">
+                                <a href="/Influencers/Profile/@creator.Id" class="mini-action-btn"><i class="bi bi-person"></i> Profile</a>
+
+                                <form method="post" action="/Influencers/ToggleShortlist">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="influencerId" value="@creator.Id" />
+                                    <input type="hidden" name="returnUrl" value="/Dashboard" />
+                                    <button type="submit" class="mini-action-btn @(Model.IsShortlisted(creator.Id) ? "is-saved" : "")" style="width:100%;">
+                                        <i class="bi @(Model.IsShortlisted(creator.Id) ? "bi-bookmark-fill" : "bi-bookmark")"></i>
+                                        @(Model.IsShortlisted(creator.Id) ? "Saved" : "Shortlist")
+                                    </button>
+                                </form>
+
+                                <a href="/Proposals/Invite?influencerId=@creator.Id" class="mini-action-btn is-primary"><i class="bi bi-send"></i> Invite</a>
+                            </div>
+
                         </div>
-                        <span class="activity-row-time">@activity.CreatedAt.ToString("MMM d")</span>
-                    </a>
-                }
-            </div>
-        }
-        else
-        {
-            <div class="empty-block" style="margin-top: 14px;">
-                <div class="empty-title">No activity yet</div>
-                <p class="empty-text">Proposals, milestones, and payments will show up here as they happen.</p>
-            </div>
-        }
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="dash-empty">
+                    <span class="icon-chip lg soft"><i class="bi bi-person-plus"></i></span>
+                    <strong>No new creators to show</strong>
+                    <p>Once more influencers join Brandora, fresh profiles will appear here for you to discover and shortlist.</p>
+                    <a href="/Influencers/Shortlist" class="btn btn-secondary">View Your Shortlist</a>
+                </div>
+            }
+        </section>
+
     </div>
 
+    <aside class="page-rail">
+
+        @* ---------- Next up ---------- *@
+        <section class="ui-card dash-section" id="next-up" data-reveal>
+            <div class="ui-card-head" style="margin-bottom:6px;">
+                <div>
+                    <div class="ui-card-title rail-title">Next Up</div>
+                    <p class="ui-card-sub">Deadlines and milestones ahead.</p>
+                </div>
+                <span class="icon-chip sm soft" aria-hidden="true"><i class="bi bi-calendar3"></i></span>
+            </div>
+
+            @if (Model.UpcomingItems.Count > 0)
+            {
+                <div class="rail-list">
+                    @foreach (var item in Model.UpcomingItems)
+                    {
+                        var style = KindStyle(item.Kind);
+                        <a href="@item.LinkUrl" class="rail-row">
+                            <span class="date-tile">@item.Date.Day<small>@item.Date.ToString("MMM")</small></span>
+                            <div class="rail-row-body">
+                                <div class="rail-row-title">@item.Title</div>
+                                <div class="rail-row-meta"><span class="ui-badge @style.Badge"><i class="bi @style.Icon"></i> @style.Label</span></div>
+                            </div>
+                            <i class="bi bi-chevron-right" aria-hidden="true"></i>
+                        </a>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="rail-empty">
+                    <span class="icon-chip sm soft" aria-hidden="true"><i class="bi bi-calendar-check"></i></span>
+                    <span>Nothing scheduled. Campaign deadlines and milestone due dates appear here as you set them.</span>
+                </div>
+            }
+        </section>
+
+        @* ---------- Quick actions ---------- *@
+        <section class="ui-card dash-section" data-reveal>
+            <div class="ui-card-head" style="margin-bottom:6px;">
+                <div class="ui-card-title rail-title">Quick Actions</div>
+            </div>
+            <div class="rail-list">
+                <a href="/Campaigns/Create" class="rail-row">
+                    <span class="icon-chip sm violet" aria-hidden="true"><i class="bi bi-plus-lg"></i></span>
+                    <div class="rail-row-body"><div class="rail-row-title">Create a campaign</div><div class="rail-row-text">Brief, budget and milestones in four steps</div></div>
+                    <i class="bi bi-chevron-right" aria-hidden="true"></i>
+                </a>
+                <a href="/Influencers" class="rail-row">
+                    <span class="icon-chip sm blue" aria-hidden="true"><i class="bi bi-search"></i></span>
+                    <div class="rail-row-body"><div class="rail-row-title">Find influencers</div><div class="rail-row-text">Filter by platform, niche and reach</div></div>
+                    <i class="bi bi-chevron-right" aria-hidden="true"></i>
+                </a>
+                <a href="/Proposals" class="rail-row">
+                    <span class="icon-chip sm cyan" aria-hidden="true"><i class="bi bi-envelope-paper"></i></span>
+                    <div class="rail-row-body"><div class="rail-row-title">Review proposals</div><div class="rail-row-text">@Plural(Model.PendingProposalCount, "proposal") awaiting you</div></div>
+                    <i class="bi bi-chevron-right" aria-hidden="true"></i>
+                </a>
+                <a href="/Collaborations" class="rail-row">
+                    <span class="icon-chip sm soft" aria-hidden="true"><i class="bi bi-people"></i></span>
+                    <div class="rail-row-body"><div class="rail-row-title">Manage collaborations</div><div class="rail-row-text">@Plural(Model.ActiveCollaborationCount, "active collaboration")</div></div>
+                    <i class="bi bi-chevron-right" aria-hidden="true"></i>
+                </a>
+                <a href="/Payments" class="rail-row">
+                    <span class="icon-chip sm pink" aria-hidden="true"><i class="bi bi-wallet2"></i></span>
+                    <div class="rail-row-body"><div class="rail-row-title">Payments &amp; finance</div><div class="rail-row-text">@Money(Model.PendingPaymentsAmount) pending &middot; @Money(Model.CompletedPaymentsAmount) paid</div></div>
+                    <i class="bi bi-chevron-right" aria-hidden="true"></i>
+                </a>
+            </div>
+        </section>
+
+        @* ---------- How campaigns work ---------- *@
+        <section class="info-card dash-section" data-reveal>
+            <div class="info-card-head">
+                <span class="icon-chip soft" aria-hidden="true"><i class="bi bi-signpost-2"></i></span>
+                <div class="info-card-title">How campaigns work on Brandora</div>
+            </div>
+            <ol class="next-steps">
+                @for (var i = 0; i < journey.Count; i++)
+                {
+                    var step = journey[i];
+                    <li class="@(step.Done ? "is-done" : i == currentStep ? "is-current" : "")">
+                        <h4>@step.Title</h4>
+                        <p>@step.Text</p>
+                    </li>
+                }
+            </ol>
+        </section>
+
+        @* ---------- Recent activity ---------- *@
+        <section class="ui-card dash-section" id="recent-activity" data-reveal>
+            <div class="ui-card-head" style="margin-bottom:6px;">
+                <div>
+                    <div class="ui-card-title rail-title">Recent Activity</div>
+                    <p class="ui-card-sub">What changed across your campaigns.</p>
+                </div>
+                <a href="/Notifications" class="ui-card-link">All <i class="bi bi-arrow-right"></i></a>
+            </div>
+
+            @if (Model.RecentActivity.Count > 0)
+            {
+                <div class="rail-list">
+                    @foreach (var activity in Model.RecentActivity)
+                    {
+                        <a href="/Notifications/Open/@activity.Id" class="rail-row">
+                            <span class="icon-chip sm soft" aria-hidden="true"><i class="bi bi-bell"></i></span>
+                            <div class="rail-row-body">
+                                <div class="rail-row-title">@activity.Title</div>
+                                <div class="rail-row-text">@activity.Body</div>
+                            </div>
+                            <span class="activity-time">@activity.CreatedAt.ToString("MMM d")</span>
+                        </a>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="rail-empty">
+                    <span class="icon-chip sm soft" aria-hidden="true"><i class="bi bi-clock-history"></i></span>
+                    <span>No activity yet. Proposals, milestones and payments show up here as they happen.</span>
+                </div>
+            }
+        </section>
+
+        @* ---------- Tips ---------- *@
+        <section class="ui-card dash-section" data-reveal>
+            <div class="ui-card-head" style="margin-bottom:0;">
+                <div class="ui-card-title rail-title">Tips for Better Campaigns</div>
+                <span class="icon-chip sm violet" aria-hidden="true"><i class="bi bi-lightbulb"></i></span>
+            </div>
+            <ul class="check-list">
+                <li><i class="bi bi-check-circle-fill"></i> Set a platform and niche so Smart Match can rank creators for you.</li>
+                <li><i class="bi bi-check-circle-fill"></i> Split deliverables into milestones with clear due dates.</li>
+                <li><i class="bi bi-check-circle-fill"></i> Shortlist a few creators and compare reach and engagement side by side.</li>
+                <li><i class="bi bi-check-circle-fill"></i> Review submitted proof promptly so creators get paid on time.</li>
+            </ul>
+        </section>
+
+        @* ---------- FAQ ---------- *@
+        <section class="ui-card dash-section" data-reveal>
+            <div class="ui-card-head" style="margin-bottom:2px;">
+                <div class="ui-card-title rail-title">Frequently Asked Questions</div>
+            </div>
+            <div class="faq-list">
+                <details>
+                    <summary>How do creators join my campaign?<i class="bi bi-chevron-right"></i></summary>
+                    <p>Once published, a campaign is open to creator applications. You can also invite creators directly from their profile. Each application or invite becomes a proposal you confirm or decline.</p>
+                </details>
+                <details>
+                    <summary>What happens when I accept a proposal?<i class="bi bi-chevron-right"></i></summary>
+                    <p>Accepting starts an active collaboration with that creator. You then track each deliverable as a milestone with its own amount and due date.</p>
+                </details>
+                <details>
+                    <summary>When do I pay a creator?<i class="bi bi-chevron-right"></i></summary>
+                    <p>Only after a milestone's proof of post has been approved. You then release the payment and complete it through bKash checkout. Nothing is charged before you confirm.</p>
+                </details>
+                <details>
+                    <summary>How does Smart Match score creators?<i class="bi bi-chevron-right"></i></summary>
+                    <p>It compares each creator with your campaign's platform, niche and engagement criteria and shows the reasons behind every score. There's no hidden ranking.</p>
+                </details>
+                <details>
+                    <summary>Can I edit a campaign after publishing?<i class="bi bi-chevron-right"></i></summary>
+                    <p>Yes. Open the campaign from Campaigns to update its details, targeting or milestone plan, or to change its status.</p>
+                </details>
+            </div>
+        </section>
+
+        @* ---------- Need help ---------- *@
+        <section class="help-card">
+            <h3>Need Help?</h3>
+            <p>Questions about a campaign, a creator or a payment? Our support team is here to help.</p>
+            <a href="/Home/Contact">Contact Support <i class="bi bi-arrow-right"></i></a>
+            <svg viewBox="0 0 400 170" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="dashboard-help-wave" x1="0" y1="1" x2="1" y2="0"><stop stop-color="#0955ca" stop-opacity="0"/><stop offset=".65" stop-color="#168cff" stop-opacity=".5"/><stop offset="1" stop-color="#783dff" stop-opacity=".15"/></linearGradient></defs><path d="M-20 160 C100 50 140 220 260 105 S350 85 420 20 L420 190 H-20Z" fill="url(#dashboard-help-wave)"/><path d="M-20 164 C110 90 140 230 270 120 S360 70 420 40" fill="none" stroke="#2799ff" stroke-opacity=".4"/></svg>
+        </section>
+
+    </aside>
+
+</div>
+
+<section class="cta-banner dash-cta">
+    <div>
+        <h3>Find creators who fit your next campaign</h3>
+        <p>Browse creators by platform, niche, followers and engagement &mdash; then shortlist or invite them in a click.</p>
+    </div>
+    <div class="dash-cta-actions">
+        <a href="/Campaigns/Create" class="is-quiet"><i class="bi bi-plus-lg"></i> Create Campaign</a>
+        <a href="/Influencers">Discover Creators <i class="bi bi-arrow-right"></i></a>
+    </div>
 </section>
 
 @section Scripts {
     <script>
         (function () {
             var revealEls = document.querySelectorAll('[data-reveal]');
-            var fillHeightEls = document.querySelectorAll('[data-fill-height-to]');
 
             function runFillHeights(scope) {
                 scope.querySelectorAll('[data-fill-height-to]').forEach(function (el) {

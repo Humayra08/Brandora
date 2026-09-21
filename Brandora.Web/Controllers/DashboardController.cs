@@ -132,10 +132,13 @@ public class DashboardController(UserManager<ApplicationUser> userManager, Appli
             attentionItems.Add(new AttentionItem
             {
                 Kind = "Payment",
-                Title = $"Confirm payment to {payment.Collaboration.InfluencerProfile.FullName}",
-                Detail = $"৳{payment.Amount:N0} · transfer initiated",
-                LinkUrl = "/Payments",
-                ActionLabel = "Confirm"
+                Title = $"Pay {payment.Collaboration.InfluencerProfile.FullName} via bKash",
+                Detail = $"৳{payment.Amount:N0} · released, awaiting payment",
+                // The actual "Pay with bKash" action lives on the milestone detail page,
+                // not on /Payments (a read-only transaction ledger) — this must be the
+                // Milestone this Payment was created for, since Release always sets it.
+                LinkUrl = payment.MilestoneId is not null ? $"/Milestones/Detail/{payment.MilestoneId}" : "/Payments",
+                ActionLabel = "Pay Now"
             });
         }
 

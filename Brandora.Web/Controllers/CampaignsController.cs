@@ -568,6 +568,9 @@ public class CampaignsController(UserManager<ApplicationUser> userManager, Appli
         return RedirectToAction("Detail", new { id });
     }
 
+    // Only the exact transitions the UI ever offers are accepted server-side — never an
+    // arbitrary CampaignStatus value straight from the request (e.g. jumping Draft
+    // straight to Completed, or reverting Completed back to Active).
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> UpdateStatus(int id, CampaignStatus status)
@@ -582,6 +585,16 @@ public class CampaignsController(UserManager<ApplicationUser> userManager, Appli
         if (campaign is null)
         {
             return NotFound();
+        }
+
+        var allowed =
+            (campaign.Status == CampaignStatus.Published && status == CampaignStatus.Active) ||
+            (campaign.Status == CampaignStatus.Active && status == CampaignStatus.Completed) ||
+            (status == CampaignStatus.Cancelled && campaign.Status is not (CampaignStatus.Completed or CampaignStatus.Cancelled));
+
+        if (!allowed)
+        {
+            return RedirectToAction("Detail", new { id });
         }
 
         campaign.Status = status;

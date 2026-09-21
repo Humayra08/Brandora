@@ -4,312 +4,445 @@
     ViewData["ActiveNav"] = "Campaigns";
     Layout = "_AppLayout";
     var campaign = Model.Campaign;
+
+    var platforms = (campaign.Platform ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+    var plannedPct = campaign.Budget > 0 ? (int)Math.Round(Math.Min(100, (double)(Model.TotalPlanned / campaign.Budget * 100))) : 0;
+
+    // Campaign wizard steps, in the order the controller actually walks them.
+    var wizardSteps = new[]
+    {
+        (Title: "Campaign Details", Sub: "Basic information"),
+        (Title: "Milestones", Sub: "Set deliverables"),
+        (Title: "Targeting", Sub: "Find the right creators"),
+        (Title: "Review & Publish", Sub: "Final check")
+    };
+    var currentStep = 3;
+
+    // Real pre-publish checks, each derived from the saved campaign.
+    var checks = new[]
+    {
+        (Ok: true, Text: "Campaign details are complete"),
+        (Ok: campaign.Budget > 0, Text: "Budget is set"),
+        (Ok: !Model.OverBudget, Text: Model.OverBudget ? "Milestone total is over budget" : "Milestone total is within budget"),
+        (Ok: true, Text: Model.MilestonePlans.Count > 0 ? $"{Model.MilestonePlans.Count} milestone{(Model.MilestonePlans.Count == 1 ? "" : "s")} planned" : "Milestone planning skipped (optional)"),
+        (Ok: true, Text: Model.HasTargeting ? "Targeting preferences are set" : "Open to all creators (no targeting set)")
+    };
+
+    var faqs = new[]
+    {
+        ("Who can see my campaign after publishing?", "Creators on Brandora can discover it and send proposals while it's Published or Active and before its end date."),
+        ("Can I edit it after publishing?", "Yes. Details, budget, dates, creative, milestones and targeting can all be changed later from the campaign's page."),
+        ("What if I'm not ready yet?", "Just leave. The campaign stays as a draft in your Campaigns list, and you can come back to publish it any time."),
+        ("Why is Publish disabled?", "Tick the confirmation box first. If your milestone plan adds up to more than the budget, fix that before you can publish."),
+        ("What happens when a creator applies?", "You'll see their proposal under Applications. Accept and confirm it to start a collaboration — your milestone plan is copied into it automatically.")
+    };
 }
 
 @section Styles {
 
-    .wizard-shell { max-width: 1100px; margin: 0 auto; animation: fade-up .4s ease both; }
+    /* ---- Campaign wizard: shared form system (same on all four steps) ---- */
+    .cf-flow { margin: 0 0 16px; }
+    .cf-body { align-items: start; }
+    .cf-main { display: grid; gap: 16px; align-content: start; min-width: 0; }
 
-    /* Hero — shared .page-hero component (see _AppLayout.cshtml). */
+    .cf-section { transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease; }
+    .cf-section:hover { border-color: #b9d3ff; box-shadow: 0 12px 26px #5b83c414; }
+    .cf-section:focus-within { border-color: #a9c9ff; box-shadow: 0 14px 30px #5b83c41f; }
 
-    .wizard-stepper { margin-top: 18px; padding: 18px 26px; display: flex; align-items: flex-start; border-radius: 16px; background: #ffffff; border: 1px solid #eaecf5; }
-    .wizard-step { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
-    .wizard-step-circle { width: 32px; height: 32px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: #eef0f8; color: #9096b3; font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 700; transition: .2s; }
-    .wizard-step.is-done .wizard-step-circle { background: linear-gradient(105deg, #a326ff, #236eff, #18a9ff); color: #ffffff; }
-    .wizard-step.is-current .wizard-step-circle { background: #ffffff; border: 2px solid #a326ff; color: #a326ff; box-shadow: 0 0 0 4px rgba(163,38,255,.12); }
-    .wizard-step-text { display: flex; flex-direction: column; }
-    .wizard-step-text strong { font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 700; color: #9096b3; }
-    .wizard-step.is-done .wizard-step-text strong, .wizard-step.is-current .wizard-step-text strong { color: #171d3d; }
-    .wizard-step-text span { margin-top: 1px; font-family: 'Inter', sans-serif; font-size: 10.5px; color: #9096b3; }
-    .wizard-step-line { flex: 1; height: 2px; margin: 15px 14px 0; background: #e8eaf5; }
-    .wizard-step-line.is-done { background: linear-gradient(90deg, #a326ff, #236eff); }
+    .cf-head { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 18px; }
+    .cf-head-main { flex: 1; min-width: 0; }
+    .cf-num { display: grid; place-items: center; flex-shrink: 0; width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(130deg, #8a12ff, #0759ff 60%, #00b4ff); box-shadow: inset 0 1px 3px #ffffff60, 0 6px 14px #3b4dff2e; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 700; color: #ffffff; }
+    .cf-title { font: 600 19px/1.3 'Playfair Display', Georgia, serif; letter-spacing: -.3px; color: #0b084e; }
+    .cf-title small { margin-left: 6px; font-family: 'Inter', sans-serif; font-size: 11.5px; font-weight: 500; letter-spacing: 0; color: #7b8fbf; }
+    .cf-sub { margin-top: 3px; font-family: 'Inter', sans-serif; font-size: 12px; line-height: 1.5; color: #5877ac; }
 
-    .wizard-columns { margin-top: 22px; display: grid; grid-template-columns: 1fr 320px; gap: 22px; align-items: start; }
-    .wizard-side { display: flex; flex-direction: column; gap: 18px; position: sticky; top: 20px; }
-    .wizard-side-card { padding: 22px; border-radius: 16px; background: #ffffff; border: 1px solid #eaecf5; }
-    .wizard-side-title { font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 14px; color: #171d3d; }
+    .cf-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 14px; }
+    .cf-fields.triple { grid-template-columns: 1fr 1fr 1fr; }
+    .cf-fields.single { grid-template-columns: 1fr; }
+    .cf-field { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
+    .cf-field.span-2 { grid-column: span 2; }
+    .cf-field.span-3 { grid-column: span 3; }
+    .cf-field > label { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; color: #33477c; }
+    .cf-field .char-count { font-weight: 500; font-size: 11px; color: #8095c4; }
 
-    .review-section { padding: 22px 24px; border-radius: 16px; background: #ffffff; border: 1px solid #eaecf5; }
-    .review-section + .review-section { margin-top: 16px; }
-    .review-section-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-    .review-section-title { font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 14.5px; color: #171d3d; display: flex; align-items: center; gap: 8px; }
-    .review-edit-link { font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; color: #6322d4; text-decoration: none; }
-    .review-edit-link:hover { text-decoration: underline; }
-
-    .review-grid { margin-top: 14px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px 24px; }
-    .review-field-label { font-family: 'Inter', sans-serif; font-size: 10.5px; font-weight: 600; letter-spacing: .3px; text-transform: uppercase; color: #9096b3; }
-    .review-field-value { margin-top: 3px; font-family: 'Inter', sans-serif; font-size: 13px; color: #171d3d; }
-    .review-field-value.full { grid-column: span 2; }
-
-    .mini-plan-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid #f0f1f7; font-family: 'Inter', sans-serif; font-size: 13px; }
-    .mini-plan-row:last-child { border-bottom: none; }
-    .mini-plan-title { color: #171d3d; font-weight: 600; }
-    .mini-plan-amount { color: #56617f; }
-
-    .empty-note { font-family: 'Inter', sans-serif; font-size: 12.5px; color: #9096b3; margin-top: 10px; }
-
-    .checklist { margin-top: 14px; display: flex; flex-direction: column; gap: 10px; }
-    .checklist-item { display: flex; align-items: center; gap: 10px; font-family: 'Inter', sans-serif; font-size: 13px; color: #3c4363; }
-    .checklist-mark { width: 20px; height: 20px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 11px; font-weight: 700; color: #fff; }
-    .checklist-mark.ok { background: #12c48b; }
-    .checklist-mark.warn { background: #e0507a; }
-
-    .confirm-row { margin-top: 16px; display: flex; align-items: flex-start; gap: 10px; padding: 14px 16px; border-radius: 12px; border: 1px solid #e2e5f2; background: #fbfbfe; }
-    .confirm-row input[type="checkbox"] { width: 18px; height: 18px; margin-top: 1px; accent-color: #9b2cff; }
-    .confirm-row label { font-family: 'Inter', sans-serif; font-size: 12.5px; color: #2a3157; line-height: 1.5; }
-
-    .over-budget-warning { margin-top: 12px; padding: 10px 14px; border-radius: 10px; background: #fdeef0; border: 1px solid #f4c6cd; font-family: 'Inter', sans-serif; font-size: 12.5px; color: #b3273f; }
-
-    .preview-card-banner { margin-top: 14px; aspect-ratio: 16/9; border-radius: 14px; overflow: hidden; }
-    .preview-card-banner img, .preview-card-banner video { width: 100%; height: 100%; object-fit: cover; display: block; }
-
-    .preview-card-head { margin-top: 14px; display: flex; align-items: center; gap: 12px; }
-    .preview-card-thumb {
-        flex-shrink: 0; width: 46px; height: 46px; border-radius: 12px; overflow: hidden;
-        background: linear-gradient(135deg, #7224ff, #3735ff 55%, #087fff);
-        display: flex; align-items: center; justify-content: center;
-        color: #ffffff; font-family: 'Playfair Display', serif; font-weight: 700; font-size: 18px;
-    }
-    .preview-card-thumb img, .preview-card-thumb video { width: 100%; height: 100%; object-fit: cover; }
-    .preview-card-title { font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 15px; color: #171d3d; line-height: 1.35; }
-    .preview-card-sub { margin-top: 2px; font-family: 'Inter', sans-serif; font-size: 11px; color: #9096b3; }
-
-    .preview-card-tags { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 6px; }
-
-    .preview-card-rows { margin-top: 14px; padding-top: 14px; border-top: 1px solid #f0f1f7; display: flex; flex-direction: column; gap: 9px; }
-    .preview-card-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-family: 'Inter', sans-serif; font-size: 12.5px; color: #6b7290; }
-    .preview-card-row strong { font-family: 'DM Sans', sans-serif; font-weight: 700; color: #171d3d; }
-
-    .preview-card-status {
-        margin-top: 14px; padding: 8px 12px; border-radius: 10px; text-align: center;
-        background: #e2faf1; color: #0d9c6c;
-        font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 700;
+    .cf-field input:not([type="checkbox"]):not([type="file"]),
+    .cf-field select,
+    .cf-field textarea {
+        width: 100%;
+        padding: 11px 13px;
+        border-radius: 10px;
+        border: 1px solid #d3e4ff;
+        background: #ffffffcc;
+        font-family: 'Inter', sans-serif;
+        font-size: 13px;
+        color: #20365f;
+        outline: none;
+        transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
     }
 
-    .status-note { display: flex; align-items: flex-start; gap: 8px; font-family: 'Inter', sans-serif; font-size: 12px; color: #3c4363; line-height: 1.5; margin-top: 10px; }
-    .status-note-mark { width: 16px; height: 16px; flex-shrink: 0; margin-top: 1px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: #e2faf1; color: #0d9c6c; font-size: 9px; font-weight: 700; }
+    .cf-field textarea { min-height: 112px; resize: vertical; line-height: 1.55; }
+    .cf-field ::placeholder { color: #7b8fbf; }
 
-    .tip-card { padding: 14px 16px; border-radius: 12px; background: linear-gradient(105deg, rgba(163,38,255,.06), rgba(24,169,255,.05)); border: 1px solid #e3d9ff; font-family: 'Inter', sans-serif; font-size: 12px; color: #56617f; line-height: 1.6; }
+    .cf-field input:focus,
+    .cf-field select:focus,
+    .cf-field textarea:focus { border-color: #8f7bff; background: #ffffff; box-shadow: 0 0 0 3px #7862ef22; }
 
-    .form-actions { margin-top: 22px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+    .cf-field select {
+        appearance: none;
+        -webkit-appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6' fill='none'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%235877ac' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 13px center;
+        padding-right: 34px;
+    }
 
-    @@media(max-width: 960px) { .wizard-columns { grid-template-columns: 1fr; } .wizard-side { position: static; } }
-    @@media(max-width: 700px) { .wizard-stepper { flex-wrap: wrap; gap: 12px 0; } .wizard-step-line { display: none; } .wizard-step-text span { display: none; } }
-    @@media(max-width: 600px) { .review-grid { grid-template-columns: 1fr; } .review-field-value.full { grid-column: span 1; } }
+    .cf-hint { display: flex; align-items: flex-start; gap: 6px; font-family: 'Inter', sans-serif; font-size: 11px; line-height: 1.5; color: #6b7fb1; }
+    .cf-hint i { margin-top: 1px; color: #5b4dff; }
+
+    .cf-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 18px; border-radius: 12px; border: 1px solid #cfe2ff; background: linear-gradient(135deg, #ffffffbd, #f5faff8c 55%, #fafdffd9); box-shadow: inset 0 1px 2px #fff, 0 3px 10px #6f9bce07; animation: fade-up .5s ease both; }
+    .cf-actions-note { font-family: 'Inter', sans-serif; font-size: 11.5px; color: #5877ac; }
+    .cf-actions-buttons { display: flex; flex-wrap: wrap; gap: 10px; margin-left: auto; }
+    .cf-actions .btn { height: 44px; }
+    .cf-actions .btn i { transition: transform .2s ease; }
+    .cf-actions .btn:hover .bi-arrow-right { transform: translateX(3px); }
+    .cf-actions .btn:hover .bi-arrow-left { transform: translateX(-3px); }
+
+    .cf-rail-title { font-size: 17px !important; }
+    .cf-note { margin-top: 12px; padding: 10px 12px; border-radius: 9px; background: #eef4ffbd; border: 1px solid #dfe9ff; font-family: 'Inter', sans-serif; font-size: 11.5px; line-height: 1.5; color: #33477c; }
+    .cf-note i { color: #1451ff; }
+    .cf-bar { margin-top: 10px; height: 7px; border-radius: 7px; background: #e3edfc; overflow: hidden; }
+    .cf-bar-fill { width: 0; height: 100%; border-radius: 7px; background: linear-gradient(110deg, #6323ff, #0759ff); transition: width 1s cubic-bezier(.22,1,.36,1); }
+    .cf-bar-fill.is-over { background: linear-gradient(105deg, #ff4d6b, #d6234a); }
+    .cf-big { font-family: 'DM Sans', sans-serif; font-size: 26px; font-weight: 700; color: #101d48; }
+    .cf-big small { font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 500; color: #5877ac; }
+
+    @@media(max-width: 700px) {
+        .cf-fields, .cf-fields.triple { grid-template-columns: 1fr; }
+        .cf-field.span-2, .cf-field.span-3 { grid-column: span 1; }
+        .cf-actions-buttons { margin-left: 0; width: 100%; }
+    }
+    /* ---- Step 4 specifics ---- */
+    .rv-rows dd { white-space: pre-wrap; }
+
+    .mini-plan-list { display: grid; gap: 8px; }
+    .mini-plan-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 10px; border: 1px solid #e3edfc; background: #ffffff8c; transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease; }
+    .mini-plan-row:hover { transform: translateY(-2px); border-color: #b9d3ff; box-shadow: 0 10px 20px #5b83c41a; }
+    .mini-plan-num { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(130deg, #8a12ff, #0759ff 60%, #00b4ff); font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 700; color: #ffffff; }
+    .mini-plan-title { font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 700; color: #101d48; overflow-wrap: anywhere; }
+    .mini-plan-meta { margin-top: 2px; font-family: 'Inter', sans-serif; font-size: 11px; color: #5877ac; }
+    .mini-plan-amount { font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 700; color: #0b124e; white-space: nowrap; }
+
+    .plan-total { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; padding: 12px 14px; border-radius: 10px; border: 1px solid #dfebff; background: #f7faffb3; font-family: 'Inter', sans-serif; font-size: 12px; color: #5877ac; }
+    .plan-total strong { font-family: 'DM Sans', sans-serif; font-size: 15px; color: #101d48; }
+    .plan-total strong.is-over { color: #c22540; }
+
+    .rv-empty { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border: 1px dashed #cfdcf5; border-radius: 12px; background: #f7faffb3; font-family: 'Inter', sans-serif; font-size: 12.5px; line-height: 1.5; color: #52649b; }
+
+    .match-note { display: flex; align-items: center; gap: 12px; margin-top: 14px; padding: 12px 14px; border-radius: 10px; border: 1px solid #dfe9ff; background: #eef4ffbd; font-family: 'Inter', sans-serif; font-size: 12.5px; color: #33477c; }
+    .match-note strong { font-family: 'DM Sans', sans-serif; font-size: 17px; color: #101d48; }
+
+    .confirm-row { display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px; border-radius: 10px; border: 1px solid #d3e4ff; background: #ffffffcc; transition: border-color .2s ease, box-shadow .2s ease; }
+    .confirm-row:has(input:checked) { border-color: #8f7bff; box-shadow: 0 0 0 3px #7862ef1a; }
+    .confirm-row input[type="checkbox"] { width: 18px; height: 18px; margin-top: 1px; accent-color: #5b3df0; flex-shrink: 0; }
+    .confirm-row label { cursor: pointer; font-family: 'Inter', sans-serif; font-size: 12.5px; line-height: 1.5; color: #33477c; }
+
+    .cf-actions .btn-primary:disabled { opacity: .5; cursor: not-allowed; transform: none; box-shadow: none; }
+    .rv-footnote { margin: 4px 0 0; text-align: center; font-family: 'Inter', sans-serif; font-size: 12px; color: #6b7fb1; }
+
+    /* Creator-facing preview (rail) */
+    .preview-card-banner { overflow: hidden; aspect-ratio: 16 / 9; margin-bottom: 14px; border-radius: 12px; border: 1px solid #dfebfc; }
+    .preview-card-banner img, .preview-card-banner video { display: block; width: 100%; height: 100%; object-fit: cover; }
+    .preview-card-head { display: flex; align-items: center; gap: 12px; }
+    .preview-card-thumb { display: grid; place-items: center; flex-shrink: 0; width: 46px; height: 46px; border-radius: 12px; background: linear-gradient(135deg, #7224ff, #3735ff 55%, #087fff); box-shadow: 0 6px 14px #3a2bb026; font-family: 'Playfair Display', serif; font-size: 18px; font-weight: 700; color: #ffffff; }
+    .preview-card-title { font: 600 16px/1.3 'Playfair Display', Georgia, serif; color: #0b084e; overflow-wrap: anywhere; }
+    .preview-card-sub { margin-top: 2px; font-family: 'Inter', sans-serif; font-size: 11px; color: #5877ac; }
+    .preview-card-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+    .check-list li.is-warn i { color: #c22540; }
 
 }
 
-<div class="wizard-shell">
+<a href="/Campaigns/Targeting/@campaign.Id" class="back-to-dashboard">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    Back
+</a>
 
-    <section class="page-hero">
-        @await Html.PartialAsync("_HeroWaves")
-        <div class="page-hero-intro">
-            <p class="page-hero-eyebrow">Create Campaign</p>
-            <h1 class="page-hero-title">Review &amp; <span>Publish</span></h1>
-            <p class="page-hero-sub">Everything looks great! Review your campaign details and publish it to start receiving applications from creators.</p>
-        </div>
-
-        <div class="page-hero-art" aria-hidden="true">
-            <div class="hero-glass hero-glass-back"></div>
-            <div class="hero-glass hero-glass-front">
-                <span class="hero-glass-copy">Ideas<br />Collaborations<br />Real Impact<span></span></span>
-            </div>
-            <span class="hero-sparkle"></span>
-        </div>
-
-        <div class="page-hero-motto">Launch Today.<br />Grow Tomorrow.<span></span></div>
-    </section>
-
-    <div class="wizard-stepper">
-        <div class="wizard-step is-done"><div class="wizard-step-circle">✓</div><div class="wizard-step-text"><strong>Campaign Details</strong><span>Basic information</span></div></div>
-        <div class="wizard-step-line is-done"></div>
-        <div class="wizard-step is-done"><div class="wizard-step-circle">✓</div><div class="wizard-step-text"><strong>Milestones</strong><span>Set deliverables</span></div></div>
-        <div class="wizard-step-line is-done"></div>
-        <div class="wizard-step is-done"><div class="wizard-step-circle">✓</div><div class="wizard-step-text"><strong>Targeting</strong><span>Find the right creators</span></div></div>
-        <div class="wizard-step-line is-done"></div>
-        <div class="wizard-step is-current"><div class="wizard-step-circle">4</div><div class="wizard-step-text"><strong>Review &amp; Publish</strong><span>Final check</span></div></div>
+<section class="page-hero">
+    @await Html.PartialAsync("_HeroWaves")
+    <div class="page-hero-intro">
+        <p class="page-hero-eyebrow">Create Campaign &middot; Step 4 of 4</p>
+        <h1 class="page-hero-title">Review &amp; <span>Publish</span></h1>
+        <p class="page-hero-sub">Check everything below, then publish to start receiving proposals from creators.</p>
+        <dl class="page-hero-stats">
+            <div><dd>৳@campaign.Budget.ToString("N0")</dd><dt>Budget</dt></div>
+            <div><dd>@Model.MilestonePlans.Count</dd><dt>Milestones</dt></div>
+            <div><dd>@(Model.MatchingCreatorCount?.ToString() ?? "All")</dd><dt>Matching creators</dt></div>
+        </dl>
     </div>
 
-    <form method="post" action="/Campaigns/Publish/@campaign.Id" id="publishForm">
-        @Html.AntiForgeryToken()
+    <div class="page-hero-art" aria-hidden="true">
+        <div class="hero-glass hero-glass-back"></div>
+        <div class="hero-glass hero-glass-front">
+            <span class="hero-glass-copy">Ideas<br />Collaborations<br />Real Impact<span></span></span>
+        </div>
+        <span class="hero-sparkle"></span>
+    </div>
 
-        <div class="wizard-columns">
+    <div class="page-hero-motto">Launch Today.<br />Grow Tomorrow.<span></span></div>
+</section>
 
-            <div>
-                <div class="review-section">
-                    <div class="review-section-head">
-                        <div class="review-section-title">Campaign Details</div>
-                        <a href="/Campaigns/Edit/@campaign.Id" class="review-edit-link">Edit</a>
+<ol class="flow-steps cf-flow" aria-label="Campaign setup progress">
+    @for (var i = 0; i < wizardSteps.Length; i++)
+    {
+        var step = wizardSteps[i];
+        <li class="@(i < currentStep ? "is-done" : i == currentStep ? "is-current" : "")" aria-current="@(i == currentStep ? "step" : null)">
+            <span class="flow-step-num">@if (i < currentStep) { <i class="bi bi-check-lg"></i> } else { @(i + 1) }</span>
+            <div><strong>@step.Title</strong><small>@step.Sub</small></div>
+        </li>
+    }
+</ol>
+
+@if (Model.OverBudget)
+{
+    <div class="notice is-error" role="alert"><i class="bi bi-exclamation-circle-fill"></i><span>Your planned milestones (৳@Model.TotalPlanned.ToString("N0")) exceed the campaign budget (৳@campaign.Budget.ToString("N0")). Fix this before publishing.</span></div>
+}
+
+<form method="post" action="/Campaigns/Publish/@campaign.Id" id="publishForm">
+    @Html.AntiForgeryToken()
+
+    <div class="page-grid cf-body">
+
+        <div class="cf-main">
+
+            <section class="ui-card cf-section">
+                <div class="cf-head">
+                    <span class="cf-num">1</span>
+                    <div class="cf-head-main">
+                        <div class="cf-title">Campaign Details</div>
+                        <p class="cf-sub">What creators will read on your campaign page.</p>
                     </div>
-
-                    <div class="review-grid">
-                        <div><div class="review-field-label">Title</div><div class="review-field-value">@campaign.Title</div></div>
-                        <div><div class="review-field-label">Category</div><div class="review-field-value">@(campaign.Niche ?? "—")</div></div>
-                        <div class="review-field-value full"><div class="review-field-label">Description</div><div class="review-field-value">@campaign.Description</div></div>
-                        <div><div class="review-field-label">Budget</div><div class="review-field-value">৳@campaign.Budget.ToString("N0")</div></div>
-                        <div><div class="review-field-label">Start Date</div><div class="review-field-value">@(campaign.StartDate?.ToString("MMM d, yyyy") ?? "Not set")</div></div>
-                        <div><div class="review-field-label">End Date</div><div class="review-field-value">@(campaign.Deadline?.ToString("MMM d, yyyy") ?? "Not set")</div></div>
-                        <div><div class="review-field-label">Platform</div><div class="review-field-value">@(campaign.Platform ?? "—")</div></div>
-                        @if (!string.IsNullOrEmpty(campaign.ContentGuidelines))
-                        {
-                            <div class="review-field-value full"><div class="review-field-label">Content Guidelines</div><div class="review-field-value">@campaign.ContentGuidelines</div></div>
-                        }
-                    </div>
+                    <a href="/Campaigns/Edit/@campaign.Id" class="ui-card-link">Edit <i class="bi bi-arrow-right"></i></a>
                 </div>
 
-                <div class="review-section">
-                    <div class="review-section-head">
-                        <div class="review-section-title">Milestones (@Model.MilestonePlans.Count)</div>
-                        <a href="/Campaigns/Milestones/@campaign.Id" class="review-edit-link">Edit</a>
-                    </div>
-
-                    @if (Model.MilestonePlans.Count == 0)
+                <dl class="detail-rows rv-rows">
+                    <div><dt><span class="icon-chip"><i class="bi bi-megaphone"></i></span>Title</dt><dd>@campaign.Title</dd></div>
+                    <div><dt><span class="icon-chip"><i class="bi bi-tag"></i></span>Category</dt><dd>@(campaign.Niche ?? "—")</dd></div>
+                    <div><dt><span class="icon-chip"><i class="bi bi-broadcast"></i></span>Platform</dt><dd>@(campaign.Platform ?? "—")</dd></div>
+                    <div><dt><span class="icon-chip"><i class="bi bi-cash-stack"></i></span>Budget</dt><dd>৳@campaign.Budget.ToString("N0")</dd></div>
+                    <div><dt><span class="icon-chip"><i class="bi bi-calendar4-week"></i></span>Dates</dt><dd>@(campaign.StartDate?.ToString("MMM d, yyyy") ?? "Not set") &ndash; @(campaign.Deadline?.ToString("MMM d, yyyy") ?? "Not set")<small>Start date &ndash; end date</small></dd></div>
+                    <div><dt><span class="icon-chip"><i class="bi bi-card-text"></i></span>Description</dt><dd>@campaign.Description</dd></div>
+                    @if (!string.IsNullOrEmpty(campaign.ContentGuidelines))
                     {
-                        <p class="empty-note">No milestones planned — you can add them per creator once a proposal is accepted.</p>
+                        <div><dt><span class="icon-chip"><i class="bi bi-journal-text"></i></span>Content Guidelines</dt><dd>@campaign.ContentGuidelines</dd></div>
                     }
-                    else
-                    {
-                        <div style="margin-top: 10px;">
-                            @foreach (var plan in Model.MilestonePlans)
-                            {
-                                <div class="mini-plan-row">
-                                    <span class="mini-plan-title">@plan.Title</span>
-                                    <span class="mini-plan-amount">৳@plan.Amount.ToString("N0")</span>
+                </dl>
+            </section>
+
+            <section class="ui-card cf-section">
+                <div class="cf-head">
+                    <span class="cf-num">2</span>
+                    <div class="cf-head-main">
+                        <div class="cf-title">Milestones (@Model.MilestonePlans.Count)</div>
+                        <p class="cf-sub">The deliverables copied into each creator's collaboration.</p>
+                    </div>
+                    <a href="/Campaigns/Milestones/@campaign.Id" class="ui-card-link">Edit <i class="bi bi-arrow-right"></i></a>
+                </div>
+
+                @if (Model.MilestonePlans.Count == 0)
+                {
+                    <div class="rv-empty">
+                        <span class="icon-chip sm soft"><i class="bi bi-flag"></i></span>
+                        <span>No milestones planned &mdash; you can add them per creator once a proposal is accepted.</span>
+                    </div>
+                }
+                else
+                {
+                    <div class="mini-plan-list">
+                        @for (var i = 0; i < Model.MilestonePlans.Count; i++)
+                        {
+                            var plan = Model.MilestonePlans[i];
+                            <div class="mini-plan-row">
+                                <span class="mini-plan-num">@(i + 1)</span>
+                                <div style="min-width:0;">
+                                    <div class="mini-plan-title">@plan.Title</div>
+                                    <div class="mini-plan-meta">@(plan.ContentType ?? "Any content type") &middot; @(plan.DueDate.HasValue ? $"Due {plan.DueDate.Value:MMM d, yyyy}" : "Flexible deadline")</div>
                                 </div>
-                            }
-                        </div>
-
-                        <div class="review-grid" style="margin-top: 10px;">
-                            <div><div class="review-field-label">Total Allocated</div><div class="review-field-value" style="@(Model.OverBudget ? "color:#b3273f;" : "")">৳@Model.TotalPlanned.ToString("N0")</div></div>
-                        </div>
-
-                        @if (Model.OverBudget)
-                        {
-                            <div class="over-budget-warning">Your planned milestones (৳@Model.TotalPlanned.ToString("N0")) exceed the campaign budget (৳@campaign.Budget.ToString("N0")). Fix this before publishing.</div>
+                                <span class="mini-plan-amount">৳@plan.Amount.ToString("N0")</span>
+                            </div>
                         }
-                    }
+                    </div>
+
+                    <div class="plan-total">
+                        <span>Total allocated <strong class="@(Model.OverBudget ? "is-over" : "")">৳@Model.TotalPlanned.ToString("N0")</strong></span>
+                        <span class="ui-badge @(Model.OverBudget ? "is-danger" : "is-violet")">@plannedPct% of ৳@campaign.Budget.ToString("N0")</span>
+                    </div>
+                }
+            </section>
+
+            <section class="ui-card cf-section">
+                <div class="cf-head">
+                    <span class="cf-num">3</span>
+                    <div class="cf-head-main">
+                        <div class="cf-title">Targeting &amp; Audience</div>
+                        <p class="cf-sub">Who Smart Match will rank for this campaign.</p>
+                    </div>
+                    <a href="/Campaigns/Targeting/@campaign.Id" class="ui-card-link">Edit <i class="bi bi-arrow-right"></i></a>
                 </div>
 
-                <div class="review-section">
-                    <div class="review-section-head">
-                        <div class="review-section-title">Targeting &amp; Audience</div>
-                        <a href="/Campaigns/Targeting/@campaign.Id" class="review-edit-link">Edit</a>
+                @if (!Model.HasTargeting)
+                {
+                    <div class="rv-empty">
+                        <span class="icon-chip sm soft"><i class="bi bi-globe2"></i></span>
+                        <span>@(campaign.TargetingConfigured ? "Open to all creators — no targeting criteria set." : "Targeting hasn't been set yet — the campaign is open to all creators.")</span>
                     </div>
+                }
+                else
+                {
+                    <dl class="detail-rows">
+                        <div><dt><span class="icon-chip"><i class="bi bi-broadcast"></i></span>Platform</dt><dd>@(campaign.Platform ?? "Any")</dd></div>
+                        <div><dt><span class="icon-chip"><i class="bi bi-geo-alt"></i></span>Location</dt><dd>@(campaign.TargetLocation ?? "Any")</dd></div>
+                        <div><dt><span class="icon-chip"><i class="bi bi-tag"></i></span>Category</dt><dd>@(campaign.Niche ?? "Any")</dd></div>
+                        <div><dt><span class="icon-chip"><i class="bi bi-people"></i></span>Follower Range</dt><dd>@(campaign.TargetFollowersMin?.ToString("N0") ?? "Any") &ndash; @(campaign.TargetFollowersMax?.ToString("N0") ?? "Any")</dd></div>
+                        <div><dt><span class="icon-chip"><i class="bi bi-graph-up-arrow"></i></span>Engagement Rate</dt><dd>@(campaign.TargetEngagementRateMin.HasValue ? campaign.TargetEngagementRateMin.Value.ToString("0.0") + "%+" : "Any")</dd></div>
+                        <div><dt><span class="icon-chip"><i class="bi bi-patch-check"></i></span>Verification</dt><dd>@(campaign.TargetVerifiedOnly ? "Verified only" : "Any")</dd></div>
+                    </dl>
 
-                    @if (!Model.HasTargeting)
-                    {
-                        <p class="empty-note">Open to all creators — no targeting criteria set.</p>
-                    }
-                    else
-                    {
-                        <div class="review-grid">
-                            <div><div class="review-field-label">Platform</div><div class="review-field-value">@(campaign.Platform ?? "Any")</div></div>
-                            <div><div class="review-field-label">Location</div><div class="review-field-value">@(campaign.TargetLocation ?? "Any")</div></div>
-                            <div><div class="review-field-label">Category</div><div class="review-field-value">@(campaign.Niche ?? "Any")</div></div>
-                            <div><div class="review-field-label">Follower Range</div><div class="review-field-value">@(campaign.TargetFollowersMin?.ToString("N0") ?? "Any") – @(campaign.TargetFollowersMax?.ToString("N0") ?? "Any")</div></div>
-                            <div><div class="review-field-label">Engagement Rate</div><div class="review-field-value">@(campaign.TargetEngagementRateMin.HasValue ? campaign.TargetEngagementRateMin.Value.ToString("0.0") + "%+" : "Any")</div></div>
-                            <div><div class="review-field-label">Verification</div><div class="review-field-value">@(campaign.TargetVerifiedOnly ? "Verified only" : "Any")</div></div>
-                        </div>
+                    <div class="match-note">
+                        <span class="icon-chip sm violet"><i class="bi bi-people-fill"></i></span>
+                        <span><strong>@(Model.MatchingCreatorCount ?? 0)</strong> creator@(Model.MatchingCreatorCount == 1 ? "" : "s") in Brandora currently match@(Model.MatchingCreatorCount == 1 ? "es" : "") these criteria.</span>
+                    </div>
+                }
+            </section>
 
-                        <div class="tip-card" style="margin-top: 14px;">
-                            <strong>@(Model.MatchingCreatorCount ?? 0)</strong> creator@(Model.MatchingCreatorCount == 1 ? "" : "s") in Brandora currently match@(Model.MatchingCreatorCount == 1 ? "es" : "") these criteria.
-                        </div>
-                    }
+            <section class="ui-card cf-section">
+                <div class="cf-head">
+                    <span class="cf-num">4</span>
+                    <div class="cf-head-main">
+                        <div class="cf-title">Confirm &amp; Publish</div>
+                        <p class="cf-sub">Publishing makes the campaign visible to creators straight away.</p>
+                    </div>
                 </div>
+                <div class="confirm-row">
+                    <input type="checkbox" id="confirmPublish" />
+                    <label for="confirmPublish">I confirm that all information provided is accurate and complies with Brandora's campaign guidelines.</label>
+                </div>
+            </section>
 
-                <div class="review-section">
-                    <div class="confirm-row">
-                        <input type="checkbox" id="confirmPublish" />
-                        <label for="confirmPublish">I confirm that all information provided is accurate and complies with Brandora's campaign guidelines.</label>
-                    </div>
-
-                    <div class="form-actions">
-                        <a href="/Campaigns/Targeting/@campaign.Id" class="btn btn-outline-brand">← Back</a>
-                        <button type="submit" class="btn btn-primary" id="publishBtn" disabled="@Model.OverBudget">Publish Campaign →</button>
-                    </div>
+            <div class="cf-actions">
+                <a href="/Campaigns/Targeting/@campaign.Id" class="btn btn-outline-brand"><i class="bi bi-arrow-left" style="margin-right:8px;"></i>Back</a>
+                <div class="cf-actions-buttons">
+                    <button type="submit" class="btn btn-primary" id="publishBtn" disabled="@Model.OverBudget">Publish Campaign <i class="bi bi-send" style="margin-left:8px;"></i></button>
                 </div>
             </div>
 
-            <aside class="wizard-side">
-
-                <div class="wizard-side-card">
-                    <div class="wizard-side-title">Campaign Preview</div>
-
-                    @if (!string.IsNullOrEmpty(campaign.MediaUrl))
-                    {
-                        <div class="preview-card-banner">
-                            @if (campaign.MediaType == "video")
-                            {
-                                <video src="@campaign.MediaUrl" muted loop playsinline autoplay></video>
-                            }
-                            else
-                            {
-                                <img src="@campaign.MediaUrl" alt="@campaign.Title" />
-                            }
-                        </div>
-                    }
-
-                    <div class="preview-card-head">
-                        <div class="preview-card-thumb">@(campaign.Title.Length > 0 ? campaign.Title[..1].ToUpperInvariant() : "C")</div>
-                        <div>
-                            <div class="preview-card-title">@campaign.Title</div>
-                            <div class="preview-card-sub">@(campaign.StartDate?.ToString("MMM d") ?? "No start") &ndash; @(campaign.Deadline?.ToString("MMM d, yyyy") ?? "No end date")</div>
-                        </div>
-                    </div>
-
-                    <div class="preview-card-tags">
-                        @if (!string.IsNullOrEmpty(campaign.Niche))
-                        {
-                            <span class="tag">@campaign.Niche</span>
-                        }
-                        @foreach (var p in (campaign.Platform ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-                        {
-                            <span class="tag">@p</span>
-                        }
-                    </div>
-
-                    <div class="preview-card-rows">
-                        <div class="preview-card-row"><span>Budget</span><strong>৳@campaign.Budget.ToString("N0")</strong></div>
-                        <div class="preview-card-row"><span>Milestones</span><strong>@Model.MilestonePlans.Count</strong></div>
-                    </div>
-
-                    <div class="preview-card-status">Open for Applications</div>
-                </div>
-
-                <div class="wizard-side-card">
-                    <div class="wizard-side-title">Before You Publish</div>
-                    <div class="status-note"><span class="status-note-mark">✓</span>Campaign details are complete</div>
-                    <div class="status-note"><span class="status-note-mark">✓</span>@(Model.MilestonePlans.Count > 0 ? "Milestones are added" : "Milestone planning skipped (optional)")</div>
-                    <div class="status-note"><span class="status-note-mark">✓</span>@(Model.HasTargeting ? "Targeting preferences are set" : "Open to all creators (no targeting set)")</div>
-                    <div class="status-note"><span class="status-note-mark">✓</span>Budget and timeline confirmed</div>
-
-                    <div class="checklist" style="margin-top: 14px; border-top: 1px solid #f0f1f7; padding-top: 14px;">
-                        <div class="checklist-item">
-                            <span class="checklist-mark @(campaign.Budget > 0 ? "ok" : "warn")">@(campaign.Budget > 0 ? "✓" : "!")</span>
-                            Budget is set
-                        </div>
-                        <div class="checklist-item">
-                            <span class="checklist-mark @(Model.OverBudget ? "warn" : "ok")">@(Model.OverBudget ? "!" : "✓")</span>
-                            Milestone total is within budget
-                        </div>
-                    </div>
-                </div>
-
-                <div class="wizard-side-card">
-                    <div class="wizard-side-title">Ready to Go?</div>
-                    <p style="margin-top: 8px; font-family:'Inter',sans-serif; font-size: 12px; color:#6b7290; line-height:1.6;">
-                        Once published, your campaign will be visible to relevant creators and start receiving applications immediately.
-                    </p>
-                </div>
-
-            </aside>
+            <p class="rv-footnote">You can also leave this as a draft and publish it later from your campaigns list.</p>
 
         </div>
-    </form>
 
-    <p class="empty-note" style="text-align:center; margin-top: 18px;">You can also leave this as a draft and publish it later from your campaigns list.</p>
+        <aside class="page-rail">
 
-</div>
+            <section class="ui-card">
+                <div class="ui-card-head" style="margin-bottom:12px;">
+                    <div>
+                        <div class="ui-card-title cf-rail-title">Campaign Preview</div>
+                        <p class="ui-card-sub">How creators will see it once published.</p>
+                    </div>
+                </div>
+
+                @if (!string.IsNullOrEmpty(campaign.MediaUrl))
+                {
+                    <div class="preview-card-banner">
+                        @if (campaign.MediaType == "video")
+                        {
+                            <video src="@campaign.MediaUrl" muted loop playsinline autoplay></video>
+                        }
+                        else
+                        {
+                            <img src="@campaign.MediaUrl" alt="@campaign.Title" />
+                        }
+                    </div>
+                }
+
+                <div class="preview-card-head">
+                    <div class="preview-card-thumb">@(campaign.Title.Length > 0 ? campaign.Title[..1].ToUpperInvariant() : "C")</div>
+                    <div style="min-width:0;">
+                        <div class="preview-card-title">@campaign.Title</div>
+                        <div class="preview-card-sub">@(campaign.StartDate?.ToString("MMM d") ?? "No start") &ndash; @(campaign.Deadline?.ToString("MMM d, yyyy") ?? "No end date")</div>
+                    </div>
+                </div>
+
+                <div class="preview-card-tags">
+                    @if (!string.IsNullOrEmpty(campaign.Niche))
+                    {
+                        <span class="ui-badge is-violet"><i class="bi bi-tag"></i> @campaign.Niche</span>
+                    }
+                    @foreach (var p in platforms)
+                    {
+                        <span class="ui-badge is-info"><i class="bi bi-broadcast"></i> @p</span>
+                    }
+                </div>
+
+                <dl class="fact-list" style="margin-top:12px;">
+                    <div><dt>Budget</dt><dd>৳@campaign.Budget.ToString("N0")</dd></div>
+                    <div><dt>Milestones</dt><dd>@Model.MilestonePlans.Count</dd></div>
+                    <div><dt>Status after publishing</dt><dd><span class="ui-badge is-success"><i class="bi bi-broadcast"></i> Open for Applications</span></dd></div>
+                </dl>
+            </section>
+
+            <section class="ui-card">
+                <div class="ui-card-head" style="margin-bottom:0;">
+                    <div>
+                        <div class="ui-card-title cf-rail-title">Before You Publish</div>
+                        <p class="ui-card-sub">Checked against your saved campaign.</p>
+                    </div>
+                    <span class="ui-badge @(Model.OverBudget ? "is-danger" : "is-success")">@(Model.OverBudget ? "Needs a fix" : "Ready")</span>
+                </div>
+                <ul class="check-list">
+                    @foreach (var check in checks)
+                    {
+                        <li class="@(check.Ok ? "" : "is-warn")"><i class="bi @(check.Ok ? "bi-check-circle-fill" : "bi-exclamation-circle-fill")"></i>@check.Text</li>
+                    }
+                </ul>
+            </section>
+
+            <section class="info-card">
+                <div class="info-card-head">
+                    <span class="icon-chip soft"><i class="bi bi-signpost-2"></i></span>
+                    <div class="info-card-title">What Happens Next?</div>
+                </div>
+                <ol class="next-steps">
+                    <li class="is-current"><h4>Publish</h4><p>Your campaign goes live for creators.</p></li>
+                    <li><h4>Proposals arrive</h4><p>Creators apply, or you invite them with Smart Match.</p></li>
+                    <li><h4>Accept &amp; confirm</h4><p>A collaboration starts with your milestone plan.</p></li>
+                    <li><h4>Review &amp; pay</h4><p>Approve proof of post and release payments via bKash.</p></li>
+                </ol>
+            </section>
+
+            <section class="ui-card">
+                <div class="ui-card-head" style="margin-bottom:2px;">
+                    <div class="ui-card-title cf-rail-title">Frequently Asked Questions</div>
+                </div>
+                <div class="faq-list">
+                    @foreach (var faq in faqs)
+                    {
+                        <details>
+                            <summary>@faq.Item1<i class="bi bi-chevron-right"></i></summary>
+                            <p>@faq.Item2</p>
+                        </details>
+                    }
+                </div>
+            </section>
+
+            <section class="help-card">
+                <h3>Need Help?</h3>
+                <p>Want a second opinion before you go live? Our support team can help.</p>
+                <a href="/Home/Contact">Contact Support <i class="bi bi-arrow-right"></i></a>
+                <svg viewBox="0 0 400 170" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="camp-review-help-wave" x1="0" y1="1" x2="1" y2="0"><stop stop-color="#0955ca" stop-opacity="0"/><stop offset=".65" stop-color="#168cff" stop-opacity=".5"/><stop offset="1" stop-color="#783dff" stop-opacity=".15"/></linearGradient></defs><path d="M-20 160 C100 50 140 220 260 105 S350 85 420 20 L420 190 H-20Z" fill="url(#camp-review-help-wave)"/><path d="M-20 164 C110 90 140 230 270 120 S360 70 420 40" fill="none" stroke="#2799ff" stroke-opacity=".4"/></svg>
+            </section>
+
+        </aside>
+
+    </div>
+</form>
 
 @section Scripts {
     <script>

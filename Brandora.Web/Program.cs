@@ -6,6 +6,7 @@ using Brandora.Web.Data;
 using Brandora.Web.Models.Domain;
 using Brandora.Web.Services;
 using Brandora.Web.Services.Email;
+using Brandora.Web.Services.Payments;
 
 DotNetEnv.Env.TraversePath().Load();
 
@@ -67,6 +68,13 @@ builder.Services.AddScoped<NotificationService>();
 builder.Services.AddScoped<MediaUploadService>();
 builder.Services.AddScoped<AdminAuthService>();
 builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
+
+// Real bKash Tokenized Checkout Sandbox integration — a typed HttpClient so the
+// gateway's base address/handler lifetime is managed by the factory rather than a
+// hand-rolled singleton HttpClient.
+builder.Services.AddHttpClient<IPaymentGateway, BkashGateway>();
+builder.Services.AddScoped<WalletService>();
+builder.Services.AddScoped<PaymentSettlementService>();
 
 builder.Services.AddAuthentication()
     .AddCookie("AdminScheme", options =>

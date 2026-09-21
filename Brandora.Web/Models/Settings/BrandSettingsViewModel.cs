@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
+using Brandora.Web.Models.Domain;
 
 namespace Brandora.Web.Models.Settings;
 
@@ -43,4 +44,14 @@ public class BrandSettingsViewModel
 
     [ValidateNever]
     public decimal CampaignSpend { get; set; }
+
+    // Read-only account facts shown in the Settings rail.
+    [ValidateNever]
+    public VerificationStatus VerificationStatus { get; set; }
+
+    [ValidateNever]
+    public DateTime? VerifiedAt { get; set; }
+
+    [ValidateNever]
+    public DateTime MemberSince { get; set; }
 }

@@ -4,793 +4,446 @@
     ViewData["Title"] = isEdit ? "Edit Campaign" : "Create Campaign";
     ViewData["ActiveNav"] = "Campaigns";
     Layout = "_AppLayout";
+
+    // Campaign wizard steps, in the order the controller actually walks them:
+    // Create -> Milestones -> Targeting -> Preview (Review & Publish).
+    var wizardSteps = new[]
+    {
+        (Title: "Campaign Details", Sub: "Basic information"),
+        (Title: "Milestones", Sub: "Set deliverables"),
+        (Title: "Targeting", Sub: "Find the right creators"),
+        (Title: "Review & Publish", Sub: "Final check")
+    };
+    var currentStep = 0;
+
+    var faqs = new[]
+    {
+        ("Can I save and finish later?", "Yes. Save as Draft stores the campaign in your Campaigns list as a draft. Nothing is visible to creators until you review and publish it."),
+        ("Can I run it on more than one platform?", "Yes. Select every platform the campaign runs on — creators see all of them on the campaign page and in search."),
+        ("What should the total budget cover?", "Everything you plan to pay creators for this campaign. In the next step, your milestone plan can't add up to more than this budget."),
+        ("Which files can I use as the banner?", "Images (JPG, PNG, WEBP, GIF) up to 15MB, or short videos (MP4, WEBM, MOV) up to 80MB. It's optional and can be changed later."),
+        ("Can I change these details after publishing?", "Yes. You can edit the details, budget, dates, guidelines and creative at any time from the campaign's page.")
+    };
 }
 
 @section Styles {
 
-    .wizard-shell {
-        max-width: 1100px;
-        margin: 0 auto;
-        animation: fade-up .4s ease both;
-    }
+    /* ---- Campaign wizard: shared form system (same on all four steps) ---- */
+    .cf-flow { margin: 0 0 16px; }
+    .cf-body { align-items: start; }
+    .cf-main { display: grid; gap: 16px; align-content: start; min-width: 0; }
 
-    /* Hero — shared .page-hero component (see _AppLayout.cshtml),
-       matching the Influencer side's hero exactly. */
+    .cf-section { transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease; }
+    .cf-section:hover { border-color: #b9d3ff; box-shadow: 0 12px 26px #5b83c414; }
+    .cf-section:focus-within { border-color: #a9c9ff; box-shadow: 0 14px 30px #5b83c41f; }
 
-    /* Stepper */
+    .cf-head { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 18px; }
+    .cf-head-main { flex: 1; min-width: 0; }
+    .cf-num { display: grid; place-items: center; flex-shrink: 0; width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(130deg, #8a12ff, #0759ff 60%, #00b4ff); box-shadow: inset 0 1px 3px #ffffff60, 0 6px 14px #3b4dff2e; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 700; color: #ffffff; }
+    .cf-title { font: 600 19px/1.3 'Playfair Display', Georgia, serif; letter-spacing: -.3px; color: #0b084e; }
+    .cf-title small { margin-left: 6px; font-family: 'Inter', sans-serif; font-size: 11.5px; font-weight: 500; letter-spacing: 0; color: #7b8fbf; }
+    .cf-sub { margin-top: 3px; font-family: 'Inter', sans-serif; font-size: 12px; line-height: 1.5; color: #5877ac; }
 
-    .wizard-stepper {
-        margin-top: 18px;
-        padding: 18px 26px;
+    .cf-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 14px; }
+    .cf-fields.triple { grid-template-columns: 1fr 1fr 1fr; }
+    .cf-fields.single { grid-template-columns: 1fr; }
+    .cf-field { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
+    .cf-field.span-2 { grid-column: span 2; }
+    .cf-field.span-3 { grid-column: span 3; }
+    .cf-field > label { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; color: #33477c; }
+    .cf-field .char-count { font-weight: 500; font-size: 11px; color: #8095c4; }
 
-        display: flex;
-        align-items: flex-start;
-
-        border-radius: 16px;
-        background: #ffffff;
-        border: 1px solid #eaecf5;
-    }
-
-    .wizard-step {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        flex-shrink: 0;
-    }
-
-    .wizard-step-circle {
-        width: 32px;
-        height: 32px;
-        flex-shrink: 0;
-
-        display: flex;
-        align-items: center;
-        justify-content: center;
-
-        border-radius: 50%;
-        background: #eef0f8;
-        color: #9096b3;
-
-        font-family: 'Inter', sans-serif;
-        font-size: 13px;
-        font-weight: 700;
-
-        transition: .2s;
-    }
-
-    .wizard-step.is-done .wizard-step-circle {
-        background: linear-gradient(105deg, #a326ff, #236eff, #18a9ff);
-        color: #ffffff;
-    }
-
-    .wizard-step.is-current .wizard-step-circle {
-        background: #ffffff;
-        border: 2px solid #a326ff;
-        color: #a326ff;
-        box-shadow: 0 0 0 4px rgba(163,38,255,.12);
-    }
-
-    .wizard-step-text {
-        display: flex;
-        flex-direction: column;
-    }
-
-    .wizard-step-text strong {
-        font-family: 'Inter', sans-serif;
-        font-size: 12.5px;
-        font-weight: 700;
-        color: #9096b3;
-    }
-
-    .wizard-step.is-done .wizard-step-text strong,
-    .wizard-step.is-current .wizard-step-text strong {
-        color: #171d3d;
-    }
-
-    .wizard-step-text span {
-        margin-top: 1px;
-        font-family: 'Inter', sans-serif;
-        font-size: 10.5px;
-        color: #9096b3;
-    }
-
-    .wizard-step-line {
-        flex: 1;
-        height: 2px;
-        margin: 15px 14px 0;
-        background: #e8eaf5;
-    }
-
-    .wizard-step-line.is-done {
-        background: linear-gradient(90deg, #a326ff, #236eff);
-    }
-
-    /* Two-column body */
-
-    .wizard-columns {
-        margin-top: 22px;
-
-        display: grid;
-        grid-template-columns: 1fr 320px;
-        gap: 22px;
-        align-items: start;
-    }
-
-    .wizard-side {
-        display: flex;
-        flex-direction: column;
-        gap: 18px;
-        position: sticky;
-        top: 20px;
-    }
-
-    .wizard-side-card {
-        padding: 22px;
-        border-radius: 16px;
-        background: #ffffff;
-        border: 1px solid #eaecf5;
-    }
-
-    .wizard-side-title {
-        font-family: 'DM Sans', sans-serif;
-        font-weight: 700;
-        font-size: 14px;
-        color: #171d3d;
-    }
-
-    .wizard-side-sub {
-        margin-top: 3px;
-        font-family: 'Inter', sans-serif;
-        font-size: 11.5px;
-        color: #9096b3;
-    }
-
-    /* Preview card */
-
-    .preview-banner {
-        margin-top: 16px;
-        aspect-ratio: 16 / 9;
-        border-radius: 12px;
-        overflow: hidden;
-        position: relative;
-
-        background: linear-gradient(135deg, #eee9ff, #e9f7ff);
-        border: 1px dashed #d9bfff;
-    }
-
-    .preview-banner img,
-    .preview-banner video {
+    .cf-field input:not([type="checkbox"]):not([type="file"]),
+    .cf-field select,
+    .cf-field textarea {
         width: 100%;
-        height: 100%;
-        object-fit: cover;
-        display: block;
-    }
-
-    .preview-banner-empty {
-        position: absolute;
-        inset: 0;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 6px;
-
-        font-family: 'Inter', sans-serif;
-        font-size: 11px;
-        font-weight: 600;
-        color: #8b2cff;
-        cursor: pointer;
-        text-align: center;
-        padding: 10px;
-    }
-
-    .preview-title-live {
-        margin-top: 14px;
-        font-family: 'DM Sans', sans-serif;
-        font-weight: 700;
-        font-size: 15px;
-        color: #171d3d;
-    }
-
-    .preview-meta-live {
-        margin-top: 4px;
-        font-family: 'Inter', sans-serif;
-        font-size: 11.5px;
-        color: #9096b3;
-    }
-
-    .preview-desc-live {
-        margin-top: 10px;
-        padding-top: 10px;
-        border-top: 1px solid #f0f1f7;
-
-        font-family: 'Inter', sans-serif;
-        font-size: 11.5px;
-        line-height: 1.6;
-        color: #6b7290;
-
-        display: -webkit-box;
-        -webkit-line-clamp: 3;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-    }
-
-    /* Tips card */
-
-    .wizard-tips-list {
-        margin-top: 14px;
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-    }
-
-    .wizard-tip-item {
-        display: flex;
-        align-items: flex-start;
-        gap: 8px;
-
-        font-family: 'Inter', sans-serif;
-        font-size: 12px;
-        line-height: 1.5;
-        color: #3c4363;
-    }
-
-    .wizard-tip-mark {
-        width: 16px;
-        height: 16px;
-        flex-shrink: 0;
-        margin-top: 1px;
-
-        display: flex;
-        align-items: center;
-        justify-content: center;
-
-        border-radius: 50%;
-        background: #e2faf1;
-        color: #0d9c6c;
-
-        font-size: 9px;
-        font-weight: 700;
-    }
-
-    /* Form (existing, kept) */
-
-    .form-section {
-        padding: 26px 28px;
-
-        border-radius: 18px;
-        background: #ffffff;
-        border: 1px solid #eaecf5;
-    }
-
-    .form-section + .form-section {
-        margin-top: 20px;
-    }
-
-    .section-num {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-
-        width: 30px;
-        height: 30px;
-
-        border-radius: 50%;
-        border: 1px solid #d9bfff;
-
+        padding: 11px 13px;
+        border-radius: 10px;
+        border: 1px solid #d3e4ff;
+        background: #ffffffcc;
         font-family: 'Inter', sans-serif;
         font-size: 13px;
-        font-weight: 700;
-        color: #8b2cff;
-    }
-
-    .section-heading {
-        margin-top: 14px;
-
-        font-family: 'DM Sans', sans-serif;
-        font-weight: 700;
-        font-size: 17px;
-        color: #171d3d;
-    }
-
-    .section-desc {
-        margin-top: 4px;
-
-        font-family: 'Inter', sans-serif;
-        font-size: 12.5px;
-        color: #8189a8;
-    }
-
-    .form-fields {
-        margin-top: 22px;
-
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 18px 16px;
-    }
-
-    .form-fields.single {
-        grid-template-columns: 1fr;
-    }
-
-    .form-fields.triple {
-        grid-template-columns: 1fr 1fr 1fr;
-    }
-
-    .form-field {
-        display: flex;
-        flex-direction: column;
-        gap: 7px;
-    }
-
-    .form-field.span-2 {
-        grid-column: span 2;
-    }
-
-    .form-field label {
-        display: flex;
-        align-items: baseline;
-        justify-content: space-between;
-
-        font-family: 'Inter', sans-serif;
-        font-size: 12.5px;
-        font-weight: 600;
-        color: #2a3157;
-    }
-
-    .form-field label .char-count {
-        font-weight: 500;
-        font-size: 11px;
-        color: #b2b8cf;
-    }
-
-    .form-field input,
-    .form-field select,
-    .form-field textarea {
-        padding: 12px 14px;
-
-        border-radius: 10px;
-        border: 1px solid #e2e5f2;
-        background: #fbfbfe;
-
-        font-family: 'Inter', sans-serif;
-        font-size: 13.5px;
-        color: #171d3d;
-
+        color: #20365f;
         outline: none;
-        transition: .2s;
+        transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
     }
 
-    .form-field textarea {
-        min-height: 110px;
-        resize: vertical;
-    }
+    .cf-field textarea { min-height: 112px; resize: vertical; line-height: 1.55; }
+    .cf-field ::placeholder { color: #7b8fbf; }
 
-    .form-field input:focus,
-    .form-field select:focus,
-    .form-field textarea:focus {
-        border-color: #a978ff;
-        background: #ffffff;
-        box-shadow: 0 0 0 4px rgba(155,44,255,.1);
-    }
+    .cf-field input:focus,
+    .cf-field select:focus,
+    .cf-field textarea:focus { border-color: #8f7bff; background: #ffffff; box-shadow: 0 0 0 3px #7862ef22; }
 
-    .form-field select {
+    .cf-field select {
         appearance: none;
         -webkit-appearance: none;
-
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6' fill='none'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%23545b7d' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6' fill='none'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%235877ac' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
         background-repeat: no-repeat;
-        background-position: right 14px center;
+        background-position: right 13px center;
         padding-right: 34px;
     }
 
-    .form-actions {
-        margin-top: 20px;
+    .cf-hint { display: flex; align-items: flex-start; gap: 6px; font-family: 'Inter', sans-serif; font-size: 11px; line-height: 1.5; color: #6b7fb1; }
+    .cf-hint i { margin-top: 1px; color: #5b4dff; }
 
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-    }
+    .cf-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 18px; border-radius: 12px; border: 1px solid #cfe2ff; background: linear-gradient(135deg, #ffffffbd, #f5faff8c 55%, #fafdffd9); box-shadow: inset 0 1px 2px #fff, 0 3px 10px #6f9bce07; animation: fade-up .5s ease both; }
+    .cf-actions-note { font-family: 'Inter', sans-serif; font-size: 11.5px; color: #5877ac; }
+    .cf-actions-buttons { display: flex; flex-wrap: wrap; gap: 10px; margin-left: auto; }
+    .cf-actions .btn { height: 44px; }
+    .cf-actions .btn i { transition: transform .2s ease; }
+    .cf-actions .btn:hover .bi-arrow-right { transform: translateX(3px); }
+    .cf-actions .btn:hover .bi-arrow-left { transform: translateX(-3px); }
 
-    .platform-pills {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-
-        padding: 10px 12px;
-        border-radius: 10px;
-        border: 1px solid #e2e5f2;
-        background: #fbfbfe;
-    }
-
-    .platform-pill {
-        position: relative;
-    }
-
-    .platform-pill input {
-        position: absolute;
-        opacity: 0;
-        width: 100%;
-        height: 100%;
-        margin: 0;
-        cursor: pointer;
-    }
-
-    .platform-pill span {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-
-        padding: 8px 14px;
-
-        border-radius: 20px;
-        border: 1.5px solid #e2e5f2;
-        background: #ffffff;
-
-        font-family: 'Inter', sans-serif;
-        font-size: 12.5px;
-        font-weight: 600;
-        color: #545b7d;
-
-        cursor: pointer;
-        transition: transform .2s ease, box-shadow .2s ease, background .2s ease, border-color .2s ease, color .2s ease;
-        user-select: none;
-    }
-
-    .platform-pill span:hover {
-        border-color: #c8b8fa;
-        transform: translateY(-1px);
-    }
-
-    .platform-pill input:checked + span {
-        border-color: transparent;
-        color: #ffffff;
-        background: linear-gradient(105deg, #a326ff, #236eff, #18a9ff);
-        box-shadow: 0 6px 16px rgba(140,60,255,.28);
-    }
-
-    .platform-pill input:focus-visible + span {
-        box-shadow: 0 0 0 3px rgba(155,44,255,.25);
-    }
-
-    .platform-hint {
-        margin-top: 6px;
-        font-family: 'Inter', sans-serif;
-        font-size: 11px;
-        color: #9096b3;
-    }
-
-    .dropzone {
-        margin-top: 22px;
-
-        position: relative;
-
-        border: 1.5px dashed #d9bfff;
-        border-radius: 16px;
-        background: linear-gradient(180deg, #fbf8ff, #ffffff);
-
-        padding: 24px;
-
-        text-align: center;
-
-        cursor: pointer;
-        transition: border-color .2s ease, background .2s ease, transform .2s ease;
-    }
-
-    .dropzone:hover,
-    .dropzone.is-dragover {
-        border-color: #9b2cff;
-        background: linear-gradient(180deg, #f6edff, #ffffff);
-    }
-
-    .dropzone input[type="file"] {
-        position: absolute;
-        inset: 0;
-        opacity: 0;
-        cursor: pointer;
-    }
-
-    .dropzone-title {
-        font-family: 'DM Sans', sans-serif;
-        font-weight: 700;
-        font-size: 14px;
-        color: #171d3d;
-    }
-
-    .dropzone-sub {
-        margin-top: 4px;
-
-        font-family: 'Inter', sans-serif;
-        font-size: 12px;
-        color: #9096b3;
-    }
-
-    .media-remove-row {
-        margin-top: 12px;
-        text-align: center;
-    }
-
-    .form-errors {
-        margin-top: 18px;
-        padding: 12px 16px;
-
-        border-radius: 12px;
-        background: #fdeef0;
-        border: 1px solid #f4c6cd;
-
-        font-family: 'Inter', sans-serif;
-        font-size: 13px;
-        color: #b3273f;
-    }
-
-    .form-errors ul { margin: 0; padding-left: 18px; }
-
-    @@media(max-width: 960px) {
-        .wizard-columns { grid-template-columns: 1fr; }
-        .wizard-side { position: static; }
-    }
+    .cf-rail-title { font-size: 17px !important; }
+    .cf-note { margin-top: 12px; padding: 10px 12px; border-radius: 9px; background: #eef4ffbd; border: 1px solid #dfe9ff; font-family: 'Inter', sans-serif; font-size: 11.5px; line-height: 1.5; color: #33477c; }
+    .cf-note i { color: #1451ff; }
+    .cf-bar { margin-top: 10px; height: 7px; border-radius: 7px; background: #e3edfc; overflow: hidden; }
+    .cf-bar-fill { width: 0; height: 100%; border-radius: 7px; background: linear-gradient(110deg, #6323ff, #0759ff); transition: width 1s cubic-bezier(.22,1,.36,1); }
+    .cf-bar-fill.is-over { background: linear-gradient(105deg, #ff4d6b, #d6234a); }
+    .cf-big { font-family: 'DM Sans', sans-serif; font-size: 26px; font-weight: 700; color: #101d48; }
+    .cf-big small { font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 500; color: #5877ac; }
 
     @@media(max-width: 700px) {
-        .wizard-stepper { flex-wrap: wrap; gap: 12px 0; }
-        .wizard-step-line { display: none; }
-        .wizard-step-text span { display: none; }
+        .cf-fields, .cf-fields.triple { grid-template-columns: 1fr; }
+        .cf-field.span-2, .cf-field.span-3 { grid-column: span 1; }
+        .cf-actions-buttons { margin-left: 0; width: 100%; }
     }
+    /* ---- Step 1 specifics ---- */
+    .platform-pills { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 12px; border-radius: 10px; border: 1px solid #d3e4ff; background: #ffffffcc; }
+    .platform-pill { position: relative; }
+    .platform-pill input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+    .platform-pill span { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 20px; border: 1px solid #d3e4ff; background: #ffffff; font-family: 'DM Sans', sans-serif; font-size: 12.5px; font-weight: 700; color: #33477c; cursor: pointer; user-select: none; transition: transform .2s ease, box-shadow .2s ease, background .2s ease, border-color .2s ease, color .2s ease; }
+    .platform-pill span:hover { border-color: #8fb8ff; color: #1451ff; transform: translateY(-1px); }
+    .platform-pill input:checked + span { border-color: transparent; color: #ffffff; background: linear-gradient(110deg, #6425ff, #004dff 55%, #00a8f0); box-shadow: 0 6px 16px #3b4dff38; }
+    .platform-pill input:focus-visible + span { box-shadow: 0 0 0 3px #7862ef44; }
 
-    @@media(max-width: 600px) {
-        .form-fields, .form-fields.triple { grid-template-columns: 1fr; }
-        .form-field.span-2 { grid-column: span 1; }
-        .form-section { padding: 20px 18px; }
-    }
+    .dropzone { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 150px; padding: 18px; border: 1px dashed #b9d0f7; border-radius: 12px; background: linear-gradient(125deg, #f0f5ffb0, #f5f6ff90); text-align: center; cursor: pointer; transition: border-color .2s ease, background .2s ease; }
+    .dropzone:hover, .dropzone.is-dragover { border-color: #477aff; background: #e5efff; }
+    .dropzone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+    .dropzone > i { font-size: 34px; line-height: 1.2; color: #096aff; }
+    .dropzone-title { font-family: 'DM Sans', sans-serif; font-size: 13.5px; font-weight: 700; color: #101d48; }
+    .dropzone-sub { font-family: 'Inter', sans-serif; font-size: 11px; color: #6b7fb1; }
+    .dropzone-cta { display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; padding: 6px 16px; border-radius: 7px; background: linear-gradient(110deg, #8b12ff, #413aff 48%, #00adff); font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; color: #ffffff; }
+    .media-remove-row { margin-top: 12px; text-align: center; }
+    .media-remove-row .btn { height: 38px; font-size: 12.5px; }
+
+    /* Live preview (rail) */
+    .preview-banner { position: relative; overflow: hidden; aspect-ratio: 16 / 9; border-radius: 12px; border: 1px dashed #b9d0f7; background: radial-gradient(ellipse at 50% 0%, #dbe8ff, transparent 70%), linear-gradient(135deg, #eef4ff, #f4efff); }
+    .preview-banner img, .preview-banner video { display: block; width: 100%; height: 100%; object-fit: cover; }
+    .preview-banner-empty { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 10px; text-align: center; font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; color: #5877ac; }
+    .preview-banner-empty span:last-child { color: #1451ff; }
+    .preview-title-live { margin-top: 14px; font: 600 17px/1.3 'Playfair Display', Georgia, serif; color: #0b084e; overflow-wrap: anywhere; }
+    .preview-meta-live { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .preview-meta-live span.ui-badge { font-size: 10.5px; }
+    .preview-desc-live { margin-top: 10px; padding-top: 10px; border-top: 1px solid #e3edfc; font-family: 'Inter', sans-serif; font-size: 11.5px; line-height: 1.6; color: #52649b; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 
 }
 
-<div class="wizard-shell">
+<a href="/Campaigns" class="back-to-dashboard">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    Back
+</a>
 
-    <a href="/Campaigns" class="back-to-dashboard">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        Back
-    </a>
-
-    <section class="page-hero">
-        @await Html.PartialAsync("_HeroWaves")
-        <div class="page-hero-intro">
-            <p class="page-hero-eyebrow">@(isEdit ? "Edit Campaign" : "Create Campaign")</p>
-            <h1 class="page-hero-title">@(isEdit ? "Refine Your Campaign" : "Launch Your Next Big Campaign")</h1>
-            <p class="page-hero-sub">@(isEdit ? "Update the details below — your milestones and targeting stay untouched." : "Share your goals, set milestones, and connect with the right influencers.")</p>
-        </div>
-
-        @if (!isEdit)
+<section class="page-hero">
+    @await Html.PartialAsync("_HeroWaves")
+    <div class="page-hero-intro">
+        <p class="page-hero-eyebrow">@(isEdit ? "Edit Campaign" : "Create Campaign · Step 1 of 4")</p>
+        @if (isEdit)
         {
-            <div class="page-hero-art" aria-hidden="true">
-                <div class="hero-glass hero-glass-back"></div>
-                <div class="hero-glass hero-glass-front">
-                    <span class="hero-glass-copy">Great<br />Brands Create<br />Opportunities<span></span></span>
-                </div>
-                <span class="hero-sparkle"></span>
-            </div>
-
-            <div class="page-hero-motto">
-                Turn Ideas<br />Into Real Impact.
-                <span></span>
-            </div>
+            <h1 class="page-hero-title">Refine Your <span>Campaign</span></h1>
+            <p class="page-hero-sub">Update the details below &mdash; your milestones and targeting stay untouched.</p>
         }
-    </section>
+        else
+        {
+            <h1 class="page-hero-title">Launch Your <span>Next Campaign</span></h1>
+            <p class="page-hero-sub">Share your goals, set milestones, and connect with the right influencers.</p>
+        }
+        <ul class="hero-highlights">
+            <li>Multi-platform campaigns</li>
+            <li>Milestone-based budgets</li>
+            <li>Save as draft anytime</li>
+        </ul>
+    </div>
 
-    @if (!isEdit)
-    {
-        <div class="wizard-stepper">
-            <div class="wizard-step is-current">
-                <div class="wizard-step-circle">1</div>
-                <div class="wizard-step-text"><strong>Campaign Details</strong><span>Basic information</span></div>
-            </div>
-            <div class="wizard-step-line"></div>
-            <div class="wizard-step">
-                <div class="wizard-step-circle">2</div>
-                <div class="wizard-step-text"><strong>Milestones</strong><span>Set deliverables</span></div>
-            </div>
-            <div class="wizard-step-line"></div>
-            <div class="wizard-step">
-                <div class="wizard-step-circle">3</div>
-                <div class="wizard-step-text"><strong>Targeting</strong><span>Find the right creators</span></div>
-            </div>
-            <div class="wizard-step-line"></div>
-            <div class="wizard-step">
-                <div class="wizard-step-circle">4</div>
-                <div class="wizard-step-text"><strong>Review &amp; Publish</strong><span>Final check</span></div>
-            </div>
+    <div class="page-hero-art" aria-hidden="true">
+        <div class="hero-glass hero-glass-back"></div>
+        <div class="hero-glass hero-glass-front">
+            <span class="hero-glass-copy">Great<br />Brands Create<br />Opportunities<span></span></span>
         </div>
-    }
+        <span class="hero-sparkle"></span>
+    </div>
 
-    @if (!ViewData.ModelState.IsValid)
-    {
-        <div class="form-errors">
-            <ul>
-                @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
-                {
-                    <li>@error.ErrorMessage</li>
+    <div class="page-hero-motto">Turn Ideas<br />Into Real Impact.<span></span></div>
+</section>
+
+@if (!isEdit)
+{
+    <ol class="flow-steps cf-flow" aria-label="Campaign setup progress">
+        @for (var i = 0; i < wizardSteps.Length; i++)
+        {
+            var step = wizardSteps[i];
+            <li class="@(i < currentStep ? "is-done" : i == currentStep ? "is-current" : "")" aria-current="@(i == currentStep ? "step" : null)">
+                <span class="flow-step-num">@if (i < currentStep) { <i class="bi bi-check-lg"></i> } else { @(i + 1) }</span>
+                <div><strong>@step.Title</strong><small>@step.Sub</small></div>
+            </li>
+        }
+    </ol>
+}
+
+@if (!ViewData.ModelState.IsValid)
+{
+    <div class="notice is-error" role="alert">
+        <i class="bi bi-exclamation-circle-fill"></i>
+        <ul style="margin:0; padding-left:16px;">
+            @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+            {
+                <li>@error.ErrorMessage</li>
+            }
+        </ul>
+    </div>
+}
+
+<div class="page-grid cf-body">
+
+    <form method="post" action="@(isEdit ? $"/Campaigns/Edit/{Model.Id}" : "/Campaigns/Create")" enctype="multipart/form-data" id="campaignForm" class="cf-main">
+
+        @Html.AntiForgeryToken()
+
+        <section class="ui-card cf-section">
+            <div class="cf-head">
+                <span class="cf-num">1</span>
+                <div class="cf-head-main">
+                    <div class="cf-title">Campaign Details</div>
+                    <p class="cf-sub">The basics creators see first &mdash; a clear title, where it runs and what it's about.</p>
+                </div>
+            </div>
+
+            <div class="cf-fields">
+                <div class="cf-field span-2">
+                    <label for="Title">Campaign Title</label>
+                    <input type="text" id="Title" name="Title" placeholder="Enter a catchy campaign title" value="@Model.Title" required />
+                    <span class="cf-hint"><i class="bi bi-lightbulb"></i>Short and specific works best, e.g. &ldquo;Winter Glow Serum Launch&rdquo;.</span>
+                </div>
+
+                @{
+                    var selectedPlatforms = (Model.Platform ?? string.Empty)
+                        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                        .ToHashSet(StringComparer.OrdinalIgnoreCase);
                 }
-            </ul>
-        </div>
-    }
-
-    <div class="wizard-columns">
-
-        <form method="post" action="@(isEdit ? $"/Campaigns/Edit/{Model.Id}" : "/Campaigns/Create")" enctype="multipart/form-data" id="campaignForm">
-
-            @Html.AntiForgeryToken()
-
-            <section class="form-section">
-                <div class="section-num">01</div>
-                <div class="section-heading">Campaign Details</div>
-                <p class="section-desc">Provide the basic information about your campaign.</p>
-
-                <div class="form-fields">
-                    <div class="form-field span-2">
-                        <label for="Title">Campaign Title</label>
-                        <input type="text" id="Title" name="Title" placeholder="Enter a catchy campaign title" value="@Model.Title" required />
+                <div class="cf-field span-2">
+                    <label for="Platform">Platform(s)</label>
+                    <div class="platform-pills" id="platformPills">
+                        @foreach (var platform in new[] { "Instagram", "TikTok", "YouTube", "Facebook", "X", "LinkedIn" })
+                        {
+                            <label class="platform-pill">
+                                <input type="checkbox" value="@platform" checked="@selectedPlatforms.Contains(platform)" />
+                                <span>@platform</span>
+                            </label>
+                        }
                     </div>
-
-                    @{
-                        var selectedPlatforms = (Model.Platform ?? string.Empty)
-                            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                            .ToHashSet(StringComparer.OrdinalIgnoreCase);
-                    }
-                    <div class="form-field span-2">
-                        <label for="Platform">Platform(s)</label>
-                        <div class="platform-pills" id="platformPills">
-                            @foreach (var platform in new[] { "Instagram", "TikTok", "YouTube", "Facebook", "X", "LinkedIn" })
-                            {
-                                <label class="platform-pill">
-                                    <input type="checkbox" value="@platform" checked="@selectedPlatforms.Contains(platform)" />
-                                    <span>@platform</span>
-                                </label>
-                            }
-                        </div>
-                        <div class="platform-hint">Select one or more platforms this campaign will run on.</div>
-                        <div class="form-errors" id="platformError" style="display:none; margin-top: 8px; padding: 8px 12px; font-size: 12px;">Select at least one platform.</div>
-                        <input type="hidden" id="Platform" name="Platform" value="@Model.Platform" />
-                    </div>
-
-                    <div class="form-field">
-                        <label for="Niche">Category</label>
-                        <select id="Niche" name="Niche" required>
-                            <option value="" disabled selected="@(string.IsNullOrEmpty(Model.Niche))">Select a category</option>
-                            @foreach (var niche in new[] { "Fashion & Style", "Beauty & Skincare", "Food & Cooking", "Travel & Lifestyle", "Fitness & Health", "Gaming", "Tech & Gadgets", "Education", "Comedy & Entertainment", "Home & Lifestyle", "Finance", "Other" })
-                            {
-                                <option selected="@(Model.Niche == niche)">@niche</option>
-                            }
-                        </select>
-                    </div>
-
-                    <div class="form-field span-2">
-                        <label for="Description">Campaign Description <span class="char-count"><span id="descCount">@Model.Description.Length</span>/2000</span></label>
-                        <textarea id="Description" name="Description" maxlength="2000" placeholder="Describe your campaign goals, requirements, and what you're looking for in creators..." required>@Model.Description</textarea>
-                    </div>
-                </div>
-            </section>
-
-            <section class="form-section">
-                <div class="section-num">02</div>
-                <div class="section-heading">Campaign Timeline &amp; Budget</div>
-                <p class="section-desc">When does this campaign run, and what's the total budget?</p>
-
-                <div class="form-fields triple">
-                    <div class="form-field">
-                        <label for="StartDate">Start Date</label>
-                        <input type="date" id="StartDate" name="StartDate" value="@(Model.StartDate?.ToString("yyyy-MM-dd"))" />
-                    </div>
-
-                    <div class="form-field">
-                        <label for="Deadline">End Date</label>
-                        <input type="date" id="Deadline" name="Deadline" value="@(Model.Deadline?.ToString("yyyy-MM-dd"))" />
-                    </div>
-
-                    <div class="form-field">
-                        <label for="Budget">Total Budget (৳)</label>
-                        <input type="number" id="Budget" name="Budget" min="1" step="1" placeholder="50000" value="@(Model.Budget == 0 ? "" : Model.Budget.ToString())" required />
-                    </div>
-                </div>
-            </section>
-
-            <section class="form-section">
-                <div class="section-num">03</div>
-                <div class="section-heading">Content Guidelines <span style="font-weight:400; color:#9096b3; font-size: 13px;">(Optional)</span></div>
-                <p class="section-desc">Share any specific guidelines, brand assets, or references for the creators.</p>
-
-                <div class="form-fields single">
-                    <div class="form-field">
-                        <label for="ContentGuidelines"><span></span><span class="char-count"><span id="guideCount">@(Model.ContentGuidelines?.Length ?? 0)</span>/2000</span></label>
-                        <textarea id="ContentGuidelines" name="ContentGuidelines" maxlength="2000" placeholder="Share any specific guidelines, brand assets, or references for the creators...">@Model.ContentGuidelines</textarea>
-                    </div>
-                </div>
-            </section>
-
-            <section class="form-section">
-                <div class="section-num">04</div>
-                <div class="section-heading">Campaign Creative <span style="font-weight:400; color:#9096b3; font-size: 13px;">(Optional)</span></div>
-                <p class="section-desc">Add a cover image or short video &mdash; it becomes the campaign banner creators see.</p>
-
-                <div class="dropzone" id="mediaDropzone">
-                    <input type="file" id="MediaFile" name="MediaFile" accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime" />
-                    <div class="dropzone-title">Drop an image or video, or click to browse</div>
-                    <div class="dropzone-sub">JPG, PNG, WEBP, GIF up to 15MB &middot; MP4, WEBM, MOV up to 80MB</div>
+                    <span class="cf-hint"><i class="bi bi-info-circle"></i>Select one or more platforms this campaign will run on.</span>
+                    <div class="form-errors" id="platformError" style="display:none; margin: 2px 0 0; padding: 8px 12px; font-size: 12px;">Select at least one platform.</div>
+                    <input type="hidden" id="Platform" name="Platform" value="@Model.Platform" />
                 </div>
 
-                @if (!string.IsNullOrEmpty(Model.ExistingMediaUrl))
-                {
-                    <div class="media-remove-row">
-                        <button type="button" class="btn btn-outline-brand" id="mediaRemoveBtn">Remove current media</button>
-                    </div>
-                }
+                <div class="cf-field">
+                    <label for="Niche">Category</label>
+                    <select id="Niche" name="Niche" required>
+                        <option value="" disabled selected="@(string.IsNullOrEmpty(Model.Niche))">Select a category</option>
+                        @foreach (var niche in new[] { "Fashion & Style", "Beauty & Skincare", "Food & Cooking", "Travel & Lifestyle", "Fitness & Health", "Gaming", "Tech & Gadgets", "Education", "Comedy & Entertainment", "Home & Lifestyle", "Finance", "Other" })
+                        {
+                            <option selected="@(Model.Niche == niche)">@niche</option>
+                        }
+                    </select>
+                </div>
 
-                <input type="hidden" name="RemoveMedia" id="RemoveMedia" value="false" />
-            </section>
+                <div class="cf-field" style="justify-content:flex-end;">
+                    <span class="cf-hint"><i class="bi bi-bullseye"></i>The category helps Smart Match and search surface your campaign to creators in that niche.</span>
+                </div>
 
-            <div class="form-actions">
-                @if (!isEdit)
-                {
-                    <button type="submit" class="btn btn-outline-brand" name="saveDraft" value="true">Save as Draft</button>
-                    <button type="submit" class="btn btn-primary">Next: Set Milestones →</button>
-                }
-                else
-                {
+                <div class="cf-field span-2">
+                    <label for="Description">Campaign Description <span class="char-count"><span id="descCount">@(Model.Description?.Length ?? 0)</span>/2000</span></label>
+                    <textarea id="Description" name="Description" maxlength="2000" placeholder="Describe your campaign goals, requirements, and what you're looking for in creators..." required>@Model.Description</textarea>
+                </div>
+            </div>
+        </section>
+
+        <section class="ui-card cf-section">
+            <div class="cf-head">
+                <span class="cf-num">2</span>
+                <div class="cf-head-main">
+                    <div class="cf-title">Timeline &amp; Budget</div>
+                    <p class="cf-sub">When the campaign runs and the total you plan to spend on creators.</p>
+                </div>
+            </div>
+
+            <div class="cf-fields triple">
+                <div class="cf-field">
+                    <label for="StartDate">Start Date</label>
+                    <input type="date" id="StartDate" name="StartDate" value="@(Model.StartDate?.ToString("yyyy-MM-dd"))" />
+                </div>
+
+                <div class="cf-field">
+                    <label for="Deadline">End Date</label>
+                    <input type="date" id="Deadline" name="Deadline" value="@(Model.Deadline?.ToString("yyyy-MM-dd"))" />
+                </div>
+
+                <div class="cf-field">
+                    <label for="Budget">Total Budget (৳)</label>
+                    <input type="number" id="Budget" name="Budget" min="1" step="1" placeholder="50000" value="@(Model.Budget == 0 ? "" : Model.Budget.ToString())" required />
+                </div>
+
+                <div class="cf-field span-3">
+                    <span class="cf-hint"><i class="bi bi-calendar-check"></i>Creators can send proposals until the end date. Your milestone plan in the next step can't exceed the total budget.</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="ui-card cf-section">
+            <div class="cf-head">
+                <span class="cf-num">3</span>
+                <div class="cf-head-main">
+                    <div class="cf-title">Content Guidelines <small>Optional</small></div>
+                    <p class="cf-sub">Tone, must-haves, hashtags, tags or references creators should follow.</p>
+                </div>
+            </div>
+
+            <div class="cf-fields single">
+                <div class="cf-field">
+                    <label for="ContentGuidelines"><span>Guidelines for creators</span><span class="char-count"><span id="guideCount">@(Model.ContentGuidelines?.Length ?? 0)</span>/2000</span></label>
+                    <textarea id="ContentGuidelines" name="ContentGuidelines" maxlength="2000" placeholder="Share any specific guidelines, brand assets, or references for the creators...">@Model.ContentGuidelines</textarea>
+                </div>
+            </div>
+        </section>
+
+        <section class="ui-card cf-section">
+            <div class="cf-head">
+                <span class="cf-num">4</span>
+                <div class="cf-head-main">
+                    <div class="cf-title">Campaign Creative <small>Optional</small></div>
+                    <p class="cf-sub">Add a cover image or short video &mdash; it becomes the campaign banner creators see.</p>
+                </div>
+            </div>
+
+            <div class="dropzone" id="mediaDropzone">
+                <input type="file" id="MediaFile" name="MediaFile" accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime" />
+                <i class="bi bi-cloud-arrow-up" aria-hidden="true"></i>
+                <div class="dropzone-title">Drop an image or video, or click to browse</div>
+                <div class="dropzone-sub">JPG, PNG, WEBP, GIF up to 15MB &middot; MP4, WEBM, MOV up to 80MB</div>
+                <span class="dropzone-cta" aria-hidden="true"><i class="bi bi-folder2-open"></i> Choose File</span>
+            </div>
+
+            @if (!string.IsNullOrEmpty(Model.ExistingMediaUrl))
+            {
+                <div class="media-remove-row">
+                    <button type="button" class="btn btn-outline-brand" id="mediaRemoveBtn"><i class="bi bi-trash3" style="margin-right:8px;"></i>Remove current media</button>
+                </div>
+            }
+
+            <input type="hidden" name="RemoveMedia" id="RemoveMedia" value="false" />
+        </section>
+
+        <div class="cf-actions">
+            @if (!isEdit)
+            {
+                <span class="cf-actions-note"><i class="bi bi-shield-lock"></i> Nothing is visible to creators until you publish.</span>
+                <div class="cf-actions-buttons">
+                    <button type="submit" class="btn btn-outline-brand" name="saveDraft" value="true"><i class="bi bi-save" style="margin-right:8px;"></i>Save as Draft</button>
+                    <button type="submit" class="btn btn-primary">Next: Set Milestones <i class="bi bi-arrow-right" style="margin-left:8px;"></i></button>
+                </div>
+            }
+            else
+            {
+                <span class="cf-actions-note"><i class="bi bi-info-circle"></i> Milestones and targeting are not affected.</span>
+                <div class="cf-actions-buttons">
                     <a href="/Campaigns" class="btn btn-outline-brand">Cancel</a>
                     <button type="submit" class="btn btn-primary">Save Changes</button>
-                }
+                </div>
+            }
+        </div>
+
+    </form>
+
+    <aside class="page-rail">
+
+        <section class="ui-card">
+            <div class="ui-card-head" style="margin-bottom:12px;">
+                <div>
+                    <div class="ui-card-title cf-rail-title">Campaign Preview</div>
+                    <p class="ui-card-sub">Updates live as you type &mdash; this is how creators will see it.</p>
+                </div>
+                <span class="ui-badge is-info"><i class="bi bi-eye"></i> Live</span>
             </div>
 
-        </form>
-
-        <aside class="wizard-side">
-
-            <div class="wizard-side-card">
-                <div class="wizard-side-title">Campaign Preview</div>
-                <div class="wizard-side-sub">This is how your campaign will appear to influencers.</div>
-
-                <div class="preview-banner" id="previewBanner">
-                    @if (!string.IsNullOrEmpty(Model.ExistingMediaUrl))
+            <div class="preview-banner" id="previewBanner">
+                @if (!string.IsNullOrEmpty(Model.ExistingMediaUrl))
+                {
+                    @if (Model.ExistingMediaType == "video")
                     {
-                        @if (Model.ExistingMediaType == "video")
-                        {
-                            <video src="@Model.ExistingMediaUrl" muted loop playsinline autoplay id="previewMedia"></video>
-                        }
-                        else
-                        {
-                            <img src="@Model.ExistingMediaUrl" alt="Campaign banner" id="previewMedia" />
-                        }
+                        <video src="@Model.ExistingMediaUrl" muted loop playsinline autoplay id="previewMedia"></video>
                     }
                     else
                     {
-                        <div class="preview-banner-empty" id="previewBannerEmpty">
-                            <span>Campaign Banner (Optional)</span>
-                            <span style="text-decoration: underline; cursor:pointer;" onclick="document.getElementById('MediaFile').click()">+ Add Banner Image</span>
-                        </div>
+                        <img src="@Model.ExistingMediaUrl" alt="Campaign banner" id="previewMedia" />
                     }
-                </div>
-
-                <div class="preview-title-live" id="previewTitle">@(string.IsNullOrEmpty(Model.Title) ? "Campaign Title" : Model.Title)</div>
-                <div class="preview-meta-live">
-                    <span id="previewCategory">@(string.IsNullOrEmpty(Model.Niche) ? "Category" : Model.Niche)</span>
-                    &middot; Budget: ৳<span id="previewBudget">@(Model.Budget == 0 ? "0" : Model.Budget.ToString("N0"))</span>
-                </div>
-                <div class="preview-desc-live" id="previewDesc">@(string.IsNullOrEmpty(Model.Description) ? "Your campaign description will appear here..." : Model.Description)</div>
+                }
+                else
+                {
+                    <div class="preview-banner-empty" id="previewBannerEmpty">
+                        <span>Campaign Banner (Optional)</span>
+                        <span style="text-decoration: underline; cursor:pointer;" onclick="document.getElementById('MediaFile').click()">+ Add Banner Image</span>
+                    </div>
+                }
             </div>
 
-            <div class="wizard-side-card">
-                <div class="wizard-side-title">Tips for a Successful Campaign</div>
-                <div class="wizard-tips-list">
-                    <div class="wizard-tip-item"><span class="wizard-tip-mark">✓</span>Be clear about your goals and expectations</div>
-                    <div class="wizard-tip-item"><span class="wizard-tip-mark">✓</span>Set a realistic budget and timeline</div>
-                    <div class="wizard-tip-item"><span class="wizard-tip-mark">✓</span>Break the work into measurable milestones</div>
-                    <div class="wizard-tip-item"><span class="wizard-tip-mark">✓</span>Provide detailed guidelines and brand assets</div>
-                    <div class="wizard-tip-item"><span class="wizard-tip-mark">✓</span>Choose the right category for better reach</div>
+            <div class="preview-title-live" id="previewTitle">@(string.IsNullOrEmpty(Model.Title) ? "Campaign Title" : Model.Title)</div>
+            <div class="preview-meta-live">
+                <span class="ui-badge is-violet"><i class="bi bi-tag"></i> <span id="previewCategory">@(string.IsNullOrEmpty(Model.Niche) ? "Category" : Model.Niche)</span></span>
+                <span class="ui-badge is-info"><i class="bi bi-cash-stack"></i> Budget: ৳<span id="previewBudget">@(Model.Budget == 0 ? "0" : Model.Budget.ToString("N0"))</span></span>
+            </div>
+            <div class="preview-desc-live" id="previewDesc">@(string.IsNullOrEmpty(Model.Description) ? "Your campaign description will appear here..." : Model.Description)</div>
+        </section>
+
+        <section class="ui-card">
+            <div class="ui-card-head" style="margin-bottom:0;">
+                <div>
+                    <div class="ui-card-title cf-rail-title">Tips for a Successful Campaign</div>
+                    <p class="ui-card-sub">What gets the strongest proposals.</p>
                 </div>
             </div>
+            <ul class="check-list">
+                <li><i class="bi bi-check-circle-fill"></i>Be clear about your goals and expectations</li>
+                <li><i class="bi bi-check-circle-fill"></i>Set a realistic budget and timeline</li>
+                <li><i class="bi bi-check-circle-fill"></i>Break the work into measurable milestones</li>
+                <li><i class="bi bi-check-circle-fill"></i>Provide detailed guidelines and brand assets</li>
+                <li><i class="bi bi-check-circle-fill"></i>Choose the right category for better reach</li>
+            </ul>
+        </section>
 
-        </aside>
+        <section class="ui-card">
+            <div class="ui-card-head" style="margin-bottom:2px;">
+                <div class="ui-card-title cf-rail-title">Frequently Asked Questions</div>
+            </div>
+            <div class="faq-list">
+                @foreach (var faq in faqs)
+                {
+                    <details>
+                        <summary>@faq.Item1<i class="bi bi-chevron-right"></i></summary>
+                        <p>@faq.Item2</p>
+                    </details>
+                }
+            </div>
+        </section>
 
-    </div>
+        <section class="help-card">
+            <h3>Need Help?</h3>
+            <p>Not sure how to set up your campaign or budget? Our support team can help.</p>
+            <a href="/Home/Contact">Contact Support <i class="bi bi-arrow-right"></i></a>
+            <svg viewBox="0 0 400 170" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="camp-create-help-wave" x1="0" y1="1" x2="1" y2="0"><stop stop-color="#0955ca" stop-opacity="0"/><stop offset=".65" stop-color="#168cff" stop-opacity=".5"/><stop offset="1" stop-color="#783dff" stop-opacity=".15"/></linearGradient></defs><path d="M-20 160 C100 50 140 220 260 105 S350 85 420 20 L420 190 H-20Z" fill="url(#camp-create-help-wave)"/><path d="M-20 164 C110 90 140 230 270 120 S360 70 420 40" fill="none" stroke="#2799ff" stroke-opacity=".4"/></svg>
+        </section>
+
+    </aside>
 
 </div>
 

@@ -5,351 +5,337 @@
     ViewData["ActiveNav"] = "Profile";
     Layout = "_AppLayout";
 
-    var hue = (Model.Id * 47) % 360;
+    var campaignCount = ViewData["CampaignCount"] as int? ?? 0;
 
-    var completenessChecks = new[]
+    var completenessItems = new[]
     {
-        !string.IsNullOrWhiteSpace(Model.CompanyName),
-        !string.IsNullOrWhiteSpace(Model.ContactFullName),
-        !string.IsNullOrWhiteSpace(Model.Industry),
-        !string.IsNullOrWhiteSpace(Model.MonthlyBudget),
-        !string.IsNullOrWhiteSpace(Model.WebsiteUrl),
-        !string.IsNullOrWhiteSpace(Model.ProfilePictureUrl)
+        ("Company name", "bi-building", !string.IsNullOrWhiteSpace(Model.CompanyName)),
+        ("Contact person", "bi-person", !string.IsNullOrWhiteSpace(Model.ContactFullName)),
+        ("Industry", "bi-tag", !string.IsNullOrWhiteSpace(Model.Industry)),
+        ("Monthly budget", "bi-cash-stack", !string.IsNullOrWhiteSpace(Model.MonthlyBudget)),
+        ("Website", "bi-globe2", !string.IsNullOrWhiteSpace(Model.WebsiteUrl)),
+        ("Brand logo", "bi-image", !string.IsNullOrWhiteSpace(Model.ProfilePictureUrl))
     };
-    var completenessPercent = (int)Math.Round(completenessChecks.Count(c => c) * 100.0 / completenessChecks.Length);
+    var completedCount = completenessItems.Count(c => c.Item3);
+    var completenessPercent = (int)Math.Round(completedCount * 100.0 / completenessItems.Length);
+
+    (string Badge, string Icon, string Label, string Text) Verification() => Model.VerificationStatus switch
+    {
+        VerificationStatus.Verified => ("is-success", "bi-patch-check-fill", "Verified Brand", "Brandora's team has verified your brand. Creators see you as a trusted partner."),
+        VerificationStatus.Rejected => ("is-danger", "bi-x-circle-fill", "Not Approved", "Your verification wasn't approved. Update your profile in Settings so our team can review it again."),
+        _ => ("is-pending", "bi-hourglass-split", "Under Review", "Our team is reviewing your brand details. You'll be notified once it's done.")
+    };
+    var verification = Verification();
+
+    var initial = string.IsNullOrEmpty(Model.CompanyName) ? "B" : Model.CompanyName[..1].ToUpperInvariant();
+
+    var faqs = new[]
+    {
+        ("Who sees my brand profile?", "Creators see your company name, logo and industry on your campaigns, proposals and messages. Your budget range and contact details are used by Brandora's review team."),
+        ("How do I edit these details?", "Use Edit Profile — it opens Settings, where you can update your company details and upload or change your logo."),
+        ("Why does verification matter?", "Every brand is reviewed by Brandora's admin team before it can sign in and work with creators, so creators know the brands they meet are real."),
+        ("What if my verification is rejected?", "The reason is shown on this page. Fix the details in Settings and save — updated profiles are reviewed again."),
+    };
 }
 
 @section Styles {
 
-    .profile-shell {
-        max-width: 780px;
-        margin: 0 auto;
+    .bp-body { margin-top: 16px; }
 
-        animation: fade-up .4s ease both;
-    }
+    .ui-card { transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease; }
+    .bp-body .page-main .ui-card:hover { transform: translateY(-2px); border-color: #b9d3ff; box-shadow: 0 14px 30px #5b83c418; }
 
-    .detail-crumb {
-        font-family: 'Inter', sans-serif;
-        font-size: 12.5px;
-        font-weight: 500;
-        color: #8189a8;
-    }
+    .bp-avatar { background: linear-gradient(135deg, #7224ff, #3735ff 55%, #087fff); color: #ffffff; font-family: 'DM Sans', sans-serif; font-weight: 700; }
+    .bp-avatar.has-img { background: #ffffff; }
 
-    .profile-avatar {
-        position: relative;
-        overflow: hidden;
-        flex-shrink: 0;
+    .bp-side-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+    .bp-side-actions .btn { height: 38px; }
 
-        width: 56px;
-        height: 56px;
+    .bp-body .detail-rows dd { white-space: normal; }
+    .detail-rows dd a { color: #1451ff; font-weight: 600; }
+    .detail-rows dd a:hover { text-decoration: underline; }
+    .bp-muted { color: #8095c4; font-style: italic; }
 
-        display: flex;
-        align-items: center;
-        justify-content: center;
+    /* Completeness */
+    .bp-complete-top { display: flex; align-items: center; gap: 18px; }
+    .bp-ring { position: relative; flex-shrink: 0; width: 76px; height: 76px; border-radius: 50%; }
+    .bp-ring::after { content: ''; position: absolute; inset: 8px; border-radius: 50%; background: #f5f9ff; }
+    .bp-ring span { position: absolute; inset: 0; z-index: 1; display: grid; place-items: center; font-family: 'DM Sans', sans-serif; font-size: 17px; font-weight: 700; color: #0b124e; }
+    .bp-complete-copy strong { display: block; font-family: 'DM Sans', sans-serif; font-size: 14px; color: #101d48; }
+    .bp-complete-copy p { margin: 3px 0 0; font-family: 'Inter', sans-serif; font-size: 12px; line-height: 1.55; color: #5877ac; }
 
-        border-radius: 50%;
-        background: linear-gradient(135deg, hsl(@(hue)deg 75% 58%), hsl(@((hue + 45) % 360)deg 75% 48%));
+    .bp-items { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 16px; }
+    .bp-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; border: 1px solid #e3edfc; background: #ffffff8c; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; color: #101d48; transition: transform .2s ease, border-color .2s ease; }
+    .bp-item:hover { transform: translateY(-2px); border-color: #b9d3ff; }
+    .bp-item .ui-badge { margin-left: auto; }
+    .bp-item.is-missing { color: #5877ac; }
 
-        font-family: 'DM Sans', sans-serif;
-        font-weight: 700;
-        font-size: 18px;
-        line-height: 1;
-        color: #ffffff;
-
-        box-shadow: 0 0 0 4px #ffffffb0;
-    }
-
-    .profile-avatar img {
-        display: block;
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
-
-    .profile-handle {
-        margin-top: 2px;
-
-        font-family: 'Inter', sans-serif;
-        font-size: 13.5px;
-        color: #6b7290;
-    }
-
-    .profile-tags {
-        margin-top: 14px;
-
-        display: flex;
-        flex-wrap: wrap;
-        gap: 6px;
-    }
-
-    .rejection-banner {
-        margin-top: 18px;
-        padding: 14px 18px;
-
-        border-radius: 14px;
-        background: #fde8ea;
-        border: 1px solid #f4c6cd;
-
-        font-family: 'Inter', sans-serif;
-        font-size: 12.5px;
-        line-height: 1.6;
-        color: #c22540;
-    }
-
-    .stat-strip {
-        margin-top: 18px;
-
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 18px;
-
-        padding: 26px 30px;
-
-        border-radius: 18px;
-        background: #ffffff;
-        border: 1px solid #eaecf5;
-
-        animation: fade-up .5s ease both;
-    }
-
-    .figure-value {
-        font-family: 'DM Sans', sans-serif;
-        font-weight: 800;
-        font-size: 22px;
-        color: #171d3d;
-    }
-
-    .figure-label {
-        margin-top: 3px;
-
-        font-family: 'Inter', sans-serif;
-        font-size: 10.5px;
-        font-weight: 600;
-        letter-spacing: .3px;
-        text-transform: uppercase;
-        color: #9096b3;
-    }
-
-    .profile-section {
-        margin-top: 18px;
-        padding: 26px 30px;
-
-        border-radius: 18px;
-        background: #ffffff;
-        border: 1px solid #eaecf5;
-
-        animation: fade-up .55s ease both;
-    }
-
-    .profile-section-title {
-        font-family: 'DM Sans', sans-serif;
-        font-weight: 700;
-        font-size: 15px;
-        color: #171d3d;
-    }
-
-    .profile-info-grid {
-        margin-top: 14px;
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 18px 24px;
-    }
-
-    .profile-info-value-full {
-        grid-column: span 2;
-    }
-
-    .profile-info-label {
-        font-family: 'Inter', sans-serif;
-        font-size: 10.5px;
-        font-weight: 600;
-        letter-spacing: .3px;
-        text-transform: uppercase;
-        color: #9096b3;
-    }
-
-    .profile-info-value {
-        margin-top: 4px;
-        font-family: 'Inter', sans-serif;
-        font-size: 13.5px;
-        color: #171d3d;
-        word-break: break-word;
-    }
-
-    .profile-info-value a {
-        color: #7a2df3;
-        font-weight: 600;
-    }
-
-    .completeness-row {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-    }
-
-    .completeness-bar {
-        margin-top: 12px;
-        height: 6px;
-        border-radius: 6px;
-        background: #e8eaf5;
-        overflow: hidden;
-    }
-
-    .completeness-bar-fill {
-        height: 100%;
-        border-radius: 6px;
-        background: linear-gradient(90deg, #a326ff, #236eff);
-        transition: width .4s ease;
-    }
-
-    .completeness-hint {
-        margin-top: 10px;
-        font-family: 'Inter', sans-serif;
-        font-size: 12px;
-        color: #9096b3;
-    }
-
-    @@media(max-width: 480px) {
-        .profile-info-grid { grid-template-columns: 1fr; }
-        .profile-info-value-full { grid-column: span 1; }
-    }
+    .bp-track { margin-top: 12px; height: 7px; border-radius: 7px; background: #e3edfc; overflow: hidden; }
+    .bp-fill { height: 100%; width: 0; border-radius: 7px; background: linear-gradient(110deg, #6425ff, #004dff 55%, #00a8f0); transition: width 1s cubic-bezier(.22,1,.36,1); }
 
     @@media(max-width: 640px) {
-        .stat-strip { grid-template-columns: 1fr 1fr; }
+        .bp-items { grid-template-columns: 1fr; }
+        .bp-side-actions { justify-content: flex-start; }
     }
 
 }
 
-<div class="profile-shell">
+<nav class="crumb-trail" aria-label="Breadcrumb">
+    <a href="/Dashboard">Dashboard</a>
+    <i class="bi bi-chevron-right"></i>
+    <a href="/Settings">Settings</a>
+    <i class="bi bi-chevron-right"></i>
+    <strong>Brand Profile</strong>
+</nav>
 
-    <a href="/Dashboard" class="back-to-dashboard">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        Back
-    </a>
+<section class="page-hero detail-hero">
+    @await Html.PartialAsync("_HeroWaves")
+    <div class="detail-hero-top">
+        <div class="detail-hero-avatar bp-avatar @(string.IsNullOrEmpty(Model.ProfilePictureUrl) ? "" : "has-img")">
+            @if (!string.IsNullOrEmpty(Model.ProfilePictureUrl))
+            {
+                <img src="@Model.ProfilePictureUrl" alt="@Model.CompanyName" />
+            }
+            else
+            {
+                @initial
+            }
+        </div>
 
-    <section class="page-hero">
-        @await Html.PartialAsync("_HeroWaves")
-        <div class="page-hero-intro">
-            <div class="detail-crumb"><a href="/Dashboard">Dashboard</a> / Brand Profile</div>
-
-            <div style="display:flex; align-items:center; gap:14px; margin-top:10px;">
-                <div class="profile-avatar">
-                    @if (!string.IsNullOrEmpty(Model.ProfilePictureUrl))
-                    {
-                        <img src="@Model.ProfilePictureUrl" alt="@Model.CompanyName" />
-                    }
-                    else
-                    {
-                        @(string.IsNullOrEmpty(Model.CompanyName) ? "B" : Model.CompanyName[..1].ToUpperInvariant())
-                    }
-                </div>
-                <div>
-                    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-                        <h1 class="page-hero-title" style="margin-top:0;">@Model.CompanyName</h1>
-                        <span class="status-pill @Model.VerificationStatus.ToString().ToLowerInvariant()">@Model.VerificationStatus</span>
-                    </div>
-                    <p class="profile-handle">@Model.ContactFullName &middot; @(string.IsNullOrEmpty(Model.Industry) ? "Industry not set" : Model.Industry)</p>
-                </div>
-            </div>
-
-            <div class="profile-tags">
+        <div class="detail-hero-copy">
+            <div class="detail-hero-tags">
+                <span><i class="bi bi-building"></i> Brand</span>
                 @if (!string.IsNullOrEmpty(Model.Industry))
                 {
-                    <span class="tag">@Model.Industry</span>
+                    <span><i class="bi bi-tag"></i> @Model.Industry</span>
                 }
                 @if (!string.IsNullOrEmpty(Model.MonthlyBudget))
                 {
-                    <span class="tag">Budget: @Model.MonthlyBudget</span>
+                    <span><i class="bi bi-cash-stack"></i> @Model.MonthlyBudget / month</span>
                 }
-                <span class="tag">Member since @Model.CreatedAt.ToString("MMM yyyy")</span>
+                <span><i class="bi bi-calendar4-week"></i> Member since @Model.CreatedAt.ToString("MMM yyyy")</span>
             </div>
+            <h1>@Model.CompanyName</h1>
+            <p>
+                Managed by <strong>@Model.ContactFullName</strong>
+                @if (!string.IsNullOrEmpty(Model.WebsiteUrl))
+                {
+                    <text>&middot; <a href="@Model.WebsiteUrl" target="_blank" rel="noopener">@Model.WebsiteUrl</a></text>
+                }
+            </p>
+        </div>
 
-            <div class="hero-actions" style="margin-top: 18px; flex-wrap: wrap;">
-                <a href="/Settings" class="btn btn-primary">Edit Profile</a>
+        <div class="detail-hero-side">
+            <span class="ui-badge @verification.Badge"><i class="bi @verification.Icon"></i> @verification.Label</span>
+            <div class="bp-side-actions">
+                <a href="/Settings" class="btn btn-primary"><i class="bi bi-pencil-square" style="margin-right:8px;"></i>Edit Profile</a>
                 @if (!string.IsNullOrEmpty(Model.WebsiteUrl))
                 {
                     <a href="@Model.WebsiteUrl" target="_blank" rel="noopener" class="btn btn-outline-brand">Visit Website</a>
                 }
             </div>
         </div>
-
-        <div class="page-hero-art" aria-hidden="true">
-            <div class="hero-glass hero-glass-back"></div>
-            <div class="hero-glass hero-glass-front">
-                <span class="hero-glass-copy">Your Brand<br />Your Story<br />Your Campaigns<span></span></span>
-            </div>
-            <span class="hero-sparkle"></span>
-        </div>
-
-        <div class="page-hero-motto">Build Trust.<br />Grow Reach.<span></span></div>
-    </section>
-
-    @if (Model.VerificationStatus == VerificationStatus.Rejected && !string.IsNullOrEmpty(Model.RejectionReason))
-    {
-        <div class="rejection-banner">
-            <strong>Verification was rejected:</strong> @Model.RejectionReason
-        </div>
-    }
-
-    <div class="stat-strip">
-        <div>
-            <div class="figure-value">@ViewData["CampaignCount"]</div>
-            <div class="figure-label">Campaigns</div>
-        </div>
-        <div>
-            <div class="figure-value">@Model.CreatedAt.ToString("MMM yyyy")</div>
-            <div class="figure-label">Member Since</div>
-        </div>
-        <div>
-            <div class="figure-value">@completenessPercent%</div>
-            <div class="figure-label">Profile Complete</div>
-        </div>
     </div>
 
-    <div class="profile-section">
-        <div class="profile-section-title">Company Details</div>
-        <div class="profile-info-grid">
-            <div>
-                <div class="profile-info-label">Contact Name</div>
-                <div class="profile-info-value">@Model.ContactFullName</div>
-            </div>
-            <div>
-                <div class="profile-info-label">Email</div>
-                <div class="profile-info-value">@ViewData["Email"]</div>
-            </div>
-            <div>
-                <div class="profile-info-label">Industry</div>
-                <div class="profile-info-value">@(string.IsNullOrEmpty(Model.Industry) ? "Not specified" : Model.Industry)</div>
-            </div>
-            <div>
-                <div class="profile-info-label">Monthly Budget</div>
-                <div class="profile-info-value">@(string.IsNullOrEmpty(Model.MonthlyBudget) ? "Not specified" : Model.MonthlyBudget)</div>
-            </div>
-            @if (!string.IsNullOrEmpty(Model.WebsiteUrl))
-            {
-                <div class="profile-info-value-full">
-                    <div class="profile-info-label">Website</div>
-                    <div class="profile-info-value"><a href="@Model.WebsiteUrl" target="_blank" rel="noopener">@Model.WebsiteUrl</a></div>
-                </div>
-            }
-        </div>
-    </div>
+    <dl class="detail-hero-stats">
+        <div><dt>Campaigns</dt><dd>@campaignCount</dd></div>
+        <div><dt>Member Since</dt><dd>@Model.CreatedAt.ToString("MMM yyyy")</dd></div>
+        <div><dt>Profile Complete</dt><dd>@completenessPercent%</dd></div>
+        <div><dt>Verification</dt><dd>@verification.Label</dd></div>
+    </dl>
+</section>
 
-    <div class="profile-section">
-        <div class="profile-section-title">Profile Completeness</div>
-        <div class="completeness-row" style="margin-top: 12px;">
-            <span class="profile-info-label">Overall</span>
-            <span style="font-family:'DM Sans',sans-serif; font-weight:700; font-size:13px; color:#171d3d;">@completenessPercent%</span>
-        </div>
-        <div class="completeness-bar">
-            <div class="completeness-bar-fill" style="width: @completenessPercent%;"></div>
-        </div>
-        @if (completenessPercent < 100)
+<div class="page-grid bp-body">
+
+    <div class="page-main">
+
+        @if (Model.VerificationStatus == VerificationStatus.Rejected && !string.IsNullOrEmpty(Model.RejectionReason))
         {
-            <p class="completeness-hint">
-                Add @(string.IsNullOrWhiteSpace(Model.WebsiteUrl) && string.IsNullOrWhiteSpace(Model.ProfilePictureUrl) ? "a website and a logo" : string.IsNullOrWhiteSpace(Model.WebsiteUrl) ? "a website" : "a logo") to complete your profile.
-            </p>
+            <div class="notice is-error" style="margin:0;">
+                <i class="bi bi-exclamation-circle-fill"></i>
+                <span><strong>Verification was rejected:</strong> @Model.RejectionReason &mdash; <a href="/Settings" style="font-weight:600; text-decoration:underline;">update your profile</a> so our team can review it again.</span>
+            </div>
         }
+
+        <section class="ui-card">
+            <div class="ui-card-head">
+                <div>
+                    <div class="ui-card-title">Company Details</div>
+                    <p class="ui-card-sub">The information behind your brand on Brandora.</p>
+                </div>
+                <a href="/Settings#brand-profile" class="ui-card-link">Edit Details <i class="bi bi-arrow-right"></i></a>
+            </div>
+            <dl class="detail-rows">
+                <div>
+                    <dt><span class="icon-chip"><i class="bi bi-building"></i></span>Company</dt>
+                    <dd>@Model.CompanyName</dd>
+                </div>
+                <div>
+                    <dt><span class="icon-chip"><i class="bi bi-person"></i></span>Contact Name</dt>
+                    <dd>@Model.ContactFullName</dd>
+                </div>
+                <div>
+                    <dt><span class="icon-chip"><i class="bi bi-envelope"></i></span>Email</dt>
+                    <dd>@ViewData["Email"]<small>Your sign-in email</small></dd>
+                </div>
+                <div>
+                    <dt><span class="icon-chip"><i class="bi bi-tag"></i></span>Industry</dt>
+                    <dd>
+                        @if (string.IsNullOrEmpty(Model.Industry))
+                        {
+                            <span class="bp-muted">Not specified</span>
+                        }
+                        else
+                        {
+                            @Model.Industry
+                        }
+                    </dd>
+                </div>
+                <div>
+                    <dt><span class="icon-chip"><i class="bi bi-cash-stack"></i></span>Monthly Budget</dt>
+                    <dd>
+                        @if (string.IsNullOrEmpty(Model.MonthlyBudget))
+                        {
+                            <span class="bp-muted">Not specified</span>
+                        }
+                        else
+                        {
+                            @Model.MonthlyBudget<small>Estimated creator-marketing budget</small>
+                        }
+                    </dd>
+                </div>
+                <div>
+                    <dt><span class="icon-chip"><i class="bi bi-globe2"></i></span>Website</dt>
+                    <dd>
+                        @if (string.IsNullOrEmpty(Model.WebsiteUrl))
+                        {
+                            <span class="bp-muted">Not added yet</span>
+                        }
+                        else
+                        {
+                            <a href="@Model.WebsiteUrl" target="_blank" rel="noopener">@Model.WebsiteUrl</a>
+                        }
+                    </dd>
+                </div>
+            </dl>
+        </section>
+
+        <section class="ui-card">
+            <div class="ui-card-head">
+                <div>
+                    <div class="ui-card-title">Profile Completeness</div>
+                    <p class="ui-card-sub">Complete profiles earn more trust from creators and our review team.</p>
+                </div>
+                <span class="ui-badge @(completenessPercent == 100 ? "is-success" : "is-violet")">@completedCount of @completenessItems.Length done</span>
+            </div>
+
+            <div class="bp-complete-top">
+                <div class="bp-ring" style="background: conic-gradient(#3735ff 0 @(completenessPercent)%, #d6e4fb @(completenessPercent)% 100%);"><span>@completenessPercent%</span></div>
+                <div class="bp-complete-copy">
+                    @if (completenessPercent == 100)
+                    {
+                        <strong>Your profile is complete</strong>
+                        <p>Every detail is filled in &mdash; creators get the full picture of your brand.</p>
+                    }
+                    else
+                    {
+                        <strong>@(completenessItems.Length - completedCount) item@(completenessItems.Length - completedCount == 1 ? "" : "s") left</strong>
+                        <p>Add @(string.Join(", ", completenessItems.Where(c => !c.Item3).Select(c => c.Item1.ToLowerInvariant()))) in Settings to finish your profile.</p>
+                    }
+                    <div class="bp-track"><div class="bp-fill" data-fill-to="@completenessPercent"></div></div>
+                </div>
+            </div>
+
+            <div class="bp-items">
+                @foreach (var item in completenessItems)
+                {
+                    <div class="bp-item @(item.Item3 ? "" : "is-missing")">
+                        <span class="icon-chip sm @(item.Item3 ? "mint" : "soft")"><i class="bi @item.Item2"></i></span>
+                        @item.Item1
+                        @if (item.Item3)
+                        {
+                            <span class="ui-badge is-success"><i class="bi bi-check-circle-fill"></i> Done</span>
+                        }
+                        else
+                        {
+                            <a href="/Settings#brand-profile" class="ui-badge is-info">Add <i class="bi bi-arrow-right"></i></a>
+                        }
+                    </div>
+                }
+            </div>
+        </section>
+
     </div>
+
+    <aside class="page-rail">
+
+        <section class="ui-card">
+            <div class="ui-card-head" style="margin-bottom:6px;">
+                <div class="ui-card-title" style="font-size:17px;">Account Summary</div>
+                <span class="ui-badge @verification.Badge">@verification.Label</span>
+            </div>
+            <dl class="fact-list">
+                <div><dt>Campaigns created</dt><dd>@campaignCount</dd></div>
+                <div><dt>Member since</dt><dd>@Model.CreatedAt.ToString("MMM d, yyyy")</dd></div>
+                @if (Model.VerifiedAt.HasValue)
+                {
+                    <div><dt>Verified on</dt><dd>@Model.VerifiedAt.Value.ToString("MMM d, yyyy")</dd></div>
+                }
+                <div><dt>Profile complete</dt><dd>@completenessPercent%</dd></div>
+            </dl>
+            <a href="/Campaigns" class="info-card-btn" style="margin-top:10px;">View Campaigns <i class="bi bi-arrow-right"></i></a>
+        </section>
+
+        <section class="info-card">
+            <div class="info-card-head">
+                <span class="icon-chip soft"><i class="bi bi-patch-check"></i></span>
+                <div class="info-card-title">Brand Verification</div>
+            </div>
+            <p>@verification.Text</p>
+            <ol class="next-steps">
+                <li class="is-done"><h4>Account Created</h4><p>@Model.CreatedAt.ToString("MMM d, yyyy")</p></li>
+                <li class="@(Model.VerificationStatus == VerificationStatus.Pending ? "is-current" : "is-done")"><h4>Admin Review</h4><p>@(Model.VerificationStatus == VerificationStatus.Pending ? "In progress" : Model.VerificationStatus == VerificationStatus.Rejected ? "Changes needed" : "Completed")</p></li>
+                <li class="@(Model.VerificationStatus == VerificationStatus.Verified ? "is-done" : Model.VerificationStatus == VerificationStatus.Rejected ? "is-current" : "")"><h4>@(Model.VerificationStatus == VerificationStatus.Rejected ? "Update & Resubmit" : "Verified Brand")</h4><p>@(Model.VerifiedAt.HasValue ? Model.VerifiedAt.Value.ToString("MMM d, yyyy") : Model.VerificationStatus == VerificationStatus.Rejected ? "Edit your profile in Settings" : "Trusted by creators")</p></li>
+            </ol>
+        </section>
+
+        <section class="ui-card">
+            <div class="ui-card-head" style="margin-bottom:0;">
+                <div>
+                    <div class="ui-card-title" style="font-size:17px;">A Profile Creators Trust</div>
+                    <p class="ui-card-sub">What creators look for before they apply.</p>
+                </div>
+            </div>
+            <ul class="check-list">
+                <li><i class="bi bi-check-circle-fill"></i>A clear logo that matches your social accounts.</li>
+                <li><i class="bi bi-check-circle-fill"></i>Your real company or trading name.</li>
+                <li><i class="bi bi-check-circle-fill"></i>A working website so creators can learn about you.</li>
+                <li><i class="bi bi-check-circle-fill"></i>An accurate industry, so the right creators find your campaigns.</li>
+            </ul>
+        </section>
+
+        <section class="ui-card">
+            <div class="ui-card-head" style="margin-bottom:2px;">
+                <div class="ui-card-title" style="font-size:17px;">Frequently Asked Questions</div>
+            </div>
+            <div class="faq-list">
+                @foreach (var faq in faqs)
+                {
+                    <details>
+                        <summary>@faq.Item1<i class="bi bi-chevron-right"></i></summary>
+                        <p>@faq.Item2</p>
+                    </details>
+                }
+            </div>
+        </section>
+
+        <section class="help-card">
+            <h3>Need Help?</h3>
+            <p>Questions about your brand profile or verification? Our support team can help.</p>
+            <a href="/Home/Contact">Contact Support <i class="bi bi-arrow-right"></i></a>
+            <svg viewBox="0 0 400 170" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="profile-help-wave" x1="0" y1="1" x2="1" y2="0"><stop stop-color="#0955ca" stop-opacity="0"/><stop offset=".65" stop-color="#168cff" stop-opacity=".5"/><stop offset="1" stop-color="#783dff" stop-opacity=".15"/></linearGradient></defs><path d="M-20 160 C100 50 140 220 260 105 S350 85 420 20 L420 190 H-20Z" fill="url(#profile-help-wave)"/><path d="M-20 164 C110 90 140 230 270 120 S360 70 420 40" fill="none" stroke="#2799ff" stroke-opacity=".4"/></svg>
+        </section>
+
+    </aside>
 
 </div>
