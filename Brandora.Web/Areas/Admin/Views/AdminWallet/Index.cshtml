@@ -1,0 +1,550 @@
+@model Brandora.Web.Areas.Admin.Controllers.AdminWalletViewModel
+@using System.Globalization
+@using Brandora.Web.Areas.Admin.Services
+@using Brandora.Web.Models.Domain
+@{
+    var ledger = Model.Ledger;
+
+    string Money(decimal amount) => (amount < 0 ? "-৳" : "৳") + Math.Abs(amount).ToString("N0", CultureInfo.InvariantCulture);
+    string Initials(string name) => string.Concat(name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(p => char.ToUpperInvariant(p[0])));
+    string Trend(decimal? pct)
+    {
+        if (pct is null) return "<span class=\"aw-trend flat\">—</span>";
+        var up = pct >= 0;
+        return $"<span class=\"aw-trend {(up ? "up" : "down")}\"><i class=\"bi bi-arrow-{(up ? "up" : "down")}\"></i> {Math.Abs(pct.Value).ToString("0.#", CultureInfo.InvariantCulture)}%</span>";
+    }
+    // Official bKash and Nagad logos (already in wwwroot/images/payment-methods); bank uses an icon.
+    string Logo(string method, int height) => method switch
+    {
+        "bKash" => $"<img src=\"/images/payment-methods/bkash.svg\" alt=\"bKash\" style=\"height:{height}px;width:auto;display:block;\" />",
+        "Nagad" => $"<img src=\"/images/payment-methods/nagad.svg\" alt=\"Nagad\" style=\"height:{height}px;width:auto;display:block;\" />",
+        _ => $"<i class=\"bi bi-bank\" style=\"font-size:{height}px;color:#236eff;line-height:1;\"></i>"
+    };
+
+    var feeMax = Math.Max(1m, Model.FeesByMonth.Max(m => m.Amount));
+    var compMax = Math.Max(1m, ledger.CompensationByMonth.Max(m => m.Amount));
+    var noFeeData = Model.FeesByMonth.All(m => m.Amount == 0);
+    var noCompData = ledger.CompensationByMonth.All(m => m.Amount == 0);
+
+    var donutParts = new List<string>();
+    var cursor = 0;
+    foreach (var s in Model.Distribution)
+    {
+        if (s.Percent <= 0) continue;
+        donutParts.Add($"{s.Color} {cursor}% {Math.Min(100, cursor + s.Percent)}%");
+        cursor += s.Percent;
+    }
+    var donutStyle = donutParts.Count == 0 ? "background:#eef1fb;" : "background:conic-gradient(" + string.Join(",", donutParts) + ");";
+
+    var feeRatePct = (PlatformFee.Rate * 100).ToString("0.##", CultureInfo.InvariantCulture);
+    var monthWithdrawals = Model.Withdrawals.Count(w => w.IsCompleted && (w.ProcessedAt ?? w.At) >= new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1));
+}
+
+<style>
+    .aw-hero { position: relative; isolation: isolate; overflow: hidden; display: flex; align-items: center; justify-content: space-between; gap: 24px; min-height: 140px; padding: 24px 36px; border-radius: 18px; margin-bottom: 16px; border: 1px solid #dce7ff; background: radial-gradient(ellipse at 61% 0%, rgba(163,38,255,.12), transparent 58%), linear-gradient(110deg, #f3f6ff88, #eaf1ffcc 55%, #f3f6ff88); }
+    .aw-hero h1 { margin: 0; font-family: 'Playfair Display', Georgia, serif; font-weight: 700; font-size: clamp(30px, 3vw, 42px); line-height: 1.1; color: #171d3d; }
+    .aw-hero p { margin: 8px 0 0; font-family: 'Inter', sans-serif; font-size: 13.5px; color: #6b7290; }
+    .aw-hero .aw-motto { font-family: 'Caveat', cursive; font-weight: 700; font-size: 26px; line-height: 1.2; color: #2a3157; text-align: center; transform: rotate(-3deg); }
+    .aw-hero .aw-art { width: 88px; height: 88px; border-radius: 26px; background: linear-gradient(135deg, #a326ff, #236eff 60%, #18a9ff); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 38px; box-shadow: 0 18px 36px rgba(90,60,255,.25); }
+
+    .aw-notice { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 16px; padding: 12px 18px; border-radius: 12px; border: 1px solid #cfe0ff; background: #f3f8ff; font: 12.5px/1.55 'Inter', sans-serif; color: #2a3157; }
+    .aw-notice i { color: #236eff; font-size: 16px; margin-top: 1px; }
+
+    .aw-balance { display: flex; align-items: center; gap: 22px; margin-bottom: 16px; padding: 20px 26px; border-radius: 15px; background: #fff; border: 1px solid #dce7ff; flex-wrap: wrap; }
+    .aw-balance-icon { width: 60px; height: 60px; border-radius: 16px; background: linear-gradient(135deg, #f1e6ff, #e3f0ff); color: #7a2fe0; display: flex; align-items: center; justify-content: center; font-size: 27px; }
+    .aw-label { font: 600 12px 'Inter', sans-serif; color: #8189a8; }
+    .aw-big { margin-top: 4px; font: 800 32px 'DM Sans', sans-serif; color: #171d3d; }
+    .aw-trend { display: inline-flex; align-items: center; gap: 3px; padding: 3px 9px; border-radius: 8px; font: 600 12px 'Inter', sans-serif; }
+    .aw-trend.up { background: #e2f8ee; color: #0d9c6c; } .aw-trend.down { background: #fde8ea; color: #d92d3f; } .aw-trend.flat { background: #eef1fb; color: #8189a8; }
+    .aw-balance-note { flex: 1; min-width: 220px; padding-left: 22px; border-left: 1px solid #eef1fb; font: 12px/1.6 'Inter', sans-serif; color: #6b7290; }
+    .aw-btn { display: inline-flex; align-items: center; gap: 7px; height: 40px; padding: 0 16px; border-radius: 10px; border: 1px solid #cfe0ff; background: #f3f8ff; font: 600 12.5px 'Inter', sans-serif; color: #236eff; cursor: pointer; text-decoration: none; white-space: nowrap; }
+    .aw-btn.primary { height: 44px; padding: 0 22px; border: 0; color: #fff; background: linear-gradient(105deg, #a326ff, #236eff, #18a9ff); }
+
+    .aw-kpis { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 16px; }
+    .aw-kpi { display: flex; gap: 12px; align-items: flex-start; padding: 16px 18px; border-radius: 14px; background: #fff; border: 1px solid #dce7ff; min-width: 0; }
+    .aw-kpi-icon { flex: 0 0 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 19px; background: #f1e6ff; color: #7a2fe0; }
+    .aw-kpi-icon.green { background: #e2f8ee; color: #0d9c6c; } .aw-kpi-icon.blue { background: #e3f0ff; color: #236eff; } .aw-kpi-icon.red { background: #fde8ea; color: #d92d3f; } .aw-kpi-icon.amber { background: #fff1de; color: #c47410; }
+    .aw-kpi-value { margin-top: 3px; font: 800 22px 'DM Sans', sans-serif; color: #171d3d; }
+    .aw-kpi-sub { margin-top: 5px; font: 11.5px 'Inter', sans-serif; color: #8189a8; }
+
+    .aw-charts { display: grid; grid-template-columns: 1fr 1fr 0.8fr; gap: 14px; margin-bottom: 16px; }
+    .aw-panel { padding: 22px 24px; border-radius: 15px; background: #fff; border: 1px solid #dce7ff; min-width: 0; margin-bottom: 16px; }
+    .aw-charts .aw-panel { margin-bottom: 0; }
+    .aw-title { font: 700 18px 'Playfair Display', Georgia, serif; color: #171d3d; }
+    .aw-sub { margin-top: 3px; font: 12px 'Inter', sans-serif; color: #8189a8; }
+    .aw-bars { position: relative; display: flex; align-items: flex-end; gap: 10px; height: 170px; margin-top: 18px; padding: 0 4px 22px; border-bottom: 1px solid #eef1fb; background: repeating-linear-gradient(to top, transparent 0 41px, #f1f3fb 41px 42px); }
+    .aw-bar { position: relative; flex: 1; min-height: 3px; border-radius: 6px 6px 0 0; background: linear-gradient(180deg, #a56bff, #6d8dff); }
+    .aw-bars.red .aw-bar { background: linear-gradient(180deg, #ff9db5, #ff7d9c); }
+    .aw-bar span { position: absolute; left: 50%; bottom: -20px; transform: translateX(-50%); font: 10.5px 'Inter', sans-serif; color: #8189a8; }
+    .aw-bar em { display: none; position: absolute; left: 50%; bottom: calc(100% + 6px); transform: translateX(-50%); padding: 3px 8px; border-radius: 7px; background: #171d3d; color: #fff; font: normal 600 11px 'Inter', sans-serif; white-space: nowrap; z-index: 3; }
+    .aw-bar:hover em { display: block; }
+    .aw-empty-chart { position: absolute; inset: 0 0 22px; display: flex; align-items: center; justify-content: center; text-align: center; padding: 0 20px; font: 12px 'Inter', sans-serif; color: #8189a8; }
+
+    .aw-donut-wrap { display: flex; align-items: center; gap: 18px; margin-top: 18px; flex-wrap: wrap; }
+    .aw-donut { position: relative; width: 132px; height: 132px; border-radius: 50%; flex-shrink: 0; }
+    .aw-donut::after { content: ''; position: absolute; inset: 18px; border-radius: 50%; background: #fff; }
+    .aw-donut-center { position: absolute; inset: 0; z-index: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; font: 800 15px 'DM Sans', sans-serif; color: #171d3d; }
+    .aw-donut-center small { font: 500 10.5px 'Inter', sans-serif; color: #8189a8; }
+    .aw-legend { display: flex; flex-direction: column; gap: 9px; font: 12px 'Inter', sans-serif; color: #2a3157; }
+    .aw-legend i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 7px; }
+    .aw-legend span { margin-left: 6px; color: #8189a8; }
+
+    .aw-tabs { display: inline-flex; flex-wrap: wrap; gap: 4px; padding: 4px; margin: 16px 0 4px; border-radius: 12px; border: 1px solid #dce7ff; background: #f6f8ff; }
+    .aw-tabs button { padding: 9px 18px; border: 0; border-radius: 9px; background: transparent; font: 600 12.5px 'Inter', sans-serif; color: #2a3157; cursor: pointer; }
+    .aw-tabs button.is-active { color: #fff; background: linear-gradient(105deg, #a326ff, #236eff, #18a9ff); }
+
+    .aw-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 16px 0 14px; }
+    .aw-toolbar .aw-filters, .aw-toolbar form { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .aw-input { height: 38px; padding: 0 12px; border-radius: 10px; border: 1px solid #dde1f0; background: #fff; font: 12.5px 'Inter', sans-serif; color: #2a3157; outline: none; }
+    .aw-input[type="search"] { width: 250px; } .aw-input[type="date"] { width: 150px; }
+
+    .aw-scroll { overflow-x: auto; }
+    .aw-table { width: 100%; border-collapse: collapse; }
+    .aw-table th { white-space: nowrap; padding: 11px 14px; text-align: left; font: 700 11px 'Inter', sans-serif; letter-spacing: .3px; text-transform: uppercase; color: #8189a8; background: #f7f9ff; }
+    .aw-table td { white-space: nowrap; padding: 14px; border-top: 1px solid #eef1fb; font: 12.5px 'Inter', sans-serif; color: #2a3157; vertical-align: middle; }
+    .aw-table tr.aw-row:hover td { background: #fafbff; }
+    .aw-camp { display: flex; align-items: center; gap: 11px; min-width: 150px; }
+    .aw-camp b { white-space: normal; font: 700 13px 'DM Sans', sans-serif; color: #171d3d; }
+    .aw-camp small { display: block; margin-top: 2px; font: 11.5px 'Inter', sans-serif; color: #8189a8; }
+    .aw-thumb { flex: 0 0 38px; height: 38px; border-radius: 10px; overflow: hidden; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #f1e6ff, #e3f0ff); color: #7a2fe0; font: 700 13px 'DM Sans', sans-serif; }
+    .aw-thumb.round { border-radius: 50%; background: linear-gradient(135deg, #a326ff, #236eff); color: #fff; }
+    .aw-thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .aw-pill { display: inline-block; padding: 5px 11px; border-radius: 8px; font-size: 11.5px; font-weight: 600; white-space: nowrap; }
+    .aw-pill.blue { background: #e3f0ff; color: #236eff; } .aw-pill.amber { background: #fff1de; color: #c47410; } .aw-pill.gray { background: #eef1fb; color: #6b7290; } .aw-pill.green { background: #e2f8ee; color: #0d9c6c; } .aw-pill.red { background: #fde8ea; color: #d92d3f; }
+    .aw-view { display: inline-flex; align-items: center; gap: 5px; padding: 6px 12px; border-radius: 9px; border: 1px solid #cfe0ff; background: #f3f8ff; color: #236eff; font: 600 12px 'Inter', sans-serif; cursor: pointer; white-space: nowrap; }
+    .aw-method { display: flex; align-items: center; gap: 9px; }
+    .aw-method small { display: block; color: #8189a8; font-size: 11px; }
+    .aw-muted { color: #8189a8; }
+
+    .aw-pager { display: flex; justify-content: center; gap: 6px; margin-top: 14px; }
+    .aw-pager button { min-width: 34px; height: 34px; border-radius: 9px; border: 1px solid #dde1f0; background: #fff; font: 600 12.5px 'Inter', sans-serif; color: #2a3157; cursor: pointer; }
+    .aw-pager button.is-active { border: 0; color: #fff; background: linear-gradient(105deg, #a326ff, #236eff); }
+    .aw-empty { padding: 26px 18px; margin-top: 8px; border-radius: 12px; border: 1px dashed #dde1f0; background: #fafbfe; text-align: center; font: 12.5px 'Inter', sans-serif; color: #8189a8; }
+    .aw-empty b { display: block; margin-bottom: 4px; font: 700 14px 'DM Sans', sans-serif; color: #2a3157; }
+
+    .aw-siderow { display: flex; gap: 16px; align-items: stretch; margin-bottom: 16px; }
+    .aw-side-card { flex: 2; min-width: 0; padding: 22px; border-radius: 15px; background: #fff; border: 1px solid #dce7ff; }
+    .aw-side-card .aw-side-icon { width: 44px; height: 44px; border-radius: 12px; background: #f1e6ff; color: #7a2fe0; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+    .aw-side-card h3 { margin: 12px 0 6px; font: 700 18px 'Playfair Display', Georgia, serif; color: #171d3d; }
+    .aw-side-card p { margin: 0 0 14px; font: 12.5px/1.6 'Inter', sans-serif; color: #6b7290; }
+    .aw-health { flex: 1; min-width: 0; display: flex; gap: 12px; align-items: center; padding: 16px 18px; border-radius: 14px; border: 1px solid rgba(13,156,108,.25); background: #ecfaf4; font: 12px/1.5 'Inter', sans-serif; color: #0b7a55; }
+    .aw-health.warn { border-color: rgba(217,45,63,.25); background: #fdeff1; color: #a71b34; }
+    .aw-health i { font-size: 20px; }
+    .aw-health b { display: block; margin-bottom: 2px; font-size: 13px; }
+
+    .aw-pane[hidden] { display: none; }
+
+    /* Drawer */
+    .aw-overlay { position: fixed; inset: 0; z-index: 1900; background: rgba(15,20,50,.35); opacity: 0; pointer-events: none; transition: opacity .2s; }
+    .aw-overlay.is-open { opacity: 1; pointer-events: auto; }
+    .aw-drawer { position: fixed; top: 0; right: 0; bottom: 0; z-index: 2000; width: min(600px, 100vw); overflow-y: auto; background: #fff; border-left: 1px solid #dce7ff; box-shadow: -18px 0 40px rgba(20,25,60,.12); transform: translateX(100%); transition: transform .25s ease; }
+    .aw-drawer.is-open { transform: translateX(0); }
+    .aw-drawer-loading { padding: 40px; font: 13px 'Inter', sans-serif; color: #8189a8; }
+
+    /* Cash-out drawer */
+
+    @@media(max-width: 1350px) { .aw-kpis { grid-template-columns: repeat(3, 1fr); } .aw-charts { grid-template-columns: 1fr 1fr; } }
+    @@media(max-width: 800px) { .aw-siderow { flex-direction: column; } .aw-kpis, .aw-charts { grid-template-columns: 1fr; } .aw-hero .aw-motto { display: none; } .aw-balance-note { border-left: 0; padding-left: 0; } }
+</style>
+
+<section class="aw-hero">
+    <div>
+        <h1>Platform Wallet</h1>
+        <p>Manage platform earnings, withdrawals and cash-outs.</p>
+    </div>
+    <div class="aw-motto">Small Fees<br />Bigger Opportunities</div>
+    <div class="aw-art"><i class="bi bi-wallet2"></i></div>
+</section>
+
+@if (!ledger.IsLive)
+{
+    <div class="aw-notice">
+        <i class="bi bi-info-circle"></i>
+        <div>
+            Fees are calculated at <b>@feeRatePct%</b> of every influencer withdrawal, using real withdrawals and paid milestones.
+            Admin cash-outs, compensation payouts and gateway references appear once the payment gateway is connected.
+        </div>
+    </div>
+}
+
+<section class="aw-balance">
+    <div class="aw-balance-icon"><i class="bi bi-wallet2"></i></div>
+    <div>
+        <div class="aw-label">Platform Balance</div>
+        <div class="aw-big">@Money(Model.Balance)</div>
+    </div>
+    @Html.Raw(Trend(Model.FeesTrendPct))
+    <div class="aw-balance-note">
+        This balance comes from @feeRatePct% fees on influencer withdrawals. <span class="aw-muted">@(Model.FeesTrendPct is null ? "No earlier month to compare with yet." : "Compared with last month's fees.")</span>
+    </div>
+    <a class="aw-btn primary" href="/Admin/AdminWallet/Withdraw">Withdraw from Wallet <i class="bi bi-arrow-right"></i></a>
+</section>
+
+<section class="aw-kpis">
+    <div class="aw-kpi">
+        <div class="aw-kpi-icon"><i class="bi bi-wallet2"></i></div>
+        <div><div class="aw-label">Fees This Month</div><div class="aw-kpi-value">@Money(Model.FeesThisMonth)</div><div class="aw-kpi-sub">@Html.Raw(Trend(Model.FeesTrendPct)) from @monthWithdrawals withdrawal@(monthWithdrawals == 1 ? "" : "s")</div></div>
+    </div>
+    <div class="aw-kpi">
+        <div class="aw-kpi-icon blue"><i class="bi bi-bar-chart"></i></div>
+        <div><div class="aw-label">Fees All Time</div><div class="aw-kpi-value">@Money(Model.FeesAllTime)</div><div class="aw-kpi-sub">Since inception</div></div>
+    </div>
+    <div class="aw-kpi">
+        <div class="aw-kpi-icon red"><i class="bi bi-bullseye"></i></div>
+        <div><div class="aw-label">Compensation Paid Out</div><div class="aw-kpi-value">@Money(ledger.CompensationPaidAllTime)</div><div class="aw-kpi-sub">To brands &amp; influencers</div></div>
+    </div>
+    <div class="aw-kpi">
+        <div class="aw-kpi-icon green"><i class="bi bi-people"></i></div>
+        <div><div class="aw-label">Withdrawals Processed</div><div class="aw-kpi-value">@Model.WithdrawalsProcessed.ToString("N0", CultureInfo.InvariantCulture)</div><div class="aw-kpi-sub">@Html.Raw(Trend(Model.ProcessedTrendPct)) Total completed</div></div>
+    </div>
+    <div class="aw-kpi">
+        <div class="aw-kpi-icon amber"><i class="bi bi-hourglass-split"></i></div>
+        <div><div class="aw-label">Fees Expected</div><div class="aw-kpi-value">@Money(Model.FeesExpected)</div><div class="aw-kpi-sub">On paid, not yet withdrawn</div></div>
+    </div>
+</section>
+
+<section class="aw-charts">
+    <div class="aw-panel">
+        <div class="aw-title">Fee Income by Month</div>
+        <div class="aw-sub">Monthly platform fee (@feeRatePct%)</div>
+        <div class="aw-bars">
+            @foreach (var m in Model.FeesByMonth)
+            {
+                var h = (int)Math.Round(m.Amount / feeMax * 100);
+                <div class="aw-bar" style="height:@(Math.Max(h, 2))%;"><em>@m.Label · @Money(m.Amount)</em><span>@m.Label</span></div>
+            }
+            @if (noFeeData) { <div class="aw-empty-chart">No fee income recorded yet</div> }
+        </div>
+    </div>
+
+    <div class="aw-panel">
+        <div class="aw-title">Compensation Paid Out by Month</div>
+        <div class="aw-sub">Compensation to brands &amp; influencers</div>
+        <div class="aw-bars red">
+            @foreach (var m in ledger.CompensationByMonth)
+            {
+                var h = (int)Math.Round(m.Amount / compMax * 100);
+                <div class="aw-bar" style="height:@(Math.Max(h, 2))%;"><em>@m.Label · @Money(m.Amount)</em><span>@m.Label</span></div>
+            }
+            @if (noCompData) { <div class="aw-empty-chart">No compensation paid yet</div> }
+        </div>
+    </div>
+
+    <div class="aw-panel">
+        <div class="aw-title">Fee Distribution</div>
+        <div class="aw-sub">By payout method (all time)</div>
+        <div class="aw-donut-wrap">
+            <div class="aw-donut" style="@donutStyle"><div class="aw-donut-center">@Money(Model.FeesAllTime)<small>Total fees</small></div></div>
+            <div class="aw-legend">
+                @foreach (var s in Model.Distribution)
+                {
+                    <div><i style="background:@s.Color"></i>@s.Label<span>@s.Percent%</span></div>
+                }
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="aw-siderow">
+    <div class="aw-side-card">
+        <div class="aw-side-icon"><i class="bi bi-shield-check"></i></div>
+        <h3>Compensation</h3>
+        <p>
+            Compensation is decided case by case. When a brand or influencer asks for it for a milestone or campaign,
+            it is handled in <b>Dispute Resolution</b>, where the admin can review the proof and conversation first.
+            Payouts will show up in the wallet records here.
+        </p>
+        <a class="aw-btn primary" href="/Admin/AdminDisputes/Index">
+            Open Dispute Resolution
+            @if (Model.OpenDisputes > 0) { <span>(@Model.OpenDisputes open)</span> }
+            <i class="bi bi-arrow-right"></i>
+        </a>
+    </div>
+
+    @if (Model.Balance < 0)
+    {
+        <div class="aw-health warn"><i class="bi bi-exclamation-triangle"></i><div><b>Wallet is negative</b>Compensation paid out is higher than the fees collected so far.</div></div>
+    }
+    else
+    {
+        <div class="aw-health"><i class="bi bi-check-circle"></i><div><b>Platform wallet is healthy</b>@(Model.Balance > 0 ? "There is enough balance to process compensation." : "No balance yet. Fees are collected as influencers withdraw.")</div></div>
+    }
+</section>
+
+<div class="aw-panel">
+    <div class="aw-tabs" id="awTabs">
+        <button type="button" class="is-active" data-tab="campaigns">Campaign-wise Fee Income</button>
+        <button type="button" data-tab="withdrawals">Income by Withdrawal</button>
+        <button type="button" data-tab="cashouts">Cash-out History</button>
+    </div>
+
+    <!-- ===== Campaign-wise Fee Income ===== -->
+    <div class="aw-pane" data-pane="campaigns">
+        <div class="aw-toolbar">
+            <form method="get">
+                <input class="aw-input" type="search" name="search" value="@Model.Search" placeholder="Search campaigns or brands..." id="awCampaignSearch" />
+                <input class="aw-input" type="date" name="from" value="@(Model.From?.ToString("yyyy-MM-dd"))" aria-label="From date" />
+                <input class="aw-input" type="date" name="to" value="@(Model.To?.ToString("yyyy-MM-dd"))" aria-label="To date" />
+                <button type="submit" class="aw-btn"><i class="bi bi-funnel"></i> Apply</button>
+            </form>
+            <button type="button" class="aw-btn" data-export="awCampaignTable"><i class="bi bi-download"></i> Export CSV</button>
+        </div>
+
+        @if (Model.Campaigns.Count == 0)
+        {
+            <div class="aw-empty"><b>No campaign earnings yet</b>Fees appear here once campaigns have milestones and payments.</div>
+        }
+        else
+        {
+            <div class="aw-scroll">
+                <table class="aw-table" id="awCampaignTable" data-paged>
+                    <thead>
+                        <tr><th>#</th><th>Campaign</th><th>Brand</th><th>Milestones</th><th>Gross amount</th><th>Paid to influencers</th><th>@feeRatePct% potential</th><th title="Estimated: influencers withdraw from their whole wallet, so each withdrawal is assigned to their oldest paid milestones.">@feeRatePct% collected (estimated)</th><th>Status</th><th>Action</th></tr>
+                    </thead>
+                    <tbody>
+                        @{ var n = 0; }
+                        @foreach (var c in Model.Campaigns)
+                        {
+                            n++;
+                            <tr class="aw-row" data-search="@((c.Title + " " + c.BrandName).ToLowerInvariant())">
+                                <td>@n</td>
+                                <td><div class="aw-camp"><div class="aw-thumb">@c.Title.Substring(0, 1).ToUpperInvariant()</div><b>@c.Title</b></div></td>
+                                <td>
+                                    <div class="aw-camp">
+                                        <div class="aw-thumb">
+                                            @if (!string.IsNullOrWhiteSpace(c.BrandPicture)) { <img src="@c.BrandPicture" alt="" /> }
+                                            else { <text>@c.BrandName.Substring(0, Math.Min(2, c.BrandName.Length)).ToUpperInvariant()</text> }
+                                        </div>
+                                        @c.BrandName
+                                    </div>
+                                </td>
+                                <td>@c.MilestoneCount</td>
+                                <td>@Money(c.Gross)</td>
+                                <td>@Money(c.Paid)</td>
+                                <td>@Money(PlatformFee.Of(c.Paid))</td>
+                                <td>@Money(c.FeeCollected)</td>
+                                <td><span class="aw-pill @c.StatusTone">@c.StatusLabel</span></td>
+                                <td><button type="button" class="aw-view" data-campaign="@c.CampaignId">View <i class="bi bi-arrow-right"></i></button></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <div class="aw-pager" data-pager-for="awCampaignTable"></div>
+            <div class="aw-sub" style="margin-top:14px;line-height:1.6;">
+                <b>Paid to influencers</b> and <b>@feeRatePct% potential</b> are exact: what brands have paid out for the campaign, and the most the platform could earn from it.
+                <b>@feeRatePct% collected</b> is an estimate. Influencers withdraw from their whole wallet, not per campaign, so each withdrawal is assigned to their oldest paid milestones.
+                The exact fee records are in <b>Income by Withdrawal</b>.
+            </div>
+        }
+    </div>
+
+    <!-- ===== Income by Withdrawal ===== -->
+    <div class="aw-pane" data-pane="withdrawals" hidden>
+        <div class="aw-toolbar">
+            <div class="aw-filters">
+                <input class="aw-input" type="search" id="wdSearch" placeholder="Search by influencer name or handle..." />
+                <select class="aw-input" id="wdMethod"><option value="">All Methods</option><option>bKash</option><option>Nagad</option><option>Bank Transfer</option></select>
+                <select class="aw-input" id="wdStatus"><option value="">All Statuses</option><option>Completed</option><option>Processing</option><option>Failed</option></select>
+                <input class="aw-input" type="date" id="wdFrom" aria-label="From date" />
+                <input class="aw-input" type="date" id="wdTo" aria-label="To date" />
+            </div>
+            <button type="button" class="aw-btn" data-export="awWithdrawalTable"><i class="bi bi-download"></i> Export CSV</button>
+        </div>
+
+        @if (Model.Withdrawals.Count == 0)
+        {
+            <div class="aw-empty"><b>No withdrawals yet</b>Every influencer withdrawal is reported here with the campaign and milestone it came from.</div>
+        }
+        else
+        {
+            <div class="aw-scroll">
+                <table class="aw-table" id="awWithdrawalTable" data-paged>
+                    <thead>
+                        <tr><th>#</th><th>Withdrawal ID</th><th>Date &amp; time</th><th>Influencer</th><th>Payout method</th><th>Amount</th><th>@feeRatePct% fee</th><th>Net paid</th><th>Status</th><th>Action</th></tr>
+                    </thead>
+                    <tbody>
+                        @{ var k = 0; }
+                        @foreach (var w in Model.Withdrawals)
+                        {
+                            k++;
+                            var wTone = w.Status == "Completed" ? "green" : w.Status == "Failed" ? "red" : "blue";
+                            <tr class="aw-row" data-search="@((w.InfluencerName + " " + w.Handle + " " + w.Code).ToLowerInvariant())" data-method="@w.MethodLabel" data-status="@w.Status" data-date="@w.At.ToString("yyyy-MM-dd")">
+                                <td>@k</td>
+                                <td><b>@w.Code</b></td>
+                                <td>@w.At.ToString("MMM d, yyyy h:mm tt", CultureInfo.InvariantCulture)</td>
+                                <td><div class="aw-camp"><div class="aw-thumb round">@Initials(w.InfluencerName)</div><div><b>@w.InfluencerName</b><small>@@@w.Handle.TrimStart('@')</small></div></div></td>
+                                <td><div class="aw-method">@Html.Raw(Logo(w.MethodLabel, 20))<div>@w.MethodLabel<small>@w.MaskedAccount</small></div></div></td>
+                                <td>@Money(w.Amount)</td>
+                                <td>@(w.Status == "Failed" ? "—" : Money(w.Fee))</td>
+                                <td>@(w.Status == "Failed" ? "—" : Money(w.Net))</td>
+                                <td><span class="aw-pill @wTone">@w.Status</span></td>
+                                <td><button type="button" class="aw-view" data-withdrawal="@w.Id">View</button></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <div class="aw-pager" data-pager-for="awWithdrawalTable"></div>
+        }
+    </div>
+
+    <!-- ===== Cash-out History ===== -->
+    <div class="aw-pane" data-pane="cashouts" hidden>
+        <div class="aw-toolbar">
+            <div class="aw-sub" style="margin:0;">Money the admin has cashed out of the platform wallet</div>
+            <a class="aw-btn primary" style="height:40px;" href="/Admin/AdminWallet/Withdraw">Withdraw from Wallet <i class="bi bi-arrow-right"></i></a>
+        </div>
+        @if (ledger.Cashouts.Count == 0)
+        {
+            <div class="aw-empty"><b>No cash-outs yet</b>Cash-outs to bKash, Nagad or a bank account will be listed here once the payment gateway is connected.</div>
+        }
+        else
+        {
+            <div class="aw-scroll">
+                <table class="aw-table">
+                    <thead><tr><th>#</th><th>Date &amp; time</th><th>Method</th><th>Account</th><th>Amount</th><th>Gateway reference</th><th>Status</th><th>Note</th></tr></thead>
+                    <tbody>
+                        @{ var c2 = 0; }
+                        @foreach (var c in ledger.Cashouts.OrderByDescending(x => x.At))
+                        {
+                            c2++;
+                            <tr class="aw-row">
+                                <td>@c2</td>
+                                <td>@c.At.ToString("MMM d, yyyy h:mm tt", CultureInfo.InvariantCulture)</td>
+                                <td>@c.Method</td><td>@c.Account</td><td>@Money(c.Amount)</td><td>@(c.GatewayReference ?? "—")</td>
+                                <td><span class="aw-pill @(c.Status == "Completed" ? "green" : c.Status == "Failed" ? "red" : "blue")">@c.Status</span></td>
+                                <td class="aw-muted">@(c.Note ?? "—")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+<div class="aw-overlay" id="awOverlay"></div>
+<aside class="aw-drawer" id="awDrawer" aria-hidden="true"></aside>
+
+
+<script>
+    (function () {
+        var drawer = document.getElementById('awDrawer');
+        var overlay = document.getElementById('awOverlay');
+
+        function openDrawer() {
+            drawer.classList.add('is-open'); overlay.classList.add('is-open'); drawer.setAttribute('aria-hidden', 'false');
+        }
+        function closeDrawer() {
+            drawer.classList.remove('is-open'); overlay.classList.remove('is-open'); drawer.setAttribute('aria-hidden', 'true');
+        }
+        function bindDrawer() {
+            drawer.querySelectorAll('[data-close]').forEach(function (b) { b.addEventListener('click', closeDrawer); });
+            var tabs = drawer.querySelectorAll('[data-tab]');
+            tabs.forEach(function (tab) {
+                tab.addEventListener('click', function () {
+                    tabs.forEach(function (t) { t.classList.toggle('is-active', t === tab); });
+                    drawer.querySelectorAll('[data-pane]').forEach(function (p) { p.hidden = p.getAttribute('data-pane') !== tab.getAttribute('data-tab'); });
+                });
+            });
+        }
+        function loadDrawer(url) {
+            drawer.innerHTML = '<div class="aw-drawer-loading">Loading…</div>';
+            openDrawer();
+            fetch(url, { credentials: 'same-origin' })
+                .then(function (r) { if (!r.ok) throw new Error(); return r.text(); })
+                .then(function (html) { drawer.innerHTML = html; bindDrawer(); })
+                .catch(function () { drawer.innerHTML = '<div class="aw-drawer-loading">Could not load this. Close and try again.</div>'; });
+        }
+
+        document.querySelectorAll('[data-campaign]').forEach(function (b) {
+            b.addEventListener('click', function () { loadDrawer('/Admin/AdminWallet/CampaignFees/' + b.getAttribute('data-campaign')); });
+        });
+        document.querySelectorAll('[data-withdrawal]').forEach(function (b) {
+            b.addEventListener('click', function () { loadDrawer('/Admin/AdminWallet/WithdrawalDetails/' + b.getAttribute('data-withdrawal')); });
+        });
+
+        overlay.addEventListener('click', closeDrawer);
+        document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeDrawer(); });
+
+        // Tabs
+        var tabs = document.querySelectorAll('#awTabs [data-tab]');
+        tabs.forEach(function (tab) {
+            tab.addEventListener('click', function () {
+                tabs.forEach(function (t) { t.classList.toggle('is-active', t === tab); });
+                document.querySelectorAll('.aw-pane').forEach(function (p) { p.hidden = p.getAttribute('data-pane') !== tab.getAttribute('data-tab'); });
+            });
+        });
+
+        // Filtering + paging for the two tables
+        var PAGE = 8;
+        var tables = {};
+        function setup(id, matchFn) {
+            var table = document.getElementById(id);
+            if (!table) return;
+            var rows = Array.prototype.slice.call(table.tBodies[0].rows);
+            var pager = document.querySelector('[data-pager-for="' + id + '"]');
+            var state = { page: 1 };
+            function render() {
+                var matched = rows.filter(matchFn);
+                var pages = Math.max(1, Math.ceil(matched.length / PAGE));
+                if (state.page > pages) state.page = pages;
+                rows.forEach(function (r) { r.style.display = 'none'; r.dataset.match = '0'; });
+                matched.forEach(function (r, i) {
+                    r.dataset.match = '1';
+                    r.style.display = (i >= (state.page - 1) * PAGE && i < state.page * PAGE) ? '' : 'none';
+                });
+                if (pager) {
+                    pager.innerHTML = '';
+                    if (pages > 1) {
+                        for (var p = 1; p <= pages; p++) {
+                            (function (p) {
+                                var b = document.createElement('button');
+                                b.textContent = p; b.className = p === state.page ? 'is-active' : '';
+                                b.addEventListener('click', function () { state.page = p; render(); });
+                                pager.appendChild(b);
+                            })(p);
+                        }
+                    }
+                }
+            }
+            tables[id] = { render: render, reset: function () { state.page = 1; render(); }, rows: rows, table: table };
+            render();
+        }
+
+        var cs = document.getElementById('awCampaignSearch');
+        setup('awCampaignTable', function (r) { return !cs || r.getAttribute('data-search').indexOf(cs.value.trim().toLowerCase()) !== -1; });
+        if (cs) cs.addEventListener('input', function () { tables['awCampaignTable'].reset(); });
+
+        var q = document.getElementById('wdSearch'), m = document.getElementById('wdMethod'), s = document.getElementById('wdStatus'),
+            f = document.getElementById('wdFrom'), t = document.getElementById('wdTo');
+        setup('awWithdrawalTable', function (r) {
+            var d = r.getAttribute('data-date');
+            return r.getAttribute('data-search').indexOf(q.value.trim().toLowerCase()) !== -1
+                && (!m.value || r.getAttribute('data-method') === m.value)
+                && (!s.value || r.getAttribute('data-status') === s.value)
+                && (!f.value || d >= f.value) && (!t.value || d <= t.value);
+        });
+        [q, m, s, f, t].forEach(function (el) { if (el) el.addEventListener('input', function () { tables['awWithdrawalTable'].reset(); }); });
+
+        // CSV export of the filtered rows (all pages), without the action column
+        document.querySelectorAll('[data-export]').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var info = tables[btn.getAttribute('data-export')];
+                if (!info) return;
+                var lines = [];
+                var head = Array.prototype.slice.call(info.table.tHead.rows[0].cells, 0, -1).map(function (c) { return '"' + c.innerText.trim() + '"'; });
+                lines.push(head.join(','));
+                info.rows.filter(function (r) { return r.dataset.match === '1'; }).forEach(function (r) {
+                    lines.push(Array.prototype.slice.call(r.cells, 0, -1).map(function (c) {
+                        return '"' + c.innerText.replace(/\s+/g, ' ').trim().replace(/"/g, '""') + '"';
+                    }).join(','));
+                });
+                var blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+                var a = document.createElement('a');
+                a.href = URL.createObjectURL(blob); a.download = btn.getAttribute('data-export') + '.csv'; a.click();
+            });
+        });
+    })();
+</script>

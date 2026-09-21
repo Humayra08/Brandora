@@ -67,10 +67,7 @@
             border-right: 1px solid rgba(255,255,255,.06);
             z-index: 1000;
 
-            overflow-y: auto;
-            overflow-x: hidden;
-            scrollbar-width: thin;
-            scrollbar-color: rgba(255,255,255,.15) transparent;
+            overflow: hidden;
 
             transition: transform .25s ease;
         }
@@ -133,7 +130,10 @@
             position: relative;
             padding: 0;
             border-radius: 12px;
-            overflow: hidden;
+            max-height: 100%;
+            overflow-x: hidden;
+            overflow-y: auto;
+            scrollbar-width: none;
             border: 1px solid rgba(255,255,255,.12);
             background: rgba(255,255,255,.03);
             backdrop-filter: blur(6px);
@@ -141,6 +141,7 @@
             box-shadow: 0 8px 30px rgba(0,0,0,.18);
         }
 
+        .sidebar-nav-glass::-webkit-scrollbar { display: none; }
         .sidebar-menu { list-style: none; padding: 0; margin: 0; }
         .sidebar-menu li { margin-bottom: 2px; }
 
@@ -151,7 +152,7 @@
             align-items: center;
             justify-content: space-between;
             gap: 12px;
-            padding: 10px 14px;
+            padding: 9px 14px;
             border-radius: 12px;
             font-size: 14px;
             font-weight: 400;
@@ -201,8 +202,30 @@
 
         .sidebar-bottom { margin-top: auto; padding: 12px 8px 0; }
 
-        .sidebar-user { display: flex; align-items: center; gap: 12px; padding-bottom: 10px; min-width: 0; }
+        .sidebar-user { display: flex; align-items: center; gap: 12px; width: 100%; padding: 0 0 10px; min-width: 0; border: 0; background: transparent; color: inherit; text-align: left; font: inherit; cursor: pointer; }
         .sidebar-user > div { min-width: 0; }
+
+        /* Account menu — same structure as the Brand side profile dropdown */
+        .admin-menu-wrap { position: relative; }
+        .admin-menu {
+            position: absolute; left: 0; right: 0; bottom: calc(100% + 6px); z-index: 60;
+            border-radius: 16px; border: 1px solid #eaecf5; background: #ffffff; color: #2a3157;
+            box-shadow: 0 20px 46px rgba(0,0,0,.28);
+            opacity: 0; visibility: hidden; transform: translateY(8px) scale(.98); transform-origin: bottom left;
+            transition: opacity .18s ease, transform .18s cubic-bezier(.22,1,.36,1), visibility .18s;
+        }
+        .admin-menu-wrap.is-open .admin-menu { opacity: 1; visibility: visible; transform: translateY(0) scale(1); }
+        .admin-menu-head { display: flex; align-items: center; gap: 12px; padding: 14px; border-bottom: 1px solid #f0f1f7; }
+        .admin-menu-avatar { flex-shrink: 0; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: linear-gradient(135deg, #a326ff, #236eff); color: #fff; font: 700 15px 'DM Sans', sans-serif; }
+        .admin-menu-id { min-width: 0; }
+        .admin-menu-name { font: 700 13.5px 'DM Sans', sans-serif; color: #171d3d; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .admin-menu-email { margin-top: 2px; font: 11.5px 'Inter', sans-serif; color: #8189a8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .admin-menu-links { padding: 8px; }
+        .admin-menu-links a { display: block; padding: 10px 12px; border-radius: 9px; font: 500 13px 'Inter', sans-serif; color: #2a3157; transition: background .15s ease, color .15s ease; }
+        .admin-menu-links a:hover { background: rgba(155,44,255,.06); color: #7a1fd6; }
+        .admin-menu-logout { padding: 8px; border-top: 1px solid #f0f1f7; margin: 0; }
+        .admin-menu-logout button { width: 100%; padding: 10px 12px; border: 0; border-radius: 9px; background: transparent; font: 600 13px 'Inter', sans-serif; color: #c22540; text-align: left; cursor: pointer; transition: background .15s ease; }
+        .admin-menu-logout button:hover { background: rgba(220,50,70,.06); }
 
         .avatar-circle {
             display: flex;
@@ -550,15 +573,15 @@
             </li>
 
             <li>
-                <a href="/Admin/AdminCampaigns/Index" class="@(activeNav == "Campaigns" ? "active" : "")">
-                    <span>Campaigns</span>
+                <a href="/Admin/AdminUserVerification/Index" class="@(activeNav == "UserVerification" ? "active" : "")">
+                    <span>User Verification</span>
+                    @Html.Raw(NavBadge(pendingVerifications))
                 </a>
             </li>
 
             <li>
-                <a href="/Admin/AdminUserVerification/Index" class="@(activeNav == "UserVerification" ? "active" : "")">
-                    <span>User Verification</span>
-                    @Html.Raw(NavBadge(pendingVerifications))
+                <a href="/Admin/AdminCampaigns/Index" class="@(activeNav == "Campaigns" ? "active" : "")">
+                    <span>Campaign Details</span>
                 </a>
             </li>
 
@@ -570,15 +593,21 @@
             </li>
 
             <li>
-                <a href="/Admin/AdminDisputes/Index" class="@(activeNav == "Disputes" ? "active" : "")">
-                    <span>Dispute Resolution</span>
-                    @Html.Raw(NavBadge(openDisputes))
+                <a href="/Admin/AdminPayments/Index" class="@(activeNav == "Payments" ? "active" : "")">
+                    <span>Payment Oversight</span>
                 </a>
             </li>
 
             <li>
-                <a href="/Admin/AdminPayments/Index" class="@(activeNav == "Payments" ? "active" : "")">
-                    <span>Payment Oversight</span>
+                <a href="/Admin/AdminWallet/Index" class="@(activeNav == "Wallet" ? "active" : "")">
+                    <span>Platform Wallet</span>
+                </a>
+            </li>
+
+            <li>
+                <a href="/Admin/AdminDisputes/Index" class="@(activeNav == "Disputes" ? "active" : "")">
+                    <span>Dispute Resolution</span>
+                    @Html.Raw(NavBadge(openDisputes))
                 </a>
             </li>
 
@@ -610,21 +639,32 @@
 
         <div class="sidebar-bottom">
 
-            <a href="/Admin/AdminProfile/Index" class="sidebar-user">
-                <div class="avatar-circle small">@adminInitial</div>
-                <div>
-                    <h6>@adminName</h6>
-                    <span>Administrator <i class="bi bi-chevron-down" style="font-size:10px;"></i></span>
+            <div class="admin-menu-wrap" id="adminMenuWrap">
+                <div class="admin-menu" id="adminMenu">
+                    <div class="admin-menu-head">
+                        <div class="admin-menu-avatar">@adminInitial</div>
+                        <div class="admin-menu-id">
+                            <div class="admin-menu-name">@adminName</div>
+                            <div class="admin-menu-email">@(ViewData["AdminEmail"] as string ?? "")</div>
+                        </div>
+                    </div>
+                    <div class="admin-menu-links">
+                        <a href="/Admin/AdminProfile/Index">View Profile</a>
+                    </div>
+                    <form method="post" action="/Admin/AdminAccount/Logout" class="admin-menu-logout">
+                        @Html.AntiForgeryToken()
+                        <button type="submit">Log Out</button>
+                    </form>
                 </div>
-            </a>
 
-            <form method="post" action="/Admin/AdminAccount/Logout">
-                @Html.AntiForgeryToken()
-                <button type="submit" class="logout-btn">
-                    <i class="bi bi-box-arrow-right"></i>
-                    <span>Logout</span>
+                <button type="button" class="sidebar-user" id="adminMenuBtn" aria-haspopup="true" aria-expanded="false" aria-label="Admin account menu">
+                    <div class="avatar-circle small">@adminInitial</div>
+                    <div>
+                        <h6>@adminName</h6>
+                        <span>Administrator <i class="bi bi-chevron-up" style="font-size:10px;"></i></span>
+                    </div>
                 </button>
-            </form>
+            </div>
 
         </div>
 
@@ -794,6 +834,7 @@
             }
 
             wireDropdown('bellMenuWrap', 'bellMenuBtn');
+            wireDropdown('adminMenuWrap', 'adminMenuBtn');
         })();
     </script>
 

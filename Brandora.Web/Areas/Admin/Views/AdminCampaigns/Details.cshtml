@@ -1,0 +1,540 @@
+@model Brandora.Web.Areas.Admin.Controllers.AdminCampaignDetailsViewModel
+@using System.Globalization
+@using Brandora.Web.Models.Domain
+@{
+    var c = Model.Campaign;
+
+    string Money(decimal amount) => "৳" + amount.ToString("N0", CultureInfo.InvariantCulture);
+    string Date(DateTime? d) => d.HasValue ? d.Value.ToString("MMM d, yyyy", CultureInfo.InvariantCulture) : "Not set";
+    string Initials(string name) => string.Concat(name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(p => char.ToUpperInvariant(p[0])));
+
+    string StatusTone(CampaignStatus s) => s switch
+    {
+        CampaignStatus.Active => "green",
+        CampaignStatus.Published => "blue",
+        CampaignStatus.Cancelled => "red",
+        _ => "gray"
+    };
+
+    string MilestoneTone(MilestoneStatus s) => s switch
+    {
+        MilestoneStatus.Paid => "green",
+        MilestoneStatus.Approved => "blue",
+        MilestoneStatus.Submitted => "purple",
+        MilestoneStatus.RevisionRequested => "red",
+        _ => "amber"
+    };
+
+    string ProposalTone(ProposalStatus s) => s switch
+    {
+        ProposalStatus.Accepted => "green",
+        ProposalStatus.Rejected => "red",
+        _ => "amber"
+    };
+
+    string PayTone(string s) => s switch
+    {
+        "Released" => "green",
+        "Pending" => "amber",
+        "Available" => "blue",
+        _ => "gray"
+    };
+
+    var spentPct = c.Budget <= 0 ? 0 : (int)Math.Min(100, Math.Round(c.SpentAmount / c.Budget * 100));
+    var totalMilestones = Model.Milestones.Count;
+    var paidMilestones = Model.Milestones.Count(m => m.Status == MilestoneStatus.Paid);
+    var milestonePct = totalMilestones == 0 ? 0 : (int)Math.Round(paidMilestones * 100.0 / totalMilestones);
+
+    int? daysLeft = c.Deadline.HasValue ? (int)(c.Deadline.Value.Date - DateTime.UtcNow.Date).TotalDays : null;
+    var closeLabel = daysLeft is null ? "No deadline" : daysLeft < 0 ? "Closed" : daysLeft == 0 ? "Closes today" : $"Closes in {daysLeft} day{(daysLeft == 1 ? "" : "s")}";
+    var closeUrgent = daysLeft is not null && daysLeft <= 3;
+
+    var payTotal = Model.PaymentsReleased + Model.PaymentsPending + Model.PaymentsLocked;
+    int Pct(decimal part, decimal total) => total <= 0 ? 0 : (int)Math.Round(part / total * 100);
+    var relPct = Pct(Model.PaymentsReleased, payTotal);
+    var penPct = Pct(Model.PaymentsPending, payTotal);
+    var lockPct = Math.Max(0, 100 - relPct - penPct);
+    var payDonut = payTotal <= 0
+        ? "background:#eef1fb;"
+        : $"background:conic-gradient(#0d9c6c 0 {relPct}%, #236eff {relPct}% {relPct + penPct}%, #a56bff {relPct + penPct}% 100%);";
+
+    var statusCounts = new (string Label, MilestoneStatus Status, string Color)[]
+    {
+        ("Paid", MilestoneStatus.Paid, "#0d9c6c"),
+        ("Approved", MilestoneStatus.Approved, "#236eff"),
+        ("Submitted", MilestoneStatus.Submitted, "#a56bff"),
+        ("Pending", MilestoneStatus.Pending, "#f3a51f"),
+        ("Revision", MilestoneStatus.RevisionRequested, "#e5484d")
+    };
+    var msDonutParts = new List<string>();
+    var cursor = 0;
+    foreach (var s in statusCounts)
+    {
+        var count = Model.Milestones.Count(m => m.Status == s.Status);
+        if (count == 0 || totalMilestones == 0) continue;
+        var end = cursor + (int)Math.Round(count * 100.0 / totalMilestones);
+        msDonutParts.Add($"{s.Color} {cursor}% {Math.Min(100, end)}%");
+        cursor = end;
+    }
+    var msDonut = msDonutParts.Count == 0 ? "background:#eef1fb;" : "background:conic-gradient(" + string.Join(",", msDonutParts) + ");";
+
+    var applied = Model.Proposals.Count;
+    int FunnelWidth(int n) => applied == 0 ? 30 : Math.Max(30, (int)Math.Round(n * 100.0 / applied));
+
+    // spending chart geometry (viewBox 300 x 130)
+    var chartTop = Math.Max(c.Budget, Model.SpendPoints.Sum(p => p.Amount));
+    if (chartTop <= 0) chartTop = 1;
+    decimal running = 0;
+    var linePoints = new List<string>();
+    for (var i = 0; i < Model.SpendPoints.Count; i++)
+    {
+        running += Model.SpendPoints[i].Amount;
+        var x = Model.SpendPoints.Count == 1 ? 150.0 : 10 + i * (280.0 / (Model.SpendPoints.Count - 1));
+        var y = 120 - (double)(running / chartTop) * 105;
+        linePoints.Add(x.ToString("0.#", CultureInfo.InvariantCulture) + "," + y.ToString("0.#", CultureInfo.InvariantCulture));
+    }
+    var budgetY = (120 - (double)(c.Budget / chartTop) * 105).ToString("0.#", CultureInfo.InvariantCulture);
+
+    var proofs = Model.Milestones.Where(m => !string.IsNullOrWhiteSpace(m.ProofUrl)).ToList();
+    bool IsImage(string? url) => !string.IsNullOrWhiteSpace(url) && new[] { ".png", ".jpg", ".jpeg", ".webp", ".gif" }.Any(e => url.Split('?')[0].EndsWith(e, StringComparison.OrdinalIgnoreCase));
+
+    var guidelines = (c.ContentGuidelines ?? "").Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Take(8).ToList();
+    var heroIsImage = IsImage(c.MediaUrl) || (c.MediaType ?? "").StartsWith("image", StringComparison.OrdinalIgnoreCase);
+}
+
+<style>
+    .cd-hero { position: relative; overflow: hidden; display: flex; align-items: stretch; justify-content: space-between; gap: 24px; padding: 24px 32px; border-radius: 18px; margin-bottom: 14px; border: 1px solid #dce7ff; background: radial-gradient(ellipse at 70% 0%, rgba(163,38,255,.12), transparent 60%), linear-gradient(110deg, #f3f6ff88, #eaf1ffcc 55%, #f3f6ff88); }
+    .cd-back { display: inline-flex; align-items: center; gap: 7px; margin-bottom: 12px; font: 600 12.5px 'Inter', sans-serif; color: #6b52d8; }
+    .cd-title { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .cd-title h1 { margin: 0; font-family: 'Playfair Display', Georgia, serif; font-weight: 700; font-size: clamp(30px, 3vw, 42px); line-height: 1.1; color: #171d3d; }
+    .cd-desc { margin: 10px 0 14px; max-width: 640px; font: 13.5px/1.55 'Inter', sans-serif; color: #4a5170; }
+    .cd-chips { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; font: 12.5px 'Inter', sans-serif; color: #2a3157; }
+    .cd-chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 10px; border: 1px solid #dce7ff; background: #ffffffb0; }
+    .cd-chip.urgent { border-color: rgba(217,45,63,.3); background: #fdeff1; color: #d92d3f; font-weight: 600; }
+    .cd-media { flex: 0 0 280px; align-self: stretch; border-radius: 14px; overflow: hidden; background: linear-gradient(135deg, #f1e6ff, #e3f0ff); display: flex; align-items: center; justify-content: center; color: #7a2fe0; font: 700 40px 'Playfair Display', Georgia, serif; min-height: 140px; }
+    .cd-media img { width: 100%; height: 100%; object-fit: cover; }
+
+    .cd-pill { display: inline-block; padding: 5px 11px; border-radius: 8px; font: 600 11.5px 'Inter', sans-serif; }
+    .cd-pill.green { background: #e2f8ee; color: #0d9c6c; } .cd-pill.blue { background: #e3f0ff; color: #236eff; } .cd-pill.red { background: #fde8ea; color: #d92d3f; }
+    .cd-pill.gray { background: #eef1fb; color: #6b7290; } .cd-pill.amber { background: #fff1de; color: #c47410; } .cd-pill.purple { background: #f1e6ff; color: #7a2fe0; }
+
+    .cd-tabs { display: inline-flex; flex-wrap: wrap; gap: 4px; padding: 4px; margin-bottom: 16px; border-radius: 12px; border: 1px solid #dce7ff; background: #f6f8ff; }
+    .cd-tabs button { padding: 9px 16px; border: 0; border-radius: 9px; background: transparent; font: 600 12.5px 'Inter', sans-serif; color: #2a3157; cursor: pointer; }
+    .cd-tabs button.is-active { color: #fff; background: linear-gradient(105deg, #a326ff, #236eff, #18a9ff); }
+
+    .cd-kpis { display: grid; grid-template-columns: repeat(7, 1fr); gap: 12px; margin-bottom: 16px; }
+    .cd-kpi { padding: 14px 16px; border-radius: 14px; background: #fff; border: 1px solid #dce7ff; min-width: 0; }
+    .cd-kpi b { display: block; font: 800 20px 'DM Sans', sans-serif; color: #171d3d; overflow-wrap: anywhere; }
+    .cd-kpi small { display: block; margin-top: 3px; font: 11.5px 'Inter', sans-serif; color: #8189a8; }
+    .cd-bar { height: 6px; margin-top: 9px; border-radius: 6px; background: #eef1fb; overflow: hidden; }
+    .cd-bar span { display: block; height: 100%; border-radius: 6px; background: linear-gradient(105deg, #a326ff, #236eff); }
+
+    .cd-charts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 16px; }
+    .cd-panel { padding: 20px 22px; border-radius: 15px; background: #fff; border: 1px solid #dce7ff; min-width: 0; }
+    .cd-ptitle { margin: 0 0 4px; font: 700 17px 'Playfair Display', Georgia, serif; color: #171d3d; }
+    .cd-psub { margin: 0 0 12px; font: 12px 'Inter', sans-serif; color: #8189a8; }
+    .cd-donut-row { display: flex; align-items: center; gap: 14px; }
+    .cd-donut { position: relative; flex: 0 0 104px; height: 104px; border-radius: 50%; }
+    .cd-donut::after { content: ''; position: absolute; inset: 16px; border-radius: 50%; background: #fff; }
+    .cd-donut-c { position: absolute; inset: 0; z-index: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; font: 800 14px 'DM Sans', sans-serif; color: #171d3d; }
+    .cd-donut-c small { font: 500 10px 'Inter', sans-serif; color: #8189a8; }
+    .cd-legend { display: flex; flex-direction: column; gap: 7px; font: 12px 'Inter', sans-serif; color: #2a3157; }
+    .cd-legend i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+    .cd-legend span { color: #8189a8; margin-left: 4px; }
+    .cd-funnel { display: flex; flex-direction: column; gap: 8px; align-items: center; }
+    .cd-funnel div { padding: 10px 0; border-radius: 8px; text-align: center; font: 700 13px 'DM Sans', sans-serif; color: #fff; background: linear-gradient(105deg, #7ea4ff, #5a86ff); }
+    .cd-funnel div:nth-child(2) { background: linear-gradient(105deg, #8f8bff, #6d6bff); } .cd-funnel div:nth-child(3) { background: linear-gradient(105deg, #b073ff, #9350ff); }
+    .cd-funnel small { display: block; font: 500 10.5px 'Inter', sans-serif; opacity: .9; }
+
+    .cd-cols { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 14px; align-items: start; }
+    .cd-stack { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+    .cd-table { width: 100%; border-collapse: collapse; }
+    .cd-table th { padding: 10px 12px; text-align: left; font: 700 11px 'Inter', sans-serif; letter-spacing: .3px; text-transform: uppercase; color: #8189a8; background: #f7f9ff; white-space: nowrap; }
+    .cd-table td { padding: 11px 12px; border-top: 1px solid #eef1fb; font: 12.5px 'Inter', sans-serif; color: #2a3157; vertical-align: middle; }
+    .cd-scroll { overflow-x: auto; }
+    .cd-person { display: flex; align-items: center; gap: 10px; }
+    .cd-avatar { flex: 0 0 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #a326ff, #236eff); color: #fff; font: 700 12px 'DM Sans', sans-serif; }
+    .cd-person b { display: block; font: 600 13px 'DM Sans', sans-serif; color: #171d3d; }
+    .cd-person small { color: #8189a8; }
+    .cd-link { display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px; border-radius: 9px; background: #f3f8ff; border: 1px solid #cfe0ff; color: #236eff; font: 600 12px 'Inter', sans-serif; text-decoration: none; }
+    .cd-empty { padding: 22px; border-radius: 12px; border: 1px dashed #dde1f0; background: #fafbfe; text-align: center; font: 12.5px 'Inter', sans-serif; color: #8189a8; }
+    .cd-search { display: flex; gap: 10px; margin-bottom: 12px; }
+    .cd-search input, .cd-search select { height: 38px; padding: 0 12px; border-radius: 10px; border: 1px solid #dde1f0; font: 12.5px 'Inter', sans-serif; color: #2a3157; outline: none; }
+    .cd-search input { flex: 1; }
+
+    .cd-facts { display: flex; flex-direction: column; gap: 12px; }
+    .cd-fact small { display: block; font: 11px 'Inter', sans-serif; color: #8189a8; }
+    .cd-fact b { font: 600 13px 'DM Sans', sans-serif; color: #171d3d; }
+    .cd-checks { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; font: 12.5px 'Inter', sans-serif; color: #2a3157; }
+    .cd-checks li::before { content: '\2713'; margin-right: 8px; color: #236eff; font-weight: 700; }
+    .cd-timeline { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 12px; }
+    .cd-timeline li { position: relative; padding-left: 20px; font: 12px 'Inter', sans-serif; color: #2a3157; }
+    .cd-timeline li::before { content: ''; position: absolute; left: 0; top: 5px; width: 9px; height: 9px; border-radius: 50%; background: #a56bff; }
+    .cd-timeline li small { display: block; color: #8189a8; }
+    .cd-proofs { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; }
+    .cd-proof { border-radius: 14px; border: 1px solid #dce7ff; overflow: hidden; background: #fff; }
+    .cd-proof-img { height: 150px; background: #f3f6ff; display: flex; align-items: center; justify-content: center; color: #8189a8; font-size: 30px; }
+    .cd-proof-img img { width: 100%; height: 100%; object-fit: cover; }
+    .cd-proof-body { padding: 12px 14px; font: 12px 'Inter', sans-serif; color: #2a3157; }
+    .cd-proof-body b { display: block; margin-bottom: 4px; font: 700 13px 'DM Sans', sans-serif; color: #171d3d; }
+    .cd-title2 { margin: 0 0 12px; font: 700 15px 'DM Sans', sans-serif; color: #171d3d; }
+
+    @@media(max-width: 1400px) { .cd-kpis { grid-template-columns: repeat(4, 1fr); } .cd-charts { grid-template-columns: repeat(2, 1fr); } .cd-cols { grid-template-columns: 1fr; } }
+    @@media(max-width: 800px) { .cd-kpis, .cd-charts { grid-template-columns: 1fr 1fr; } .cd-media { display: none; } }
+</style>
+
+<section class="cd-hero">
+    <div>
+        <a class="cd-back" href="/Admin/AdminCampaigns/Index"><i class="bi bi-arrow-left"></i> Back to Campaigns</a>
+        <div class="cd-title">
+            <h1>@c.Title</h1>
+            <span class="cd-pill @StatusTone(c.Status)">@c.Status</span>
+        </div>
+        <p class="cd-desc">@c.Description</p>
+        <div class="cd-chips">
+            <span class="cd-chip"><i class="bi bi-building"></i> <b>@c.BrandProfile.CompanyName</b>@if (c.BrandProfile.VerificationStatus == VerificationStatus.Verified) { <i class="bi bi-patch-check-fill" style="color:#236eff;" title="Verified brand"></i> }</span>
+            @if (!string.IsNullOrWhiteSpace(c.Niche)) { <span class="cd-chip"><i class="bi bi-tag"></i> @c.Niche</span> }
+            @if (!string.IsNullOrWhiteSpace(c.Platform)) { <span class="cd-chip"><i class="bi bi-broadcast"></i> @c.Platform</span> }
+            <span class="cd-chip"><i class="bi bi-cash-stack"></i> @Money(c.Budget)</span>
+            <span class="cd-chip"><i class="bi bi-calendar3"></i> @Date(c.StartDate) &rarr; @Date(c.Deadline)</span>
+            <span class="cd-chip @(closeUrgent ? "urgent" : "")"><i class="bi bi-clock"></i> @closeLabel</span>
+        </div>
+    </div>
+    <div class="cd-media">
+        @if (!string.IsNullOrWhiteSpace(c.MediaUrl) && heroIsImage) { <img src="@c.MediaUrl" alt="Campaign media" /> }
+        else { <text>@c.Title.Substring(0, 1).ToUpperInvariant()</text> }
+    </div>
+</section>
+
+<div class="cd-tabs" id="cdTabs">
+    <button type="button" class="is-active" data-tab="overview">Overview</button>
+    <button type="button" data-tab="applicants">Applicants (@Model.Proposals.Count)</button>
+    <button type="button" data-tab="milestones">Milestones (@totalMilestones)</button>
+    <button type="button" data-tab="proofs">Proof of Posts (@proofs.Count)</button>
+    <button type="button" data-tab="disputes">Disputes (@Model.Disputes.Count)</button>
+    <button type="button" data-tab="activity">Activity</button>
+</div>
+
+<!-- ============ OVERVIEW ============ -->
+<div data-pane="overview">
+    <section class="cd-kpis">
+        <div class="cd-kpi"><b>@Money(c.Budget)</b><small>Campaign Budget</small></div>
+        <div class="cd-kpi"><b>@Money(c.SpentAmount)</b><small>Amount Spent · @spentPct%</small><div class="cd-bar"><span style="width:@spentPct%"></span></div></div>
+        <div class="cd-kpi"><b>@Model.Proposals.Count</b><small>Applicants</small></div>
+        <div class="cd-kpi"><b>@Model.AcceptedCount</b><small>Accepted Influencers</small></div>
+        <div class="cd-kpi"><b>@paidMilestones of @totalMilestones</b><small>Milestones Completed · @milestonePct%</small><div class="cd-bar"><span style="width:@milestonePct%"></span></div></div>
+        <div class="cd-kpi"><b>@Money(Model.PaymentsReleased)</b><small>Payments Released</small></div>
+        <div class="cd-kpi"><b>@(daysLeft is null ? "—" : daysLeft < 0 ? "Closed" : daysLeft + " days")</b><small>Time Left</small></div>
+    </section>
+
+    <section class="cd-charts">
+        <div class="cd-panel">
+            <h3 class="cd-ptitle">Payments by State</h3><p class="cd-psub">Released, pending and locked</p>
+            <div class="cd-donut-row">
+                <div class="cd-donut" style="@payDonut"><div class="cd-donut-c">@Money(Model.PaymentsReleased)<small>Released</small></div></div>
+                <div class="cd-legend">
+                    <div><i style="background:#0d9c6c"></i>Released<span>@relPct%</span></div>
+                    <div><i style="background:#236eff"></i>Pending<span>@penPct%</span></div>
+                    <div><i style="background:#a56bff"></i>Locked<span>@(payTotal <= 0 ? 0 : lockPct)%</span></div>
+                </div>
+            </div>
+        </div>
+        <div class="cd-panel">
+            <h3 class="cd-ptitle">Milestones by Status</h3><p class="cd-psub">Across all collaborations</p>
+            <div class="cd-donut-row">
+                <div class="cd-donut" style="@msDonut"><div class="cd-donut-c">@totalMilestones<small>Milestones</small></div></div>
+                <div class="cd-legend">
+                    @foreach (var s in statusCounts)
+                    {
+                        <div><i style="background:@s.Color"></i>@s.Label<span>@Model.Milestones.Count(m => m.Status == s.Status)</span></div>
+                    }
+                </div>
+            </div>
+        </div>
+        <div class="cd-panel">
+            <h3 class="cd-ptitle">Applicant Funnel</h3><p class="cd-psub">Applied to completed</p>
+            <div class="cd-funnel">
+                <div style="width:100%;"><small>Applied</small>@Model.Proposals.Count</div>
+                <div style="width:@(FunnelWidth(Model.AcceptedCount))%;"><small>Accepted</small>@Model.AcceptedCount</div>
+                <div style="width:@(FunnelWidth(Model.CompletedCollaborations))%;"><small>Completed</small>@Model.CompletedCollaborations</div>
+            </div>
+        </div>
+        <div class="cd-panel">
+            <h3 class="cd-ptitle">Spending Over Time</h3><p class="cd-psub">Cumulative payments vs budget</p>
+            @if (Model.SpendPoints.Count == 0)
+            {
+                <div class="cd-empty">No payments released yet.</div>
+            }
+            else
+            {
+                <svg viewBox="0 0 300 130" style="width:100%;height:auto;">
+                    <line x1="10" x2="290" y1="@budgetY" y2="@budgetY" stroke="#b7bdd6" stroke-dasharray="4 4" />
+                    <polyline points="@string.Join(" ", linePoints)" fill="none" stroke="#7a2fe0" stroke-width="2.5" stroke-linejoin="round" />
+                    @foreach (var p in linePoints)
+                    {
+                        var xy = p.Split(',');
+                        <circle cx="@xy[0]" cy="@xy[1]" r="3.5" fill="#7a2fe0" />
+                    }
+                </svg>
+                <div style="display:flex;justify-content:space-between;font:11px 'Inter',sans-serif;color:#8189a8;">
+                    <span>@Model.SpendPoints.First().At.ToString("MMM d", CultureInfo.InvariantCulture)</span>
+                    <span>Budget @Money(c.Budget)</span>
+                    <span>@Model.SpendPoints.Last().At.ToString("MMM d", CultureInfo.InvariantCulture)</span>
+                </div>
+            }
+        </div>
+    </section>
+
+    <div class="cd-cols">
+        <div class="cd-stack">
+            <div class="cd-panel">
+                <h3 class="cd-ptitle">Recent Applicants</h3>
+                @if (Model.Proposals.Count == 0) { <div class="cd-empty">No influencers have applied yet.</div> }
+                else
+                {
+                    <div class="cd-scroll"><table class="cd-table">
+                        <thead><tr><th>Influencer</th><th>Platform</th><th>Followers</th><th>Eng. rate</th><th>Proposed</th><th>Status</th><th>Applied</th><th></th></tr></thead>
+                        <tbody>
+                            @foreach (var p in Model.Proposals.Take(5))
+                            {
+                                <tr>
+                                    <td><div class="cd-person"><div class="cd-avatar">@Initials(p.InfluencerProfile.FullName)</div><div><b>@p.InfluencerProfile.FullName</b><small>@@@p.InfluencerProfile.PlatformUsername.TrimStart('@')</small></div></div></td>
+                                    <td>@p.InfluencerProfile.PrimaryPlatform</td>
+                                    <td>@p.InfluencerProfile.Followers.ToString("N0", CultureInfo.InvariantCulture)</td>
+                                    <td>@p.InfluencerProfile.EngagementRate.ToString("0.#", CultureInfo.InvariantCulture)%</td>
+                                    <td>@Money(p.ProposedAmount)</td>
+                                    <td><span class="cd-pill @ProposalTone(p.Status)">@p.Status</span></td>
+                                    <td>@Date(p.CreatedAt)</td>
+                                    <td><a class="cd-link" href="/Admin/AdminUserVerification/Details?type=influencer&id=@p.InfluencerProfileId">View</a></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table></div>
+                }
+            </div>
+
+            <div class="cd-panel">
+                <h3 class="cd-ptitle">Campaign Milestones</h3>
+                @if (Model.Milestones.Count == 0) { <div class="cd-empty">No milestones have been created for this campaign yet.</div> }
+                else
+                {
+                    <div class="cd-scroll"><table class="cd-table">
+                        <thead><tr><th>#</th><th>Title</th><th>Content type</th><th>Influencer</th><th>Due date</th><th>Amount</th><th>Status</th><th>Payment</th><th></th></tr></thead>
+                        <tbody>
+                            @{ var n = 0; }
+                            @foreach (var m in Model.Milestones)
+                            {
+                                n++;
+                                <tr>
+                                    <td>@n</td><td>@m.Title</td><td>@(m.ContentType ?? "—")</td><td>@m.InfluencerName</td><td>@Date(m.DueDate)</td><td>@Money(m.Amount)</td>
+                                    <td><span class="cd-pill @MilestoneTone(m.Status)">@m.Status</span></td>
+                                    <td><span class="cd-pill @PayTone(m.PaymentState)">@m.PaymentState</span></td>
+                                    <td>@if (m.Status != MilestoneStatus.Pending) { <a class="cd-link" href="/Admin/AdminProofReview/Details/@m.Id">@(m.Status == MilestoneStatus.Submitted ? "Review proof" : "View proof")</a> }</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table></div>
+                }
+            </div>
+        </div>
+
+        <div class="cd-stack">
+            <div class="cd-panel">
+                <h3 class="cd-title2">Campaign Details</h3>
+                <div class="cd-facts">
+                    <div class="cd-fact"><small>Niche</small><b>@(c.Niche ?? "—")</b></div>
+                    <div class="cd-fact"><small>Platform</small><b>@(c.Platform ?? "—")</b></div>
+                    <div class="cd-fact"><small>Start date</small><b>@Date(c.StartDate)</b></div>
+                    <div class="cd-fact"><small>Deadline</small><b>@Date(c.Deadline)</b></div>
+                    <div class="cd-fact"><small>Target location</small><b>@(string.IsNullOrWhiteSpace(c.TargetLocation) ? "Anywhere" : c.TargetLocation)</b></div>
+                    <div class="cd-fact"><small>Follower range</small><b>@(c.TargetFollowersMin?.ToString("N0", CultureInfo.InvariantCulture) ?? "Any") – @(c.TargetFollowersMax?.ToString("N0", CultureInfo.InvariantCulture) ?? "Any")</b></div>
+                    <div class="cd-fact"><small>Minimum engagement rate</small><b>@(c.TargetEngagementRateMin.HasValue ? c.TargetEngagementRateMin.Value.ToString("0.#", CultureInfo.InvariantCulture) + "%" : "Any")</b></div>
+                    <div class="cd-fact"><small>Verified influencers only</small><b>@(c.TargetVerifiedOnly ? "Yes" : "No")</b></div>
+                </div>
+            </div>
+
+            <div class="cd-panel">
+                <h3 class="cd-title2">Content Guidelines</h3>
+                @if (guidelines.Count == 0) { <div class="cd-empty">No guidelines provided.</div> }
+                else { <ul class="cd-checks">@foreach (var g in guidelines) { <li>@g</li> }</ul> }
+            </div>
+
+            <div class="cd-panel">
+                <h3 class="cd-title2">Disputes on this Campaign (@Model.Disputes.Count)</h3>
+                @if (Model.Disputes.Count == 0) { <div class="cd-empty">No disputes.</div> }
+                else
+                {
+                    @foreach (var d in Model.Disputes.Take(3))
+                    {
+                        <div style="padding:8px 0;border-top:1px solid #eef1fb;font:12px 'Inter',sans-serif;">
+                            <a href="/Admin/AdminDisputes/Details/@d.Id" style="font-weight:600;color:#171d3d;">@d.Reason</a>
+                            <div style="color:#8189a8;">@Date(d.CreatedAt) · @d.Status</div>
+                        </div>
+                    }
+                }
+            </div>
+
+            <div class="cd-panel">
+                <h3 class="cd-title2">Recent Activity</h3>
+                <ul class="cd-timeline">
+                    @foreach (var a in Model.Activity.Take(6))
+                    {
+                        <li><b>@a.Title</b><small>@a.Detail · @a.At.ToString("MMM d, h:mm tt", CultureInfo.InvariantCulture)</small></li>
+                    }
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============ APPLICANTS ============ -->
+<div data-pane="applicants" hidden>
+    <div class="cd-panel">
+        <h3 class="cd-ptitle">All Applicants</h3>
+        <div class="cd-search">
+            <input type="search" id="cdAppSearch" placeholder="Search by name or username..." />
+            <select id="cdAppStatus"><option value="">All statuses</option><option>Pending</option><option>Accepted</option><option>Rejected</option></select>
+        </div>
+        @if (Model.Proposals.Count == 0) { <div class="cd-empty">No influencers have applied yet.</div> }
+        else
+        {
+            <div class="cd-scroll"><table class="cd-table" id="cdAppTable">
+                <thead><tr><th>Influencer</th><th>Platform</th><th>Followers</th><th>Eng. rate</th><th>Proposed</th><th>Status</th><th>Applied</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var p in Model.Proposals)
+                    {
+                        <tr data-name="@((p.InfluencerProfile.FullName + " " + p.InfluencerProfile.PlatformUsername).ToLowerInvariant())" data-status="@p.Status">
+                            <td><div class="cd-person"><div class="cd-avatar">@Initials(p.InfluencerProfile.FullName)</div><div><b>@p.InfluencerProfile.FullName</b><small>@p.InfluencerProfile.PlatformUsername</small></div></div></td>
+                            <td>@p.InfluencerProfile.PrimaryPlatform</td>
+                            <td>@p.InfluencerProfile.Followers.ToString("N0", CultureInfo.InvariantCulture)</td>
+                            <td>@p.InfluencerProfile.EngagementRate.ToString("0.#", CultureInfo.InvariantCulture)%</td>
+                            <td>@Money(p.ProposedAmount)</td>
+                            <td><span class="cd-pill @ProposalTone(p.Status)">@p.Status</span></td>
+                            <td>@Date(p.CreatedAt)</td>
+                            <td><a class="cd-link" href="/Admin/AdminUserVerification/Details?type=influencer&id=@p.InfluencerProfileId">View</a></td>
+                        </tr>
+                    }
+                </tbody>
+            </table></div>
+        }
+    </div>
+</div>
+
+<!-- ============ MILESTONES ============ -->
+<div data-pane="milestones" hidden>
+    <div class="cd-panel">
+        <h3 class="cd-ptitle">All Milestones</h3>
+        @if (Model.Milestones.Count == 0) { <div class="cd-empty">No milestones yet.</div> }
+        else
+        {
+            <div class="cd-scroll"><table class="cd-table">
+                <thead><tr><th>Title</th><th>Content type</th><th>Influencer</th><th>Due date</th><th>Amount</th><th>Status</th><th>Payment</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var m in Model.Milestones)
+                    {
+                        <tr>
+                            <td>@m.Title</td><td>@(m.ContentType ?? "—")</td><td>@m.InfluencerName</td><td>@Date(m.DueDate)</td><td>@Money(m.Amount)</td>
+                            <td><span class="cd-pill @MilestoneTone(m.Status)">@m.Status</span></td>
+                            <td><span class="cd-pill @PayTone(m.PaymentState)">@m.PaymentState</span></td>
+                            <td>@if (m.Status != MilestoneStatus.Pending) { <a class="cd-link" href="/Admin/AdminProofReview/Details/@m.Id">@(m.Status == MilestoneStatus.Submitted ? "Review proof" : "View proof")</a> }</td>
+                        </tr>
+                    }
+                </tbody>
+            </table></div>
+        }
+    </div>
+</div>
+
+<!-- ============ PROOFS ============ -->
+<div data-pane="proofs" hidden>
+    <div class="cd-panel">
+        <h3 class="cd-ptitle">Proof of Posts</h3>
+        <p class="cd-psub">Screenshots and links submitted by influencers</p>
+        @if (proofs.Count == 0) { <div class="cd-empty">No proof of post has been submitted yet.</div> }
+        else
+        {
+            <div class="cd-proofs">
+                @foreach (var m in proofs)
+                {
+                    <div class="cd-proof">
+                        <div class="cd-proof-img">
+                            @if (IsImage(m.ProofUrl)) { <img src="@m.ProofUrl" alt="Proof for @m.Title" /> }
+                            else { <i class="bi bi-link-45deg"></i> }
+                        </div>
+                        <div class="cd-proof-body">
+                            <b>@m.Title</b>
+                            <div>@m.InfluencerName</div>
+                            @if (!string.IsNullOrWhiteSpace(m.ProofNotes)) { <div style="margin:6px 0;color:#6b7290;">@m.ProofNotes</div> }
+                            <span class="cd-pill @MilestoneTone(m.Status)">@(m.Status == MilestoneStatus.Submitted ? "Waiting" : m.Status.ToString())</span>
+                            <a class="cd-link" style="margin-left:6px;" href="/Admin/AdminProofReview/Details/@m.Id">@(m.Status == MilestoneStatus.Submitted ? "Review" : "Open")</a>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+<!-- ============ DISPUTES ============ -->
+<div data-pane="disputes" hidden>
+    <div class="cd-panel">
+        <h3 class="cd-ptitle">Disputes</h3>
+        @if (Model.Disputes.Count == 0) { <div class="cd-empty">No disputes have been raised on this campaign.</div> }
+        else
+        {
+            <div class="cd-scroll"><table class="cd-table">
+                <thead><tr><th>ID</th><th>Milestone</th><th>Influencer</th><th>Reason</th><th>Raised</th><th>Status</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var d in Model.Disputes)
+                    {
+                        <tr>
+                            <td>#@d.Id</td><td>@(d.Milestone?.Title ?? "—")</td><td>@d.InfluencerProfile.FullName</td><td>@d.Reason</td><td>@Date(d.CreatedAt)</td>
+                            <td><span class="cd-pill @(d.Status == DisputeStatus.Resolved ? "green" : "amber")">@d.Status</span></td>
+                            <td><a class="cd-link" href="/Admin/AdminDisputes/Details/@d.Id">Open</a></td>
+                        </tr>
+                    }
+                </tbody>
+            </table></div>
+        }
+    </div>
+</div>
+
+<!-- ============ ACTIVITY ============ -->
+<div data-pane="activity" hidden>
+    <div class="cd-panel">
+        <h3 class="cd-ptitle">Activity</h3>
+        <p class="cd-psub">Everything that happened on this campaign, newest first</p>
+        <ul class="cd-timeline">
+            @foreach (var a in Model.Activity)
+            {
+                <li><b>@a.Title</b><small>@a.Detail · @a.At.ToString("MMM d, yyyy h:mm tt", CultureInfo.InvariantCulture)</small></li>
+            }
+        </ul>
+    </div>
+</div>
+
+<script>
+    (function () {
+        var tabs = document.querySelectorAll('#cdTabs [data-tab]');
+        tabs.forEach(function (tab) {
+            tab.addEventListener('click', function () {
+                tabs.forEach(function (t) { t.classList.toggle('is-active', t === tab); });
+                document.querySelectorAll('[data-pane]').forEach(function (p) {
+                    p.hidden = p.getAttribute('data-pane') !== tab.getAttribute('data-tab');
+                });
+            });
+        });
+
+        var search = document.getElementById('cdAppSearch');
+        var status = document.getElementById('cdAppStatus');
+        function filterApplicants() {
+            var q = (search.value || '').trim().toLowerCase();
+            var s = status.value;
+            document.querySelectorAll('#cdAppTable tbody tr').forEach(function (row) {
+                var ok = row.getAttribute('data-name').indexOf(q) !== -1 && (!s || row.getAttribute('data-status') === s);
+                row.style.display = ok ? '' : 'none';
+            });
+        }
+        if (search) { search.addEventListener('input', filterApplicants); status.addEventListener('change', filterApplicants); }
+    })();
+</script>

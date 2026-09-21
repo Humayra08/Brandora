@@ -1,173 +1,257 @@
-@model List<Brandora.Web.Models.Domain.Dispute>
+@model Brandora.Web.Areas.Admin.Controllers.DisputeIndexViewModel
+@using System.Globalization
 @{
-    // NOTE: this whole page renders a fixed dummy dataset for the visual redesign pass
-    // (see feedback_backend_wiring_scope memory) — TODO: switch to Model (already wired
-    // to real Dispute data in the controller) once backend wiring is requested. Real
-    // Dispute rows can't exist yet anyway since there's no "raise a dispute" entry point
-    // on the Brand/Influencer side.
-    var statusFilter = ViewData["StatusFilter"] as Brandora.Web.Models.Domain.DisputeStatus?;
+    string Money(decimal amount) => "৳" + amount.ToString("N0", CultureInfo.InvariantCulture);
+    string Initials(string name) => string.Concat(name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(p => char.ToUpperInvariant(p[0])));
+    string Trend(decimal? pct)
+    {
+        if (pct is null) return "<span class=\"dr-trend flat\">No earlier month yet</span>";
+        var up = pct >= 0;
+        return $"<span class=\"dr-trend {(up ? "up" : "down")}\"><i class=\"bi bi-arrow-{(up ? "up" : "down")}\"></i> {Math.Abs(pct.Value).ToString("0", CultureInfo.InvariantCulture)}% vs last month</span>";
+    }
+    string Tone(string status) => status == "Resolved" ? "green" : status == "Under Review" ? "amber" : "red";
+    string DetailUrl(Brandora.Web.Areas.Admin.Controllers.DisputeRow r) => Model.IsPreview ? "/Admin/AdminDisputes/Details?preview=true" : $"/Admin/AdminDisputes/Details/{r.Id}";
 }
 
 <style>
-    .filter-tabs { display: flex; gap: 10px; flex-wrap: wrap; }
-    .filter-tab { display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 10px; border: 1px solid #eaecf5; background: #ffffff; font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; color: #545b7d; white-space: nowrap; }
-    .filter-tab:hover { border-color: #d3b8ff; }
-    .filter-tab.is-active { background: #f1e6ff; border-color: transparent; color: #7a1fd6; }
-    .filter-tab-count { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 20px; padding: 0 6px; border-radius: 20px; background: rgba(0,0,0,.06); font-size: 11px; font-weight: 700; }
-    .filter-tab.is-active .filter-tab-count { background: rgba(122,31,214,.15); }
+    .dr-hero { position: relative; isolation: isolate; overflow: hidden; display: flex; align-items: center; justify-content: space-between; gap: 20px; min-height: 150px; padding: 26px 36px; border-radius: 18px; margin-bottom: 20px; border: 1px solid #dce7ff; background: radial-gradient(ellipse at 61% 0%, rgba(163,38,255,.1), transparent 58%), linear-gradient(110deg, #f3f6ff55, #eaf1ff99 55%, #f3f6ff55); }
+    .dr-hero .dashboard-waves { position: absolute; inset: auto 0 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
+    .dr-hero-title { position: relative; z-index: 2; max-width: 60%; }
+    .dr-hero-title h1 { margin: 0; font-family: 'Playfair Display', Georgia, serif; font-weight: 700; font-size: clamp(30px, 3vw, 42px); line-height: 1.1; color: #171d3d; }
+    .dr-hero-title p { margin-top: 8px; font: 13.5px 'Inter', sans-serif; color: #6b7290; }
+    .dr-hero-tagline { position: relative; z-index: 2; flex-shrink: 0; font: 700 22px/1.2 'Caveat', cursive; color: #2a3157; text-align: center; transform: rotate(-3deg); }
+    .dr-hero-tagline span { display: block; width: 42px; height: 4px; margin: 6px auto 0; background: linear-gradient(110deg,#a326ff,#236eff); border-radius: 4px; }
+    .dr-art { position: relative; z-index: 2; width: 88px; height: 88px; border-radius: 24px; background: linear-gradient(135deg, #a326ff, #236eff 60%, #18a9ff); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 38px; box-shadow: 0 18px 36px rgba(90,60,255,.25); }
 
-    .table-toolbar { display: flex; justify-content: flex-end; gap: 12px; margin: 18px 0; flex-wrap: wrap; }
-    .table-search { position: relative; flex: 1; max-width: 340px; }
-    .table-search i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #b7bdd6; font-size: 14px; }
-    .table-search input { width: 100%; height: 42px; padding: 0 14px 0 38px; border-radius: 10px; border: 1px solid #dde1f0; font-family: 'Inter', sans-serif; font-size: 13px; color: #2a3157; outline: none; }
-    .table-search input:focus { border-color: #a978ff; }
-    .filter-dropdown-btn { display: inline-flex; align-items: center; gap: 8px; height: 42px; padding: 0 16px; border-radius: 10px; border: 1px solid #dde1f0; background: #ffffff; font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; color: #2a3157; }
+    .dr-flash { margin-bottom: 16px; padding: 12px 16px; border-radius: 12px; font: 600 13px 'Inter', sans-serif; }
+    .dr-flash.ok { background: #e2f8ee; color: #0d9c6c; border: 1px solid rgba(13,156,108,.25); }
+    .dr-flash.bad { background: #fde8ea; color: #a71b34; border: 1px solid rgba(217,45,63,.25); }
 
-    .case-id { font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 700; color: #2a3157; }
-    .case-brand-id { margin-top: 1px; font-family: 'Inter', sans-serif; font-size: 11px; color: #8189a8; }
+    .dr-kpis { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; margin-bottom: 18px; }
+    .dr-kpi { display: flex; gap: 12px; align-items: flex-start; padding: 16px 18px; border-radius: 14px; background: #fff; border: 1px solid #dce7ff; min-width: 0; }
+    .dr-kpi-icon { flex: 0 0 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 19px; background: #e3f0ff; color: #236eff; }
+    .dr-kpi-icon.red { background: #fde8ea; color: #d92d3f; } .dr-kpi-icon.amber { background: #fff1de; color: #c47410; } .dr-kpi-icon.green { background: #e2f8ee; color: #0d9c6c; } .dr-kpi-icon.purple { background: #f1e6ff; color: #7a2fe0; }
+    .dr-kpi-label { font: 600 12px 'Inter', sans-serif; color: #8189a8; }
+    .dr-kpi > div:last-child { min-width: 0; }
+    .dr-kpi-value { margin-top: 3px; font: 800 clamp(18px, 1.5vw, 24px) 'DM Sans', sans-serif; color: #171d3d; overflow-wrap: anywhere; }
+    .dr-kpi-sub { margin-top: 4px; font: 11.5px 'Inter', sans-serif; color: #8189a8; }
+    .dr-trend { font: 600 11.5px 'Inter', sans-serif; } .dr-trend.up { color: #0d9c6c; } .dr-trend.down { color: #d92d3f; } .dr-trend.flat { color: #8189a8; font-weight: 500; }
 
-    .brand-cell { display: flex; align-items: center; gap: 10px; }
-    .brand-logo { width: 34px; height: 34px; border-radius: 8px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; color: #ffffff; font-family: 'DM Sans', sans-serif; font-weight: 800; font-size: 9px; text-align: center; line-height: 1.05; white-space: pre-line; }
-    .brand-name { font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 600; color: #2a3157; }
+    .dr-panel { padding: 22px 24px; border-radius: 15px; background: #fff; border: 1px solid #dce7ff; }
+    .dr-top { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; }
+    .dr-tabs { display: inline-flex; flex-wrap: wrap; gap: 4px; padding: 4px; border-radius: 12px; border: 1px solid #dce7ff; background: #f6f8ff; }
+    .dr-tabs button { padding: 9px 18px; border: 0; border-radius: 9px; background: transparent; font: 600 12.5px 'Inter', sans-serif; color: #2a3157; cursor: pointer; }
+    .dr-tabs button.is-active { color: #fff; background: linear-gradient(105deg, #a326ff, #236eff, #18a9ff); }
+    .dr-filters { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
+    .dr-input { height: 40px; padding: 0 12px; border-radius: 10px; border: 1px solid #dde1f0; background: #fff; font: 12.5px 'Inter', sans-serif; color: #2a3157; outline: none; }
+    .dr-input.grow { flex: 1; min-width: 240px; }
+    .dr-btn { display: inline-flex; align-items: center; gap: 7px; height: 40px; padding: 0 16px; border-radius: 10px; border: 1px solid #cfe0ff; background: #f3f8ff; font: 600 12.5px 'Inter', sans-serif; color: #236eff; cursor: pointer; text-decoration: none; }
 
-    .influencer-cell { display: flex; align-items: center; gap: 10px; }
-    .influencer-avatar { width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: linear-gradient(145deg, #c93cff, #4e38ff 55%, #159cff); color: #ffffff; font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 10.5px; }
-    .influencer-name { font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 600; color: #2a3157; }
-    .influencer-handle { margin-top: 1px; font-family: 'Inter', sans-serif; font-size: 11px; color: #8189a8; }
+    .dr-scroll { overflow-x: auto; }
+    .dr-table { width: 100%; border-collapse: collapse; }
+    .dr-table th { white-space: nowrap; padding: 11px 12px; text-align: left; font: 700 11px 'Inter', sans-serif; letter-spacing: .3px; text-transform: uppercase; color: #8189a8; background: #f7f9ff; }
+    .dr-table td { padding: 13px 12px; border-top: 1px solid #eef1fb; font: 12.5px 'Inter', sans-serif; color: #2a3157; vertical-align: middle; }
+    .dr-table tr.dr-row:hover td { background: #fafbff; }
+    .dr-id { font: 700 12.5px 'DM Sans', sans-serif; color: #171d3d; white-space: nowrap; }
+    .dr-two b { display: block; font: 700 12.5px 'DM Sans', sans-serif; color: #171d3d; }
+    .dr-two small { color: #8189a8; font-size: 11.5px; }
+    .dr-who { display: flex; align-items: center; gap: 9px; white-space: nowrap; }
+    .dr-av { flex: 0 0 34px; height: 34px; border-radius: 50%; overflow: hidden; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #a326ff, #236eff); color: #fff; font: 700 12px 'DM Sans', sans-serif; }
+    .dr-av.is-brand { background: #171d3d; }
+    .dr-av img { width: 100%; height: 100%; object-fit: cover; }
+    .dr-amt { font-weight: 700; white-space: nowrap; }
+    .dr-tag, .dr-pill { display: inline-block; padding: 5px 11px; border-radius: 8px; font: 600 11.5px 'Inter', sans-serif; white-space: nowrap; }
+    .dr-tag.Brand { background: #e3f0ff; color: #236eff; } .dr-tag.Influencer { background: #f1e6ff; color: #7a2fe0; }
+    .dr-pill.red { background: #fde8ea; color: #d92d3f; } .dr-pill.amber { background: #fff1de; color: #c47410; } .dr-pill.green { background: #e2f8ee; color: #0d9c6c; }
+    .dr-act { display: flex; align-items: center; gap: 6px; position: relative; }
+    .dr-view { padding: 7px 18px; border-radius: 9px; border: 1px solid #cfe0ff; background: #f3f8ff; color: #236eff; font: 600 12px 'Inter', sans-serif; text-decoration: none; }
+    .dr-more { width: 34px; height: 34px; border-radius: 9px; border: 1px solid #dde1f0; background: #fff; color: #2a3157; cursor: pointer; }
+    .dr-menu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 30; display: none; min-width: 190px; padding: 6px; border-radius: 12px; border: 1px solid #eaecf5; background: #fff; box-shadow: 0 16px 34px rgba(30,34,90,.16); }
+    .dr-menu.is-open { display: block; }
+    .dr-menu a, .dr-menu button { display: block; width: 100%; padding: 9px 12px; border: 0; border-radius: 8px; background: transparent; text-align: left; font: 500 12.5px 'Inter', sans-serif; color: #2a3157; cursor: pointer; text-decoration: none; }
+    .dr-menu a:hover, .dr-menu button:hover { background: rgba(155,44,255,.06); color: #7a1fd6; }
+    .dr-menu form { margin: 0; }
+    .dr-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 14px; font: 12.5px 'Inter', sans-serif; color: #8189a8; }
+    .dr-pager { display: flex; gap: 6px; }
+    .dr-pager button { min-width: 34px; height: 34px; border-radius: 9px; border: 1px solid #dde1f0; background: #fff; font: 600 12.5px 'Inter', sans-serif; color: #2a3157; cursor: pointer; }
+    .dr-pager button.is-active { border: 0; color: #fff; background: linear-gradient(105deg, #a326ff, #236eff); }
+    .dr-empty { padding: 30px 18px; border-radius: 12px; border: 1px dashed #dde1f0; background: #fafbfe; text-align: center; font: 12.5px 'Inter', sans-serif; color: #8189a8; }
+    .dr-empty b { display: block; margin-bottom: 4px; font: 700 14px 'DM Sans', sans-serif; color: #2a3157; }
 
-    .campaign-title { font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 600; color: #2a3157; }
-    .campaign-milestone { margin-top: 1px; font-family: 'Inter', sans-serif; font-size: 11px; color: #8189a8; }
-
-    .reason-text { font-family: 'Inter', sans-serif; font-size: 12.5px; color: #2a3157; max-width: 200px; }
-
-    .row-actions-wrap { display: flex; align-items: center; gap: 8px; }
-    .btn-view-chevron { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 14px; border-radius: 9px; border: 1px solid #dde1f0; background: #ffffff; color: #6b52d8; font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 700; }
-    .btn-view-chevron:hover { border-color: #d3b8ff; background: #f9f5ff; }
-    .row-more-btn { width: 34px; height: 34px; border-radius: 9px; border: 1px solid transparent; background: transparent; color: #8189a8; display: flex; align-items: center; justify-content: center; }
-    .row-more-btn:hover { background: #f6f7fb; }
-
-    .table-pagination { display: flex; align-items: center; justify-content: space-between; margin-top: 18px; flex-wrap: wrap; gap: 12px; }
-    .page-btn { width: 34px; height: 34px; border-radius: 9px; border: 1px solid #dde1f0; background: #ffffff; font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 600; color: #545b7d; display: inline-flex; align-items: center; justify-content: center; }
-    .page-btn.is-active { background: #f1e6ff; border-color: transparent; color: #7a1fd6; }
-
-    .promo-banner { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-top: 20px; }
-    .promo-banner-left { display: flex; align-items: center; gap: 14px; }
-    .promo-banner-icon { width: 40px; height: 40px; border-radius: 50%; background: #f1e6ff; color: #7a1fd6; display: flex; align-items: center; justify-content: center; font-size: 17px; flex-shrink: 0; }
+    @@media(max-width: 1700px) { .dr-kpis { grid-template-columns: repeat(3, 1fr); } }
+    @@media(max-width: 800px) { .dr-kpis { grid-template-columns: 1fr 1fr; } .dr-hero-tagline, .dr-art { display: none; } .dr-hero-title { max-width: 100%; } }
 </style>
 
-<div class="panel">
-
-    <div class="filter-tabs">
-        <a href="/Admin/AdminDisputes/Index" class="filter-tab @(statusFilter is null ? "is-active" : "")">All <span class="filter-tab-count">128</span></a>
-        <a href="/Admin/AdminDisputes/Index?status=Open" class="filter-tab @(statusFilter == Brandora.Web.Models.Domain.DisputeStatus.Open ? "is-active" : "")">Open <span class="filter-tab-count">35</span></a>
-        <a href="/Admin/AdminDisputes/Index?status=UnderReview" class="filter-tab @(statusFilter == Brandora.Web.Models.Domain.DisputeStatus.UnderReview ? "is-active" : "")">Under Review <span class="filter-tab-count">28</span></a>
-        <a href="/Admin/AdminDisputes/Index?status=Resolved" class="filter-tab @(statusFilter == Brandora.Web.Models.Domain.DisputeStatus.Resolved ? "is-active" : "")">Resolved <span class="filter-tab-count">52</span></a>
-        <a href="#" class="filter-tab">Closed <span class="filter-tab-count">13</span></a>
+<section class="dr-hero">
+    @await Html.PartialAsync("~/Views/InfluencerDashboard/_Waves.cshtml", "hero")
+    <div class="dr-hero-title">
+        <h1>Dispute Resolution</h1>
+        <p>Review and resolve disputes between brands and influencers fairly.</p>
     </div>
+    <div class="dr-hero-tagline">Fair Decisions<br />Stronger Community<span></span></div>
+    <div class="dr-art"><i class="bi bi-exclamation-triangle"></i></div>
+</section>
 
-    <div class="table-toolbar">
-        <div class="table-search">
-            <i class="bi bi-search"></i>
-            <input type="text" placeholder="Search by case ID, brand, influencer..." />
+@if (Model.IsPreview)
+{
+    <div class="dr-flash" style="background:#f3f8ff;color:#2a3157;border:1px solid #cfe0ff;">
+        <i class="bi bi-eye"></i> Design preview with sample data. These are not real disputes. <a href="/Admin/AdminDisputes/Index" style="color:#236eff;font-weight:700;">Back to real disputes</a>
+    </div>
+}
+@if (TempData["DisputeMessage"] is string ok) { <div class="dr-flash ok">@ok</div> }
+@if (TempData["DisputeError"] is string bad) { <div class="dr-flash bad">@bad</div> }
+
+<section class="dr-kpis">
+    <div class="dr-kpi"><div class="dr-kpi-icon"><i class="bi bi-folder2"></i></div><div><div class="dr-kpi-label">Total Disputes</div><div class="dr-kpi-value">@Model.Total</div><div class="dr-kpi-sub">@Html.Raw(Trend(Model.TotalTrend))</div></div></div>
+    <div class="dr-kpi"><div class="dr-kpi-icon red"><i class="bi bi-clock"></i></div><div><div class="dr-kpi-label">Open</div><div class="dr-kpi-value">@Model.OpenCount</div><div class="dr-kpi-sub">Waiting for review</div></div></div>
+    <div class="dr-kpi"><div class="dr-kpi-icon amber"><i class="bi bi-arrow-repeat"></i></div><div><div class="dr-kpi-label">Under Review</div><div class="dr-kpi-value">@Model.UnderReviewCount</div><div class="dr-kpi-sub">Being handled by an admin</div></div></div>
+    <div class="dr-kpi"><div class="dr-kpi-icon green"><i class="bi bi-check-lg"></i></div><div><div class="dr-kpi-label">Resolved</div><div class="dr-kpi-value">@Model.ResolvedCount</div><div class="dr-kpi-sub">@Html.Raw(Trend(Model.ResolvedTrend))</div></div></div>
+    <div class="dr-kpi"><div class="dr-kpi-icon purple"><i class="bi bi-cash-stack"></i></div><div><div class="dr-kpi-label">Total Amount in Dispute</div><div class="dr-kpi-value">@Money(Model.AmountInDispute)</div><div class="dr-kpi-sub">On unresolved cases</div></div></div>
+    <div class="dr-kpi"><div class="dr-kpi-icon red"><i class="bi bi-shield-check"></i></div><div><div class="dr-kpi-label">Compensation Paid</div><div class="dr-kpi-value">@(Model.IsPreview ? "৳95,000" : "—")</div><div class="dr-kpi-sub">@(Model.IsPreview ? "This month" : "Shown once wallet payouts go live")</div></div></div>
+</section>
+
+<div class="dr-panel">
+    <div class="dr-top">
+        <div class="dr-tabs" id="drTabs">
+            <button type="button" class="is-active" data-status="">All (@Model.Total)</button>
+            <button type="button" data-status="Open">Open (@Model.OpenCount)</button>
+            <button type="button" data-status="Under Review">Under Review (@Model.UnderReviewCount)</button>
+            <button type="button" data-status="Resolved">Resolved (@Model.ResolvedCount)</button>
         </div>
-        <button type="button" class="filter-dropdown-btn"><i class="bi bi-funnel"></i> Filter <i class="bi bi-chevron-down" style="font-size:11px;"></i></button>
+        <button type="button" class="dr-btn" id="drExport"><i class="bi bi-download"></i> Export CSV</button>
     </div>
 
-    @{
-        (string CaseId, string BrandId, string BrandLogo, string BrandLogoColor, string BrandName, string InfluencerName, string Handle, string Campaign, string Milestone, string Reason, string Date, string Time, string Status, string StatusColor)[] rows =
-        [
-            ("DSP-2025-00345", "#BR-12450", "GLOW\nUP", "#14103a", "GlowUp Skincare Ltd.", "Priya Islam", "@priya.islam.official", "GlowUp Summer Skincare Launch", "Milestone 2 &ndash; Feed Post", "Missing product tag in the post", "May 28, 2025", "11:45 AM", "Under Review", "blue"),
-            ("DSP-2025-00344", "#BR-12448", "Style\nMart", "#6b52d8", "StyleMart BD", "Tanvir Hasan", "@tanvir.hasan_", "StyleMart Eid Campaign", "Milestone 1 &ndash; Story Series", "Payment not released", "May 27, 2025", "03:20 PM", "Open", "gray"),
-            ("DSP-2025-00343", "#BR-12447", "Tech\nHaven", "#1a73d8", "TechHaven Solutions", "Nabila Sultana", "@nabii.sultsna", "TechHaven Product Review", "Milestone 3 &ndash; Reels", "Content quality not as agreed", "May 26, 2025", "02:10 PM", "Under Review", "blue"),
-            ("DSP-2025-00342", "#BR-12445", "&#127793;", "#ffffff", "Organic Bangladesh", "Munawar Moon", "@munawar.moon", "Organic Food Awareness", "Milestone 1 &ndash; Feed Post", "Incorrect information in the content", "May 25, 2025", "10:05 AM", "Resolved", "green"),
-            ("DSP-2025-00341", "#BR-12444", "FIT\nZONE", "#0d9c6c", "FitZone Gym", "Afsana Mim", "@afsana_mim", "FitZone Transformation Challenge", "Milestone 2 &ndash; Reels", "Delay in content submission", "May 24, 2025", "09:30 PM", "Closed", "gray"),
-            ("DSP-2025-00340", "#BR-12443", "Book\nNest", "#d9a91a", "BookNest BD", "Arif Mahmud", "@arif.reads", "BookNest Review Series", "Milestone 1 &ndash; Story", "Brand didn't follow the brief", "May 23, 2025", "12:40 PM", "Open", "gray"),
-            ("DSP-2025-00339", "#BR-12442", "Chic\nCloset", "#e2136e", "Chic Closet", "Jannatul Ferdaus", "@ferdaus.jannat", "Summer Fashion Collection", "Milestone 3 &ndash; Feed Post", "Disagreement on revision requests", "May 22, 2025", "04:15 PM", "Under Review", "blue"),
-            ("DSP-2025-00338", "#BR-12441", "Home\nHaven", "#d97a17", "HomeHaven Decor", "Shawon Rahman", "@shawon.life", "HomeHaven Decor Ideas", "Milestone 2 &ndash; Reels", "Payment amount dispute", "May 21, 2025", "11:00 AM", "Resolved", "green")
-        ];
+    <div class="dr-filters">
+        <input class="dr-input grow" type="search" id="drSearch" placeholder="Search by dispute ID, campaign, brand, influencer or keyword..." />
+        <select class="dr-input" id="drCampaign"><option value="">Campaign: All</option>@foreach (var c in Model.Campaigns) { <option>@c</option> }</select>
+        <select class="dr-input" id="drStatus"><option value="">Status: All</option><option>Open</option><option>Under Review</option><option>Resolved</option></select>
+        <select class="dr-input" id="drRaised"><option value="">Raised by: All</option><option>Brand</option><option>Influencer</option></select>
+        <input class="dr-input" type="date" id="drFrom" aria-label="From date" />
+        <input class="dr-input" type="date" id="drTo" aria-label="To date" />
+    </div>
+
+    @if (Model.Rows.Count == 0)
+    {
+        <div class="dr-empty">
+            <b>No disputes yet</b>
+            When a brand or an influencer reports a problem with a milestone, it will appear here for review.
+            <div style="margin-top:12px;"><a class="dr-btn" href="/Admin/AdminDisputes/Index?preview=true"><i class="bi bi-eye"></i> See the design with sample data</a></div>
+        </div>
     }
-
-    <div class="admin-table-wrap" style="margin-top: 18px;">
-        <table class="admin-table">
-            <thead>
-                <tr>
-                    <th>Case ID</th>
-                    <th>Brand</th>
-                    <th>Influencer</th>
-                    <th>Campaign / Milestone</th>
-                    <th>Reason</th>
-                    <th>Date Raised</th>
-                    <th>Status</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var row in rows)
-                {
-                    var influencerInitials = string.Join("", row.InfluencerName.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(w => w[0])).ToUpperInvariant();
-                    <tr>
-                        <td>
-                            <div class="case-id">@row.CaseId</div>
-                            <div class="case-brand-id">@row.BrandId</div>
-                        </td>
-                        <td>
-                            <div class="brand-cell">
-                                <div class="brand-logo" style="background:@row.BrandLogoColor; @(row.BrandLogoColor == "#ffffff" ? "border:1px solid #eaecf5; color:#2a3157;" : "")">@Html.Raw(row.BrandLogo)</div>
-                                <span class="brand-name">@row.BrandName</span>
-                            </div>
-                        </td>
-                        <td>
-                            <div class="influencer-cell">
-                                <div class="influencer-avatar">@influencerInitials</div>
-                                <div>
-                                    <div class="influencer-name">@row.InfluencerName</div>
-                                    <div class="influencer-handle">@row.Handle</div>
+    else
+    {
+        <div class="dr-scroll">
+            <table class="dr-table" id="drTable">
+                <thead>
+                    <tr><th>#</th><th>Dispute ID</th><th>Campaign / Milestone</th><th>Brand</th><th>Influencer</th><th>Reason</th><th>Amount</th><th>Raised by</th><th>Raised date</th><th>Status</th><th>Actions</th></tr>
+                </thead>
+                <tbody>
+                    @{ var n = 0; }
+                    @foreach (var r in Model.Rows)
+                    {
+                        n++;
+                        <tr class="dr-row" data-search="@((r.Code + " " + r.CampaignTitle + " " + r.MilestoneTitle + " " + r.BrandName + " " + r.InfluencerName + " " + r.Handle + " " + r.Reason).ToLowerInvariant())" data-campaign="@r.CampaignTitle" data-status="@r.Status" data-raised="@r.RaisedBy" data-date="@r.CreatedAt.ToString("yyyy-MM-dd")">
+                            <td>@n</td>
+                            <td><span class="dr-id">@r.Code</span></td>
+                            <td><div class="dr-two"><b>@r.CampaignTitle</b><small>@r.MilestoneTitle@(string.IsNullOrWhiteSpace(r.MilestoneType) ? "" : " · " + r.MilestoneType)</small></div></td>
+                            <td>
+                                <div class="dr-who">
+                                    <div class="dr-av is-brand">@if (!string.IsNullOrWhiteSpace(r.BrandPicture)) { <img src="@r.BrandPicture" alt="" /> } else { <text>@Initials(r.BrandName)</text> }</div>
+                                    @r.BrandName
                                 </div>
-                            </div>
-                        </td>
-                        <td>
-                            <div class="campaign-title">@row.Campaign</div>
-                            <div class="campaign-milestone">@Html.Raw(row.Milestone)</div>
-                        </td>
-                        <td><span class="reason-text">@row.Reason</span></td>
-                        <td>@row.Date<div style="color:#8189a8; font-size:11.5px; margin-top:2px;">@row.Time</div></td>
-                        <td><span class="status-pill @row.StatusColor">@row.Status</span></td>
-                        <td>
-                            <div class="row-actions-wrap">
-                                <a href="/Admin/AdminDisputes/Details/1" class="btn-view-chevron">View</a>
-                                <button type="button" class="row-more-btn"><i class="bi bi-three-dots-vertical"></i></button>
-                            </div>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    </div>
-
-    <div class="table-pagination">
-        <div class="panel-sub">Showing 1 to 8 of 128 disputes (dummy data — real list to be wired in)</div>
-        <div style="display:flex; gap:6px;">
-            <span class="page-btn"><i class="bi bi-chevron-left"></i></span>
-            <span class="page-btn is-active">1</span>
-            <span class="page-btn">2</span>
-            <span class="page-btn">3</span>
-            <span class="page-btn">4</span>
-            <span class="page-btn">5</span>
-            <span class="page-btn">&hellip;</span>
-            <span class="page-btn">16</span>
-            <span class="page-btn"><i class="bi bi-chevron-right"></i></span>
+                            </td>
+                            <td><div class="dr-who"><div class="dr-av">@Initials(r.InfluencerName)</div>@(string.IsNullOrWhiteSpace(r.Handle) ? r.InfluencerName : "@" + r.Handle.TrimStart('@'))</div></td>
+                            <td>@r.Reason</td>
+                            <td class="dr-amt">@Money(r.Amount)</td>
+                            <td><span class="dr-tag @r.RaisedBy">@r.RaisedBy</span></td>
+                            <td>@r.CreatedAt.ToString("MMM d, yyyy", CultureInfo.InvariantCulture)</td>
+                            <td><span class="dr-pill @Tone(r.Status)">@r.Status</span></td>
+                            <td>
+                                <div class="dr-act">
+                                    <a class="dr-view" href="@DetailUrl(r)">View</a>
+                                    <button type="button" class="dr-more" aria-label="More actions"><i class="bi bi-three-dots"></i></button>
+                                    <div class="dr-menu">
+                                        <a href="@DetailUrl(r)">Open details</a>
+                                        @if (!Model.IsPreview) { <a href="/Admin/AdminCampaigns/Details/@r.CampaignId">View campaign</a> }
+                                        @if (r.Status != "Resolved" && !Model.IsPreview)
+                                        {
+                                            <form method="post" action="/Admin/AdminDisputes/StartReview/@r.Id">@Html.AntiForgeryToken()<button type="submit">Start review</button></form>
+                                        }
+                                        <button type="button" data-copy="@r.Code">Copy dispute ID</button>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
         </div>
-    </div>
-
+        <div class="dr-empty" id="drNoMatch" style="display:none;margin-top:14px;"><b>No disputes match these filters</b>Try clearing a filter or the search box.</div>
+        <div class="dr-foot"><span id="drShowing"></span><div class="dr-pager" id="drPager"></div></div>
+    }
 </div>
 
-<div class="panel promo-banner">
-    <div class="promo-banner-left">
-        <div class="promo-banner-icon"><i class="bi bi-shield-check"></i></div>
-        <div>
-            <div class="panel-title" style="font-size:14px;">Faster Resolution, Better Relationships</div>
-            <div class="panel-sub">Resolve disputes quickly and fairly to build trust with both brands and influencers.</div>
-        </div>
-    </div>
-    <a href="#" class="btn btn-secondary">View Resolution Guidelines <i class="bi bi-box-arrow-up-right" style="margin-left:8px;"></i></a>
-</div>
+<script>
+    (function () {
+        var table = document.getElementById('drTable');
+        if (!table) return;
+
+        var rows = Array.prototype.slice.call(table.tBodies[0].rows), PAGE = 10, page = 1, tabStatus = '';
+        var q = document.getElementById('drSearch'), camp = document.getElementById('drCampaign'), st = document.getElementById('drStatus'),
+            rb = document.getElementById('drRaised'), from = document.getElementById('drFrom'), to = document.getElementById('drTo');
+
+        function match(r) {
+            var d = r.getAttribute('data-date'), status = r.getAttribute('data-status');
+            return r.getAttribute('data-search').indexOf(q.value.trim().toLowerCase()) !== -1
+                && (!tabStatus || status === tabStatus)
+                && (!camp.value || r.getAttribute('data-campaign') === camp.value)
+                && (!st.value || status === st.value)
+                && (!rb.value || r.getAttribute('data-raised') === rb.value)
+                && (!from.value || d >= from.value) && (!to.value || d <= to.value);
+        }
+
+        function render() {
+            var matched = rows.filter(match), pages = Math.max(1, Math.ceil(matched.length / PAGE));
+            if (page > pages) page = pages;
+            rows.forEach(function (r) { r.style.display = 'none'; r.dataset.match = '0'; });
+            matched.forEach(function (r, i) { r.dataset.match = '1'; r.style.display = (i >= (page - 1) * PAGE && i < page * PAGE) ? '' : 'none'; });
+            document.getElementById('drNoMatch').style.display = matched.length ? 'none' : 'block';
+            var start = matched.length ? (page - 1) * PAGE + 1 : 0, end = Math.min(page * PAGE, matched.length);
+            document.getElementById('drShowing').textContent = 'Showing ' + start + '–' + end + ' of ' + matched.length + ' dispute' + (matched.length === 1 ? '' : 's');
+            var pager = document.getElementById('drPager'); pager.innerHTML = '';
+            if (pages > 1) for (var p = 1; p <= pages; p++) (function (p) {
+                var b = document.createElement('button'); b.textContent = p; b.className = p === page ? 'is-active' : '';
+                b.addEventListener('click', function () { page = p; render(); }); pager.appendChild(b);
+            })(p);
+        }
+
+        [q, camp, st, rb, from, to].forEach(function (el) { el.addEventListener('input', function () { page = 1; render(); }); });
+
+        var tabs = document.querySelectorAll('#drTabs button');
+        tabs.forEach(function (t) {
+            t.addEventListener('click', function () {
+                tabs.forEach(function (x) { x.classList.toggle('is-active', x === t); });
+                tabStatus = t.getAttribute('data-status'); page = 1; render();
+            });
+        });
+
+        // "..." menus
+        document.addEventListener('click', function (e) {
+            var btn = e.target.closest('.dr-more');
+            document.querySelectorAll('.dr-menu.is-open').forEach(function (m) { if (!btn || m !== btn.parentNode.querySelector('.dr-menu')) m.classList.remove('is-open'); });
+            if (btn) btn.parentNode.querySelector('.dr-menu').classList.toggle('is-open');
+            var copy = e.target.closest('[data-copy]');
+            if (copy && navigator.clipboard) { navigator.clipboard.writeText(copy.getAttribute('data-copy')); copy.textContent = 'Copied!'; setTimeout(function () { copy.textContent = 'Copy dispute ID'; }, 1200); }
+        });
+
+        document.getElementById('drExport').addEventListener('click', function () {
+            var lines = [Array.prototype.slice.call(table.tHead.rows[0].cells, 0, -1).map(function (c) { return '"' + c.innerText.trim() + '"'; }).join(',')];
+            rows.filter(function (r) { return r.dataset.match === '1'; }).forEach(function (r) {
+                lines.push(Array.prototype.slice.call(r.cells, 0, -1).map(function (c) { return '"' + c.innerText.replace(/\s+/g, ' ').trim().replace(/"/g, '""') + '"'; }).join(','));
+            });
+            var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' })); a.download = 'disputes.csv'; a.click();
+        });
+
+        render();
+    })();
+</script>

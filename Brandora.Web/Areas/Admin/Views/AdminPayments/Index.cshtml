@@ -1,76 +1,400 @@
-@model List<Brandora.Web.Models.Domain.Payment>
+@model Brandora.Web.Areas.Admin.Controllers.PaymentIndexViewModel
+@using System.Globalization
 @{
-    var statusFilter = ViewData["StatusFilter"] as Brandora.Web.Models.Domain.PaymentStatus?;
-
-    static string PillColor(Brandora.Web.Models.Domain.PaymentStatus s) => s switch
+    string Money(decimal a) => "৳" + a.ToString("N0", CultureInfo.InvariantCulture);
+    string Initials(string name) => string.Concat(name.TrimStart('@').Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(p => char.ToUpperInvariant(p[0])));
+    string Trend(decimal? pct, bool inverse = false)
     {
-        Brandora.Web.Models.Domain.PaymentStatus.Completed => "green",
-        Brandora.Web.Models.Domain.PaymentStatus.Failed => "red",
-        _ => "gray"
+        if (pct is null) return "<span class=\"pm-trend flat\">No earlier month yet</span>";
+        var up = pct >= 0;
+        var good = inverse ? !up : up;
+        return $"<span class=\"pm-trend {(good ? "good" : "bad")}\"><i class=\"bi bi-arrow-{(up ? "up" : "down")}\"></i> {Math.Abs(pct.Value).ToString("0", CultureInfo.InvariantCulture)}% vs last month</span>";
+    }
+    string Logo(string m, int h) => m switch
+    {
+        "bKash" => $"<img src=\"/images/payment-methods/bkash.svg\" alt=\"bKash\" style=\"height:{h}px;width:auto;\" />",
+        "Nagad" => $"<img src=\"/images/payment-methods/nagad.svg\" alt=\"Nagad\" style=\"height:{h}px;width:auto;\" />",
+        "Bank Transfer" => $"<i class=\"bi bi-bank\" style=\"font-size:{h}px;color:#236eff;line-height:1;\"></i>",
+        _ => $"<i class=\"bi bi-question-circle\" style=\"font-size:{h}px;color:#b7bdd6;line-height:1;\"></i>"
     };
+    string TypeTone(string t) => t == "Brand Payment" ? "purple" : t == "Withdrawal" ? "blue" : "amber";
+    string StatusTone(string s) => s == "Completed" ? "green" : s == "Failed" ? "red" : "amber";
+
+    var donutParts = new List<string>();
+    var totalStatus = Model.Status.Sum(s => s.Count);
+    var cursor = 0.0;
+    foreach (var s in Model.Status)
+    {
+        if (s.Count == 0 || totalStatus == 0) continue;
+        var end = cursor + s.Count * 100.0 / totalStatus;
+        donutParts.Add($"{s.Color} {cursor.ToString("0.##", CultureInfo.InvariantCulture)}% {end.ToString("0.##", CultureInfo.InvariantCulture)}%");
+        cursor = end;
+    }
+    var donut = donutParts.Count == 0 ? "background:#eef1fb;" : "background:conic-gradient(" + string.Join(",", donutParts) + ");";
+    var methodTotal = Math.Max(1, Model.Methods.Sum(m => m.Count));
+    var tlMax = Math.Max(1m, Model.Timeline.Max(t => Math.Max(t.BrandPayments, t.Payouts)));
 }
 
-<div class="panel">
-    <div class="panel-title">Payment Oversight</div>
-    <div class="panel-sub">
-        ৳@Model.Where(p => p.Status == Brandora.Web.Models.Domain.PaymentStatus.Completed).Sum(p => p.Amount).ToString("N0") released total
+<style>
+    .pm-hero { position: relative; isolation: isolate; overflow: hidden; display: flex; align-items: center; justify-content: space-between; gap: 20px; min-height: 150px; padding: 26px 36px; border-radius: 18px; margin-bottom: 18px; border: 1px solid #dce7ff; background: radial-gradient(ellipse at 61% 0%, rgba(163,38,255,.1), transparent 58%), linear-gradient(110deg, #f3f6ff55, #eaf1ff99 55%, #f3f6ff55); }
+    .pm-hero .dashboard-waves { position: absolute; inset: auto 0 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
+    .pm-hero-title { position: relative; z-index: 2; max-width: 55%; }
+    .pm-hero-title h1 { margin: 0; font-family: 'Playfair Display', Georgia, serif; font-weight: 700; font-size: clamp(30px, 3vw, 42px); line-height: 1.1; color: #171d3d; }
+    .pm-hero-title p { margin-top: 8px; font: 13.5px 'Inter', sans-serif; color: #6b7290; }
+    .pm-hero-right { position: relative; z-index: 2; display: flex; align-items: center; gap: 26px; }
+    .pm-tagline { font: 700 22px/1.2 'Caveat', cursive; color: #2a3157; transform: rotate(-3deg); text-align: center; }
+    .pm-tagline i { color: #7a2fe0; font-size: 26px; margin-left: 6px; }
+    .pm-btn { display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 20px; border-radius: 10px; border: 0; color: #fff; background: linear-gradient(105deg, #a326ff, #236eff, #18a9ff); font: 600 13px 'Inter', sans-serif; cursor: pointer; text-decoration: none; }
+    .pm-btn.ghost { border: 1px solid #cfe0ff; background: #f3f8ff; color: #236eff; height: 40px; }
+
+    .pm-kpis { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 16px; }
+    .pm-kpi { display: flex; gap: 12px; align-items: flex-start; padding: 16px 18px; border-radius: 14px; background: #fff; border: 1px solid #dce7ff; min-width: 0; }
+    .pm-kpi-icon { flex: 0 0 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; background: #e3f0ff; color: #236eff; }
+    .pm-kpi-icon.green { background: #e2f8ee; color: #0d9c6c; } .pm-kpi-icon.orange { background: #fff1de; color: #e08a1e; } .pm-kpi-icon.amber { background: #fff4d6; color: #c98a06; } .pm-kpi-icon.mint { background: #e2f8ee; color: #0d9c6c; }
+    .pm-kpi > div:last-child { min-width: 0; }
+    .pm-kpi-label { font: 600 12px 'Inter', sans-serif; color: #8189a8; }
+    .pm-kpi-value { margin-top: 3px; font: 800 clamp(18px, 1.5vw, 24px) 'DM Sans', sans-serif; color: #171d3d; overflow-wrap: anywhere; }
+    .pm-trend { font: 600 11.5px 'Inter', sans-serif; } .pm-trend.good { color: #0d9c6c; } .pm-trend.bad { color: #d92d3f; } .pm-trend.flat { color: #8189a8; font-weight: 500; }
+
+    .pm-grid { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 16px; align-items: start; margin-bottom: 16px; }
+    .pm-stack { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+    .pm-panel { padding: 20px 22px; border-radius: 15px; background: #fff; border: 1px solid #dce7ff; min-width: 0; }
+    .pm-title { margin: 0 0 14px; font: 700 17px 'Playfair Display', Georgia, serif; color: #171d3d; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .pm-title a { font: 600 12px 'Inter', sans-serif; color: #236eff; text-decoration: none; }
+
+    .pm-tabs { display: inline-flex; flex-wrap: wrap; gap: 4px; padding: 4px; margin-bottom: 14px; border-radius: 12px; border: 1px solid #dce7ff; background: #f6f8ff; }
+    .pm-tabs button { padding: 9px 16px; border: 0; border-radius: 9px; background: transparent; font: 600 12.5px 'Inter', sans-serif; color: #2a3157; cursor: pointer; }
+    .pm-tabs button.is-active { color: #fff; background: linear-gradient(105deg, #a326ff, #236eff, #18a9ff); }
+    .pm-filters { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
+    .pm-input { height: 38px; padding: 0 11px; border-radius: 10px; border: 1px solid #dde1f0; background: #fff; font: 12.5px 'Inter', sans-serif; color: #2a3157; outline: none; }
+    .pm-input.grow { flex: 1; min-width: 200px; }
+
+    .pm-scroll { overflow-x: auto; }
+    .pm-table { width: 100%; border-collapse: collapse; }
+    .pm-table th { white-space: nowrap; padding: 11px 12px; text-align: left; font: 600 12px 'Inter', sans-serif; color: #6b7290; background: #f7f9ff; }
+    .pm-table td { padding: 12px; border-top: 1px solid #eef1fb; font: 12.5px 'Inter', sans-serif; color: #2a3157; vertical-align: middle; }
+    .pm-table tr.pm-row:hover td { background: #fafbff; }
+    .pm-id { font-weight: 700; color: #236eff; cursor: pointer; white-space: nowrap; border: 0; background: transparent; padding: 0; font-family: inherit; font-size: inherit; }
+    .pm-who { display: flex; align-items: center; gap: 9px; white-space: nowrap; }
+    .pm-av { flex: 0 0 32px; height: 32px; border-radius: 50%; overflow: hidden; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #a326ff, #236eff); color: #fff; font: 700 11px 'DM Sans', sans-serif; }
+    .pm-av.is-brand { background: #171d3d; } .pm-av img { width: 100%; height: 100%; object-fit: cover; }
+    .pm-two b { display: block; font: 600 12.5px 'Inter', sans-serif; color: #171d3d; }
+    .pm-two small { color: #8189a8; font-size: 11px; }
+    .pm-pill { display: inline-block; padding: 5px 11px; border-radius: 8px; font: 600 11.5px 'Inter', sans-serif; white-space: nowrap; }
+    .pm-pill.green { background: #e2f8ee; color: #0d9c6c; } .pm-pill.amber { background: #fff1de; color: #c47410; } .pm-pill.red { background: #fde8ea; color: #d92d3f; }
+    .pm-pill.purple { background: #f1e6ff; color: #7a2fe0; } .pm-pill.blue { background: #e3f0ff; color: #236eff; }
+    .pm-flag { margin-left: 6px; padding: 2px 7px; border-radius: 6px; background: #fde8ea; color: #d92d3f; font: 600 10.5px 'Inter', sans-serif; }
+    .pm-meth { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+    .pm-act { display: flex; align-items: center; gap: 6px; position: relative; }
+    .pm-view { padding: 7px 18px; border-radius: 9px; border: 1px solid #cfe0ff; background: #f3f8ff; color: #236eff; font: 600 12px 'Inter', sans-serif; cursor: pointer; }
+    .pm-more { width: 34px; height: 34px; border-radius: 9px; border: 1px solid #dde1f0; background: #fff; color: #2a3157; cursor: pointer; }
+    .pm-menu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 30; display: none; min-width: 180px; padding: 6px; border-radius: 12px; border: 1px solid #eaecf5; background: #fff; box-shadow: 0 16px 34px rgba(30,34,90,.16); }
+    .pm-menu.is-open { display: block; }
+    .pm-menu a, .pm-menu button { display: block; width: 100%; padding: 9px 12px; border: 0; border-radius: 8px; background: transparent; text-align: left; font: 500 12.5px 'Inter', sans-serif; color: #2a3157; cursor: pointer; text-decoration: none; }
+    .pm-menu a:hover, .pm-menu button:hover { background: rgba(155,44,255,.06); color: #7a1fd6; }
+    .pm-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 14px; font: 12.5px 'Inter', sans-serif; color: #8189a8; }
+    .pm-pager { display: flex; gap: 6px; }
+    .pm-pager button { min-width: 34px; height: 34px; border-radius: 9px; border: 1px solid #dde1f0; background: #fff; font: 600 12.5px 'Inter', sans-serif; color: #2a3157; cursor: pointer; }
+    .pm-pager button.is-active { border: 0; color: #fff; background: linear-gradient(105deg, #a326ff, #236eff); }
+    .pm-empty { padding: 28px 18px; border-radius: 12px; border: 1px dashed #dde1f0; background: #fafbfe; text-align: center; font: 12.5px 'Inter', sans-serif; color: #8189a8; }
+    .pm-empty b { display: block; margin-bottom: 4px; font: 700 14px 'DM Sans', sans-serif; color: #2a3157; }
+
+    .pm-donut-wrap { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+    .pm-donut { position: relative; width: 150px; height: 150px; border-radius: 50%; flex-shrink: 0; }
+    .pm-donut::after { content: ''; position: absolute; inset: 22px; border-radius: 50%; background: #fff; }
+    .pm-donut-c { position: absolute; inset: 0; z-index: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; font: 800 20px 'DM Sans', sans-serif; color: #171d3d; }
+    .pm-donut-c small { font: 500 11px 'Inter', sans-serif; color: #8189a8; }
+    .pm-legend { display: flex; flex-direction: column; gap: 9px; font: 12px 'Inter', sans-serif; color: #2a3157; }
+    .pm-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; }
+    .pm-legend span { display: block; margin-left: 18px; color: #8189a8; font-size: 11.5px; }
+    .pm-bars { display: flex; flex-direction: column; gap: 12px; }
+    .pm-bar-row { display: grid; grid-template-columns: 110px minmax(0, 1fr) 40px; gap: 10px; align-items: center; font: 12.5px 'Inter', sans-serif; }
+    .pm-track { height: 7px; border-radius: 6px; background: #eef1fb; overflow: hidden; } .pm-track span { display: block; height: 100%; border-radius: 6px; background: linear-gradient(105deg, #a56bff, #6d8dff); }
+
+    .pm-bottom { display: grid; grid-template-columns: 1.15fr 1fr 1fr; gap: 16px; }
+    .pm-mini { width: 100%; border-collapse: collapse; }
+    .pm-mini th { padding: 8px 8px; text-align: left; font: 600 11.5px 'Inter', sans-serif; color: #6b7290; white-space: nowrap; }
+    .pm-mini td { padding: 9px 8px; border-top: 1px solid #eef1fb; font: 12px 'Inter', sans-serif; color: #2a3157; vertical-align: middle; }
+    .pm-camp { display: flex; align-items: center; gap: 9px; min-width: 140px; }
+    .pm-camp-img { flex: 0 0 34px; height: 34px; border-radius: 8px; overflow: hidden; background: linear-gradient(135deg, #f1e6ff, #e3f0ff); display: flex; align-items: center; justify-content: center; color: #7a2fe0; font: 700 12px 'DM Sans', sans-serif; }
+    .pm-camp-img img { width: 100%; height: 100%; object-fit: cover; }
+    .pm-camp b { display: block; font: 600 12px 'Inter', sans-serif; color: #171d3d; } .pm-camp small { color: #8189a8; font-size: 10.5px; }
+    .pm-prog { display: flex; align-items: center; gap: 8px; min-width: 110px; } .pm-prog .pm-track { flex: 1; } .pm-prog b { font: 600 11.5px 'Inter', sans-serif; }
+    .pm-tl { position: relative; display: flex; align-items: flex-end; gap: 14px; height: 200px; margin-top: 10px; padding: 0 4px 24px; border-bottom: 1px solid #eef1fb; background: repeating-linear-gradient(to top, transparent 0 49px, #f1f3fb 49px 50px); }
+    .pm-tl-col { position: relative; flex: 1; height: 100%; display: flex; align-items: flex-end; justify-content: center; gap: 4px; }
+    .pm-tl-col i { display: block; width: 42%; min-height: 3px; border-radius: 5px 5px 0 0; }
+    .pm-tl-col i.b { background: linear-gradient(180deg, #a56bff, #7a4bff); } .pm-tl-col i.p { background: linear-gradient(180deg, #6db7ff, #3d92ff); }
+    .pm-tl-col span { position: absolute; bottom: -22px; left: 50%; transform: translateX(-50%); font: 10.5px 'Inter', sans-serif; color: #8189a8; }
+    .pm-tl-key { display: flex; gap: 16px; font: 12px 'Inter', sans-serif; color: #2a3157; margin-bottom: 4px; } .pm-tl-key i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
+
+    .pm-overlay { position: fixed; inset: 0; z-index: 1900; background: rgba(15,20,50,.35); opacity: 0; pointer-events: none; transition: opacity .2s; }
+    .pm-overlay.is-open { opacity: 1; pointer-events: auto; }
+    .pm-drawer { position: fixed; top: 0; right: 0; bottom: 0; z-index: 2000; width: min(500px, 100vw); overflow-y: auto; background: #fff; border-left: 1px solid #dce7ff; box-shadow: -18px 0 40px rgba(20,25,60,.12); transform: translateX(100%); transition: transform .25s ease; }
+    .pm-drawer.is-open { transform: translateX(0); }
+    .pm-loading { padding: 40px; font: 13px 'Inter', sans-serif; color: #8189a8; }
+
+    @@media(max-width: 1700px) { .pm-kpis { grid-template-columns: repeat(3, 1fr); } }
+    @@media(max-width: 1500px) { .pm-grid { grid-template-columns: 1fr; } .pm-bottom { grid-template-columns: 1fr; } }
+    @@media(max-width: 800px) { .pm-kpis { grid-template-columns: 1fr 1fr; } .pm-tagline { display: none; } .pm-hero-title { max-width: 100%; } }
+</style>
+
+<section class="pm-hero">
+    @await Html.PartialAsync("~/Views/InfluencerDashboard/_Waves.cshtml", "hero")
+    <div class="pm-hero-title">
+        <h1>Payment Oversight</h1>
+        <p>Monitor all platform transactions, payouts, and financial activity in one place.</p>
     </div>
-
-    <div class="form-errors" style="margin-top:16px;">
-        Payment method (bKash/Nagad) isn't tracked on the <code>Payment</code> entity yet, so a method filter isn't available &mdash; only Status and date range.
+    <div class="pm-hero-right">
+        <div class="pm-tagline">Empowering<br />Creators. Growing Brands.<i class="bi bi-graph-up-arrow"></i></div>
+        <button type="button" class="pm-btn" id="pmExport"><i class="bi bi-download"></i> Export Report</button>
     </div>
+</section>
 
-    <form method="get" action="/Admin/AdminPayments/Index" style="display:flex; gap:10px; flex-wrap:wrap; margin-top:14px; align-items:center;">
-        <select name="status" style="height:40px; padding:0 12px; border-radius:9px; border:1px solid #dde1f0; font-family:'Inter',sans-serif; font-size:13px;">
-            <option value="">All Statuses</option>
-            <option value="Pending" selected="@(statusFilter == Brandora.Web.Models.Domain.PaymentStatus.Pending)">Pending</option>
-            <option value="Completed" selected="@(statusFilter == Brandora.Web.Models.Domain.PaymentStatus.Completed)">Completed</option>
-            <option value="Failed" selected="@(statusFilter == Brandora.Web.Models.Domain.PaymentStatus.Failed)">Failed</option>
-        </select>
-        <input type="date" name="from" style="height:40px; padding:0 12px; border-radius:9px; border:1px solid #dde1f0; font-family:'Inter',sans-serif; font-size:13px;" />
-        <input type="date" name="to" style="height:40px; padding:0 12px; border-radius:9px; border:1px solid #dde1f0; font-family:'Inter',sans-serif; font-size:13px;" />
-        <button type="submit" class="btn btn-sm btn-secondary">Filter</button>
-    </form>
+<section class="pm-kpis">
+    <div class="pm-kpi"><div class="pm-kpi-icon"><i class="bi bi-layers"></i></div><div><div class="pm-kpi-label">Total Transactions</div><div class="pm-kpi-value">@Model.Total.ToString("N0", CultureInfo.InvariantCulture)</div>@Html.Raw(Trend(Model.TotalTrend))</div></div>
+    <div class="pm-kpi"><div class="pm-kpi-icon green"><i class="bi bi-send"></i></div><div><div class="pm-kpi-label">Total Payouts to Influencers</div><div class="pm-kpi-value">@Money(Model.PayoutsTotal)</div>@Html.Raw(Trend(Model.PayoutsTrend))</div></div>
+    <div class="pm-kpi"><div class="pm-kpi-icon orange"><i class="bi bi-credit-card-2-front"></i></div><div><div class="pm-kpi-label">Total Brand Payments</div><div class="pm-kpi-value">@Money(Model.BrandTotal)</div>@Html.Raw(Trend(Model.BrandTrend))</div></div>
+    <div class="pm-kpi"><div class="pm-kpi-icon amber"><i class="bi bi-clock"></i></div><div><div class="pm-kpi-label">Pending Payments</div><div class="pm-kpi-value">@Money(Model.PendingTotal)</div>@Html.Raw(Trend(Model.PendingTrend, true))</div></div>
+    <div class="pm-kpi"><div class="pm-kpi-icon mint"><i class="bi bi-shield-check"></i></div><div><div class="pm-kpi-label">Refunds / Chargebacks</div><div class="pm-kpi-value">@Money(Model.RefundTotal)</div>@Html.Raw(Trend(Model.RefundTrend, true))</div></div>
+</section>
 
-    @if (Model.Count == 0)
-    {
-        <div class="empty-block">
-            <div class="empty-title">No transactions found</div>
+<div class="pm-grid">
+    <div class="pm-panel">
+        <div class="pm-tabs" id="pmTabs">
+            <button type="button" class="is-active" data-tab="">All Transactions</button>
+            <button type="button" data-tab="Brand Payment">Brand Payments</button>
+            <button type="button" data-tab="Withdrawal">Influencer Withdrawals</button>
+            <button type="button" data-tab="Refund">Refunds</button>
+            <button type="button" data-tab="__disputed">Disputes &amp; Holds</button>
         </div>
-    }
-    else
-    {
-        <div class="admin-table-wrap" style="margin-top: 18px;">
-            <table class="admin-table">
-                <thead>
-                    <tr>
-                        <th>Transaction ID</th>
-                        <th>Brand</th>
-                        <th>Influencer</th>
-                        <th>Campaign</th>
-                        <th>Milestone</th>
-                        <th>Amount</th>
-                        <th>Status</th>
-                        <th>Date</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var p in Model)
+
+        <div class="pm-filters">
+            <input class="pm-input grow" type="search" id="pmSearch" placeholder="Search by transaction ID, user name, campaign..." />
+            <select class="pm-input" id="pmCampaign"><option value="">Campaign: All</option>@foreach (var c in Model.CampaignNames) { <option>@c</option> }</select>
+            <select class="pm-input" id="pmType"><option value="">Type: All</option><option>Brand Payment</option><option>Withdrawal</option><option>Refund</option></select>
+            <select class="pm-input" id="pmStatus"><option value="">Status: All</option><option>Completed</option><option>Pending</option><option>Failed</option></select>
+            <input class="pm-input" type="date" id="pmFrom" aria-label="Start date" />
+            <input class="pm-input" type="date" id="pmTo" aria-label="End date" />
+            <button type="button" class="pm-btn ghost" id="pmReset">Reset</button>
+        </div>
+
+        @if (Model.Rows.Count == 0)
+        {
+            <div class="pm-empty"><b>No transactions yet</b>Brand payments and influencer withdrawals will appear here as soon as they happen.</div>
+        }
+        else
+        {
+            <div class="pm-scroll">
+                <table class="pm-table" id="pmTable">
+                    <thead><tr><th>#</th><th>Transaction ID</th><th>Date &amp; Time</th><th>User</th><th>Campaign</th><th>Milestone</th><th>Type</th><th>Amount (৳)</th><th>Status</th><th>Payment Method</th><th>Actions</th></tr></thead>
+                    <tbody>
+                        @{ var n = 0; }
+                        @foreach (var r in Model.Rows)
+                        {
+                            n++;
+                            <tr class="pm-row" data-key="@r.Key" data-search="@((r.Code + " " + r.UserName + " " + r.Campaign + " " + r.CampaignCode + " " + r.Type + " " + r.Method).ToLowerInvariant())" data-campaign="@r.Campaign" data-type="@r.Type" data-status="@r.Status" data-disputed="@(r.Disputed ? "1" : "0")" data-date="@r.At.ToString("yyyy-MM-dd")">
+                                <td>@n</td>
+                                <td><button type="button" class="pm-id" data-open="@r.Key">@r.Code</button></td>
+                                <td>@r.At.ToString("MMM d, yyyy", CultureInfo.InvariantCulture)<br /><small style="color:#8189a8;">@r.At.ToString("h:mm tt", CultureInfo.InvariantCulture)</small></td>
+                                <td>
+                                    <div class="pm-who">
+                                        <div class="pm-av @(r.UserKind == "Brand" ? "is-brand" : "")">@if (!string.IsNullOrWhiteSpace(r.UserPicture)) { <img src="@r.UserPicture" alt="" /> } else { <text>@Initials(r.UserName)</text> }</div>
+                                        @r.UserName
+                                    </div>
+                                </td>
+                                <td><div class="pm-two"><b>@r.Campaign</b>@if (!string.IsNullOrWhiteSpace(r.CampaignCode)) { <small>@r.CampaignCode</small> }</div></td>
+                                <td>@r.Milestone</td>
+                                <td><span class="pm-pill @TypeTone(r.Type)">@r.Type</span>@if (r.Disputed) { <span class="pm-flag">Disputed</span> }</td>
+                                <td><b>@Money(r.Amount)</b></td>
+                                <td><span class="pm-pill @StatusTone(r.Status)">@r.Status</span></td>
+                                <td><div class="pm-meth">@Html.Raw(Logo(r.Method, 18))<span>@r.Method</span></div></td>
+                                <td>
+                                    <div class="pm-act">
+                                        <button type="button" class="pm-view" data-open="@r.Key">View</button>
+                                        <button type="button" class="pm-more" aria-label="More actions"><i class="bi bi-three-dots-vertical"></i></button>
+                                        <div class="pm-menu">
+                                            <button type="button" data-open="@r.Key">View details</button>
+                                            <button type="button" data-copy="@r.Code">Copy transaction ID</button>
+                                            @if (r.CampaignId is int cid) { <a href="/Admin/AdminCampaigns/Details/@cid">Open campaign</a> }
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <div class="pm-empty" id="pmNoMatch" style="display:none;margin-top:14px;"><b>No transactions match these filters</b>Try clearing a filter or the search box.</div>
+            <div class="pm-foot"><span id="pmShowing"></span><div class="pm-pager" id="pmPager"></div></div>
+        }
+    </div>
+
+    <div class="pm-stack">
+        <div class="pm-panel">
+            <h3 class="pm-title">Payment Status Overview</h3>
+            <div class="pm-donut-wrap">
+                <div class="pm-donut" style="@donut"><div class="pm-donut-c">@totalStatus.ToString("N0", CultureInfo.InvariantCulture)<small>Transactions</small></div></div>
+                <div class="pm-legend">
+                    @foreach (var s in Model.Status)
                     {
-                        <tr class="@(p.Status == Brandora.Web.Models.Domain.PaymentStatus.Failed ? "row-flagged" : "")"
-                            onclick="window.location='/Admin/AdminPayments/Details/@p.Id'" style="cursor:pointer;">
-                            <td>#@p.Id</td>
-                            <td>@p.Collaboration.Campaign.BrandProfile.CompanyName</td>
-                            <td>@p.Collaboration.InfluencerProfile.FullName</td>
-                            <td>@p.Collaboration.Campaign.Title</td>
-                            <td>@(p.Milestone?.Title ?? "-")</td>
-                            <td>৳@p.Amount.ToString("N0")</td>
-                            <td><span class="status-pill @PillColor(p.Status)">@p.Status</span></td>
-                            <td>@p.CreatedAt.ToString("MMM d, yyyy")</td>
+                        var pct = totalStatus == 0 ? 0 : (int)Math.Round(s.Count * 100.0 / totalStatus);
+                        <div><i style="background:@s.Color"></i>@s.Label<span>@s.Count (@pct%)</span></div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="pm-panel">
+            <h3 class="pm-title">Payment Methods</h3>
+            @if (Model.Methods.Count == 0) { <div class="pm-empty">No transactions yet.</div> }
+            else
+            {
+                <div class="pm-bars">
+                    @foreach (var m in Model.Methods)
+                    {
+                        var pct = (int)Math.Round(m.Count * 100.0 / methodTotal);
+                        <div class="pm-bar-row"><div class="pm-meth">@Html.Raw(Logo(m.Method, 18))<span>@m.Method</span></div><div class="pm-track"><span style="width:@pct%"></span></div><b>@pct%</b></div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<div class="pm-bottom">
+    <div class="pm-panel">
+        <h3 class="pm-title">Campaign Payment Overview <a href="/Admin/AdminCampaigns/Index">View All →</a></h3>
+        @if (Model.Campaigns.Count == 0) { <div class="pm-empty">No campaigns with milestones yet.</div> }
+        else
+        {
+            <div class="pm-scroll"><table class="pm-mini">
+                <thead><tr><th>Campaign</th><th>Total Amount</th><th>Paid</th><th>Pending</th><th>Milestones</th><th>Progress</th></tr></thead>
+                <tbody>
+                    @foreach (var c in Model.Campaigns)
+                    {
+                        var pct = c.Total <= 0 ? 0 : (int)Math.Round(c.Paid / c.Total * 100);
+                        <tr>
+                            <td><div class="pm-camp"><div class="pm-camp-img">@c.Title.Substring(0, 1).ToUpperInvariant()</div><div><b>@c.Title</b><small>@c.Code</small></div></div></td>
+                            <td>@Money(c.Total)</td><td>@Money(c.Paid)</td><td style="color:#d9761a;">@Money(c.Pending)</td><td>@c.PaidMilestones/@c.Milestones</td>
+                            <td><div class="pm-prog"><div class="pm-track"><span style="width:@pct%"></span></div><b>@pct%</b></div></td>
                         </tr>
                     }
                 </tbody>
-            </table>
+            </table></div>
+        }
+    </div>
+
+    <div class="pm-panel">
+        <h3 class="pm-title">Payout Timeline</h3>
+        <div class="pm-tl-key"><span><i style="background:#8f5bff"></i>Brand Payments</span><span><i style="background:#3d92ff"></i>Influencer Withdrawals</span></div>
+        <div class="pm-tl">
+            @foreach (var t in Model.Timeline)
+            {
+                var hb = (int)Math.Round(t.BrandPayments / tlMax * 100);
+                var hp = (int)Math.Round(t.Payouts / tlMax * 100);
+                <div class="pm-tl-col" title="@t.Label: brand payments @Money(t.BrandPayments), withdrawals @Money(t.Payouts)"><i class="b" style="height:@(Math.Max(hb, 1))%"></i><i class="p" style="height:@(Math.Max(hp, 1))%"></i><span>@t.Label</span></div>
+            }
         </div>
-    }
+    </div>
+
+    <div class="pm-panel">
+        <h3 class="pm-title">Recent Failed / Refunded Payments</h3>
+        @if (Model.Failed.Count == 0) { <div class="pm-empty"><b>Nothing failed or refunded</b>Great, all payments went through.</div> }
+        else
+        {
+            <div class="pm-scroll"><table class="pm-mini">
+                <thead><tr><th>#</th><th>Date</th><th>User</th><th>Campaign</th><th>Amount</th><th>Reason</th></tr></thead>
+                <tbody>
+                    @{ var f = 0; }
+                    @foreach (var x in Model.Failed)
+                    {
+                        f++;
+                        <tr><td>@f</td><td>@x.At.ToString("MMM d, yyyy", CultureInfo.InvariantCulture)</td><td>@x.User</td><td>@x.Campaign</td><td>@Money(x.Amount)</td><td><span class="pm-pill red">@x.Reason</span></td></tr>
+                    }
+                </tbody>
+            </table></div>
+        }
+    </div>
 </div>
+
+<div class="pm-overlay" id="pmOverlay"></div>
+<aside class="pm-drawer" id="pmDrawer" aria-hidden="true"></aside>
+
+<script>
+    (function () {
+        var OPEN = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.OpenKey ?? ""));
+        var drawer = document.getElementById('pmDrawer'), overlay = document.getElementById('pmOverlay');
+
+        function closeDrawer() { drawer.classList.remove('is-open'); overlay.classList.remove('is-open'); drawer.setAttribute('aria-hidden', 'true'); }
+        function openDrawer(key) {
+            drawer.innerHTML = '<div class="pm-loading">Loading…</div>';
+            drawer.classList.add('is-open'); overlay.classList.add('is-open'); drawer.setAttribute('aria-hidden', 'false');
+            fetch('/Admin/AdminPayments/Transaction/' + encodeURIComponent(key), { credentials: 'same-origin' })
+                .then(function (r) { if (!r.ok) throw new Error(); return r.text(); })
+                .then(function (html) { drawer.innerHTML = html; drawer.querySelectorAll('[data-close]').forEach(function (b) { b.addEventListener('click', closeDrawer); }); })
+                .catch(function () { drawer.innerHTML = '<div class="pm-loading">Could not load this transaction. Close and try again.</div>'; });
+        }
+        overlay.addEventListener('click', closeDrawer);
+        document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeDrawer(); });
+
+        document.addEventListener('click', function (e) {
+            var o = e.target.closest('[data-open]'); if (o) { document.querySelectorAll('.pm-menu.is-open').forEach(function (m) { m.classList.remove('is-open'); }); openDrawer(o.getAttribute('data-open')); return; }
+            var btn = e.target.closest('.pm-more');
+            document.querySelectorAll('.pm-menu.is-open').forEach(function (m) { if (!btn || m !== btn.parentNode.querySelector('.pm-menu')) m.classList.remove('is-open'); });
+            if (btn) btn.parentNode.querySelector('.pm-menu').classList.toggle('is-open');
+            var c = e.target.closest('[data-copy]');
+            if (c && navigator.clipboard) { navigator.clipboard.writeText(c.getAttribute('data-copy')); var old = c.textContent; c.textContent = 'Copied!'; setTimeout(function () { c.textContent = old; }, 1200); }
+        });
+
+        var table = document.getElementById('pmTable');
+        if (table) {
+            var rows = Array.prototype.slice.call(table.tBodies[0].rows), PAGE = 10, page = 1, tab = '';
+            var q = document.getElementById('pmSearch'), camp = document.getElementById('pmCampaign'), type = document.getElementById('pmType'),
+                st = document.getElementById('pmStatus'), from = document.getElementById('pmFrom'), to = document.getElementById('pmTo');
+
+            function match(r) {
+                var d = r.getAttribute('data-date'), t = r.getAttribute('data-type');
+                return r.getAttribute('data-search').indexOf(q.value.trim().toLowerCase()) !== -1
+                    && (!tab || (tab === '__disputed' ? r.getAttribute('data-disputed') === '1' : t === tab))
+                    && (!camp.value || r.getAttribute('data-campaign') === camp.value)
+                    && (!type.value || t === type.value)
+                    && (!st.value || r.getAttribute('data-status') === st.value)
+                    && (!from.value || d >= from.value) && (!to.value || d <= to.value);
+            }
+            function render() {
+                var matched = rows.filter(match), pages = Math.max(1, Math.ceil(matched.length / PAGE));
+                if (page > pages) page = pages;
+                rows.forEach(function (r) { r.style.display = 'none'; r.dataset.match = '0'; });
+                matched.forEach(function (r, i) { r.dataset.match = '1'; r.style.display = (i >= (page - 1) * PAGE && i < page * PAGE) ? '' : 'none'; });
+                document.getElementById('pmNoMatch').style.display = matched.length ? 'none' : 'block';
+                var s = matched.length ? (page - 1) * PAGE + 1 : 0, e = Math.min(page * PAGE, matched.length);
+                document.getElementById('pmShowing').textContent = 'Showing ' + s + '–' + e + ' of ' + matched.length + ' transaction' + (matched.length === 1 ? '' : 's');
+                var pager = document.getElementById('pmPager'); pager.innerHTML = '';
+                if (pages > 1) for (var p = 1; p <= pages; p++) (function (p) {
+                    var b = document.createElement('button'); b.textContent = p; b.className = p === page ? 'is-active' : '';
+                    b.addEventListener('click', function () { page = p; render(); }); pager.appendChild(b);
+                })(p);
+            }
+            [q, camp, type, st, from, to].forEach(function (el) { el.addEventListener('input', function () { page = 1; render(); }); });
+            var tabs = document.querySelectorAll('#pmTabs button');
+            tabs.forEach(function (t) { t.addEventListener('click', function () { tabs.forEach(function (x) { x.classList.toggle('is-active', x === t); }); tab = t.getAttribute('data-tab'); page = 1; render(); }); });
+            document.getElementById('pmReset').addEventListener('click', function () {
+                [q, camp, type, st, from, to].forEach(function (el) { el.value = ''; });
+                tab = ''; tabs.forEach(function (x, i) { x.classList.toggle('is-active', i === 0); }); page = 1; render();
+            });
+            document.getElementById('pmExport').addEventListener('click', function () {
+                var head = Array.prototype.slice.call(table.tHead.rows[0].cells, 0, -1).map(function (c) { return '"' + c.innerText.trim() + '"'; }).join(',');
+                var lines = [head];
+                rows.filter(function (r) { return r.dataset.match === '1'; }).forEach(function (r) {
+                    lines.push(Array.prototype.slice.call(r.cells, 0, -1).map(function (c) { return '"' + c.innerText.replace(/\s+/g, ' ').trim().replace(/"/g, '""') + '"'; }).join(','));
+                });
+                var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' })); a.download = 'payment-oversight.csv'; a.click();
+            });
+            render();
+        } else {
+            var ex = document.getElementById('pmExport'); if (ex) ex.disabled = true;
+        }
+
+        if (OPEN) openDrawer(OPEN);
+    })();
+</script>

@@ -1,0 +1,244 @@
+@model Brandora.Web.Areas.Admin.Controllers.CampaignFeeDrawerViewModel
+@using System.Globalization
+@using Brandora.Web.Areas.Admin.Services
+@{
+    string Money(decimal amount) => "৳" + amount.ToString("N0", CultureInfo.InvariantCulture);
+    string Initials(string name) => string.Concat(name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(p => char.ToUpperInvariant(p[0])));
+
+    var rate = (PlatformFee.Rate * 100).ToString("0.##", CultureInfo.InvariantCulture);
+    var feeTotal = Model.FeeCollected + Model.FeeExpected;
+    var collectedPct = feeTotal == 0 ? 0 : (int)Math.Round(Model.FeeCollected / feeTotal * 100);
+    var expectedPct = feeTotal == 0 ? 0 : 100 - collectedPct;
+
+    string StatusTone(Brandora.Web.Models.Domain.CampaignStatus s) => s switch
+    {
+        Brandora.Web.Models.Domain.CampaignStatus.Active => "green",
+        Brandora.Web.Models.Domain.CampaignStatus.Published => "blue",
+        Brandora.Web.Models.Domain.CampaignStatus.Cancelled => "red",
+        _ => "gray"
+    };
+}
+
+<style>
+    .fd { padding: 22px 26px 30px; font-family: 'Inter', sans-serif; color: #2a3157; }
+    .fd-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; font-size: 12.5px; color: #8189a8; }
+    .fd-top b { color: #2a3157; font-weight: 600; }
+    .fd-x { border: 0; background: transparent; font-size: 20px; color: #2a3157; cursor: pointer; }
+    .fd h2 { margin: 0 0 16px; font: 700 26px 'Playfair Display', Georgia, serif; color: #171d3d; }
+    .fd-camp { display: flex; gap: 14px; align-items: center; }
+    .fd-thumb { flex: 0 0 64px; height: 64px; border-radius: 14px; overflow: hidden; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #f1e6ff, #e3f0ff); color: #7a2fe0; font: 700 20px 'DM Sans', sans-serif; }
+    .fd-thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .fd-camp h3 { margin: 0; font: 700 18px 'DM Sans', sans-serif; color: #171d3d; }
+    .fd-camp p { margin: 4px 0 0; font-size: 12.5px; color: #6b7290; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .fd-pill { display: inline-block; margin-left: 8px; padding: 4px 10px; border-radius: 8px; font-size: 11.5px; font-weight: 600; vertical-align: middle; }
+    .fd-pill.green { background: #e2f8ee; color: #0d9c6c; } .fd-pill.blue { background: #e3f0ff; color: #236eff; } .fd-pill.red { background: #fde8ea; color: #d92d3f; } .fd-pill.gray { background: #eef1fb; color: #6b7290; }
+    .fd-meta { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: 12px; margin: 16px 0; padding: 14px 16px; border-radius: 13px; border: 1px solid #eef1fb; background: #fafbff; }
+    .fd-meta small { display: block; font-size: 10.5px; color: #8189a8; margin-bottom: 4px; }
+    .fd-meta b { font: 700 13px 'DM Sans', sans-serif; color: #171d3d; }
+    .fd-meta a { font-size: 11.5px; color: #236eff; font-weight: 600; text-decoration: none; }
+    .fd-tabs { display: flex; gap: 4px; margin-bottom: 18px; padding: 4px; border-radius: 12px; border: 1px solid #dce7ff; background: #f6f8ff; }
+    .fd-tabs button { flex: 1; padding: 9px 10px; border: 0; border-radius: 9px; background: transparent; font: 600 12.5px 'Inter', sans-serif; color: #2a3157; cursor: pointer; }
+    .fd-tabs button.is-active { color: #fff; background: linear-gradient(105deg, #a326ff, #236eff, #18a9ff); }
+    .fd h4 { margin: 0 0 12px; font: 700 17px 'Playfair Display', Georgia, serif; color: #171d3d; }
+    .fd-figs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 22px; }
+    .fd-fig { padding: 14px 16px; border-radius: 13px; border: 1px solid #eef1fb; background: #fff; }
+    .fd-fig small { display: block; font-size: 11px; color: #8189a8; }
+    .fd-fig b { display: block; margin-top: 4px; font: 800 21px 'DM Sans', sans-serif; color: #171d3d; }
+    .fd-bar { height: 6px; margin-top: 10px; border-radius: 6px; background: #eef1fb; overflow: hidden; }
+    .fd-bar span { display: block; height: 100%; border-radius: 6px; }
+    .fd-pct { float: right; font-size: 11px; color: #8189a8; }
+    .fd-table { width: 100%; border-collapse: collapse; margin-bottom: 22px; }
+    .fd-table th { padding: 9px 8px; text-align: left; font-size: 10.5px; font-weight: 700; letter-spacing: .3px; text-transform: uppercase; color: #8189a8; background: #f7f9ff; }
+    .fd-table td { padding: 10px 8px; border-top: 1px solid #eef1fb; font-size: 12px; }
+    .fd-state { display: inline-block; padding: 4px 9px; border-radius: 7px; font-size: 11px; font-weight: 600; }
+    .fd-state.exp { background: #fff1de; color: #c47410; } .fd-state.col { background: #e2f8ee; color: #0d9c6c; } .fd-state.wait { background: #eef1fb; color: #6b7290; } .fd-state.part { background: #e3f0ff; color: #236eff; }
+    .fd-two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 18px; }
+    .fd-box { padding: 16px; border-radius: 13px; border: 1px solid #eef1fb; }
+    .fd-avatars { display: flex; flex-wrap: wrap; gap: 6px; }
+    .fd-avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #a326ff, #236eff); color: #fff; font: 700 12px 'DM Sans', sans-serif; border: 2px solid #fff; }
+    .fd-info { display: flex; gap: 12px; padding: 14px 16px; margin-bottom: 20px; border-radius: 12px; border: 1px solid #cfe0ff; background: #f3f8ff; font-size: 12px; line-height: 1.55; }
+    .fd-info i { color: #236eff; font-size: 16px; }
+    .fd-actions { display: flex; gap: 12px; }
+    .fd-btn { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 44px; border-radius: 9px; border: 1px solid #cfe0ff; background: #fff; font: 600 13px 'Inter', sans-serif; color: #236eff; cursor: pointer; text-decoration: none; }
+    .fd-btn.primary { border: 0; color: #fff; background: linear-gradient(105deg, #a326ff, #236eff, #18a9ff); }
+    .fd-empty { padding: 22px; border-radius: 12px; border: 1px dashed #dde1f0; background: #fafbfe; text-align: center; font-size: 12.5px; color: #8189a8; }
+</style>
+
+<div class="fd">
+    <div class="fd-top">
+        <div>Wallet &rsaquo; <b>Campaign Fee Details</b></div>
+        <button type="button" class="fd-x" data-close aria-label="Close"><i class="bi bi-x-lg"></i></button>
+    </div>
+
+    <h2>Campaign Fee Details</h2>
+
+    <div class="fd-camp">
+        <div class="fd-thumb">
+            @if (!string.IsNullOrWhiteSpace(Model.BrandPicture)) { <img src="@Model.BrandPicture" alt="" /> }
+            else { <text>@Model.Title.Substring(0, 1).ToUpperInvariant()</text> }
+        </div>
+        <div>
+            <h3>@Model.Title <span class="fd-pill @StatusTone(Model.Status)">@Model.Status</span></h3>
+            <p>@Model.Subtitle</p>
+        </div>
+    </div>
+
+    <div class="fd-meta">
+        <div><small>Brand</small><b>@Model.BrandName</b><br /><a href="/Admin/AdminUserVerification/Details?type=brand&id=@Model.BrandProfileId">View profile <i class="bi bi-box-arrow-up-right"></i></a></div>
+        <div><small>Platform</small><b>@(string.IsNullOrWhiteSpace(Model.Platform) ? "—" : Model.Platform)</b></div>
+        <div><small>Start date</small><b>@(Model.StartDate.HasValue ? Model.StartDate.Value.ToString("MMM d, yyyy", CultureInfo.InvariantCulture) : "Not set")</b></div>
+        <div><small>Deadline</small><b>@(Model.Deadline.HasValue ? Model.Deadline.Value.ToString("MMM d, yyyy", CultureInfo.InvariantCulture) : "Not set")</b></div>
+    </div>
+
+    <div class="fd-tabs">
+        <button type="button" class="is-active" data-tab="overview">Overview</button>
+        <button type="button" data-tab="milestones">Milestones (@Model.Milestones.Count)</button>
+        <button type="button" data-tab="fees">Fee Transactions (@Model.Transactions.Count)</button>
+    </div>
+
+    <div data-pane="overview">
+        <h4>Key Figures</h4>
+        <div class="fd-figs">
+            <div class="fd-fig"><small>Gross Campaign Amount</small><b>@Money(Model.Gross)</b></div>
+            <div class="fd-fig"><small>Total Milestones</small><b>@Model.Milestones.Count</b></div>
+            <div class="fd-fig">
+                <small>@rate% Collected (estimated) <span class="fd-pct">@collectedPct%</span></small>
+                <b>@Money(Model.FeeCollected)</b>
+                <div class="fd-bar"><span style="width:@collectedPct%;background:#0d9c6c;"></span></div>
+            </div>
+            <div class="fd-fig">
+                <small>@rate% Expected (not yet withdrawn) <span class="fd-pct">@expectedPct%</span></small>
+                <b>@Money(Model.FeeExpected)</b>
+                <div class="fd-bar"><span style="width:@expectedPct%;background:#a326ff;"></span></div>
+            </div>
+        </div>
+
+        <h4>Milestone-wise Fee Breakdown</h4>
+        @if (Model.Milestones.Count == 0)
+        {
+            <div class="fd-empty" style="margin-bottom:22px;">No milestones on this campaign yet.</div>
+        }
+        else
+        {
+            <table class="fd-table">
+                <thead><tr><th>#</th><th>Milestone</th><th>Type</th><th>Influencer</th><th>Amount</th><th>@rate% fee</th><th>Status</th></tr></thead>
+                <tbody>
+                    @foreach (var m in Model.Milestones)
+                    {
+                        <tr>
+                            <td>@m.No</td>
+                            <td>@m.Title</td>
+                            <td>@(m.Type ?? "—")</td>
+                            <td>@m.InfluencerName</td>
+                            <td>@Money(m.Amount)</td>
+                            <td>@Money(m.Fee)</td>
+                            <td><span class="fd-state @(m.State == "Expected" ? "exp" : m.State == "Collected" ? "col" : m.State == "Partly collected" ? "part" : "wait")">@m.State</span></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+
+        <h4>Influencer-wise Fees</h4>
+        @if (Model.InfluencerRows.Count == 0)
+        {
+            <div class="fd-empty" style="margin-bottom:22px;">No influencers on this campaign yet.</div>
+        }
+        else
+        {
+            <table class="fd-table">
+                <thead><tr><th>Influencer</th><th>Milestones</th><th>Paid</th><th>Withdrawn (est.)</th><th>@rate% collected</th><th>@rate% expected</th></tr></thead>
+                <tbody>
+                    @foreach (var r in Model.InfluencerRows)
+                    {
+                        <tr>
+                            <td><a href="/Admin/AdminUserVerification/Details?type=influencer&id=@r.InfluencerId" style="font-weight:600;color:#171d3d;text-decoration:none;">@r.Name</a></td>
+                            <td>@r.Milestones</td>
+                            <td>@Money(r.Paid)</td>
+                            <td>@Money(r.Withdrawn)</td>
+                            <td>@Money(r.Collected)</td>
+                            <td>@Money(r.Expected)</td>
+                        </tr>
+                    }
+                    <tr style="font-weight:800;background:#fafbff;">
+                        <td>Total</td>
+                        <td>@Model.InfluencerRows.Sum(r => r.Milestones)</td>
+                        <td>@Money(Model.InfluencerRows.Sum(r => r.Paid))</td>
+                        <td>@Money(Model.InfluencerRows.Sum(r => r.Withdrawn))</td>
+                        <td>@Money(Model.InfluencerRows.Sum(r => r.Collected))</td>
+                        <td>@Money(Model.InfluencerRows.Sum(r => r.Expected))</td>
+                    </tr>
+                </tbody>
+            </table>
+        }
+
+        <div class="fd-two">
+            <div class="fd-box">
+                <h4 style="font-size:15px;">Influencers (@Model.Influencers.Count)</h4>
+                @if (Model.Influencers.Count == 0) { <div style="font-size:12px;color:#8189a8;">None yet</div> }
+                else
+                {
+                    <div class="fd-avatars">
+                        @foreach (var name in Model.Influencers.Take(5)) { <div class="fd-avatar" title="@name">@Initials(name)</div> }
+                        @if (Model.Influencers.Count > 5) { <div class="fd-avatar" style="background:#e3f0ff;color:#236eff;">+@(Model.Influencers.Count - 5)</div> }
+                    </div>
+                }
+            </div>
+            <div class="fd-box">
+                <h4 style="font-size:15px;">Key Dates</h4>
+                <div style="font-size:12px;line-height:1.9;">
+                    <div><span style="color:#8189a8;">Start:</span> <b>@(Model.StartDate.HasValue ? Model.StartDate.Value.ToString("MMM d, yyyy", CultureInfo.InvariantCulture) : "Not set")</b></div>
+                    <div><span style="color:#8189a8;">Deadline:</span> <b>@(Model.Deadline.HasValue ? Model.Deadline.Value.ToString("MMM d, yyyy", CultureInfo.InvariantCulture) : "Not set")</b></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="fd-info">
+            <i class="bi bi-info-circle"></i>
+            <div>The @rate% fee is collected when an influencer withdraws from their wallet. Some milestones may still be pending withdrawal, so those fees are not yet collected.</div>
+        </div>
+    </div>
+
+    <div data-pane="milestones" hidden>
+        @if (Model.Milestones.Count == 0)
+        {
+            <div class="fd-empty">No milestones on this campaign yet.</div>
+        }
+        else
+        {
+            <table class="fd-table">
+                <thead><tr><th>#</th><th>Milestone</th><th>Influencer</th><th>Amount</th><th>Status</th></tr></thead>
+                <tbody>
+                    @foreach (var m in Model.Milestones)
+                    {
+                        <tr><td>@m.No</td><td>@m.Title</td><td>@m.InfluencerName</td><td>@Money(m.Amount)</td><td><span class="fd-state @(m.State != "Awaiting payment" ? "exp" : "wait")">@(m.State != "Awaiting payment" ? "Paid to influencer" : "Awaiting payment")</span></td></tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+
+    <div data-pane="fees" hidden>
+        @if (Model.Transactions.Count == 0)
+        {
+            <div class="fd-empty">No fee transactions for this campaign yet. They appear here once influencers withdraw money earned from it.</div>
+        }
+        else
+        {
+            <table class="fd-table">
+                <thead><tr><th>Date</th><th>Withdrawal</th><th>Influencer</th><th>Fee</th><th>Note</th></tr></thead>
+                <tbody>
+                    @foreach (var t in Model.Transactions)
+                    {
+                        <tr><td>@t.At.ToString("MMM d, yyyy", CultureInfo.InvariantCulture)</td><td>@t.Code</td><td>@t.UserName</td><td>@Money(t.Amount)</td><td>@t.Note</td></tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+
+    <div class="fd-actions">
+        <button type="button" class="fd-btn" data-close>Back to Wallet</button>
+        <a class="fd-btn primary" href="/Admin/AdminCampaigns/Details/@Model.CampaignId">View Full Campaign <i class="bi bi-arrow-right"></i></a>
+    </div>
+</div>
