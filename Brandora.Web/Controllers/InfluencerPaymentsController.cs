@@ -1,13 +1,14 @@
 using Brandora.Web.Data;
 using Brandora.Web.Models.Dashboard;
 using Brandora.Web.Models.Domain;
+using Brandora.Web.Services.Payments;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace Brandora.Web.Controllers;
 
-public class InfluencerPaymentsController(UserManager<ApplicationUser> userManager, ApplicationDbContext db)
+public class InfluencerPaymentsController(UserManager<ApplicationUser> userManager, ApplicationDbContext db, WalletService wallet)
     : InfluencerControllerBase(userManager, db)
 {
     public async Task<IActionResult> Index(string? status, string? range, int page = 1, bool preview = false)
@@ -28,6 +29,8 @@ public class InfluencerPaymentsController(UserManager<ApplicationUser> userManag
         var vm = new InfluencerPaymentsViewModel
         {
             Profile = influencer,
+            AvailableBalance = await wallet.GetBalanceAsync(influencer.Id),
+            WithdrawalFeePercent = wallet.CommissionPercent,
             Notifications = await db.Notifications.AsNoTracking()
                 .Where(n => n.UserId == influencer.UserId)
                 .OrderByDescending(n => n.CreatedAt).Take(5).ToListAsync(),

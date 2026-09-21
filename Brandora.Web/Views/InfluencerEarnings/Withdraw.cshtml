@@ -72,7 +72,7 @@
                     <div><span>Available Balance</span><div class="withdrawal-balance-value"><strong>@Money(Model.AvailableBalance)</strong></div></div>
                     <div class="withdrawal-minimum"><span>Minimum withdrawal amount</span><strong>@Money(Model.MinimumWithdrawal)</strong></div>
                 </div>
-                <form id="withdrawal-form" method="post" asp-action="Withdraw" data-balance="@Model.AvailableBalance.ToString(CultureInfo.InvariantCulture)" data-fee="@Model.FeePercent.ToString(CultureInfo.InvariantCulture)">
+                <form id="withdrawal-form" method="post" asp-action="Withdraw" data-balance="@Model.AvailableBalance.ToString(CultureInfo.InvariantCulture)" data-fee="@Model.FeePercent.ToString(CultureInfo.InvariantCulture)" data-fee-tranches="@System.Text.Json.JsonSerializer.Serialize(Model.Ledger.Tranches.Select(t => new[] { t.Amount, t.RatePercent }))" data-fee-withdrawn="@Model.Ledger.Withdrawn.ToString(CultureInfo.InvariantCulture)" data-fee-charged="@Model.Ledger.FeesCharged.ToString(CultureInfo.InvariantCulture)">
                     @Html.AntiForgeryToken()
                     <fieldset class="withdrawal-methods">
                         <legend>Payment Method</legend>
@@ -112,6 +112,10 @@
                         <div><span>Platform Fee@(Model.FeePercent > 0 ? $" ({Model.FeePercent:0.##}%)" : "")</span><output id="withdrawal-fee">—</output></div>
                         <div class="withdrawal-net"><strong>You will receive</strong><output id="withdrawal-net">—</output></div>
                     </div>
+                    @if (Model.FeePercent > 0)
+                    {
+                        <p class="withdrawal-security">@await Html.PartialAsync("~/Views/InfluencerEarnings/_Icon.cshtml", "shield") The platform fee (@Model.FeePercent.ToString("0.##", CultureInfo.InvariantCulture)% today) is locked on each payment when it's earned, worked out across all your withdrawals and rounded down &mdash; splitting a withdrawal never costs you more.</p>
+                    }
                     <div class="withdrawal-actions">
                         <a class="withdrawal-cancel" asp-action="Index">Cancel</a>
                         <button class="withdrawal-confirm" id="withdrawal-confirm" type="submit" disabled="@(!canWithdraw)">Confirm Withdrawal</button>
@@ -143,7 +147,7 @@
                                     <i class="bi bi-bank" aria-hidden="true"></i>
                                 }
                             </span>
-                            <div><strong>@Money(item.Amount)</strong><time datetime="@item.RequestedAt.ToString("yyyy-MM-dd")">@item.RequestedAt.ToString("MMM d, yyyy", CultureInfo.InvariantCulture)</time></div>
+                            <div><strong>@Money(item.Amount)</strong><time datetime="@item.RequestedAt.ToString("yyyy-MM-dd")">@item.RequestedAt.ToString("MMM d, yyyy", CultureInfo.InvariantCulture)@(item.FeeAmount > 0 ? $" · {Money(item.FeeAmount)} fee" : "")</time></div>
                             <span class="earnings-badge @WithdrawalStatusClass(item.Status)">@WithdrawalStatusLabel(item.Status)</span>
                         </article>
                     }

@@ -1,0 +1,160 @@
+@model Brandora.Web.Models.Campaigns.CampaignReelModel
+@*
+    Campaign video / reel player — shared by the Brand's campaign Detail and Preview pages
+    and the creator's campaign Details page, so both sides see exactly the same thing.
+    Landscape videos play 16:9; vertical reels are detected on load and shown as a phone-
+    shaped 9:16 frame on a softly lit stage. Nothing autoplays with sound: the viewer
+    starts it with the play button, and native controls take over from there.
+*@
+@{
+    // Cloudinary can render a still frame of any uploaded video: same asset, "so_1"
+    // (1 second in), delivered as .jpg. Used as the poster and the stage's ambient glow.
+    string? Poster(string url)
+    {
+        const string marker = "/video/upload/";
+        var at = url.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
+        if (at < 0) return null;
+        var withFrame = url.Insert(at + marker.Length, "so_1/");
+        var queryAt = withFrame.IndexOf('?');
+        var path = queryAt >= 0 ? withFrame[..queryAt] : withFrame;
+        var slash = path.LastIndexOf('/');
+        var dot = path.LastIndexOf('.');
+        return dot > slash ? path[..dot] + ".jpg" : path + ".jpg";
+    }
+
+    var poster = Poster(Model.VideoUrl);
+    var ambient = poster ?? Model.BannerUrl;
+    var heading = Model.ForCreator ? $"A message from {Model.BrandName}" : "Your campaign video";
+    var sub = Model.ForCreator
+        ? "Watch the brand's short brief before you apply — it shows the look, tone and message they're after."
+        : "Creators watch this on the campaign's details page, right alongside your brief.";
+}
+
+<section class="campaign-reel" data-campaign-reel>
+    <header class="campaign-reel-head">
+        <span class="campaign-reel-eyebrow"><i class="bi bi-camera-reels" aria-hidden="true"></i> Campaign Reel</span>
+        <h2 class="campaign-reel-title">@heading</h2>
+        <p class="campaign-reel-sub">@sub</p>
+    </header>
+
+    <div class="campaign-reel-stage">
+        @if (!string.IsNullOrEmpty(ambient))
+        {
+            <div class="campaign-reel-ambient" style="background-image: url('@ambient');" aria-hidden="true"></div>
+        }
+        <svg class="campaign-reel-wave" viewBox="0 0 400 170" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="campaign-reel-wave-fill" x1="0" y1="1" x2="1" y2="0"><stop stop-color="#0955ca" stop-opacity="0" /><stop offset=".65" stop-color="#168cff" stop-opacity=".45" /><stop offset="1" stop-color="#783dff" stop-opacity=".18" /></linearGradient></defs><path d="M-20 160 C100 50 140 220 260 105 S350 85 420 20 L420 190 H-20Z" fill="url(#campaign-reel-wave-fill)" /><path d="M-20 164 C110 90 140 230 270 120 S360 70 420 40" fill="none" stroke="#2799ff" stroke-opacity=".4" /></svg>
+
+        <div class="campaign-reel-frame">
+            <video class="campaign-reel-video" src="@Model.VideoUrl" preload="metadata" playsinline poster="@poster"></video>
+            <button type="button" class="campaign-reel-play" aria-label="Play campaign video">
+                <span><i class="bi bi-play-fill" aria-hidden="true"></i></span>
+            </button>
+            <div class="campaign-reel-chips" aria-hidden="true">
+                <span class="campaign-reel-chip" data-reel-kind><i class="bi bi-play-circle"></i> Video</span>
+                <span class="campaign-reel-chip" data-reel-duration hidden></span>
+            </div>
+        </div>
+    </div>
+
+    <footer class="campaign-reel-foot">
+        <span><i class="bi bi-volume-up" aria-hidden="true"></i> Sound on &middot; plays when you press play</span>
+        <button type="button" class="campaign-reel-fullscreen" data-reel-fullscreen><i class="bi bi-arrows-fullscreen" aria-hidden="true"></i> Full screen</button>
+    </footer>
+</section>
+
+<style>
+    .campaign-reel { position: relative; overflow: hidden; padding: 22px 24px 18px; border-radius: 14px; border: 1px solid #cddfff; background: radial-gradient(ellipse at 100% 0%, #dfe7ff, transparent 55%), radial-gradient(ellipse at 0% 100%, #efe6ff, transparent 50%), linear-gradient(130deg, #ffffffe6, #f3f8ffcc); box-shadow: 0 12px 30px -14px #3b5bdb33; animation: campaign-reel-in .5s ease both; }
+    @@keyframes campaign-reel-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+    .campaign-reel-eyebrow { display: inline-flex; align-items: center; gap: 6px; font-family: 'Inter', 'DM Sans', sans-serif; font-size: 10.5px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: #5b4dff; }
+    section.campaign-reel h2.campaign-reel-title { margin: 6px 0 0; font: 600 20px/1.3 'Playfair Display', Georgia, serif; letter-spacing: -.3px; color: #0b084e; }
+    section.campaign-reel p.campaign-reel-sub { margin: 5px 0 0; font-family: 'Inter', 'DM Sans', sans-serif; font-size: 12.5px; line-height: 1.6; color: #52649b; }
+
+    .campaign-reel-stage { position: relative; isolation: isolate; overflow: hidden; display: grid; place-items: center; margin-top: 16px; padding: 26px 22px; border-radius: 14px; background: radial-gradient(circle at 12% 18%, rgba(139,34,255,.38), transparent 42%), radial-gradient(circle at 88% 85%, rgba(0,159,255,.32), transparent 46%), linear-gradient(125deg, #040c20, #06163c 70%, #101b59); }
+    .campaign-reel-ambient { position: absolute; inset: -40px; z-index: -1; background-size: cover; background-position: center; filter: blur(42px) saturate(1.35); opacity: .42; transform: scale(1.1); }
+    .campaign-reel-wave { position: absolute; left: 0; right: 0; bottom: 0; z-index: -1; width: 100%; height: 55%; pointer-events: none; }
+
+    .campaign-reel-frame { position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 12px; background: #02050f; box-shadow: 0 30px 60px -22px rgba(0,0,0,.75), 0 0 0 1px rgba(255,255,255,.09); transition: width .35s cubic-bezier(.22,1,.36,1), aspect-ratio .35s ease; }
+    .campaign-reel.is-portrait .campaign-reel-frame { width: min(100%, 330px); aspect-ratio: 9 / 16; border-radius: 22px; box-shadow: 0 30px 60px -22px rgba(0,0,0,.8), 0 0 0 1px rgba(255,255,255,.12), 0 0 0 7px rgba(255,255,255,.04); }
+    .campaign-reel-video { display: block; width: 100%; height: 100%; object-fit: contain; background: #02050f; }
+
+    .campaign-reel-play { position: absolute; inset: 0; display: grid; place-items: center; padding: 0; border: 0; background: linear-gradient(180deg, rgba(4,12,32,0) 40%, rgba(4,12,32,.55)); cursor: pointer; transition: opacity .3s ease; }
+    .campaign-reel-play span { display: grid; place-items: center; width: 74px; height: 74px; border-radius: 50%; background: linear-gradient(110deg, #7557ff, #009fff); color: #ffffff; font-size: 34px; box-shadow: 0 0 0 10px rgba(117,87,255,.22), 0 18px 40px rgba(0,80,255,.45); transition: transform .25s cubic-bezier(.22,1,.36,1), box-shadow .25s ease; animation: campaign-reel-pulse 2.6s ease-in-out infinite; }
+    .campaign-reel-play span i { margin-left: 4px; }
+    .campaign-reel-play:hover span { transform: scale(1.08); box-shadow: 0 0 0 14px rgba(117,87,255,.28), 0 22px 48px rgba(0,80,255,.55); }
+    .campaign-reel-play:focus-visible span { outline: 3px solid #ffffff; outline-offset: 4px; }
+    @@keyframes campaign-reel-pulse { 0%, 100% { box-shadow: 0 0 0 10px rgba(117,87,255,.22), 0 18px 40px rgba(0,80,255,.45); } 50% { box-shadow: 0 0 0 18px rgba(117,87,255,.08), 0 18px 40px rgba(0,80,255,.45); } }
+
+    .campaign-reel-chips { position: absolute; top: 12px; left: 12px; display: flex; gap: 6px; pointer-events: none; transition: opacity .3s ease; }
+    .campaign-reel-chip { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 20px; background: rgba(255,255,255,.16); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); font-family: 'Inter', 'DM Sans', sans-serif; font-size: 11px; font-weight: 600; color: #ffffff; }
+    .campaign-reel-chip[hidden] { display: none; }
+
+    .campaign-reel.is-playing .campaign-reel-play,
+    .campaign-reel.is-playing .campaign-reel-chips { opacity: 0; pointer-events: none; }
+
+    .campaign-reel-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 12px; font-family: 'Inter', 'DM Sans', sans-serif; font-size: 11.5px; color: #5877ac; }
+    .campaign-reel-foot > span { display: inline-flex; align-items: center; gap: 6px; }
+    .campaign-reel-fullscreen { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 8px; border: 1px solid #d3e4ff; background: #ffffffcc; font: inherit; font-weight: 600; color: #1451ff; cursor: pointer; transition: border-color .2s ease, background .2s ease, transform .2s ease; }
+    .campaign-reel-fullscreen:hover { border-color: #1451ff; background: #eef4ff; transform: translateY(-1px); }
+
+    @@media (max-width: 560px) {
+        .campaign-reel { padding: 18px 16px 14px; }
+        .campaign-reel-stage { padding: 16px 12px; }
+        .campaign-reel-play span { width: 60px; height: 60px; font-size: 28px; }
+    }
+    @@media (prefers-reduced-motion: reduce) {
+        .campaign-reel, .campaign-reel-play span { animation: none; }
+    }
+</style>
+
+<script>
+    (function () {
+        document.querySelectorAll('[data-campaign-reel]:not([data-reel-ready])').forEach(function (reel) {
+            reel.setAttribute('data-reel-ready', '');
+            var video = reel.querySelector('.campaign-reel-video');
+            var play = reel.querySelector('.campaign-reel-play');
+            var kind = reel.querySelector('[data-reel-kind]');
+            var duration = reel.querySelector('[data-reel-duration]');
+            var fullscreen = reel.querySelector('[data-reel-fullscreen]');
+            if (!video) { return; }
+
+            function describe() {
+                var portrait = video.videoHeight > video.videoWidth;
+                reel.classList.toggle('is-portrait', portrait);
+                if (kind) { kind.innerHTML = '<i class="bi ' + (portrait ? 'bi-phone' : 'bi-play-circle') + '"></i> ' + (portrait ? 'Reel' : 'Video'); }
+                var d = video.duration;
+                if (duration && isFinite(d) && d > 0) {
+                    var m = Math.floor(d / 60), s = Math.round(d % 60);
+                    if (s === 60) { m += 1; s = 0; }
+                    duration.textContent = m + ':' + (s < 10 ? '0' : '') + s;
+                    duration.hidden = false;
+                }
+            }
+
+            if (video.readyState >= 1) { describe(); } else { video.addEventListener('loadedmetadata', describe); }
+
+            function start() {
+                video.controls = true;
+                reel.classList.add('is-playing');
+                var p = video.play();
+                if (p && p.catch) { p.catch(function () { reel.classList.remove('is-playing'); }); }
+            }
+
+            play.addEventListener('click', start);
+            video.addEventListener('play', function () { reel.classList.add('is-playing'); });
+            video.addEventListener('ended', function () {
+                reel.classList.remove('is-playing');
+                video.controls = false;
+                video.currentTime = 0;
+            });
+
+            if (fullscreen) {
+                fullscreen.addEventListener('click', function () {
+                    if (video.requestFullscreen) { video.requestFullscreen(); }
+                    else if (video.webkitEnterFullscreen) { video.webkitEnterFullscreen(); }
+                    start();
+                });
+            }
+        });
+    })();
+</script>

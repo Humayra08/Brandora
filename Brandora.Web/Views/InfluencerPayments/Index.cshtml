@@ -124,11 +124,11 @@
                 <div class="dashboard-stat-main">
                     <span class="dashboard-icon cyan"><i class="bi bi-credit-card" aria-hidden="true"></i></span>
                     <div>
-                        <h2>Available Balance <span class="payments-chip is-mint"><i class="bi bi-check-circle-fill" aria-hidden="true"></i>Direct</span></h2>
-                        <strong>@Money(0)</strong>
+                        <h2>Available Balance <span class="payments-chip is-mint"><i class="bi bi-wallet2" aria-hidden="true"></i>Wallet</span></h2>
+                        <strong>@Money(Model.AvailableBalance)</strong>
                     </div>
                 </div>
-                <p>Payments are transferred directly to your account</p>
+                <p>Full milestone amounts are credited here. <a asp-controller="InfluencerEarnings" asp-action="Withdraw">Withdraw anytime</a>@(Model.WithdrawalFeePercent > 0 ? $" — {Model.WithdrawalFeePercent:0.##}% platform fee on withdrawal" : "")</p>
             </article>
         </section>
 

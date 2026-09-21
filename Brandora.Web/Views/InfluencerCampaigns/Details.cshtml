@@ -93,6 +93,13 @@
                     <h2>Campaign Overview</h2>
                     <p class="campaign-full-description">@Model.Description</p>
 
+                    @if (!string.IsNullOrWhiteSpace(Model.VideoUrl))
+                    {
+                        <div class="detail-section">
+                            @await Html.PartialAsync("_CampaignReel", new Brandora.Web.Models.Campaigns.CampaignReelModel(Model.VideoUrl, Model.BannerUrl, Model.BrandName, true))
+                        </div>
+                    }
+
                     <div class="detail-section">
                         <h2>Milestones &amp; Deliverables</h2>
                         @await Html.PartialAsync("_DetailsMilestones", Model)

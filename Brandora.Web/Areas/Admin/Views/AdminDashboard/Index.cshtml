@@ -241,6 +241,21 @@
     .kpi-trend.up { color: #0d9c6c; }
     .kpi-trend.down { color: #e34848; }
 
+    /* ---- Platform wallet ---- */
+    .platform-wallet { margin-top: 24px; background: radial-gradient(ellipse at 100% 0%, #e7defe, transparent 55%), radial-gradient(ellipse at 0% 100%, #e1efff, transparent 50%), #ffffff; }
+    .pw-head { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+    .pw-head .kpi-icon { margin: 0; }
+    .pw-balance { margin-left: auto; text-align: right; }
+    .pw-balance span { display: block; font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; color: #8189a8; }
+    .pw-balance strong { display: block; margin-top: 2px; font-family: 'DM Sans', sans-serif; font-size: 28px; font-weight: 800; background: linear-gradient(110deg, #7224ff, #3735ff 55%, #087fff); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .pw-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-top: 18px; }
+    .pw-tile { padding: 14px 16px; border-radius: 12px; border: 1px solid #dce7ff; background: #ffffffcc; transition: transform .2s ease, box-shadow .2s ease; }
+    .pw-tile:hover { transform: translateY(-2px); box-shadow: 0 12px 26px -16px #3b5bdb66; }
+    .pw-tile-label { display: flex; align-items: center; gap: 7px; font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; color: #5d6485; }
+    .pw-tile-label i { font-size: 14px; }
+    .pw-tile-value { margin-top: 6px; font-family: 'DM Sans', sans-serif; font-size: 20px; font-weight: 800; color: #171d3d; }
+    .pw-tile-note { margin-top: 3px; font-family: 'Inter', sans-serif; font-size: 11.5px; color: #8189a8; }
+
     .health-grid { display: grid; grid-template-columns: 1.15fr 1fr; gap: 20px; margin-top: 24px; }
     @@media(max-width: 1100px) { .health-grid { grid-template-columns: 1fr; } }
 
@@ -638,6 +653,45 @@
     </a>
 
 </div>
+
+<section class="panel platform-wallet" aria-labelledby="platformWalletTitle">
+    <div class="pw-head">
+        <div class="kpi-icon purple"><i class="bi bi-wallet2"></i></div>
+        <div>
+            <div class="panel-title" id="platformWalletTitle">Platform Wallet</div>
+            <div class="panel-sub">Commission from both sides &mdash; @Model.CommissionPercent.ToString("0.##")% added to each Brand checkout, @Model.CommissionPercent.ToString("0.##")% taken when creators withdraw.</div>
+        </div>
+        <div class="pw-balance">
+            <span>Collected</span>
+            <strong>৳@Model.PlatformWalletBalance.ToString("N0")</strong>
+        </div>
+    </div>
+    <div class="pw-grid">
+        <div class="pw-tile">
+            <div class="pw-tile-label"><i class="bi bi-briefcase" style="color:#6545ff;"></i> From brands</div>
+            <div class="pw-tile-value">৳@Model.BrandFeesCollected.ToString("N0")</div>
+            <div class="pw-tile-note">Fees on @Model.BrandFeePaymentCount completed checkout@(Model.BrandFeePaymentCount == 1 ? "" : "s")</div>
+        </div>
+        <div class="pw-tile">
+            <div class="pw-tile-label"><i class="bi bi-person-check" style="color:#139fc1;"></i> From creator withdrawals</div>
+            <div class="pw-tile-value">৳@Model.WithdrawalFeesCollected.ToString("N0")</div>
+            <div class="pw-tile-note">On approved or paid withdrawals</div>
+        </div>
+        <div class="pw-tile">
+            <div class="pw-tile-label"><i class="bi bi-hourglass-split" style="color:#c07d16;"></i> Pending</div>
+            <div class="pw-tile-value">৳@Model.WithdrawalFeesPending.ToString("N0")</div>
+            <div class="pw-tile-note">Withdrawal fees awaiting review &mdash; not counted yet</div>
+        </div>
+        @if (Model.LegacySettlementFees > 0)
+        {
+            <div class="pw-tile">
+                <div class="pw-tile-label"><i class="bi bi-clock-history" style="color:#8189a8;"></i> Earlier model</div>
+                <div class="pw-tile-value">৳@Model.LegacySettlementFees.ToString("N0")</div>
+                <div class="pw-tile-note">Deducted from creators at settlement, before two-sided fees</div>
+            </div>
+        }
+    </div>
+</section>
 
 <div class="health-grid">
 

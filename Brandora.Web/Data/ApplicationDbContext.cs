@@ -171,6 +171,8 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.Property(e => e.Amount).HasPrecision(12, 2);
             entity.Property(e => e.PlatformFeeAmount).HasPrecision(12, 2);
             entity.Property(e => e.NetAmount).HasPrecision(12, 2);
+            entity.Property(e => e.BrandFeeAmount).HasPrecision(12, 2);
+            entity.Property(e => e.CreatorFeePercent).HasPrecision(5, 2);
             entity.HasIndex(e => e.MilestoneId).IsUnique(false);
 
             entity.HasOne(e => e.Collaboration)
@@ -241,6 +243,9 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         builder.Entity<WithdrawalRequest>(entity =>
         {
             entity.Property(e => e.Amount).HasPrecision(12, 2);
+            entity.Property(e => e.FeePercent).HasPrecision(5, 2);
+            entity.Property(e => e.FeeAmount).HasPrecision(12, 2);
+            entity.Property(e => e.PayoutAmount).HasPrecision(12, 2);
 
             entity.HasOne(e => e.InfluencerProfile)
                 .WithMany()

@@ -1,6 +1,7 @@
 using Brandora.Web.Data;
 using Brandora.Web.Models.Dashboard;
 using Brandora.Web.Models.Domain;
+using Brandora.Web.Services.Payments;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -9,8 +10,13 @@ namespace Brandora.Web.Controllers;
 public class InfluencerEarningsController : InfluencerControllerBase
 {
     private readonly ApplicationDbContext db;
-    public InfluencerEarningsController(UserManager<ApplicationUser> userManager, ApplicationDbContext db)
-        : base(userManager, db) => this.db = db;
+    private readonly WalletService wallet;
+    public InfluencerEarningsController(UserManager<ApplicationUser> userManager, ApplicationDbContext db, WalletService wallet)
+        : base(userManager, db)
+    {
+        this.db = db;
+        this.wallet = wallet;
+    }
 
     public async Task<IActionResult> Index(string? tab, int? campaignId, string? search, bool allActivity = false)
     {
@@ -81,10 +87,13 @@ public class InfluencerEarningsController : InfluencerControllerBase
         var history = await db.WithdrawalRequests.AsNoTracking()
             .Where(w => w.InfluencerProfileId == influencer.Id)
             .OrderByDescending(w => w.RequestedAt).ToListAsync();
+        var ledger = await wallet.GetWithdrawalLedgerAsync(influencer.Id);
         return View(new WithdrawalViewModel
         {
             Header = new InfluencerEarningsViewModel { InfluencerName = influencer.FullName, Notifications = notifications },
-            AvailableBalance = await ComputeAvailableBalanceAsync(influencer.Id),
+            AvailableBalance = ledger.Available,
+            FeePercent = wallet.CommissionPercent,
+            Ledger = ledger,
             PayoutMethods = payoutMethods,
             History = history,
             Message = TempData["WithdrawMessage"] as string,
@@ -100,7 +109,8 @@ public class InfluencerEarningsController : InfluencerControllerBase
         if (influencer is null) return RedirectToAction("Index", "Home");
 
         var method = await db.PayoutMethods.FirstOrDefaultAsync(m => m.Id == payoutMethodId && m.InfluencerProfileId == influencer.Id);
-        var balance = await ComputeAvailableBalanceAsync(influencer.Id);
+        var ledger = await wallet.GetWithdrawalLedgerAsync(influencer.Id);
+        var balance = ledger.Available;
         const decimal minimum = 500m;
 
         if (method is null)
@@ -117,15 +127,24 @@ public class InfluencerEarningsController : InfluencerControllerBase
         }
         else
         {
+            // The platform's share is worked out on the server, cumulatively across all of
+            // this creator's withdrawals (see WalletService.QuoteWithdrawal), never trusted
+            // from the browser's preview.
+            var quote = WalletService.QuoteWithdrawal(ledger, amount);
             db.WithdrawalRequests.Add(new WithdrawalRequest
             {
                 InfluencerProfileId = influencer.Id,
                 Amount = amount,
+                FeePercent = quote.FeePercent,
+                FeeAmount = quote.Fee,
+                PayoutAmount = quote.Payout,
                 Method = method.Kind,
                 AccountDetail = method.AccountNumber
             });
             await db.SaveChangesAsync();
-            TempData["WithdrawMessage"] = $"Withdrawal request for ৳{amount:N0} submitted. It's now pending review.";
+            TempData["WithdrawMessage"] = quote.Fee > 0
+                ? $"Withdrawal request for ৳{amount:N0} submitted — you'll receive ৳{quote.Payout:#,0.##} after the ৳{quote.Fee:N0} platform fee. It's now pending review."
+                : $"Withdrawal request for ৳{amount:N0} submitted. It's now pending review.";
         }
 
         return RedirectToAction("Withdraw");
@@ -176,14 +195,8 @@ public class InfluencerEarningsController : InfluencerControllerBase
         return RedirectToAction("Index", new { tab = "payout-methods" });
     }
 
-    private async Task<decimal> ComputeAvailableBalanceAsync(int influencerId, decimal? knownReceived = null)
-    {
-        var received = knownReceived ?? await db.Payments
-            .Where(p => p.Collaboration.InfluencerProfileId == influencerId && p.Status == PaymentStatus.Completed)
-            .SumAsync(p => p.Amount);
-        var reserved = await db.WithdrawalRequests
-            .Where(w => w.InfluencerProfileId == influencerId && w.Status != WithdrawalStatus.Rejected)
-            .SumAsync(w => w.Amount);
-        return received - reserved;
-    }
+    // Earned (as credited) minus everything already requested for withdrawal — shared with
+    // the Brand-side settlement code through WalletService so both agree on the numbers.
+    private async Task<decimal> ComputeAvailableBalanceAsync(int influencerId, decimal? knownReceived = null) =>
+        (await wallet.GetWithdrawalLedgerAsync(influencerId)).Available;
 }

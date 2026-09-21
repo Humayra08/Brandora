@@ -379,6 +379,11 @@ else
                 <p class="cd-description">@campaign.Description</p>
             </section>
 
+            @if (!string.IsNullOrEmpty(campaign.VideoUrl))
+            {
+                @await Html.PartialAsync("_CampaignReel", new Brandora.Web.Models.Campaigns.CampaignReelModel(campaign.VideoUrl, campaign.MediaType == "video" ? null : campaign.MediaUrl, ViewData["CompanyName"] as string ?? "your brand", false))
+            }
+
             <section class="ui-card">
                 <div class="ui-card-head">
                     <div>
@@ -577,8 +582,8 @@ else
                 <section class="ui-card">
                     <div class="ui-card-head">
                         <div>
-                            <div class="ui-card-title">Campaign Creative</div>
-                            <p class="ui-card-sub">The banner creators see on this campaign.</p>
+                            <div class="ui-card-title">Campaign Banner</div>
+                            <p class="ui-card-sub">The cover creators see on this campaign in lists and cards.</p>
                         </div>
                         <a href="@campaign.MediaUrl" target="_blank" rel="noopener" class="ui-card-link">Open original <i class="bi bi-box-arrow-up-right"></i></a>
                     </div>

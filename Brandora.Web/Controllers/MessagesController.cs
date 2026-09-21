@@ -39,13 +39,22 @@ public class MessagesController(UserManager<ApplicationUser> userManager, Applic
             ).ToList();
         }
 
+        // A thread this side deleted stays out of the inbox until something new is said
+        // in it — unless it's the one being opened right now (e.g. "Message" again).
+        conversations = conversations
+            .Where(c => c.BrandClearedAt is null || c.VisibleMessages(true).Any() || c.Id == open)
+            .ToList();
+
         var userId = userManager.GetUserId(User);
         var unreadCounts = conversations.ToDictionary(
             c => c.Id,
-            c => c.Messages.Count(m => m.SenderUserId != userId && m.ReadAt == null));
+            c => c.VisibleMessages(true).Count(m => m.SenderUserId != userId && m.ReadAt == null));
 
+        // Pinned threads first (most recently pinned on top), then by latest activity.
         var ordered = conversations
-            .OrderByDescending(c => c.Messages.Count > 0 ? c.Messages.Max(m => m.SentAt) : c.CreatedAt)
+            .OrderByDescending(c => c.BrandPinnedAt.HasValue)
+            .ThenByDescending(c => c.BrandPinnedAt)
+            .ThenByDescending(c => c.VisibleMessages(true).Select(m => (DateTime?)m.SentAt).Max() ?? c.BrandClearedAt ?? c.CreatedAt)
             .ToList();
 
         var vm = new InboxViewModel
@@ -68,7 +77,7 @@ public class MessagesController(UserManager<ApplicationUser> userManager, Applic
 
             if (selected is not null)
             {
-                var unread = selected.Messages.Where(m => m.SenderUserId != userId && m.ReadAt == null).ToList();
+                var unread = selected.VisibleMessages(true).Where(m => m.SenderUserId != userId && m.ReadAt == null).ToList();
                 if (unread.Count > 0)
                 {
                     foreach (var message in unread)
@@ -92,6 +101,63 @@ public class MessagesController(UserManager<ApplicationUser> userManager, Applic
     public IActionResult Conversation(int id)
     {
         return RedirectToAction("Index", new { open = id });
+    }
+
+    // Pin / unpin a thread to the top of THIS side's inbox only.
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> TogglePin(int conversationId, int? open)
+    {
+        var brand = await GetCurrentBrandAsync();
+        if (brand is null)
+        {
+            return RedirectToAction("Index", "Home");
+        }
+
+        var conversation = await db.Conversations.FirstOrDefaultAsync(c => c.Id == conversationId && c.BrandProfileId == brand.Id);
+        if (conversation is null)
+        {
+            return NotFound();
+        }
+
+        conversation.BrandPinnedAt = conversation.BrandPinnedAt is null ? DateTime.UtcNow : null;
+        await db.SaveChangesAsync();
+
+        return RedirectToAction("Index", new { open = open ?? conversationId });
+    }
+
+    // "Delete conversation" for THIS side only: hides the thread and its history from
+    // this inbox. The other side keeps their full copy; nothing is removed from the
+    // database. If a new message arrives later, the thread comes back showing only
+    // what was said after the delete.
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteConversation(int conversationId, int? open)
+    {
+        var brand = await GetCurrentBrandAsync();
+        if (brand is null)
+        {
+            return RedirectToAction("Index", "Home");
+        }
+
+        var conversation = await db.Conversations
+            .Include(c => c.InfluencerProfile)
+            .FirstOrDefaultAsync(c => c.Id == conversationId && c.BrandProfileId == brand.Id);
+        if (conversation is null)
+        {
+            return NotFound();
+        }
+
+        conversation.BrandClearedAt = DateTime.UtcNow;
+        conversation.BrandPinnedAt = null;
+        await db.SaveChangesAsync();
+
+        var otherName = conversation.InfluencerProfile.FullName;
+        TempData["InboxNotice"] = $"Conversation with {otherName} deleted from your inbox. {otherName} still has their copy.";
+
+        return open is not null && open != conversationId
+            ? RedirectToAction("Index", new { open })
+            : RedirectToAction("Index");
     }
 
     [HttpPost]
@@ -291,7 +357,7 @@ public class MessagesController(UserManager<ApplicationUser> userManager, Applic
         }
 
         var userId = userManager.GetUserId(User);
-        var unread = conversation.Messages.Where(m => m.SenderUserId != userId && m.ReadAt == null).ToList();
+        var unread = conversation.VisibleMessages(true).Where(m => m.SenderUserId != userId && m.ReadAt == null).ToList();
         if (unread.Count > 0)
         {
             foreach (var message in unread)
@@ -306,7 +372,7 @@ public class MessagesController(UserManager<ApplicationUser> userManager, Applic
         ViewData["CreatorName"] = creator.FullName;
         ViewData["CreatorId"] = creator.Id;
 
-        return PartialView("_WidgetMessages", conversation.Messages.OrderBy(m => m.SentAt).ToList());
+        return PartialView("_WidgetMessages", conversation.VisibleMessages(true).OrderBy(m => m.SentAt).ToList());
     }
 
     [HttpPost]
@@ -387,7 +453,7 @@ public class MessagesController(UserManager<ApplicationUser> userManager, Applic
         ViewData["CreatorName"] = conversation.InfluencerProfile.FullName;
         ViewData["CreatorId"] = conversation.InfluencerProfileId;
 
-        return PartialView("_WidgetMessages", conversation.Messages.OrderBy(m => m.SentAt).ToList());
+        return PartialView("_WidgetMessages", conversation.VisibleMessages(true).OrderBy(m => m.SentAt).ToList());
     }
 
     [HttpPost]
@@ -458,6 +524,6 @@ public class MessagesController(UserManager<ApplicationUser> userManager, Applic
         ViewData["CreatorName"] = conversation.InfluencerProfile.FullName;
         ViewData["CreatorId"] = conversation.InfluencerProfileId;
 
-        return PartialView("_WidgetMessages", conversation.Messages.OrderBy(m => m.SentAt).ToList());
+        return PartialView("_WidgetMessages", conversation.VisibleMessages(true).OrderBy(m => m.SentAt).ToList());
     }
 }

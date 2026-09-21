@@ -9,7 +9,7 @@
     var budgetPercent = Model.TotalCampaignBudget > 0
         ? (int)Math.Round(Math.Min(100, (double)(Model.TotalCampaignSpend / Model.TotalCampaignBudget * 100)))
         : 0;
-    var totalFees = Model.Payments.Where(p => p.Status == PaymentStatus.Completed).Sum(p => p.PlatformFeeAmount);
+    var totalFees = Model.TotalFeesPaid;
 
     // Where a not-yet-paid milestone sits in the approve -> release -> checkout pipeline.
     // Colours stay inside the same soft chip palette the Influencer side uses.
@@ -51,7 +51,7 @@
         ("How is the payment actually made?", "After releasing, you choose bKash or Nagad and pay on that provider's own secure page. A payment is only marked Paid after the provider confirms the transaction to our server, for the exact milestone amount."),
         ("Can I choose between bKash and Nagad?", "Yes — you pick the method each time you pay a milestone. Both settle the same way: the creator is credited once the provider confirms the payment."),
         ("What if a payment fails or I cancel it?", "Nothing is charged. The payment stays in Awaiting Payment so you can pay again from the milestone — with the same method or the other one — whenever you're ready."),
-        ($"What is the {Model.PlatformFeePercent:0.#}% platform fee?", $"Brandora keeps {Model.PlatformFeePercent:0.#}% of each milestone payment. The rest is credited straight to the creator's wallet — you always pay the milestone amount you agreed."),
+        ($"How does the {Model.PlatformFeePercent:0.#}% platform fee work?", $"It's added on top of the milestone at checkout — e.g. a ৳200 milestone costs ৳{200 + 200 * Model.PlatformFeePercent / 100:0.##} in total. The creator is credited the full ৳200 and pays their own {Model.PlatformFeePercent:0.#}% only when they withdraw."),
         ("Can I pay a creator before they deliver?", "No. Payments are tied to milestones, so money only moves once the agreed content has been delivered, checked and approved."),
     };
 }
@@ -150,6 +150,7 @@
     .method-card small { display: block; margin-top: 2px; font-family: 'Inter', sans-serif; font-size: 11px; color: #8095c4; }
     .method-card .ui-badge { margin-left: auto; }
 
+    .txn-amount .txn-sub { display: block; margin-top: 2px; font-family: 'Inter', sans-serif; font-size: 10.5px; font-weight: 500; color: #7b8fbf; }
     .fee-note { margin-top: 12px; padding: 10px 12px; border-radius: 9px; background: #eef4ffbd; border: 1px solid #dfe9ff; font-family: 'Inter', sans-serif; font-size: 11.5px; line-height: 1.5; color: #33477c; }
 
     @@media(max-width: 760px) {
@@ -196,7 +197,7 @@
             <div>
                 <div class="metric-label">Total Paid</div>
                 <strong class="metric-value">৳@Model.TotalPaid.ToString("N0")</strong>
-                <p class="metric-context">@Model.CompletedCount completed payment@(Model.CompletedCount == 1 ? "" : "s")</p>
+                <p class="metric-context">@Model.CompletedCount completed payment@(Model.CompletedCount == 1 ? "" : "s")@(totalFees > 0 ? $" · incl. ৳{totalFees:N0} fees" : "")</p>
             </div>
         </div>
         <div class="metric-footer"><span class="metric-accent"></span><span class="metric-footer-link">All time</span></div>
@@ -211,7 +212,7 @@
                 <p class="metric-context">@Model.ReadyToReleaseCount approved milestone@(Model.ReadyToReleaseCount == 1 ? "" : "s")</p>
             </div>
         </div>
-        <div class="metric-footer"><span class="metric-accent"></span><span class="metric-footer-link">Approved by both sides</span></div>
+        <div class="metric-footer"><span class="metric-accent"></span><span class="metric-footer-link">+ @Model.PlatformFeePercent.ToString("0.#")% fee at checkout</span></div>
     </div>
 
     <div class="metric-block tone-e is-visible">
@@ -320,7 +321,7 @@
                                 <th scope="col">Date</th>
                                 <th scope="col">Campaign &amp; Creator</th>
                                 <th scope="col">Milestone</th>
-                                <th scope="col">Amount</th>
+                                <th scope="col">You Pay</th>
                                 <th scope="col">Creator Receives</th>
                                 <th scope="col">Status</th>
                                 <th scope="col">Method</th>
@@ -348,16 +349,23 @@
                                             <span>—</span>
                                         }
                                     </td>
-                                    <td class="txn-amount">৳@payment.Amount.ToString("N0")</td>
+                                    <td class="txn-amount">
+                                        ৳@payment.TotalCharged.ToString("N0")
+                                        @if (payment.BrandFeeAmount > 0)
+                                        {
+                                            <small class="txn-sub">৳@payment.Amount.ToString("N0") + ৳@payment.BrandFeeAmount.ToString("N0") fee</small>
+                                        }
+                                    </td>
                                     <td>
                                         @if (payment.Status == PaymentStatus.Completed)
                                         {
                                             <strong>৳@payment.NetAmount.ToString("N0")</strong>
-                                            <small>৳@payment.PlatformFeeAmount.ToString("N0") platform fee</small>
+                                            <small>@(payment.PlatformFeeAmount > 0 ? $"৳{payment.PlatformFeeAmount:N0} fee deducted" : "Full milestone amount")</small>
                                         }
                                         else
                                         {
-                                            <span>—</span>
+                                            <strong>৳@payment.Amount.ToString("N0")</strong>
+                                            <small>Once paid</small>
                                         }
                                     </td>
                                     <td>
@@ -406,7 +414,7 @@
             <div class="budget-track"><div class="budget-fill" style="width: @budgetPercent%;"></div></div>
             <dl class="fact-list" style="margin-top:12px;">
                 <div><dt>Remaining budget</dt><dd>৳@Math.Max(0, Model.TotalCampaignBudget - Model.TotalCampaignSpend).ToString("N0")</dd></div>
-                <div><dt>Platform fees paid</dt><dd>৳@totalFees.ToString("N0")</dd></div>
+                <div><dt>Platform fees you've paid</dt><dd>৳@totalFees.ToString("N0")</dd></div>
                 <div><dt>Current fee rate</dt><dd>@Model.PlatformFeePercent.ToString("0.#")%</dd></div>
             </dl>
         </section>
@@ -438,7 +446,7 @@
                     }
                 </div>
             }
-            <p class="fee-note"><i class="bi bi-info-circle"></i> You pay the agreed milestone amount. The @Model.PlatformFeePercent.ToString("0.#")% fee is deducted before the creator is credited.</p>
+            <p class="fee-note"><i class="bi bi-info-circle"></i> You pay the milestone amount plus a @Model.PlatformFeePercent.ToString("0.#")% platform fee. The creator is credited the full milestone amount.</p>
         </section>
 
         <section class="info-card">

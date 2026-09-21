@@ -8,7 +8,7 @@ public class PaymentListViewModel
 
     // Milestones belonging to this brand's campaigns that have not been paid out yet —
     // used by the "Ongoing Milestones" preview so the Finance page shows where each
-    // payment currently sits in the two-stage-approval -> release -> bKash pipeline,
+    // payment currently sits in the two-stage-approval -> release -> checkout pipeline,
     // not just a ledger of payments that have already been released.
     public List<Milestone> OngoingMilestones { get; set; } = new();
     public int OngoingTotalCount { get; set; }
@@ -20,8 +20,10 @@ public class PaymentListViewModel
 
     // Proof submitted (or Admin-approved) and still waiting on the brand's own sign-off.
     public int AwaitingReviewCount { get; set; }
+    // Totals include the Brand's platform fee (what the Brand is actually charged).
     public decimal TotalPaid { get; set; }
     public decimal TotalPending { get; set; }
+    public decimal TotalFeesPaid { get; set; }
     public int CompletedCount { get; set; }
     public int PendingCount { get; set; }
 

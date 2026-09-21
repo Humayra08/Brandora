@@ -39,13 +39,22 @@ public class InfluencerMessagesController(UserManager<ApplicationUser> userManag
             ).ToList();
         }
 
+        // A thread this side deleted stays out of the inbox until something new is said
+        // in it — unless it's the one being opened right now (e.g. "Message" again).
+        conversations = conversations
+            .Where(c => c.InfluencerClearedAt is null || c.VisibleMessages(false).Any() || c.Id == open)
+            .ToList();
+
         var userId = userManager.GetUserId(User);
         var unreadCounts = conversations.ToDictionary(
             c => c.Id,
-            c => c.Messages.Count(m => m.SenderUserId != userId && m.ReadAt == null));
+            c => c.VisibleMessages(false).Count(m => m.SenderUserId != userId && m.ReadAt == null));
 
+        // Pinned threads first (most recently pinned on top), then by latest activity.
         var ordered = conversations
-            .OrderByDescending(c => c.Messages.Count > 0 ? c.Messages.Max(m => m.SentAt) : c.CreatedAt)
+            .OrderByDescending(c => c.InfluencerPinnedAt.HasValue)
+            .ThenByDescending(c => c.InfluencerPinnedAt)
+            .ThenByDescending(c => c.VisibleMessages(false).Select(m => (DateTime?)m.SentAt).Max() ?? c.InfluencerClearedAt ?? c.CreatedAt)
             .ToList();
 
         var vm = new InboxViewModel
@@ -68,7 +77,7 @@ public class InfluencerMessagesController(UserManager<ApplicationUser> userManag
 
             if (selected is not null)
             {
-                var unread = selected.Messages.Where(m => m.SenderUserId != userId && m.ReadAt == null).ToList();
+                var unread = selected.VisibleMessages(false).Where(m => m.SenderUserId != userId && m.ReadAt == null).ToList();
                 if (unread.Count > 0)
                 {
                     foreach (var message in unread)
@@ -92,6 +101,63 @@ public class InfluencerMessagesController(UserManager<ApplicationUser> userManag
     public IActionResult Conversation(int id)
     {
         return RedirectToAction("Index", new { open = id });
+    }
+
+    // Pin / unpin a thread to the top of THIS side's inbox only.
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> TogglePin(int conversationId, int? open)
+    {
+        var influencer = await GetCurrentInfluencerAsync();
+        if (influencer is null)
+        {
+            return RedirectToAction("Index", "Home");
+        }
+
+        var conversation = await db.Conversations.FirstOrDefaultAsync(c => c.Id == conversationId && c.InfluencerProfileId == influencer.Id);
+        if (conversation is null)
+        {
+            return NotFound();
+        }
+
+        conversation.InfluencerPinnedAt = conversation.InfluencerPinnedAt is null ? DateTime.UtcNow : null;
+        await db.SaveChangesAsync();
+
+        return RedirectToAction("Index", new { open = open ?? conversationId });
+    }
+
+    // "Delete conversation" for THIS side only: hides the thread and its history from
+    // this inbox. The other side keeps their full copy; nothing is removed from the
+    // database. If a new message arrives later, the thread comes back showing only
+    // what was said after the delete.
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteConversation(int conversationId, int? open)
+    {
+        var influencer = await GetCurrentInfluencerAsync();
+        if (influencer is null)
+        {
+            return RedirectToAction("Index", "Home");
+        }
+
+        var conversation = await db.Conversations
+            .Include(c => c.BrandProfile)
+            .FirstOrDefaultAsync(c => c.Id == conversationId && c.InfluencerProfileId == influencer.Id);
+        if (conversation is null)
+        {
+            return NotFound();
+        }
+
+        conversation.InfluencerClearedAt = DateTime.UtcNow;
+        conversation.InfluencerPinnedAt = null;
+        await db.SaveChangesAsync();
+
+        var otherName = conversation.BrandProfile.CompanyName;
+        TempData["InboxNotice"] = $"Conversation with {otherName} deleted from your inbox. {otherName} still has their copy.";
+
+        return open is not null && open != conversationId
+            ? RedirectToAction("Index", new { open })
+            : RedirectToAction("Index");
     }
 
     [HttpPost]

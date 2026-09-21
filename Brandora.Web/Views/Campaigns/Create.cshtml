@@ -21,7 +21,7 @@
         ("Can I save and finish later?", "Yes. Save as Draft stores the campaign in your Campaigns list as a draft. Nothing is visible to creators until you review and publish it."),
         ("Can I run it on more than one platform?", "Yes. Select every platform the campaign runs on — creators see all of them on the campaign page and in search."),
         ("What should the total budget cover?", "Everything you plan to pay creators for this campaign. In the next step, your milestone plan can't add up to more than this budget."),
-        ("Which files can I use as the banner?", "Images (JPG, PNG, WEBP, GIF) up to 15MB, or short videos (MP4, WEBM, MOV) up to 80MB. It's optional and can be changed later."),
+        ("What's the difference between the banner and the video?", "The banner is an image (JPG, PNG, WEBP, GIF up to 15MB) used as the campaign's cover in lists and cards. The video or reel (MP4, WEBM, MOV up to 80MB) plays on the campaign's details page for you and for creators. Both are optional and can be changed later."),
         ("Can I change these details after publishing?", "Yes. You can edit the details, budget, dates, guidelines and creative at any time from the campaign's page.")
     };
 }
@@ -127,6 +127,53 @@
     .dropzone-cta { display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; padding: 6px 16px; border-radius: 7px; background: linear-gradient(110deg, #8b12ff, #413aff 48%, #00adff); font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; color: #ffffff; }
     .media-remove-row { margin-top: 12px; text-align: center; }
     .media-remove-row .btn { height: 38px; font-size: 12.5px; }
+
+    /* Two creative slots: banner (image) + video/reel */
+    .creative-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; }
+    @@media(max-width: 680px) { .creative-grid { grid-template-columns: 1fr; } }
+    .creative-slot { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+    .creative-slot-head { display: flex; align-items: flex-start; gap: 12px; }
+    .creative-slot-head .icon-chip { flex-shrink: 0; }
+    .creative-slot-head strong { display: block; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 700; line-height: 1.3; color: #101d48; }
+    .creative-slot-head small { display: block; margin-top: 3px; font-family: 'Inter', sans-serif; font-size: 11.5px; line-height: 1.5; color: #6b7fb1; }
+
+    /* Empty slot: roomy, content-sized; filled slot: a 16:10 preview frame. */
+    .creative-slot .dropzone { min-height: 216px; padding: 26px 22px; gap: 0; overflow: hidden; }
+    .creative-slot .dropzone.has-file { min-height: 0; aspect-ratio: 16 / 10; padding: 0; }
+    .creative-slot .dropzone > i { display: grid; place-items: center; width: 54px; height: 54px; margin-bottom: 14px; border-radius: 50%; background: radial-gradient(circle at 30% 25%, #ffffff, #e3ecff); box-shadow: 0 8px 20px -10px #1451ff66, inset 0 0 0 1px #d6e4ff; font-size: 24px; line-height: 1; color: #1451ff; transition: transform .25s cubic-bezier(.22,1,.36,1); }
+    .creative-slot .dropzone:hover > i { transform: translateY(-3px); }
+    .creative-slot .dropzone-title { max-width: 250px; font-size: 14.5px; line-height: 1.35; text-wrap: balance; }
+    .creative-slot .dropzone-sub { margin-top: 6px; font-size: 11.5px; line-height: 1.5; }
+    .creative-slot .dropzone-cta { margin-top: 16px; padding: 8px 18px; border-radius: 8px; font-size: 12.5px; box-shadow: 0 8px 18px -10px #413aff99; transition: transform .2s ease, box-shadow .2s ease; }
+    .creative-slot .dropzone:hover .dropzone-cta { transform: translateY(-1px); box-shadow: 0 12px 22px -10px #413affaa; }
+    .creative-slot .dropzone > * { position: relative; z-index: 1; }
+    .creative-slot .dropzone input[type="file"] { z-index: 3; }
+    .dropzone-preview { position: absolute !important; inset: 0; z-index: 0 !important; display: none; background: #0b1230; }
+    .dropzone-preview img, .dropzone-preview video { display: block; width: 100%; height: 100%; object-fit: cover; }
+    .dropzone-preview video { object-fit: contain; }
+    .dropzone-preview::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 45%, rgba(7,12,34,.72)); }
+    .dropzone.has-file { border-style: solid; border-color: #b9d0f7; }
+    .dropzone.has-file .dropzone-preview { display: block; }
+    .dropzone.has-file > i, .dropzone.has-file .dropzone-title, .dropzone.has-file .dropzone-sub, .dropzone.has-file .dropzone-cta { display: none; }
+    .dropzone-replace { position: absolute !important; left: 12px; right: 12px; bottom: 10px; z-index: 2 !important; display: none; align-items: center; justify-content: space-between; gap: 8px; font-family: 'Inter', sans-serif; font-size: 11.5px; font-weight: 600; color: #ffffff; pointer-events: none; }
+    .dropzone.has-file .dropzone-replace { display: flex; }
+    .dropzone-replace span:last-child { padding: 4px 10px; border-radius: 20px; background: rgba(255,255,255,.18); backdrop-filter: blur(6px); transition: background .2s ease; }
+    .dropzone.has-file:hover .dropzone-replace span:last-child { background: linear-gradient(110deg, #7557ff, #009fff); }
+    .slot-meta { display: inline-flex; align-items: center; gap: 6px; }
+    .slot-actions { display: none; align-items: center; justify-content: space-between; gap: 12px; padding: 0 2px; }
+    .creative-slot.has-file .slot-actions { display: flex; }
+    .slot-file { display: inline-flex; align-items: center; gap: 6px; min-width: 0; font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 500; color: #33477c; }
+    .slot-file i { flex-shrink: 0; color: #0d9c6c; }
+    .slot-file span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .slot-remove { display: none; align-items: center; gap: 6px; padding: 0; border: 0; background: none; font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; color: #c22540; cursor: pointer; }
+    .slot-remove:hover { text-decoration: underline; }
+    .creative-slot.has-file .slot-remove { display: inline-flex; }
+    .slot-error { margin: 0; font-family: 'Inter', sans-serif; font-size: 11.5px; font-weight: 600; color: #c22540; }
+
+    .preview-reel { display: flex; align-items: center; gap: 10px; margin-top: 10px; padding: 9px 12px; border-radius: 10px; border: 1px solid #d7e3ff; background: linear-gradient(110deg, #f1ecffcc, #eaf4ffcc); font-family: 'Inter', sans-serif; font-size: 11.5px; font-weight: 600; color: #33477c; animation: fade-up .3s ease both; }
+    .preview-reel[hidden] { display: none; }
+    .preview-reel i { font-size: 18px; background: linear-gradient(110deg, #7557ff, #009fff); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .preview-reel small { margin-left: auto; font-weight: 500; color: #6b7fb1; }
 
     /* Live preview (rail) */
     .preview-banner { position: relative; overflow: hidden; aspect-ratio: 16 / 9; border-radius: 12px; border: 1px dashed #b9d0f7; background: radial-gradient(ellipse at 50% 0%, #dbe8ff, transparent 70%), linear-gradient(135deg, #eef4ff, #f4efff); }
@@ -322,26 +369,67 @@
                 <span class="cf-num">4</span>
                 <div class="cf-head-main">
                     <div class="cf-title">Campaign Creative <small>Optional</small></div>
-                    <p class="cf-sub">Add a cover image or short video &mdash; it becomes the campaign banner creators see.</p>
+                    <p class="cf-sub">Two separate files: a banner image that becomes the campaign's cover, and an optional video or reel creators can watch on the details page.</p>
                 </div>
             </div>
 
-            <div class="dropzone" id="mediaDropzone">
-                <input type="file" id="MediaFile" name="MediaFile" accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime" />
-                <i class="bi bi-cloud-arrow-up" aria-hidden="true"></i>
-                <div class="dropzone-title">Drop an image or video, or click to browse</div>
-                <div class="dropzone-sub">JPG, PNG, WEBP, GIF up to 15MB &middot; MP4, WEBM, MOV up to 80MB</div>
-                <span class="dropzone-cta" aria-hidden="true"><i class="bi bi-folder2-open"></i> Choose File</span>
-            </div>
+            <div class="creative-grid">
 
-            @if (!string.IsNullOrEmpty(Model.ExistingMediaUrl))
-            {
-                <div class="media-remove-row">
-                    <button type="button" class="btn btn-outline-brand" id="mediaRemoveBtn"><i class="bi bi-trash3" style="margin-right:8px;"></i>Remove current media</button>
+                <div class="creative-slot @(string.IsNullOrEmpty(Model.ExistingMediaUrl) ? "" : "has-file")" id="bannerSlot">
+                    <div class="creative-slot-head">
+                        <span class="icon-chip sm violet"><i class="bi bi-image"></i></span>
+                        <div><strong>Campaign Banner</strong><small>Cover image for lists and cards &middot; 16:9 works best</small></div>
+                    </div>
+                    <div class="dropzone @(string.IsNullOrEmpty(Model.ExistingMediaUrl) ? "" : "has-file")" id="bannerDropzone">
+                        <input type="file" id="MediaFile" name="MediaFile" accept="image/jpeg,image/png,image/webp,image/gif" title="" aria-label="Upload campaign banner image" />
+                        <div class="dropzone-preview" id="bannerDropPreview">
+                            @if (!string.IsNullOrEmpty(Model.ExistingMediaUrl) && Model.ExistingMediaType != "video")
+                            {
+                                <img src="@Model.ExistingMediaUrl" alt="Current campaign banner" />
+                            }
+                        </div>
+                        <i class="bi bi-image" aria-hidden="true"></i>
+                        <div class="dropzone-title">Drag &amp; drop your banner</div>
+                        <div class="dropzone-sub">JPG, PNG, WEBP or GIF &middot; up to 15MB</div>
+                        <span class="dropzone-cta" aria-hidden="true"><i class="bi bi-folder2-open"></i> Choose Image</span>
+                        <div class="dropzone-replace"><span class="slot-meta"><i class="bi bi-image"></i> Banner</span><span>Click or drop to replace</span></div>
+                    </div>
+                    <div class="slot-actions">
+                        <span class="slot-file"><i class="bi bi-check-circle-fill"></i><span data-slot-file>Current banner</span></span>
+                        <button type="button" class="slot-remove" id="bannerRemoveBtn"><i class="bi bi-trash3"></i>Remove</button>
+                    </div>
+                    <p class="slot-error" id="bannerError" role="alert" hidden></p>
+                    <input type="hidden" name="RemoveMedia" id="RemoveMedia" value="false" />
                 </div>
-            }
 
-            <input type="hidden" name="RemoveMedia" id="RemoveMedia" value="false" />
+                <div class="creative-slot @(string.IsNullOrEmpty(Model.ExistingVideoUrl) ? "" : "has-file")" id="videoSlot">
+                    <div class="creative-slot-head">
+                        <span class="icon-chip sm blue"><i class="bi bi-camera-reels"></i></span>
+                        <div><strong>Campaign Video / Reel</strong><small>Plays on the details page &middot; vertical reels welcome</small></div>
+                    </div>
+                    <div class="dropzone @(string.IsNullOrEmpty(Model.ExistingVideoUrl) ? "" : "has-file")" id="videoDropzone">
+                        <input type="file" id="VideoFile" name="VideoFile" accept="video/mp4,video/webm,video/quicktime" title="" aria-label="Upload campaign video or reel" />
+                        <div class="dropzone-preview" id="videoDropPreview">
+                            @if (!string.IsNullOrEmpty(Model.ExistingVideoUrl))
+                            {
+                                <video src="@Model.ExistingVideoUrl" muted loop playsinline autoplay preload="metadata"></video>
+                            }
+                        </div>
+                        <i class="bi bi-camera-reels" aria-hidden="true"></i>
+                        <div class="dropzone-title">Drag &amp; drop your video</div>
+                        <div class="dropzone-sub">MP4, WEBM or MOV &middot; up to 80MB</div>
+                        <span class="dropzone-cta" aria-hidden="true"><i class="bi bi-folder2-open"></i> Choose Video</span>
+                        <div class="dropzone-replace"><span class="slot-meta" id="videoMeta"><i class="bi bi-play-circle"></i> Video</span><span>Click or drop to replace</span></div>
+                    </div>
+                    <div class="slot-actions">
+                        <span class="slot-file"><i class="bi bi-check-circle-fill"></i><span data-slot-file>Current video</span></span>
+                        <button type="button" class="slot-remove" id="videoRemoveBtn"><i class="bi bi-trash3"></i>Remove</button>
+                    </div>
+                    <p class="slot-error" id="videoError" role="alert" hidden></p>
+                    <input type="hidden" name="RemoveVideo" id="RemoveVideo" value="false" />
+                </div>
+
+            </div>
         </section>
 
         <div class="cf-actions">
@@ -377,16 +465,9 @@
             </div>
 
             <div class="preview-banner" id="previewBanner">
-                @if (!string.IsNullOrEmpty(Model.ExistingMediaUrl))
+                @if (!string.IsNullOrEmpty(Model.ExistingMediaUrl) && Model.ExistingMediaType != "video")
                 {
-                    @if (Model.ExistingMediaType == "video")
-                    {
-                        <video src="@Model.ExistingMediaUrl" muted loop playsinline autoplay id="previewMedia"></video>
-                    }
-                    else
-                    {
-                        <img src="@Model.ExistingMediaUrl" alt="Campaign banner" id="previewMedia" />
-                    }
+                    <img src="@Model.ExistingMediaUrl" alt="Campaign banner" id="previewMedia" />
                 }
                 else
                 {
@@ -395,6 +476,10 @@
                         <span style="text-decoration: underline; cursor:pointer;" onclick="document.getElementById('MediaFile').click()">+ Add Banner Image</span>
                     </div>
                 }
+            </div>
+
+            <div class="preview-reel" id="previewReel" hidden="@(string.IsNullOrEmpty(Model.ExistingVideoUrl))">
+                <i class="bi bi-play-circle-fill"></i><span>Campaign video attached</span><small id="previewReelMeta">On the details page</small>
             </div>
 
             <div class="preview-title-live" id="previewTitle">@(string.IsNullOrEmpty(Model.Title) ? "Campaign Title" : Model.Title)</div>
@@ -450,38 +535,77 @@
 @section Scripts {
     <script>
         (function () {
-            var dropzone = document.getElementById('mediaDropzone');
-            var fileInput = document.getElementById('MediaFile');
-            var removeFlag = document.getElementById('RemoveMedia');
-            var removeBtn = document.getElementById('mediaRemoveBtn');
             var previewBanner = document.getElementById('previewBanner');
+            var emptyBannerHtml = '<div class="preview-banner-empty" id="previewBannerEmpty"><span>Campaign Banner (Optional)</span><span style="text-decoration: underline; cursor:pointer;" onclick="document.getElementById(\'MediaFile\').click()">+ Add Banner Image</span></div>';
+            var previewReel = document.getElementById('previewReel');
+            var previewReelMeta = document.getElementById('previewReelMeta');
 
-            function showPreview(url, isVideo) {
-                previewBanner.innerHTML = '';
-                var el = document.createElement(isVideo ? 'video' : 'img');
-                if (isVideo) { el.muted = true; el.loop = true; el.setAttribute('playsinline', ''); el.autoplay = true; }
-                else { el.alt = 'Campaign banner'; }
-                el.src = url;
-                previewBanner.appendChild(el);
-                removeFlag.value = 'false';
+            function formatDuration(seconds) {
+                if (!isFinite(seconds) || seconds <= 0) { return ''; }
+                var m = Math.floor(seconds / 60), s = Math.round(seconds % 60);
+                if (s === 60) { m += 1; s = 0; }
+                return m + ':' + (s < 10 ? '0' : '') + s;
             }
 
-            function clearMedia() {
-                fileInput.value = '';
-                previewBanner.innerHTML = '<div class="preview-banner-empty" id="previewBannerEmpty"><span>Campaign Banner (Optional)</span><span style="text-decoration: underline; cursor:pointer;" onclick="document.getElementById(\'MediaFile\').click()">+ Add Banner Image</span></div>';
-                removeFlag.value = 'true';
-            }
+            // One upload slot (banner image or campaign video): drag & drop, live preview in
+            // the slot itself, type check before submit, and remove.
+            function setupSlot(opts) {
+                var slot = document.getElementById(opts.slotId);
+                var dropzone = document.getElementById(opts.dropzoneId);
+                var input = document.getElementById(opts.inputId);
+                var preview = document.getElementById(opts.previewId);
+                var removeFlag = document.getElementById(opts.removeFlagId);
+                var removeBtn = document.getElementById(opts.removeBtnId);
+                var error = document.getElementById(opts.errorId);
+                if (!slot || !dropzone || !input) { return; }
 
-            if (fileInput) {
-                fileInput.addEventListener('change', function () {
-                    var file = fileInput.files && fileInput.files[0];
-                    if (!file) return;
+                function showError(message) {
+                    if (!error) { return; }
+                    error.textContent = message || '';
+                    error.hidden = !message;
+                }
+
+                function render(url) {
+                    preview.innerHTML = '';
+                    var el = document.createElement(opts.kind === 'video' ? 'video' : 'img');
+                    if (opts.kind === 'video') {
+                        el.muted = true; el.loop = true; el.autoplay = true; el.setAttribute('playsinline', '');
+                        el.addEventListener('loadedmetadata', function () { if (opts.onMeta) { opts.onMeta(el); } });
+                    } else {
+                        el.alt = 'Campaign banner';
+                    }
+                    el.src = url;
+                    preview.appendChild(el);
+                    slot.classList.add('has-file');
+                    dropzone.classList.add('has-file');
+                    removeFlag.value = 'false';
+                }
+
+                function accept(file) {
+                    if (!file) { return false; }
+                    if (file.type.indexOf(opts.kind + '/') !== 0) {
+                        showError(opts.kind === 'video'
+                            ? 'That isn\'t a video. Use MP4, WEBM or MOV — put images in the banner slot.'
+                            : 'The banner must be an image (JPG, PNG, WEBP or GIF). Put videos in the video slot.');
+                        input.value = '';
+                        return false;
+                    }
+                    if (file.size > opts.maxBytes) {
+                        showError((opts.kind === 'video' ? 'Videos' : 'Images') + ' must be ' + (opts.maxBytes / 1048576) + 'MB or smaller.');
+                        input.value = '';
+                        return false;
+                    }
+                    showError('');
+                    var fileLabel = slot.querySelector('[data-slot-file]');
+                    if (fileLabel) { fileLabel.textContent = file.name + ' \u00b7 ' + (file.size / 1048576).toFixed(1) + ' MB'; }
                     var url = URL.createObjectURL(file);
-                    showPreview(url, file.type.indexOf('video/') === 0);
-                });
-            }
+                    render(url);
+                    if (opts.onFile) { opts.onFile(url, file); }
+                    return true;
+                }
 
-            if (dropzone) {
+                input.addEventListener('change', function () { accept(input.files && input.files[0]); });
+
                 ['dragenter', 'dragover'].forEach(function (evt) {
                     dropzone.addEventListener(evt, function (e) { e.preventDefault(); dropzone.classList.add('is-dragover'); });
                 });
@@ -490,16 +614,54 @@
                 });
                 dropzone.addEventListener('drop', function (e) {
                     var file = e.dataTransfer.files && e.dataTransfer.files[0];
-                    if (!file) return;
-                    fileInput.files = e.dataTransfer.files;
-                    var url = URL.createObjectURL(file);
-                    showPreview(url, file.type.indexOf('video/') === 0);
+                    if (file && accept(file)) { input.files = e.dataTransfer.files; }
                 });
+
+                if (removeBtn) {
+                    removeBtn.addEventListener('click', function () {
+                        input.value = '';
+                        preview.innerHTML = '';
+                        slot.classList.remove('has-file');
+                        dropzone.classList.remove('has-file');
+                        removeFlag.value = 'true';
+                        showError('');
+                        if (opts.onRemove) { opts.onRemove(); }
+                    });
+                }
+
+                var existing = preview.querySelector('video');
+                if (existing && opts.onMeta) {
+                    if (existing.readyState >= 1) { opts.onMeta(existing); }
+                    else { existing.addEventListener('loadedmetadata', function () { opts.onMeta(existing); }); }
+                }
             }
 
-            if (removeBtn) {
-                removeBtn.addEventListener('click', clearMedia);
-            }
+            setupSlot({
+                kind: 'image', slotId: 'bannerSlot', dropzoneId: 'bannerDropzone', inputId: 'MediaFile', previewId: 'bannerDropPreview',
+                removeFlagId: 'RemoveMedia', removeBtnId: 'bannerRemoveBtn', errorId: 'bannerError', maxBytes: 15 * 1048576,
+                onFile: function (url) {
+                    previewBanner.innerHTML = '';
+                    var img = document.createElement('img');
+                    img.alt = 'Campaign banner';
+                    img.src = url;
+                    previewBanner.appendChild(img);
+                },
+                onRemove: function () { previewBanner.innerHTML = emptyBannerHtml; }
+            });
+
+            setupSlot({
+                kind: 'video', slotId: 'videoSlot', dropzoneId: 'videoDropzone', inputId: 'VideoFile', previewId: 'videoDropPreview',
+                removeFlagId: 'RemoveVideo', removeBtnId: 'videoRemoveBtn', errorId: 'videoError', maxBytes: 80 * 1048576,
+                onFile: function () { if (previewReel) { previewReel.hidden = false; } },
+                onRemove: function () { if (previewReel) { previewReel.hidden = true; } },
+                onMeta: function (video) {
+                    var portrait = video.videoHeight > video.videoWidth;
+                    var label = (portrait ? 'Reel' : 'Video') + (formatDuration(video.duration) ? ' · ' + formatDuration(video.duration) : '');
+                    var meta = document.getElementById('videoMeta');
+                    if (meta) { meta.innerHTML = '<i class="bi ' + (portrait ? 'bi-phone' : 'bi-play-circle') + '"></i> ' + label; }
+                    if (previewReelMeta) { previewReelMeta.textContent = label; }
+                }
+            });
 
             // Platform pills → comma-joined hidden field
             var platformPillsWrap = document.getElementById('platformPills');

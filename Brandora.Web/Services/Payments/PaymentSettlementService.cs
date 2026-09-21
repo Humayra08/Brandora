@@ -24,7 +24,12 @@ public class PaymentSettlementService(
 {
     // Platform default; overridable via PLATFORM_COMMISSION_PERCENT in .env.
     private decimal CommissionPercent =>
-        decimal.TryParse(config["PLATFORM_COMMISSION_PERCENT"], out var pct) ? pct : 10m;
+        decimal.TryParse(config["PLATFORM_COMMISSION_PERCENT"], out var pct) ? Math.Clamp(pct, 0m, 100m) : 10m;
+
+    // The Brand's share of the commission, paid ON TOP of the milestone amount.
+    // e.g. 5% on a ৳200 milestone -> ৳10 fee, ৳210 charged, ৳200 credited to the creator.
+    public static decimal BrandFeeFor(decimal milestoneAmount, decimal feePercent) =>
+        Math.Round(milestoneAmount * Math.Clamp(feePercent, 0m, 100m) / 100m, 2, MidpointRounding.AwayFromZero);
 
     public IReadOnlyList<IPaymentGateway> Gateways => gateways.ToList();
 
@@ -65,10 +70,18 @@ public class PaymentSettlementService(
             return new PaymentInitiationResult(false, null, $"{gateway.Name} isn't set up on this server yet. Please choose another payment method.");
         }
 
+        // Normally fixed at release time. A payment released before the two-sided model
+        // existed gets its Brand fee now, before anything is charged.
+        if (payment.BrandFeeAmount == 0m && payment.PlatformFeeAmount == 0m)
+        {
+            payment.BrandFeeAmount = BrandFeeFor(payment.Amount, CommissionPercent);
+        }
+        payment.CreatorFeePercent ??= CommissionPercent;
+
         var merchantInvoiceNumber = OrderNumberFor(payment);
 
         var result = await gateway.CreatePaymentAsync(
-            new GatewayCreateRequest(payment.Amount, merchantInvoiceNumber, payment.Id.ToString(), callbackUrl, clientIp),
+            new GatewayCreateRequest(payment.TotalCharged, merchantInvoiceNumber, payment.Id.ToString(), callbackUrl, clientIp),
             ct);
 
         if (!result.Success || result.GatewayPaymentId is null)
@@ -202,9 +215,9 @@ public class PaymentSettlementService(
         // where the provider reports it, for the order number we issued for this payment.
         if (execute.Success)
         {
-            if (execute.Amount is { } confirmedAmount && confirmedAmount != payment.Amount)
+            if (execute.Amount is { } confirmedAmount && confirmedAmount != payment.TotalCharged)
             {
-                logger.LogError("{Gateway} confirmed ৳{Confirmed} for Payment {PaymentId}, expected ৳{Expected}.", gateway.Name, confirmedAmount, paymentId, payment.Amount);
+                logger.LogError("{Gateway} confirmed ৳{Confirmed} for Payment {PaymentId}, expected ৳{Expected}.", gateway.Name, confirmedAmount, paymentId, payment.TotalCharged);
                 execute = execute with { Success = false, ErrorMessage = $"{gateway.Name} confirmed a different amount than this milestone. Nothing was marked paid — please contact support." };
             }
             else if (execute.MerchantReference is { Length: > 0 } reference && !reference.StartsWith($"BRD{payment.Id}T", StringComparison.Ordinal))
@@ -224,15 +237,18 @@ public class PaymentSettlementService(
             return new PaymentSettlementResult(false, execute.ErrorMessage ?? $"{gateway.Name} could not confirm this payment.");
         }
 
-        var fee = Math.Round(payment.Amount * CommissionPercent / 100m, 2);
-        var net = payment.Amount - fee;
+        // Two-sided model: the Brand's fee was charged on top (BrandFeeAmount -> platform
+        // wallet) and the creator is credited the full milestone amount. Their own share is
+        // taken only when they withdraw (WalletService.QuoteWithdrawal).
+        var net = payment.Amount;
 
         payment.Status = PaymentStatus.Completed;
         payment.PaidAt = DateTime.UtcNow;
         payment.Method = gateway.Method;
         payment.TransactionReference = execute.GatewayTransactionId;
-        payment.PlatformFeeAmount = fee;
+        payment.PlatformFeeAmount = 0m;
         payment.NetAmount = net;
+        payment.CreatorFeePercent ??= CommissionPercent;
 
         attempt.Status = PaymentAttemptStatus.Completed;
         attempt.GatewayTransactionId = execute.GatewayTransactionId;

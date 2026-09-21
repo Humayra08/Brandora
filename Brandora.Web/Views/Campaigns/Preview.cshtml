@@ -237,6 +237,11 @@
                 </dl>
             </section>
 
+            @if (!string.IsNullOrEmpty(campaign.VideoUrl))
+            {
+                @await Html.PartialAsync("_CampaignReel", new Brandora.Web.Models.Campaigns.CampaignReelModel(campaign.VideoUrl, campaign.MediaType == "video" ? null : campaign.MediaUrl, ViewData["CompanyName"] as string ?? "your brand", false))
+            }
+
             <section class="ui-card cf-section">
                 <div class="cf-head">
                     <span class="cf-num">2</span>

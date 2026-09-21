@@ -63,8 +63,10 @@ public class PaymentsController(UserManager<ApplicationUser> userManager, Applic
             AwaitingReviewCount = openMilestones.Count(m =>
                 (m.Status == MilestoneStatus.Submitted && m.BrandApprovedAt is null) ||
                 (m.Status == MilestoneStatus.Approved && m.BrandApprovedAt is null)),
-            TotalPaid = payments.Where(p => p.Status == PaymentStatus.Completed).Sum(p => p.Amount),
-            TotalPending = payments.Where(p => p.Status == PaymentStatus.Pending).Sum(p => p.Amount),
+            // What the Brand actually paid / will pay, platform fee included.
+            TotalPaid = payments.Where(p => p.Status == PaymentStatus.Completed).Sum(p => p.TotalCharged),
+            TotalPending = payments.Where(p => p.Status == PaymentStatus.Pending).Sum(p => p.TotalCharged),
+            TotalFeesPaid = payments.Where(p => p.Status == PaymentStatus.Completed).Sum(p => p.BrandFeeAmount),
             CompletedCount = payments.Count(p => p.Status == PaymentStatus.Completed),
             PendingCount = payments.Count(p => p.Status == PaymentStatus.Pending),
             TotalCampaignBudget = campaigns.Sum(c => c.Budget),
@@ -116,11 +118,16 @@ public class PaymentsController(UserManager<ApplicationUser> userManager, Applic
             return RedirectToAction("Detail", "Milestones", new { id = milestoneId });
         }
 
+        // The Brand's share of the commission is fixed now, at today's rate, and paid on
+        // top of the milestone amount at checkout.
+        var feePercent = decimal.TryParse(config["PLATFORM_COMMISSION_PERCENT"], out var pct) ? pct : 10m;
         var payment = new Payment
         {
             CollaborationId = milestone.CollaborationId,
             MilestoneId = milestone.Id,
             Amount = milestone.Amount,
+            BrandFeeAmount = PaymentSettlementService.BrandFeeFor(milestone.Amount, feePercent),
+            CreatorFeePercent = Math.Clamp(feePercent, 0m, 100m),
             Status = PaymentStatus.Pending
         };
 

@@ -20,8 +20,13 @@ public class Campaign
     public DateTime? Deadline { get; set; }
     public string? ContentGuidelines { get; set; }
 
+    // Banner (cover image) — used as the campaign's cover in cards, lists and tables.
     public string? MediaUrl { get; set; }
     public string? MediaType { get; set; }
+
+    // Optional campaign video / reel — shown on the campaign's details page (Brand and
+    // creator side), separate from the banner.
+    public string? VideoUrl { get; set; }
 
     // Targeting & audience (campaign wizard Step 3). Each field maps to a
     // real InfluencerProfile attribute so a "fit" evaluation is always a

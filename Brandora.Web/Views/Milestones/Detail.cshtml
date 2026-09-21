@@ -29,8 +29,16 @@
     // the figures recorded at settlement time are shown instead.
     var feePercent = decimal.TryParse(Config["PLATFORM_COMMISSION_PERCENT"], out var pct) ? pct : 10m;
     var settled = Model.Payment is { Status: PaymentStatus.Completed };
-    var feeAmount = settled ? Model.Payment!.PlatformFeeAmount : Math.Round(Model.Amount * feePercent / 100m, 2);
-    var netAmount = settled ? Model.Payment!.NetAmount : Model.Amount - feeAmount;
+    // Two-sided commission: the Brand pays the milestone PLUS its fee on top; the creator
+    // is credited the full milestone amount (their own share is taken at withdrawal).
+    // Payments settled under the old model (fee deducted from the creator) keep their
+    // recorded figures.
+    var legacySettled = settled && Model.Payment!.BrandFeeAmount == 0m && Model.Payment.PlatformFeeAmount > 0m;
+    var feeAmount = Model.Payment is { BrandFeeAmount: > 0m } ? Model.Payment.BrandFeeAmount
+        : legacySettled ? 0m
+        : Brandora.Web.Services.Payments.PaymentSettlementService.BrandFeeFor(Model.Amount, feePercent);
+    var totalCharge = legacySettled ? Model.Amount : Model.Amount + feeAmount;
+    var netAmount = legacySettled ? Model.Payment!.NetAmount : Model.Amount;
 
     // Checkout providers the Brand can pick from. A provider without merchant credentials
     // on this server is still listed, but disabled, so the choice is never a dead end.
@@ -93,6 +101,7 @@
     {
         ("Why do both I and Brandora approve?", "Your approval confirms the content matches your brief. Brandora's check confirms the post is genuine and live. Money only moves once both sign-offs are in, whichever comes first."),
         ("What happens when I release payment?", "Releasing lets you pay the milestone amount through bKash or Nagad, whichever you prefer. Nothing is charged until you confirm on the provider's own secure page."),
+        ("How is the platform fee charged?", $"You pay the milestone plus {feePercent:0.#}% on top (e.g. ৳200 + ৳{200 * feePercent / 100:0.##}). The creator is credited the full milestone and pays their own {feePercent:0.#}% only when they withdraw, so neither side is charged twice."),
         ("When is it marked as paid?", "Only after bKash or Nagad confirms the transaction to our server, for the exact milestone amount. A browser redirect alone never marks a payment as paid."),
         ("Can I switch between bKash and Nagad?", "Yes. If a checkout is cancelled or fails, nothing is charged and you can pay again with either method."),
         ("Can I ask for changes after approving?", "Yes. Until Brandora's final check is done you can still send the milestone back to the creator with a revision note.")
@@ -243,14 +252,14 @@
                         <div class="decision-card-eyebrow">Completed</div>
                         <div class="decision-card-title">Milestone paid in full</div>
                         <p class="decision-card-text">
-                            ৳@Model.Amount.ToString("N0") was paid via @paidVia@(Model.Payment?.PaidAt is not null ? $" on {Model.Payment.PaidAt.Value.ToBangladeshTime():MMM d, yyyy 'at' h:mm tt}" : "").
+                            ৳@totalCharge.ToString("N0") was paid via @paidVia@(Model.Payment?.PaidAt is not null ? $" on {Model.Payment.PaidAt.Value.ToBangladeshTime():MMM d, yyyy 'at' h:mm tt}" : "").
                             @creator.FullName has been credited ৳@netAmount.ToString("N0").
                         </p>
                     </div>
                 </div>
                 <dl class="decision-breakdown">
-                    <div><dt>You paid</dt><dd>৳@Model.Amount.ToString("N0")</dd></div>
-                    <div><dt>Platform fee</dt><dd>৳@feeAmount.ToString("N0")</dd></div>
+                    <div><dt>You paid</dt><dd>৳@totalCharge.ToString("N0")</dd></div>
+                    <div><dt>@(legacySettled ? "Fee (deducted from creator)" : "Platform fee")</dt><dd>৳@((legacySettled ? Model.Payment!.PlatformFeeAmount : feeAmount).ToString("N0"))</dd></div>
                     <div><dt>Creator received</dt><dd>৳@netAmount.ToString("N0")</dd></div>
                 </dl>
                 @if (!string.IsNullOrEmpty(Model.Payment?.TransactionReference))
@@ -275,9 +284,9 @@
                     </div>
                 </div>
                 <dl class="decision-breakdown">
-                    <div><dt>You pay</dt><dd>৳@Model.Amount.ToString("N0")</dd></div>
-                    <div><dt>Platform fee (@feePercent.ToString("0.#")%)</dt><dd>৳@feeAmount.ToString("N0")</dd></div>
-                    <div><dt>Creator receives</dt><dd>৳@netAmount.ToString("N0")</dd></div>
+                    <div><dt>Milestone</dt><dd>৳@Model.Amount.ToString("N0")</dd></div>
+                    <div><dt>Platform fee (@feePercent.ToString("0.#")%)</dt><dd>+ ৳@feeAmount.ToString("N0")</dd></div>
+                    <div><dt>You pay</dt><dd>৳@totalCharge.ToString("N0")</dd></div>
                 </dl>
                 <form method="post" action="/Payments/InitiatePayment" class="pay-form" id="payForm">
                     @Html.AntiForgeryToken()
@@ -309,7 +318,7 @@
                         {
                             <button type="submit" class="btn-bkash pay-submit">
                                 <span class="bkash-logo"><img src="@defaultPay.Logo" alt="" data-pay-btn-logo /></span>
-                                <span data-pay-btn-text>Pay ৳@Model.Amount.ToString("N0") with @defaultPay.Name</span>
+                                <span data-pay-btn-text>Pay ৳@totalCharge.ToString("N0") with @defaultPay.Name</span>
                                 <i class="bi bi-arrow-right pay-submit-arrow"></i>
                             </button>
                         }
@@ -334,9 +343,9 @@
                     </div>
                 </div>
                 <dl class="decision-breakdown">
-                    <div><dt>You pay</dt><dd>৳@Model.Amount.ToString("N0")</dd></div>
-                    <div><dt>Platform fee (@feePercent.ToString("0.#")%)</dt><dd>৳@feeAmount.ToString("N0")</dd></div>
-                    <div><dt>Creator receives</dt><dd>৳@netAmount.ToString("N0")</dd></div>
+                    <div><dt>Milestone</dt><dd>৳@Model.Amount.ToString("N0")</dd></div>
+                    <div><dt>Platform fee (@feePercent.ToString("0.#")%)</dt><dd>+ ৳@feeAmount.ToString("N0")</dd></div>
+                    <div><dt>You pay</dt><dd>৳@totalCharge.ToString("N0")</dd></div>
                 </dl>
                 <div class="decision-card-actions">
                     <form method="post" action="/Payments/Release">
@@ -537,11 +546,19 @@
             </div>
             <dl class="fact-list">
                 <div><dt>Milestone amount</dt><dd>৳@Model.Amount.ToString("N0")</dd></div>
-                <div><dt>Platform fee (@feePercent.ToString("0.#")%)</dt><dd>&minus; ৳@feeAmount.ToString("N0")</dd></div>
-                <div class="ms-total"><dt>Creator receives</dt><dd>৳@netAmount.ToString("N0")</dd></div>
+                @if (legacySettled)
+                {
+                    <div><dt>Fee (deducted from creator)</dt><dd>&minus; ৳@Model.Payment!.PlatformFeeAmount.ToString("N0")</dd></div>
+                }
+                else
+                {
+                    <div><dt>Platform fee (@(Model.Payment is { BrandFeeAmount: > 0m } ? "charged" : feePercent.ToString("0.#") + "%"))</dt><dd>+ ৳@feeAmount.ToString("N0")</dd></div>
+                }
+                <div class="ms-total"><dt>@(settled ? "You paid" : "You pay")</dt><dd>৳@totalCharge.ToString("N0")</dd></div>
+                <div><dt>Creator @(settled ? "credited" : "receives")</dt><dd>৳@netAmount.ToString("N0")</dd></div>
                 <div><dt>Method</dt><dd>@(settled ? paidVia : "bKash or Nagad")</dd></div>
             </dl>
-            <p class="ms-fee-note"><i class="bi bi-info-circle"></i> You always pay the agreed amount; the fee is deducted before the creator is credited.</p>
+            <p class="ms-fee-note"><i class="bi bi-info-circle"></i> The @feePercent.ToString("0.#")% platform fee is added on top of the milestone. The creator is credited the full milestone amount and pays their own share only when they withdraw.</p>
         </section>
 
         <section class="ui-card">
@@ -610,7 +627,7 @@
         if (!form) { return; }
         var logo = form.querySelector('[data-pay-btn-logo]');
         var text = form.querySelector('[data-pay-btn-text]');
-        var amount = '৳@Model.Amount.ToString("N0")';
+        var amount = '৳@totalCharge.ToString("N0")';
         form.querySelectorAll('input[name="method"]').forEach(function (radio) {
             radio.addEventListener('change', function () {
                 if (!radio.checked) { return; }
