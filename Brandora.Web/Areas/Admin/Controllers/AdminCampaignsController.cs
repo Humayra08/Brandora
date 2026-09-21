@@ -11,8 +11,9 @@ public class AdminCampaignsController(ApplicationDbContext db) : AdminController
     {
         await LoadAdminChromeAsync();
         ViewData["ActiveNav"] = "Campaigns";
-        ViewData["Title"] = "Campaigns";
-        ViewData["Breadcrumb"] = new List<(string, string?)> { ("Campaigns", null) };
+        ViewData["Title"] = "Campaign Details";
+        ViewData["HasCustomHero"] = true;
+        ViewData["Breadcrumb"] = new List<(string, string?)> { ("Campaign Details", null) };
         ViewData["StatusFilter"] = status;
         ViewData["Search"] = search ?? "";
 
@@ -71,9 +72,10 @@ public class AdminCampaignsController(ApplicationDbContext db) : AdminController
         await LoadAdminChromeAsync();
         ViewData["ActiveNav"] = "Campaigns";
         ViewData["Title"] = campaign.Title;
+        ViewData["HasCustomHero"] = true;
         ViewData["Breadcrumb"] = new List<(string, string?)>
         {
-            ("Campaigns", "/Admin/AdminCampaigns/Index"),
+            ("Campaign Details", "/Admin/AdminCampaigns/Index"),
             (campaign.Title, null)
         };
 

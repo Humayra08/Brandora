@@ -102,7 +102,7 @@
             <div class="fd-fig"><small>Gross Campaign Amount</small><b>@Money(Model.Gross)</b></div>
             <div class="fd-fig"><small>Total Milestones</small><b>@Model.Milestones.Count</b></div>
             <div class="fd-fig">
-                <small>@rate% Collected <span class="fd-pct">@collectedPct%</span></small>
+                <small>@rate% Collected (estimated) <span class="fd-pct">@collectedPct%</span></small>
                 <b>@Money(Model.FeeCollected)</b>
                 <div class="fd-bar"><span style="width:@collectedPct%;background:#0d9c6c;"></span></div>
             </div>
@@ -135,6 +135,39 @@
                             <td><span class="fd-state @(m.State == "Expected" ? "exp" : m.State == "Collected" ? "col" : m.State == "Partly collected" ? "part" : "wait")">@m.State</span></td>
                         </tr>
                     }
+                </tbody>
+            </table>
+        }
+
+        <h4>Influencer-wise Fees</h4>
+        @if (Model.InfluencerRows.Count == 0)
+        {
+            <div class="fd-empty" style="margin-bottom:22px;">No influencers on this campaign yet.</div>
+        }
+        else
+        {
+            <table class="fd-table">
+                <thead><tr><th>Influencer</th><th>Milestones</th><th>Paid</th><th>Withdrawn (est.)</th><th>@rate% collected</th><th>@rate% expected</th></tr></thead>
+                <tbody>
+                    @foreach (var r in Model.InfluencerRows)
+                    {
+                        <tr>
+                            <td><a href="/Admin/AdminUserVerification/Details?type=influencer&id=@r.InfluencerId" style="font-weight:600;color:#171d3d;text-decoration:none;">@r.Name</a></td>
+                            <td>@r.Milestones</td>
+                            <td>@Money(r.Paid)</td>
+                            <td>@Money(r.Withdrawn)</td>
+                            <td>@Money(r.Collected)</td>
+                            <td>@Money(r.Expected)</td>
+                        </tr>
+                    }
+                    <tr style="font-weight:800;background:#fafbff;">
+                        <td>Total</td>
+                        <td>@Model.InfluencerRows.Sum(r => r.Milestones)</td>
+                        <td>@Money(Model.InfluencerRows.Sum(r => r.Paid))</td>
+                        <td>@Money(Model.InfluencerRows.Sum(r => r.Withdrawn))</td>
+                        <td>@Money(Model.InfluencerRows.Sum(r => r.Collected))</td>
+                        <td>@Money(Model.InfluencerRows.Sum(r => r.Expected))</td>
+                    </tr>
                 </tbody>
             </table>
         }

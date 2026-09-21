@@ -118,11 +118,15 @@
     .aw-empty { padding: 26px 18px; margin-top: 8px; border-radius: 12px; border: 1px dashed #dde1f0; background: #fafbfe; text-align: center; font: 12.5px 'Inter', sans-serif; color: #8189a8; }
     .aw-empty b { display: block; margin-bottom: 4px; font: 700 14px 'DM Sans', sans-serif; color: #2a3157; }
 
-    .aw-compbar { display: flex; align-items: center; gap: 16px; padding: 18px 24px; border-radius: 15px; border: 1px solid #dce7ff; background: linear-gradient(110deg, #f6f0ff, #eef4ff); }
-    .aw-compbar .ic { flex: 0 0 46px; height: 46px; border-radius: 50%; background: #236eff; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 20px; }
-    .aw-compbar b { display: block; font: 700 16px 'Playfair Display', Georgia, serif; color: #171d3d; }
-    .aw-compbar span { display: block; margin-top: 3px; font: 12.5px 'Inter', sans-serif; color: #6b7290; }
-    .aw-compbar .aw-btn { margin-left: auto; background: #fff; }
+    .aw-siderow { display: flex; gap: 16px; align-items: stretch; margin-bottom: 16px; }
+    .aw-side-card { flex: 2; min-width: 0; padding: 22px; border-radius: 15px; background: #fff; border: 1px solid #dce7ff; }
+    .aw-side-card .aw-side-icon { width: 44px; height: 44px; border-radius: 12px; background: #f1e6ff; color: #7a2fe0; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+    .aw-side-card h3 { margin: 12px 0 6px; font: 700 18px 'Playfair Display', Georgia, serif; color: #171d3d; }
+    .aw-side-card p { margin: 0 0 14px; font: 12.5px/1.6 'Inter', sans-serif; color: #6b7290; }
+    .aw-health { flex: 1; min-width: 0; display: flex; gap: 12px; align-items: center; padding: 16px 18px; border-radius: 14px; border: 1px solid rgba(13,156,108,.25); background: #ecfaf4; font: 12px/1.5 'Inter', sans-serif; color: #0b7a55; }
+    .aw-health.warn { border-color: rgba(217,45,63,.25); background: #fdeff1; color: #a71b34; }
+    .aw-health i { font-size: 20px; }
+    .aw-health b { display: block; margin-bottom: 2px; font-size: 13px; }
 
     .aw-pane[hidden] { display: none; }
 
@@ -162,7 +166,7 @@
     .co-empty { padding: 18px; border-radius: 12px; border: 1px dashed #dde1f0; background: #fafbfe; text-align: center; font-size: 12.5px; color: #8189a8; }
 
     @@media(max-width: 1350px) { .aw-kpis { grid-template-columns: repeat(3, 1fr); } .aw-charts { grid-template-columns: 1fr 1fr; } }
-    @@media(max-width: 800px) { .aw-kpis, .aw-charts { grid-template-columns: 1fr; } .aw-hero .aw-motto { display: none; } .aw-balance-note { border-left: 0; padding-left: 0; } .co-methods { grid-template-columns: 1fr; } }
+    @@media(max-width: 800px) { .aw-siderow { flex-direction: column; } .aw-kpis, .aw-charts { grid-template-columns: 1fr; } .aw-hero .aw-motto { display: none; } .aw-balance-note { border-left: 0; padding-left: 0; } .co-methods { grid-template-columns: 1fr; } }
 </style>
 
 <section class="aw-hero">
@@ -263,6 +267,32 @@
     </div>
 </section>
 
+<section class="aw-siderow">
+    <div class="aw-side-card">
+        <div class="aw-side-icon"><i class="bi bi-shield-check"></i></div>
+        <h3>Compensation</h3>
+        <p>
+            Compensation is decided case by case. When a brand or influencer asks for it for a milestone or campaign,
+            it is handled in <b>Dispute Resolution</b>, where the admin can review the proof and conversation first.
+            Payouts will show up in the wallet records here.
+        </p>
+        <a class="aw-btn primary" href="/Admin/AdminDisputes/Index">
+            Open Dispute Resolution
+            @if (Model.OpenDisputes > 0) { <span>(@Model.OpenDisputes open)</span> }
+            <i class="bi bi-arrow-right"></i>
+        </a>
+    </div>
+
+    @if (Model.Balance < 0)
+    {
+        <div class="aw-health warn"><i class="bi bi-exclamation-triangle"></i><div><b>Wallet is negative</b>Compensation paid out is higher than the fees collected so far.</div></div>
+    }
+    else
+    {
+        <div class="aw-health"><i class="bi bi-check-circle"></i><div><b>Platform wallet is healthy</b>@(Model.Balance > 0 ? "There is enough balance to process compensation." : "No balance yet. Fees are collected as influencers withdraw.")</div></div>
+    }
+</section>
+
 <div class="aw-panel">
     <div class="aw-tabs" id="awTabs">
         <button type="button" class="is-active" data-tab="campaigns">Campaign-wise Fee Income</button>
@@ -291,7 +321,7 @@
             <div class="aw-scroll">
                 <table class="aw-table" id="awCampaignTable" data-paged>
                     <thead>
-                        <tr><th>#</th><th>Campaign</th><th>Brand</th><th>Milestones</th><th>Gross amount</th><th>@feeRatePct% collected</th><th>@feeRatePct% expected</th><th>Status</th><th>Action</th></tr>
+                        <tr><th>#</th><th>Campaign</th><th>Brand</th><th>Milestones</th><th>Gross amount</th><th>Paid to influencers</th><th>@feeRatePct% potential</th><th title="Estimated: influencers withdraw from their whole wallet, so each withdrawal is assigned to their oldest paid milestones.">@feeRatePct% collected (estimated)</th><th>Status</th><th>Action</th></tr>
                     </thead>
                     <tbody>
                         @{ var n = 0; }
@@ -312,8 +342,9 @@
                                 </td>
                                 <td>@c.MilestoneCount</td>
                                 <td>@Money(c.Gross)</td>
+                                <td>@Money(c.Paid)</td>
+                                <td>@Money(PlatformFee.Of(c.Paid))</td>
                                 <td>@Money(c.FeeCollected)</td>
-                                <td>@Money(c.FeeExpected)</td>
                                 <td><span class="aw-pill @c.StatusTone">@c.StatusLabel</span></td>
                                 <td><button type="button" class="aw-view" data-campaign="@c.CampaignId">View <i class="bi bi-arrow-right"></i></button></td>
                             </tr>
@@ -322,6 +353,11 @@
                 </table>
             </div>
             <div class="aw-pager" data-pager-for="awCampaignTable"></div>
+            <div class="aw-sub" style="margin-top:14px;line-height:1.6;">
+                <b>Paid to influencers</b> and <b>@feeRatePct% potential</b> are exact: what brands have paid out for the campaign, and the most the platform could earn from it.
+                <b>@feeRatePct% collected</b> is an estimate. Influencers withdraw from their whole wallet, not per campaign, so each withdrawal is assigned to their oldest paid milestones.
+                The exact fee records are in <b>Income by Withdrawal</b>.
+            </div>
         }
     </div>
 
@@ -408,15 +444,6 @@
             </div>
         }
     </div>
-</div>
-
-<div class="aw-compbar">
-    <div class="ic"><i class="bi bi-info-lg"></i></div>
-    <div>
-        <b>Compensation is decided in Dispute Resolution</b>
-        <span>Compensation to a brand or influencer is sent from the platform wallet only through the dispute resolution process.@(Model.OpenDisputes > 0 ? $" {Model.OpenDisputes} dispute(s) are open." : "")</span>
-    </div>
-    <a class="aw-btn" href="/Admin/AdminDisputes/Index">Go to Dispute Resolution <i class="bi bi-arrow-right"></i></a>
 </div>
 
 <div class="aw-overlay" id="awOverlay"></div>

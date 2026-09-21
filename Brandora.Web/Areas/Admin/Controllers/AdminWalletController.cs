@@ -13,7 +13,8 @@ public class AdminWalletController(ApplicationDbContext db) : AdminControllerBas
         await LoadAdminChromeAsync();
         ViewData["ActiveNav"] = "Wallet";
         ViewData["Title"] = "Platform Wallet";
-        ViewData["Breadcrumb"] = new List<(string, string?)> { ("Wallet", null), ("Platform Wallet", null) };
+        ViewData["HasCustomHero"] = true;
+        ViewData["Breadcrumb"] = new List<(string, string?)> { ("Platform Wallet", null) };
 
         var snap = await PlatformWalletData.LoadAsync(db);
         var ledger = snap.Ledger;
@@ -176,6 +177,24 @@ public class AdminWalletController(ApplicationDbContext db) : AdminControllerBas
             FeeExpected = Math.Max(0m, PlatformFee.Of(paid) - collected),
             Milestones = rows,
             Influencers = milestones.Select(m => m.Collaboration.InfluencerProfile).DistinctBy(i => i.Id).Select(i => i.FullName).ToList(),
+            InfluencerRows = milestones
+                .GroupBy(m => m.Collaboration.InfluencerProfile)
+                .Select(g =>
+                {
+                    var influencerPaid = g.Where(m => m.Payment is { Status: PaymentStatus.Completed }).Sum(m => m.Payment!.Amount);
+                    var withdrawn = lines.Where(x => x.W.InfluencerId == g.Key.Id).Sum(x => x.L.Portion);
+                    var influencerCollected = PlatformFee.Of(withdrawn);
+                    return new InfluencerFeeRow(
+                        g.Key.Id,
+                        g.Key.FullName,
+                        g.Count(),
+                        influencerPaid,
+                        withdrawn,
+                        influencerCollected,
+                        Math.Max(0m, PlatformFee.Of(influencerPaid) - influencerCollected));
+                })
+                .OrderByDescending(r => r.Paid)
+                .ToList(),
             Transactions = lines
                 .OrderByDescending(x => x.W.At)
                 .Select(x => new FeeTxRow(x.W.ProcessedAt ?? x.W.At, "Withdrawal fee", x.W.InfluencerName, x.W.Code, x.L.Fee, $"5% of ৳{x.L.Portion:N0} from \"{x.L.Earning.MilestoneTitle}\""))
@@ -244,6 +263,8 @@ public class AdminWalletViewModel
 
 public record FeeMilestoneRow(int No, string Title, string? Type, string InfluencerName, decimal Amount, decimal Fee, string State);
 
+public record InfluencerFeeRow(int InfluencerId, string Name, int Milestones, decimal Paid, decimal Withdrawn, decimal Collected, decimal Expected);
+
 public record FeeTxRow(DateTime At, string Type, string UserName, string Code, decimal Amount, string Note);
 
 public class CampaignFeeDrawerViewModel
@@ -264,6 +285,7 @@ public class CampaignFeeDrawerViewModel
     public decimal FeeExpected { get; set; }
     public List<FeeMilestoneRow> Milestones { get; set; } = new();
     public List<string> Influencers { get; set; } = new();
+    public List<InfluencerFeeRow> InfluencerRows { get; set; } = new();
     public List<FeeTxRow> Transactions { get; set; } = new();
 }
 
