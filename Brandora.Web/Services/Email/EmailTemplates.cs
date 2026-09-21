@@ -205,6 +205,26 @@ public static class EmailTemplates
             ctaText: "Update My Profile", ctaUrl: profileUrl,
             iconEnvelope: false));
 
+    // Sent to the admin who just cashed out of the platform wallet, so there is always a record
+    // in their inbox of how much was withdrawn.
+    public static (string Subject, string Html) CashoutNotice(string adminName, decimal amount, string method, string maskedAccount, string reference, DateTime atUtc)
+    {
+        static string Enc(string s) => System.Net.WebUtility.HtmlEncode(s);
+        var money = "৳" + amount.ToString("N0", System.Globalization.CultureInfo.InvariantCulture);
+
+        return (
+            $"You cashed out {money} from the Brandora platform wallet",
+            Wrap("Platform Wallet", "Cash-out completed", "&#10003;",
+                $"Hi {Enc(adminName)},<br /><br />A cash-out from the Brandora platform wallet was completed.<br /><br />" +
+                $"<b>Amount:</b> {money}<br />" +
+                $"<b>Method:</b> {Enc(method)}<br />" +
+                $"<b>Account:</b> {Enc(maskedAccount)}<br />" +
+                $"<b>Gateway reference:</b> {Enc(reference)}<br />" +
+                $"<b>Time:</b> {atUtc.ToString("MMM d, yyyy, h:mm tt", System.Globalization.CultureInfo.InvariantCulture)} (UTC)<br /><br />" +
+                $"If you did not make this cash-out, contact {SupportEmail} right away.",
+                iconEnvelope: false));
+    }
+
     // Wraps a plain-text support message (contact-form replies) in the branded layout.
     public static string Message(string plainBody) => Wrap(
         "Brandora Support", "A message from Brandora", "&#9993;",
