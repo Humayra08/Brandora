@@ -17,6 +17,14 @@ public class Milestone
     public string? ProofUrl { get; set; }
     public string? ProofNotes { get; set; }
 
+    // Two-stage approval: Brand and Admin each sign off independently before a milestone
+    // is payment-eligible (see PaymentsController.Release, which requires BOTH
+    // Status == Approved (Admin's side, via AdminProofReviewController) AND
+    // BrandApprovedAt != null (Brand's side, via MilestonesController) — whichever
+    // reviewer acts first, the other still has to sign off before money can move.
+    public DateTime? BrandApprovedAt { get; set; }
+    public string? BrandRevisionReason { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public Payment? Payment { get; set; }

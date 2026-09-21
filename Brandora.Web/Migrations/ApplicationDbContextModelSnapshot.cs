@@ -253,6 +253,9 @@ namespace Brandora.Web.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("VideoUrl")
+                        .HasColumnType("text");
+
                     b.HasKey("Id");
 
                     b.HasIndex("BrandProfileId");
@@ -387,6 +390,12 @@ namespace Brandora.Web.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<DateTime?>("BrandClearedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("BrandPinnedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<int>("BrandProfileId")
                         .HasColumnType("integer");
 
@@ -394,6 +403,12 @@ namespace Brandora.Web.Migrations
                         .HasColumnType("integer");
 
                     b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("InfluencerClearedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("InfluencerPinnedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("InfluencerProfileId")
@@ -623,6 +638,12 @@ namespace Brandora.Web.Migrations
                         .HasPrecision(12, 2)
                         .HasColumnType("numeric(12,2)");
 
+                    b.Property<DateTime?>("BrandApprovedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("BrandRevisionReason")
+                        .HasColumnType("text");
+
                     b.Property<int>("CollaborationId")
                         .HasColumnType("integer");
 
@@ -783,14 +804,25 @@ namespace Brandora.Web.Migrations
                         .HasPrecision(12, 2)
                         .HasColumnType("numeric(12,2)");
 
+                    b.Property<decimal>("BrandFeeAmount")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)");
+
                     b.Property<int>("CollaborationId")
                         .HasColumnType("integer");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<decimal?>("CreatorFeePercent")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)");
+
                     b.Property<int>("EscrowStatus")
                         .HasColumnType("integer");
+
+                    b.Property<string>("GatewayPaymentId")
+                        .HasColumnType("text");
 
                     b.Property<int?>("Method")
                         .HasColumnType("integer");
@@ -798,8 +830,16 @@ namespace Brandora.Web.Migrations
                     b.Property<int?>("MilestoneId")
                         .HasColumnType("integer");
 
+                    b.Property<decimal>("NetAmount")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)");
+
                     b.Property<DateTime?>("PaidAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("PlatformFeeAmount")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)");
 
                     b.Property<int>("Status")
                         .HasColumnType("integer");
@@ -814,6 +854,52 @@ namespace Brandora.Web.Migrations
                     b.HasIndex("MilestoneId");
 
                     b.ToTable("Payments");
+                });
+
+            modelBuilder.Entity("Brandora.Web.Models.Domain.PaymentAttempt", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreateResponseJson")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ExecuteResponseJson")
+                        .HasColumnType("text");
+
+                    b.Property<string>("FailureReason")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Gateway")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("GatewayPaymentId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("GatewayTransactionId")
+                        .HasColumnType("text");
+
+                    b.Property<int>("PaymentId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PaymentId");
+
+                    b.ToTable("PaymentAttempts");
                 });
 
             modelBuilder.Entity("Brandora.Web.Models.Domain.PayoutMethod", b =>
@@ -927,6 +1013,43 @@ namespace Brandora.Web.Migrations
                     b.ToTable("ShortlistEntries");
                 });
 
+            modelBuilder.Entity("Brandora.Web.Models.Domain.WalletTransaction", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("InfluencerProfileId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("PaymentId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InfluencerProfileId");
+
+                    b.HasIndex("PaymentId");
+
+                    b.ToTable("WalletTransactions");
+                });
+
             modelBuilder.Entity("Brandora.Web.Models.Domain.WithdrawalRequest", b =>
                 {
                     b.Property<int>("Id")
@@ -943,11 +1066,23 @@ namespace Brandora.Web.Migrations
                         .HasPrecision(12, 2)
                         .HasColumnType("numeric(12,2)");
 
+                    b.Property<decimal>("FeeAmount")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)");
+
+                    b.Property<decimal>("FeePercent")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)");
+
                     b.Property<int>("InfluencerProfileId")
                         .HasColumnType("integer");
 
                     b.Property<int>("Method")
                         .HasColumnType("integer");
+
+                    b.Property<decimal>("PayoutAmount")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)");
 
                     b.Property<DateTime?>("ProcessedAt")
                         .HasColumnType("timestamp with time zone");
@@ -1320,6 +1455,17 @@ namespace Brandora.Web.Migrations
                     b.Navigation("Milestone");
                 });
 
+            modelBuilder.Entity("Brandora.Web.Models.Domain.PaymentAttempt", b =>
+                {
+                    b.HasOne("Brandora.Web.Models.Domain.Payment", "Payment")
+                        .WithMany("Attempts")
+                        .HasForeignKey("PaymentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Payment");
+                });
+
             modelBuilder.Entity("Brandora.Web.Models.Domain.PayoutMethod", b =>
                 {
                     b.HasOne("Brandora.Web.Models.Domain.InfluencerProfile", "InfluencerProfile")
@@ -1367,6 +1513,24 @@ namespace Brandora.Web.Migrations
                     b.Navigation("BrandProfile");
 
                     b.Navigation("InfluencerProfile");
+                });
+
+            modelBuilder.Entity("Brandora.Web.Models.Domain.WalletTransaction", b =>
+                {
+                    b.HasOne("Brandora.Web.Models.Domain.InfluencerProfile", "InfluencerProfile")
+                        .WithMany()
+                        .HasForeignKey("InfluencerProfileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Brandora.Web.Models.Domain.Payment", "Payment")
+                        .WithMany()
+                        .HasForeignKey("PaymentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("InfluencerProfile");
+
+                    b.Navigation("Payment");
                 });
 
             modelBuilder.Entity("Brandora.Web.Models.Domain.WithdrawalRequest", b =>
@@ -1480,6 +1644,11 @@ namespace Brandora.Web.Migrations
             modelBuilder.Entity("Brandora.Web.Models.Domain.Milestone", b =>
                 {
                     b.Navigation("Payment");
+                });
+
+            modelBuilder.Entity("Brandora.Web.Models.Domain.Payment", b =>
+                {
+                    b.Navigation("Attempts");
                 });
 
             modelBuilder.Entity("Brandora.Web.Models.Domain.Proposal", b =>

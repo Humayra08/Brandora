@@ -14,6 +14,10 @@ public class InfluencerCampaignDetailsViewModel
     public string? BrandLogoUrl { get; set; }
     public string BrandIndustry { get; set; } = string.Empty;
     public string? BrandWebsiteUrl { get; set; }
+
+    // The campaign's banner image and its separate video / reel (played on this page).
+    public string? BannerUrl { get; set; }
+    public string? VideoUrl { get; set; }
     public string? Platform { get; set; }
     public string? Niche { get; set; }
     public decimal Budget { get; set; }

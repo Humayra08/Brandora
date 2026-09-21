@@ -227,6 +227,8 @@ public class InfluencerCampaignsController(UserManager<ApplicationUser> userMana
             Milestones = milestones,
             BrandIndustry = campaign.BrandProfile.Industry,
             BrandWebsiteUrl = campaign.BrandProfile.WebsiteUrl,
+            BannerUrl = campaign.MediaType == "video" ? null : campaign.MediaUrl,
+            VideoUrl = campaign.VideoUrl,
             Platform = campaign.Platform,
             Niche = campaign.Niche,
             Budget = campaign.Budget,

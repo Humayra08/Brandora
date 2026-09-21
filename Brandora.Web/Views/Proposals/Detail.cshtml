@@ -4,413 +4,431 @@
 @{
     var proposal = Model.Proposal;
     ViewData["Title"] = "Application Details";
-    ViewData["ActiveNav"] = "Applicants";
+    ViewData["ActiveNav"] = "Applications";
     Layout = "_AppLayout";
     var hue = (proposal.InfluencerProfile.Id * 47) % 360;
     var statusLabel = proposal.Status == ProposalStatus.Rejected ? "Not Selected" : proposal.Status == ProposalStatus.Pending ? "Pending Review" : proposal.Status.ToString();
+
+    var creator = proposal.InfluencerProfile;
+    var campaign = proposal.Campaign;
+    var collaboration = proposal.Collaboration;
+    var avatarGradient = $"linear-gradient(135deg, hsl({hue}deg 75% 58%), hsl({(hue + 45) % 360}deg 75% 48%))";
+    var firstName = creator.FullName.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? creator.FullName;
+    var isInvite = proposal.InitiatedBy == ProposalInitiator.Brand;
+    var isPending = proposal.Status == ProposalStatus.Pending;
+    var isAccepted = proposal.Status == ProposalStatus.Accepted;
+    var isRejected = proposal.Status == ProposalStatus.Rejected;
+    var planCount = Model.CampaignMilestonePlanCount;
+    var statusBadge = isPending ? "is-pending" : isAccepted ? "is-success" : "is-neutral";
+
+    // Four-step journey from application to paid milestones.
+    var steps = new[]
+    {
+        (Done: true, Title: isInvite ? "Invite Sent" : "Application Received", Sub: proposal.CreatedAt.ToBangladeshTime().ToString("MMM d, yyyy")),
+        (Done: !isPending, Title: isRejected ? "Not Selected" : "Your Decision", Sub: proposal.DecidedAt.HasValue ? proposal.DecidedAt.Value.ToBangladeshTime().ToString("MMM d, yyyy") : "Accept or decline"),
+        (Done: isAccepted && collaboration is not null, Title: "Collaboration Active", Sub: "Milestones created"),
+        (Done: collaboration?.Status == CollaborationStatus.Completed, Title: "Completed", Sub: "Paid via bKash or Nagad")
+    };
+    var currentIndex = isRejected ? -1 : Array.FindIndex(steps, s => !s.Done);
+
+    (string Label, string Badge) CollabBadge(CollaborationStatus status) => status switch
+    {
+        CollaborationStatus.Active => ("Active", "is-info"),
+        CollaborationStatus.Completed => ("Completed", "is-success"),
+        CollaborationStatus.Cancelled => ("Cancelled", "is-neutral"),
+        _ => (status.ToString(), "is-neutral")
+    };
+
+    var faqs = new[]
+    {
+        ("What happens when I accept?", $"A collaboration with {creator.FullName} starts immediately. The {planCount} milestone{(planCount == 1 ? "" : "s")} in your campaign plan are created for them, a chat is opened and they're notified."),
+        ("Is the proposed rate charged now?", "No. Nothing is charged when you accept. You pay per milestone, through bKash or Nagad, only after the work is delivered and approved."),
+        ("Why do both I and Brandora approve?", "You confirm the proof of post matches your brief; Brandora confirms the post is genuine and live. A milestone can only be paid once both sign-offs are in."),
+        ("What does Not Selected do?", "It closes this application and records your decision. You can still message the creator or send them a new invite later.")
+    };
 }
 
 @section Styles {
 
-    .detail-shell { max-width: 1180px; margin: 0 auto; animation: fade-up .4s ease both; }
+    .pd-flow { margin: 0 0 16px; }
+    .pd-body { align-items: start; }
 
-    .detail-crumb { font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 500; color: #8189a8; }
+    .pd-decision-note { display: flex; align-items: flex-start; gap: 8px; margin-top: 14px; padding: 10px 12px; border-radius: 9px; background: #ffffffa6; border: 1px solid #dfebff; font-family: 'Inter', sans-serif; font-size: 11.5px; line-height: 1.55; color: #33477c; }
+    .pd-decision-note i { margin-top: 1px; color: #1451ff; }
+    .decision-card-actions .btn i { margin-right: 8px; }
 
-    .submitted-on { font-family: 'Inter', sans-serif; font-size: 12px; color: #6b84b3; }
-
-    .info-cards { margin-top: 22px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; align-items: stretch; }
-
-    .info-card {
-        padding: 24px;
-        border-radius: 18px;
-        background: #ffffff;
-        border: 1px solid #eaecf5;
-        transition: transform .25s cubic-bezier(.22,1,.36,1), box-shadow .25s ease, border-color .25s ease;
-    }
-    .info-card:hover { transform: translateY(-3px); box-shadow: 0 16px 32px rgba(30,34,90,.08); border-color: #e0dcf8; }
-
-    .info-card-label {
-        font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: .3px; text-transform: uppercase; color: #9096b3;
-    }
-
-    .creator-card-head { display: flex; align-items: flex-start; gap: 14px; margin-top: 14px; }
-    .creator-card-name { display: flex; align-items: center; gap: 6px; font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 16px; color: #171d3d; }
-    .creator-card-loc { margin-top: 3px; font-family: 'Inter', sans-serif; font-size: 12px; color: #8189a8; }
-
-    .creator-card-bio { margin-top: 12px; font-family: 'Inter', sans-serif; font-size: 12.5px; line-height: 1.6; color: #6b7290; }
-
-    .creator-stats { margin-top: 16px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-    .creator-stat { padding: 10px 8px; text-align: center; border-radius: 12px; background: #f8f7ff; }
-    .creator-stat-value { font-family: 'DM Sans', sans-serif; font-weight: 800; font-size: 15px; color: #171d3d; }
-    .creator-stat-label { margin-top: 2px; font-family: 'Inter', sans-serif; font-size: 9.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .3px; color: #9096b3; }
-
-    .creator-card-cta { margin-top: 16px; width: 100%; height: 42px; }
-
-    .campaign-card-title { margin-top: 12px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-    .campaign-card-title strong { font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 15px; color: #171d3d; }
-    .campaign-card-title a { font-family: 'Inter', sans-serif; font-size: 11.5px; font-weight: 700; color: #7a2df3; }
-    .campaign-card-title a:hover { text-decoration: underline; }
-
-    .campaign-fact-list { margin-top: 14px; display: flex; flex-direction: column; gap: 10px; }
-    .campaign-fact { display: flex; align-items: center; gap: 10px; font-family: 'Inter', sans-serif; font-size: 12.5px; color: #3c4363; }
-    .campaign-fact-icon { width: 26px; height: 26px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border-radius: 8px; background: #f1f2f8; color: #7a2df3; font-size: 12px; }
-    .campaign-fact strong { color: #171d3d; }
-
-    .status-card-pill-row { margin-top: 12px; display: flex; align-items: center; justify-content: space-between; }
-    .status-card-rate { margin-top: 18px; }
-    .status-card-rate-value { font-family: 'DM Sans', sans-serif; font-weight: 800; font-size: 26px; color: #171d3d; }
-    .status-card-rate-label { margin-top: 2px; font-family: 'Inter', sans-serif; font-size: 11px; color: #9096b3; }
-    .status-card-quote {
-        margin-top: 16px; padding: 14px 16px;
-        border-radius: 12px;
-        background: radial-gradient(circle at 100% 0%, rgba(155,44,255,.06), transparent 60%), #faf9ff;
-        border: 1px solid #ece7fb;
-        font-family: 'Inter', sans-serif; font-size: 12px; line-height: 1.6; font-style: italic; color: #3c4363;
-    }
-
-    .lower-columns { margin-top: 18px; display: grid; grid-template-columns: 1fr 320px; gap: 18px; align-items: start; }
-
-    .tabs-card { padding: 0; border-radius: 18px; background: #ffffff; border: 1px solid #eaecf5; overflow: hidden; }
-    .tabs-nav { display: flex; flex-wrap: wrap; border-bottom: 1px solid #eaecf5; }
-    .tab-btn {
-        padding: 15px 18px;
-        font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 700; color: #8189a8;
-        border-bottom: 2px solid transparent;
-        cursor: pointer; background: none; border-top: none; border-left: none; border-right: none;
-        transition: color .2s ease, border-color .2s ease;
-    }
-    .tab-btn:hover { color: #3c4363; }
-    .tab-btn.is-active { color: #7a2df3; border-bottom-color: #a326ff; }
-    .tab-panel { display: none; padding: 24px 26px; animation: fade-up .3s ease both; }
+    /* ---- Tabs ---- */
+    .tabs-card { padding: 0; overflow: hidden; }
+    .tabs-nav { display: flex; flex-wrap: wrap; gap: 4px; padding: 8px 10px 0; border-bottom: 1px solid #e3edfc; }
+    .tab-btn { display: inline-flex; align-items: center; gap: 7px; padding: 11px 14px; border: 0; border-bottom: 2px solid transparent; background: none; font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 600; color: #5877ac; cursor: pointer; transition: color .2s ease, border-color .2s ease; }
+    .tab-btn:hover { color: #1451ff; }
+    .tab-btn.is-active { color: #1451ff; border-bottom-color: #3735ff; }
+    .tab-panel { display: none; padding: 8px 20px 18px; animation: fade-up .3s ease both; }
     .tab-panel.is-active { display: block; }
+    .tab-panel .proof-quote { margin-top: 4px; }
 
-    .tab-block { margin-bottom: 20px; }
-    .tab-block:last-child { margin-bottom: 0; }
-    .tab-block-label { font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: .3px; text-transform: uppercase; color: #9096b3; }
-    .tab-block-text { margin-top: 8px; font-family: 'Inter', sans-serif; font-size: 13.5px; line-height: 1.7; color: #3c4363; white-space: pre-wrap; }
+    .collab-list { display: grid; gap: 10px; padding-top: 10px; }
+    .collab-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: 14px; padding: 12px 14px; border-radius: 10px; border: 1px solid #e3edfc; background: #ffffff8c; box-shadow: 0 3px 9px #9bbfe90b; transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease; }
+    .collab-row:hover { transform: translateY(-2px); border-color: #b9d3ff; box-shadow: 0 12px 24px #5b83c41a; }
+    .collab-row strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: 'DM Sans', sans-serif; font-size: 13.5px; font-weight: 700; color: #101d48; }
+    .collab-row small { display: block; margin-top: 2px; font-family: 'Inter', sans-serif; font-size: 11.5px; color: #5877ac; }
+    .collab-row > i { color: #8095c4; transition: transform .2s ease, color .2s ease; }
+    .collab-row:hover > i { transform: translateX(3px); color: #1451ff; }
+    .pd-empty { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-top: 10px; padding: 24px 16px; border: 1px dashed #cfdcf5; border-radius: 12px; background: #f7faffb3; text-align: center; font-family: 'Inter', sans-serif; font-size: 12px; color: #6b7fb1; }
+    .pd-empty strong { font-family: 'DM Sans', sans-serif; font-size: 13.5px; color: #142652; }
 
-    .collab-item { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border-radius: 12px; background: #fbfbfe; border: 1px solid #f0f1f7; margin-bottom: 10px; transition: .2s; }
-    .collab-item:hover { border-color: #e0dcf8; transform: translateY(-1px); }
-    .collab-item:last-child { margin-bottom: 0; }
+    .pd-link { color: #1451ff; font-weight: 600; }
+    .pd-link:hover { text-decoration: underline; }
 
-    .side-panel { padding: 22px; border-radius: 18px; background: #ffffff; border: 1px solid #eaecf5; }
-    .side-panel-title { font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 14.5px; color: #171d3d; }
-    .side-actions { margin-top: 16px; display: flex; flex-direction: column; gap: 10px; }
-    .side-actions form { display: contents; }
-    .side-actions .btn { width: 100%; height: 46px; }
-
-    .timeline-card { margin-top: 18px; padding: 22px; border-radius: 18px; background: #ffffff; border: 1px solid #eaecf5; }
-    .timeline-item { position: relative; padding-left: 24px; padding-bottom: 20px; }
-    .timeline-item:last-child { padding-bottom: 0; }
-    .timeline-item::before { content: ""; position: absolute; left: 4px; top: 4px; width: 9px; height: 9px; border-radius: 50%; background: linear-gradient(105deg, #a326ff, #236eff); }
-    .timeline-item::after { content: ""; position: absolute; left: 8px; top: 14px; bottom: 0; width: 1.5px; background: #eaecf5; }
-    .timeline-item:last-child::after { display: none; }
-    .timeline-item.is-pending::before { background: #e2e5f2; }
-    .timeline-title { font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 700; color: #171d3d; }
-    .timeline-item.is-pending .timeline-title { color: #9096b3; }
-    .timeline-date { margin-top: 2px; font-family: 'Inter', sans-serif; font-size: 11.5px; color: #9096b3; }
-
-    .outcome-banner { margin-top: 12px; padding: 14px 16px; border-radius: 14px; display: flex; align-items: center; gap: 10px; font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 600; }
-    .outcome-banner.accepted { background: #e2faf1; color: #0d9c6c; border: 1px solid #b9f1dd; }
-    .outcome-banner.rejected { background: #fde8ea; color: #c22540; border: 1px solid #f6c3ca; }
-
-    @@media(max-width: 1000px) { .info-cards { grid-template-columns: 1fr; } .lower-columns { grid-template-columns: 1fr; } }
+    .pd-bio { margin-top: 12px; font-family: 'Inter', sans-serif; font-size: 12px; line-height: 1.6; color: #52649b; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+    .pd-total dd { font-size: 15px; color: #0b124e; }
 
 }
 
-<div class="detail-shell">
+<nav class="crumb-trail" aria-label="Breadcrumb">
+    <a href="/Dashboard">Dashboard</a><i class="bi bi-chevron-right"></i>
+    <a href="/Proposals">Applications</a><i class="bi bi-chevron-right"></i>
+    <strong>@creator.FullName</strong>
+</nav>
 
-    <a href="/Proposals" class="back-to-dashboard">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        Back
-    </a>
-
-    <section class="page-hero">
-        @await Html.PartialAsync("_HeroWaves")
-        <div class="page-hero-intro">
-            <div class="detail-crumb"><a href="/Proposals">Applicants</a> / Application Details</div>
-            <h1 class="page-hero-title">Application <span>Details</span></h1>
-            <p class="page-hero-sub">Review @proposal.InfluencerProfile.FullName's application and decide the next step.</p>
-
-            <div class="detail-tags" style="display:flex; align-items:center; gap:8px; margin-top: 14px;">
-                <span class="status-pill @proposal.Status.ToString().ToLowerInvariant()">@statusLabel</span>
-                <span class="submitted-on">Submitted @proposal.CreatedAt.ToBangladeshTime().ToString("MMM d, yyyy, h:mm tt")</span>
-            </div>
-        </div>
-
-        <div class="page-hero-art" aria-hidden="true">
-            <div class="hero-glass hero-glass-back"></div>
-            <div class="hero-glass hero-glass-front">
-                <span class="hero-glass-copy">Review<br />Decide<br />Collaborate<span></span></span>
-            </div>
-            <span class="hero-sparkle"></span>
-        </div>
-
-        <div class="page-hero-motto">Every Applicant,<br />Clearly Reviewed.<span></span></div>
-    </section>
-
-    <div class="info-cards">
-
-        <div class="info-card">
-            <div class="info-card-label">Applicant</div>
-            <div class="creator-card-head">
-                <div class="creator-avatar" style="width:52px;height:52px;font-size:16px;background: linear-gradient(135deg, hsl(@(hue)deg 75% 58%), hsl(@((hue + 45) % 360)deg 75% 48%));">
-                    @FollowerFormat.InitialsOf(proposal.InfluencerProfile.FullName)
-                </div>
-                <div>
-                    <div class="creator-card-name">
-                        @proposal.InfluencerProfile.FullName
-                        @if (proposal.InfluencerProfile.Verified)
-                        {
-                            <span class="verified-badge">✓ Verified</span>
-                        }
-                    </div>
-                    @if (!string.IsNullOrEmpty(proposal.InfluencerProfile.Location))
-                    {
-                        <div class="creator-card-loc">@proposal.InfluencerProfile.Location</div>
-                    }
-                    @if (!string.IsNullOrEmpty(proposal.InfluencerProfile.ContentNiche))
-                    {
-                        <div style="margin-top:6px;"><span class="tag">@proposal.InfluencerProfile.ContentNiche</span></div>
-                    }
-                </div>
-            </div>
-
-            @if (!string.IsNullOrEmpty(proposal.InfluencerProfile.Bio))
-            {
-                <p class="creator-card-bio">@proposal.InfluencerProfile.Bio</p>
-            }
-
-            <div class="creator-stats">
-                <div class="creator-stat">
-                    <div class="creator-stat-value">@FollowerFormat.Format(proposal.InfluencerProfile.Followers)</div>
-                    <div class="creator-stat-label">Followers</div>
-                </div>
-                <div class="creator-stat">
-                    <div class="creator-stat-value">@proposal.InfluencerProfile.EngagementRate.ToString("0.0")%</div>
-                    <div class="creator-stat-label">Engagement</div>
-                </div>
-                <div class="creator-stat">
-                    <div class="creator-stat-value">@(proposal.InfluencerProfile.AudienceSize ?? "—")</div>
-                    <div class="creator-stat-label">Audience</div>
-                </div>
-            </div>
-
-            <a href="/Influencers/Profile/@proposal.InfluencerProfileId" class="btn btn-secondary creator-card-cta">View Full Profile →</a>
-        </div>
-
-        <div class="info-card">
-            <div class="info-card-label">Application For Campaign</div>
-            <div class="campaign-card-title">
-                <strong>@proposal.Campaign.Title</strong>
-                <a href="/Campaigns/Detail/@proposal.CampaignId">View Campaign →</a>
-            </div>
-
-            <div class="campaign-fact-list">
-                @if (proposal.Campaign.StartDate.HasValue || proposal.Campaign.Deadline.HasValue)
+<section class="page-hero detail-hero">
+    @await Html.PartialAsync("_HeroWaves")
+    <div class="detail-hero-top">
+        <div class="detail-hero-avatar is-person" style="background: @avatarGradient;">@FollowerFormat.InitialsOf(creator.FullName)</div>
+        <div class="detail-hero-copy">
+            <div class="detail-hero-tags">
+                <span><i class="bi @(isInvite ? "bi-send" : "bi-file-earmark-text")"></i> @(isInvite ? "Brand Invite" : "Application")</span>
+                @if (!string.IsNullOrWhiteSpace(campaign.Platform))
                 {
-                    <div class="campaign-fact">
-                        <span class="campaign-fact-icon">📅</span>
-                        <span>@(proposal.Campaign.StartDate?.ToString("MMM d") ?? "No start") &ndash; @(proposal.Campaign.Deadline?.ToString("MMM d, yyyy") ?? "No end date")</span>
-                    </div>
+                    <span><i class="bi bi-broadcast"></i> @campaign.Platform</span>
                 }
-                @if (!string.IsNullOrEmpty(proposal.Campaign.Platform))
+                @if (!string.IsNullOrWhiteSpace(campaign.Niche))
                 {
-                    <div class="campaign-fact">
-                        <span class="campaign-fact-icon">▣</span>
-                        <span>@proposal.Campaign.Platform</span>
-                    </div>
+                    <span><i class="bi bi-tags"></i> @campaign.Niche</span>
                 }
-                <div class="campaign-fact">
-                    <span class="campaign-fact-icon">☰</span>
-                    <span><strong>@Model.CampaignMilestonePlanCount</strong> Milestone@(Model.CampaignMilestonePlanCount == 1 ? "" : "s")</span>
-                </div>
-                <div class="campaign-fact">
-                    <span class="campaign-fact-icon">৳</span>
-                    <span><strong>৳@proposal.Campaign.Budget.ToString("N0")</strong> Total Budget</span>
-                </div>
             </div>
+            <h1>@(isInvite ? "Your invite to " : "")<span>@creator.FullName</span>@(isInvite ? "" : "'s application")</h1>
+            <p>For <a href="/Campaigns/Detail/@proposal.CampaignId">@campaign.Title</a> &middot; @(isInvite ? "sent" : "submitted") @proposal.CreatedAt.ToBangladeshTime().ToString("MMM d, yyyy, h:mm tt")</p>
         </div>
-
-        <div class="info-card">
-            <div class="info-card-label">Application Status</div>
-            <div class="status-card-pill-row">
-                <span class="status-pill @proposal.Status.ToString().ToLowerInvariant()">@statusLabel</span>
-            </div>
-
-            <div class="status-card-rate">
-                <div class="status-card-rate-value">৳@proposal.ProposedAmount.ToString("N0")</div>
-                <div class="status-card-rate-label">Proposed Rate</div>
-            </div>
-
-            @if (!string.IsNullOrEmpty(proposal.Message))
-            {
-                <div class="status-card-quote">&ldquo;@proposal.Message&rdquo;</div>
-            }
+        <div class="detail-hero-side">
+            <span class="ui-badge @statusBadge">@statusLabel</span>
+            <div class="page-hero-motto" style="margin-left:0;">Every Applicant,<br />Clearly Reviewed.<span></span></div>
         </div>
-
     </div>
+    <dl class="detail-hero-stats">
+        <div><dt>Proposed Rate</dt><dd>৳@proposal.ProposedAmount.ToString("N0")</dd></div>
+        <div><dt>Campaign Budget</dt><dd>৳@campaign.Budget.ToString("N0")</dd></div>
+        <div><dt>Milestones Planned</dt><dd>@planCount</dd></div>
+        <div><dt>Followers</dt><dd>@FollowerFormat.Format(creator.Followers) <small>@creator.EngagementRate.ToString("0.0")% eng.</small></dd></div>
+    </dl>
+</section>
 
-    <div class="lower-columns">
+<ol class="flow-steps pd-flow" aria-label="Application progress">
+    @for (var i = 0; i < steps.Length; i++)
+    {
+        var step = steps[i];
+        var cls = step.Done ? "is-done" : i == currentIndex ? "is-current" : "";
+        <li class="@cls" aria-current="@(i == currentIndex ? "step" : null)">
+            <span class="flow-step-num">@if (step.Done) { <i class="bi bi-check-lg"></i> } else { @(i + 1) }</span>
+            <div><strong>@step.Title</strong><small>@step.Sub</small></div>
+        </li>
+    }
+</ol>
 
-        <div class="tabs-card">
+<div class="page-grid pd-body">
+
+    <div class="page-main">
+
+        @* ---------- What to do next ---------- *@
+        @if (isPending)
+        {
+            <section class="decision-card">
+                <div class="decision-card-head">
+                    <span class="icon-chip violet"><i class="bi bi-person-check"></i></span>
+                    <div>
+                        <div class="decision-card-eyebrow">Your decision &middot; Step 2 of 4</div>
+                        <div class="decision-card-title">@(isInvite ? $"Start the collaboration with {creator.FullName}?" : $"Accept or decline {firstName}'s application")</div>
+                        <p class="decision-card-text">
+                            @if (isInvite)
+                            {
+                                <text>You invited @creator.FullName to &ldquo;@campaign.Title&rdquo;. Once you've agreed the terms (use Message to check in), confirm here to start the collaboration.</text>
+                            }
+                            else
+                            {
+                                <text>Review the offer and deliverables below. Accepting starts a collaboration right away; Not Selected closes the application.</text>
+                            }
+                        </p>
+                    </div>
+                </div>
+                <dl class="decision-breakdown">
+                    <div><dt>Proposed rate</dt><dd>৳@proposal.ProposedAmount.ToString("N0")</dd></div>
+                    <div><dt>Campaign budget</dt><dd>৳@campaign.Budget.ToString("N0")</dd></div>
+                    <div><dt>Milestones in plan</dt><dd>@planCount</dd></div>
+                </dl>
+                <div class="decision-card-actions">
+                    <form method="post" action="/Proposals/ConfirmAccept/@proposal.Id">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-primary"><i class="bi bi-check2-circle"></i>@(isInvite ? "Confirm & Start Collaboration" : "Accept Application")</button>
+                    </form>
+                    <form method="post" action="/Proposals/Reject/@proposal.Id">
+                        @Html.AntiForgeryToken()
+                        <button type="button" class="btn btn-outline-danger js-confirm"
+                                data-confirm-title="@(isInvite ? "Withdraw this invite?" : "Reject this application?")"
+                                data-confirm-text="Are you sure you want to mark @creator.FullName as Not Selected? They will be notified."
+                                data-confirm-label="Not Selected"
+                                data-confirm-danger="true"><i class="bi bi-x-circle"></i>Not Selected</button>
+                    </form>
+                    <button type="button" class="btn btn-ghost js-open-chat"
+                            data-influencer-id="@proposal.InfluencerProfileId"
+                            data-influencer-name="@creator.FullName"
+                            data-hue="@hue"><i class="bi bi-chat-dots"></i>Message Influencer</button>
+                </div>
+                <p class="pd-decision-note">
+                    <i class="bi bi-info-circle"></i>
+                    <span>
+                        @if (planCount > 0)
+                        {
+                            <text>Accepting creates the collaboration with the @planCount milestone@(planCount == 1 ? "" : "s") from your campaign plan. Nothing is charged now &mdash; each milestone is paid via bKash or Nagad after you and Brandora approve the proof of post.</text>
+                        }
+                        else
+                        {
+                            <text>This campaign has no milestone plan yet, so the collaboration will start without milestones &mdash; you can add them from the collaboration page. Nothing is charged now.</text>
+                        }
+                    </span>
+                </p>
+            </section>
+        }
+        else if (isAccepted)
+        {
+            <section class="decision-card">
+                <div class="decision-card-head">
+                    <span class="icon-chip mint"><i class="bi bi-check2-circle"></i></span>
+                    <div>
+                        <div class="decision-card-eyebrow">Accepted@(proposal.DecidedAt.HasValue ? $" · {proposal.DecidedAt.Value.ToBangladeshTime():MMM d, yyyy}" : "")</div>
+                        <div class="decision-card-title">Your collaboration with @firstName is @(collaboration is null ? "set up" : collaboration.Status == CollaborationStatus.Active ? "active" : collaboration.Status.ToString().ToLowerInvariant())</div>
+                        <p class="decision-card-text">Track milestones, review proof of post and release payments from the collaboration page.</p>
+                    </div>
+                </div>
+                <div class="decision-card-actions">
+                    @if (collaboration is not null)
+                    {
+                        <a href="/Collaborations/Detail/@collaboration.Id" class="btn btn-primary"><i class="bi bi-kanban"></i>Manage Collaboration</a>
+                    }
+                    <button type="button" class="btn btn-secondary js-open-chat"
+                            data-influencer-id="@proposal.InfluencerProfileId"
+                            data-influencer-name="@creator.FullName"
+                            data-hue="@hue"><i class="bi bi-chat-dots"></i>Message Influencer</button>
+                </div>
+            </section>
+        }
+        else
+        {
+            <section class="decision-card">
+                <div class="decision-card-head">
+                    <span class="icon-chip soft"><i class="bi bi-x-circle"></i></span>
+                    <div>
+                        <div class="decision-card-eyebrow">Closed@(proposal.DecidedAt.HasValue ? $" · {proposal.DecidedAt.Value.ToBangladeshTime():MMM d, yyyy}" : "")</div>
+                        <div class="decision-card-title">This @(isInvite ? "invite" : "application") was not selected</div>
+                        <p class="decision-card-text">You can still reach out to @firstName, or send a fresh invite with new terms for this campaign.</p>
+                    </div>
+                </div>
+                <div class="decision-card-actions">
+                    <a href="/Proposals/Invite?influencerId=@proposal.InfluencerProfileId&campaignId=@proposal.CampaignId" class="btn btn-primary"><i class="bi bi-send"></i>Send New Invite</a>
+                    <button type="button" class="btn btn-secondary js-open-chat"
+                            data-influencer-id="@proposal.InfluencerProfileId"
+                            data-influencer-name="@creator.FullName"
+                            data-hue="@hue"><i class="bi bi-chat-dots"></i>Message Influencer</button>
+                </div>
+            </section>
+        }
+
+        @* ---------- Application tabs ---------- *@
+        <section class="ui-card tabs-card">
             <div class="tabs-nav">
-                <button type="button" class="tab-btn is-active" data-tab="details">Application Details</button>
-                <button type="button" class="tab-btn" data-tab="social">Social Account</button>
-                <button type="button" class="tab-btn" data-tab="history">Past Collaborations @(Model.PastCollaborations.Count > 0 ? $"({Model.PastCollaborations.Count})" : "")</button>
-                <button type="button" class="tab-btn" data-tab="more">Additional Information</button>
+                <button type="button" class="tab-btn is-active" data-tab="details"><i class="bi bi-file-earmark-text"></i>Application Details</button>
+                <button type="button" class="tab-btn" data-tab="social"><i class="bi bi-broadcast"></i>Social Account</button>
+                <button type="button" class="tab-btn" data-tab="history"><i class="bi bi-clock-history"></i>Past Collaborations @(Model.PastCollaborations.Count > 0 ? $"({Model.PastCollaborations.Count})" : "")</button>
+                <button type="button" class="tab-btn" data-tab="more"><i class="bi bi-info-circle"></i>Additional Information</button>
             </div>
 
             <div class="tab-panel is-active" data-panel="details">
-                <div class="tab-block">
-                    <div class="tab-block-label">Proposed Deliverables</div>
-                    <p class="tab-block-text">@proposal.Deliverables</p>
-                </div>
-                <div class="tab-block">
-                    <div class="tab-block-label">Timeline</div>
-                    <p class="tab-block-text">@(proposal.Timeline ?? "Not specified")</p>
-                </div>
-                <div class="tab-block">
-                    <div class="tab-block-label">Initiated By</div>
-                    <p class="tab-block-text">@proposal.InitiatedBy</p>
-                </div>
+                <dl class="detail-rows">
+                    <div><dt><span class="icon-chip"><i class="bi bi-list-check"></i></span>Proposed Deliverables</dt><dd>@proposal.Deliverables</dd></div>
+                    <div><dt><span class="icon-chip"><i class="bi bi-calendar4-week"></i></span>Timeline</dt><dd>@(proposal.Timeline ?? "Not specified")</dd></div>
+                    <div><dt><span class="icon-chip"><i class="bi bi-cash-coin"></i></span>Proposed Rate</dt><dd>৳@proposal.ProposedAmount.ToString("N0")<small>Paid per milestone via bKash or Nagad after approval</small></dd></div>
+                    <div><dt><span class="icon-chip"><i class="bi bi-person-up"></i></span>Initiated By</dt><dd>@proposal.InitiatedBy<small>@(isInvite ? "You sent this invite from the creator's profile" : "The creator applied to your campaign")</small></dd></div>
+                </dl>
+                @if (!string.IsNullOrEmpty(proposal.Message))
+                {
+                    <div class="proof-quote"><i class="bi bi-chat-quote-fill"></i><span>@proposal.Message</span></div>
+                }
             </div>
 
             <div class="tab-panel" data-panel="social">
-                <div class="tab-block">
-                    <div class="tab-block-label">Primary Platform</div>
-                    <p class="tab-block-text">@(proposal.InfluencerProfile.PrimaryPlatform ?? "Not specified")</p>
-                </div>
-                @if (!string.IsNullOrEmpty(proposal.InfluencerProfile.PlatformUsername))
-                {
-                    <div class="tab-block">
-                        <div class="tab-block-label">Handle</div>
-                        <p class="tab-block-text">@proposal.InfluencerProfile.PlatformUsername</p>
-                    </div>
-                }
-                <div class="tab-block">
-                    <div class="tab-block-label">Followers &amp; Engagement</div>
-                    <p class="tab-block-text">@FollowerFormat.Format(proposal.InfluencerProfile.Followers) followers &middot; @proposal.InfluencerProfile.EngagementRate.ToString("0.0")% engagement rate</p>
-                </div>
+                <dl class="detail-rows">
+                    <div><dt><span class="icon-chip"><i class="bi bi-broadcast"></i></span>Primary Platform</dt><dd>@(creator.PrimaryPlatform ?? "Not specified")</dd></div>
+                    @if (!string.IsNullOrEmpty(creator.PlatformUsername))
+                    {
+                        <div><dt><span class="icon-chip"><i class="bi bi-at"></i></span>Handle</dt><dd>@creator.PlatformUsername</dd></div>
+                    }
+                    <div><dt><span class="icon-chip"><i class="bi bi-people"></i></span>Followers &amp; Engagement</dt><dd>@FollowerFormat.Format(creator.Followers) followers &middot; @creator.EngagementRate.ToString("0.0")% engagement rate</dd></div>
+                    <div><dt><span class="icon-chip"><i class="bi bi-bar-chart"></i></span>Audience Size</dt><dd>@(string.IsNullOrWhiteSpace(creator.AudienceSize) ? "Not specified" : creator.AudienceSize)</dd></div>
+                </dl>
             </div>
 
             <div class="tab-panel" data-panel="history">
                 @if (Model.PastCollaborations.Count == 0)
                 {
-                    <p class="tab-block-text" style="margin-top:0;">No past collaborations with this creator yet.</p>
+                    <div class="pd-empty">
+                        <span class="icon-chip soft"><i class="bi bi-people"></i></span>
+                        <strong>No past collaborations</strong>
+                        <span>You haven't worked with @firstName on another campaign yet.</span>
+                    </div>
                 }
                 else
                 {
-                    foreach (var collab in Model.PastCollaborations)
-                    {
-                        <div class="collab-item">
-                            <div>
-                                <div style="font-family:'DM Sans',sans-serif;font-weight:700;font-size:13px;color:#171d3d;">@collab.Campaign.Title</div>
-                                <div style="margin-top:2px;font-family:'Inter',sans-serif;font-size:11.5px;color:#9096b3;">Started @collab.CreatedAt.ToString("MMM d, yyyy")</div>
-                            </div>
-                            <span class="status-pill @collab.Status.ToString().ToLowerInvariant()">@collab.Status</span>
-                        </div>
-                    }
+                    <div class="collab-list">
+                        @foreach (var collab in Model.PastCollaborations)
+                        {
+                            var cb = CollabBadge(collab.Status);
+                            <a href="/Collaborations/Detail/@collab.Id" class="collab-row">
+                                <span class="icon-chip sm blue"><i class="bi bi-megaphone"></i></span>
+                                <div style="min-width:0;">
+                                    <strong>@collab.Campaign.Title</strong>
+                                    <small>Started @collab.CreatedAt.ToString("MMM d, yyyy")</small>
+                                </div>
+                                <span class="ui-badge @cb.Badge">@cb.Label</span>
+                                <i class="bi bi-arrow-right"></i>
+                            </a>
+                        }
+                    </div>
                 }
             </div>
 
             <div class="tab-panel" data-panel="more">
-                @if (!string.IsNullOrEmpty(proposal.InfluencerProfile.WebsiteUrl))
-                {
-                    <div class="tab-block">
-                        <div class="tab-block-label">Website</div>
-                        <p class="tab-block-text"><a href="@proposal.InfluencerProfile.WebsiteUrl" target="_blank" rel="noopener" style="color:#7a2df3;">@proposal.InfluencerProfile.WebsiteUrl</a></p>
-                    </div>
-                }
-                @if (!string.IsNullOrEmpty(proposal.InfluencerProfile.RateNote))
-                {
-                    <div class="tab-block">
-                        <div class="tab-block-label">Rate Note</div>
-                        <p class="tab-block-text">@proposal.InfluencerProfile.RateNote</p>
-                    </div>
-                }
-                <div class="tab-block">
-                    <div class="tab-block-label">Verification Status</div>
-                    <p class="tab-block-text">@proposal.InfluencerProfile.VerificationStatus</p>
-                </div>
+                <dl class="detail-rows">
+                    @if (!string.IsNullOrEmpty(creator.WebsiteUrl))
+                    {
+                        <div><dt><span class="icon-chip"><i class="bi bi-globe2"></i></span>Website</dt><dd><a href="@creator.WebsiteUrl" target="_blank" rel="noopener" class="pd-link">@creator.WebsiteUrl</a></dd></div>
+                    }
+                    @if (!string.IsNullOrEmpty(creator.RateNote))
+                    {
+                        <div><dt><span class="icon-chip"><i class="bi bi-cash-coin"></i></span>Rate Note</dt><dd>@creator.RateNote</dd></div>
+                    }
+                    @if (!string.IsNullOrEmpty(creator.Location))
+                    {
+                        <div><dt><span class="icon-chip"><i class="bi bi-geo-alt"></i></span>Location</dt><dd>@creator.Location</dd></div>
+                    }
+                    <div><dt><span class="icon-chip"><i class="bi bi-shield-check"></i></span>Verification Status</dt><dd>@creator.VerificationStatus</dd></div>
+                </dl>
             </div>
-        </div>
+        </section>
 
-        <div>
-            <div class="side-panel">
-                <div class="side-panel-title">Quick Actions</div>
-
-                <div class="side-actions">
-                    @if (proposal.Status == ProposalStatus.Pending)
-                    {
-                        <form method="post" action="/Proposals/ConfirmAccept/@proposal.Id">
-                            @Html.AntiForgeryToken()
-                            <button type="submit" class="btn btn-danger-solid" style="background: linear-gradient(105deg, #17c98f, #0d9c6c);">Accept Application</button>
-                        </form>
-                    }
-                    else if (proposal.Status == ProposalStatus.Accepted && proposal.Collaboration is not null)
-                    {
-                        <a href="/Collaborations/Detail/@proposal.Collaboration.Id" class="btn btn-secondary">Manage Collaboration</a>
-                    }
-
-                    <button type="button" class="btn btn-outline-brand js-open-chat"
-                            data-influencer-id="@proposal.InfluencerProfileId"
-                            data-influencer-name="@proposal.InfluencerProfile.FullName"
-                            data-hue="@hue">Message Influencer</button>
-
-                    @if (proposal.Status == ProposalStatus.Pending)
-                    {
-                        <form method="post" action="/Proposals/Reject/@proposal.Id">
-                            @Html.AntiForgeryToken()
-                            <button type="button" class="btn btn-danger-solid js-confirm"
-                                    data-confirm-title="Reject this application?"
-                                    data-confirm-text="Are you sure you want to mark @proposal.InfluencerProfile.FullName as Not Selected? They will be notified."
-                                    data-confirm-label="Not Selected"
-                                    data-confirm-danger="true">Not Selected</button>
-                        </form>
-                    }
-                    else if (proposal.Status == ProposalStatus.Rejected)
-                    {
-                        <a href="/Proposals/Invite?influencerId=@proposal.InfluencerProfileId&campaignId=@proposal.CampaignId" class="btn btn-secondary">Send New Invite</a>
-                    }
+        @* ---------- Campaign ---------- *@
+        <section class="ui-card">
+            <div class="ui-card-head">
+                <div>
+                    <div class="ui-card-title">Application for Campaign</div>
+                    <p class="ui-card-sub">What @firstName would be working on.</p>
                 </div>
-
-                @if (proposal.Status == ProposalStatus.Accepted)
-                {
-                    <div class="outcome-banner accepted">Accepted — a collaboration is active.</div>
-                }
-                else if (proposal.Status == ProposalStatus.Rejected)
-                {
-                    <div class="outcome-banner rejected">This application was not selected.</div>
-                }
+                <a href="/Campaigns/Detail/@proposal.CampaignId" class="ui-card-link">View Campaign <i class="bi bi-arrow-right"></i></a>
             </div>
-
-            <div class="timeline-card">
-                <div class="side-panel-title">Timeline</div>
-                <div style="margin-top:16px;">
-                    <div class="timeline-item">
-                        <div class="timeline-title">Application Submitted</div>
-                        <div class="timeline-date">@proposal.CreatedAt.ToBangladeshTime().ToString("MMM d, yyyy, h:mm tt")</div>
-                    </div>
-                    @if (proposal.DecidedAt.HasValue)
-                    {
-                        <div class="timeline-item">
-                            <div class="timeline-title">@(proposal.Status == ProposalStatus.Accepted ? "Accepted" : "Not Selected")</div>
-                            <div class="timeline-date">@proposal.DecidedAt.Value.ToBangladeshTime().ToString("MMM d, yyyy, h:mm tt")</div>
-                        </div>
-                    }
-                    else
-                    {
-                        <div class="timeline-item is-pending">
-                            <div class="timeline-title">Decision Pending</div>
-                            <div class="timeline-date">You haven't taken any action yet.</div>
-                        </div>
-                    }
-                </div>
-            </div>
-        </div>
+            <dl class="detail-rows">
+                <div><dt><span class="icon-chip"><i class="bi bi-megaphone"></i></span>Campaign</dt><dd><a href="/Campaigns/Detail/@proposal.CampaignId" class="pd-link">@campaign.Title</a><small>@campaign.Status</small></dd></div>
+                @if (campaign.StartDate.HasValue || campaign.Deadline.HasValue)
+                {
+                    <div><dt><span class="icon-chip"><i class="bi bi-calendar-range"></i></span>Schedule</dt><dd>@(campaign.StartDate?.ToString("MMM d") ?? "No start") &ndash; @(campaign.Deadline?.ToString("MMM d, yyyy") ?? "No end date")</dd></div>
+                }
+                @if (!string.IsNullOrEmpty(campaign.Platform))
+                {
+                    <div><dt><span class="icon-chip"><i class="bi bi-broadcast"></i></span>Platform</dt><dd>@campaign.Platform</dd></div>
+                }
+                <div><dt><span class="icon-chip"><i class="bi bi-flag"></i></span>Milestones</dt><dd>@planCount Milestone@(planCount == 1 ? "" : "s")<small>From your campaign plan</small></dd></div>
+                <div><dt><span class="icon-chip"><i class="bi bi-wallet2"></i></span>Total Budget</dt><dd>৳@campaign.Budget.ToString("N0")</dd></div>
+            </dl>
+        </section>
 
     </div>
+
+    <aside class="page-rail">
+
+        <section class="ui-card">
+            <div class="person-card-top">
+                <span class="person-avatar" style="background: @avatarGradient;">@FollowerFormat.InitialsOf(creator.FullName)</span>
+                <div style="min-width:0;">
+                    <div class="person-name">@creator.FullName @if (creator.Verified) { <i class="bi bi-patch-check-fill" title="Verified"></i> }</div>
+                    <div class="person-handle">@(string.IsNullOrEmpty(creator.Location) ? creator.PrimaryPlatform : $"{creator.PrimaryPlatform} · {creator.Location}")</div>
+                </div>
+            </div>
+            @if (!string.IsNullOrEmpty(creator.Bio))
+            {
+                <p class="pd-bio">@creator.Bio</p>
+            }
+            <div class="person-stats">
+                <div><strong>@FollowerFormat.Format(creator.Followers)</strong><span>Followers</span></div>
+                <div><strong>@creator.EngagementRate.ToString("0.0")%</strong><span>Engagement</span></div>
+                <div><strong>@(string.IsNullOrWhiteSpace(creator.ContentNiche) ? "—" : creator.ContentNiche)</strong><span>Niche</span></div>
+            </div>
+            <div class="person-actions">
+                <a href="/Influencers/Profile/@proposal.InfluencerProfileId"><i class="bi bi-person"></i> Full Profile</a>
+                <button type="button" class="js-open-chat" data-influencer-id="@proposal.InfluencerProfileId" data-influencer-name="@creator.FullName" data-hue="@hue"><i class="bi bi-chat-dots"></i> Message</button>
+            </div>
+        </section>
+
+        <section class="ui-card">
+            <div class="ui-card-head" style="margin-bottom:6px;">
+                <div class="ui-card-title" style="font-size:17px;">Application Summary</div>
+                <span class="ui-badge @statusBadge">@statusLabel</span>
+            </div>
+            <dl class="fact-list">
+                <div><dt>Type</dt><dd>@(isInvite ? "Brand invite" : "Creator application")</dd></div>
+                <div><dt>@(isInvite ? "Sent" : "Submitted")</dt><dd>@proposal.CreatedAt.ToBangladeshTime().ToString("MMM d, h:mm tt")</dd></div>
+                <div><dt>Decided</dt><dd>@(proposal.DecidedAt.HasValue ? proposal.DecidedAt.Value.ToBangladeshTime().ToString("MMM d, h:mm tt") : "Not yet")</dd></div>
+                <div><dt>Milestones in plan</dt><dd>@planCount</dd></div>
+                <div class="pd-total"><dt>Proposed rate</dt><dd>৳@proposal.ProposedAmount.ToString("N0")</dd></div>
+            </dl>
+        </section>
+
+        <section class="info-card">
+            <div class="info-card-head">
+                <span class="icon-chip soft"><i class="bi bi-signpost-2"></i></span>
+                <div class="info-card-title">What's Next?</div>
+            </div>
+            <ol class="next-steps">
+                <li class="is-done"><h4>@(isInvite ? "Invite sent" : "Application received")</h4><p>@proposal.CreatedAt.ToBangladeshTime().ToString("MMM d, yyyy, h:mm tt")</p></li>
+                <li class="@(isPending ? "is-current" : "is-done")"><h4>@(isRejected ? "Not selected" : "You accept")</h4><p>@(proposal.DecidedAt.HasValue ? proposal.DecidedAt.Value.ToBangladeshTime().ToString("MMM d, yyyy, h:mm tt") : "Accepting creates the collaboration and its milestones.")</p></li>
+                @if (!isRejected)
+                {
+                    <li class="@(isAccepted ? "is-current" : "")"><h4>Creator delivers</h4><p>@firstName submits proof of post for each milestone.</p></li>
+                    <li><h4>Two-stage approval</h4><p>You check the proof against your brief, then Brandora verifies the post is genuine and live.</p></li>
+                    <li><h4>Paid via bKash or Nagad</h4><p>You release each approved milestone and pay it through bKash or Nagad and the creator is credited.</p></li>
+                }
+            </ol>
+        </section>
+
+        <section class="ui-card">
+            <div class="ui-card-head" style="margin-bottom:2px;">
+                <div class="ui-card-title" style="font-size:17px;">Frequently Asked Questions</div>
+            </div>
+            <div class="faq-list">
+                @foreach (var faq in faqs)
+                {
+                    <details>
+                        <summary>@faq.Item1<i class="bi bi-chevron-right"></i></summary>
+                        <p>@faq.Item2</p>
+                    </details>
+                }
+            </div>
+        </section>
+
+        <section class="help-card">
+            <h3>Need Help?</h3>
+            <p>Unsure about an offer or how collaborations work? Our support team can step in.</p>
+            <a href="/Home/Contact">Contact Support <i class="bi bi-arrow-right"></i></a>
+            <svg viewBox="0 0 400 170" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="pd-help-wave" x1="0" y1="1" x2="1" y2="0"><stop stop-color="#0955ca" stop-opacity="0"/><stop offset=".65" stop-color="#168cff" stop-opacity=".5"/><stop offset="1" stop-color="#783dff" stop-opacity=".15"/></linearGradient></defs><path d="M-20 160 C100 50 140 220 260 105 S350 85 420 20 L420 190 H-20Z" fill="url(#pd-help-wave)"/><path d="M-20 164 C110 90 140 230 270 120 S360 70 420 40" fill="none" stroke="#2799ff" stroke-opacity=".4"/></svg>
+        </section>
+
+    </aside>
 
 </div>
 

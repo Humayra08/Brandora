@@ -8,7 +8,7 @@
 
     var currentUserId = UserManager.GetUserId(User);
     var selected = Model.Selected;
-    var selectedMessages = selected?.Messages.OrderBy(m => m.SentAt).ThenBy(m => m.Id).ToList() ?? new List<Brandora.Web.Models.Domain.Message>();
+    var selectedMessages = selected?.VisibleMessages(false).OrderBy(m => m.SentAt).ThenBy(m => m.Id).ToList() ?? new List<Brandora.Web.Models.Domain.Message>();
     var influencerName = ViewData["CompanyName"] as string ?? "";
 }
 
@@ -1627,6 +1627,48 @@
             }
         }
 
+
+        /* ---- Conversation pin / delete (per-side) ---- */
+        .inbox-row-wrap { position: relative; }
+        .inbox-time { transition: opacity .18s ease; }
+        .inbox-pin { flex-shrink: 0; font-size: 11px; color: #6545ff; }
+        .inbox-row-wrap.is-pinned .inbox-row:not(.is-selected) { background: linear-gradient(110deg, #f6f3ffb3, #f1f7ffb3); }
+
+        .list-section-label { display: flex; align-items: center; gap: 6px; padding: 10px 12px 6px; font-family: 'Inter', sans-serif; font-size: 10.5px; font-weight: 700; letter-spacing: 1.1px; text-transform: uppercase; color: #5877ac; }
+        .list-section-label i { font-size: 11px; color: #6545ff; }
+
+        .convo-menu-wrap { position: absolute; top: 10px; right: 10px; z-index: 6; opacity: 0; transition: opacity .18s ease; }
+        .inbox-row-wrap:hover .convo-menu-wrap,
+        .inbox-row-wrap:focus-within .convo-menu-wrap,
+        .convo-menu-wrap.is-open { opacity: 1; }
+        .inbox-row-wrap:hover .inbox-time,
+        .inbox-row-wrap:focus-within .inbox-time,
+        .inbox-row-wrap.menu-open .inbox-time { opacity: 0; }
+
+        .convo-menu-btn { display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border-radius: 50%; border: 1px solid #d7e8ff; background: #ffffffeb; color: #33477c; font-size: 14px; cursor: pointer; box-shadow: 0 4px 12px -6px #3b5bdb55; transition: border-color .18s ease, color .18s ease, background .18s ease, transform .18s ease; }
+        .convo-menu-btn:hover,
+        .convo-menu-wrap.is-open .convo-menu-btn { border-color: #1451ff; background: #eef4ff; color: #1451ff; transform: scale(1.05); }
+        .convo-menu-btn:focus-visible { outline: 2px solid #1451ff; outline-offset: 2px; }
+
+        .convo-menu { position: absolute; top: calc(100% + 6px); right: 0; min-width: 196px; padding: 6px; border-radius: 12px; border: 1px solid #d7e8ff; background: #ffffff; box-shadow: 0 18px 40px -12px rgba(30,34,90,.28); opacity: 0; visibility: hidden; transform: translateY(-6px) scale(.97); transform-origin: top right; transition: opacity .16s ease, transform .16s cubic-bezier(.22,1,.36,1), visibility .16s; }
+        .convo-menu-wrap.is-up .convo-menu { top: auto; bottom: calc(100% + 6px); transform-origin: bottom right; }
+        .convo-menu-wrap.is-open .convo-menu { opacity: 1; visibility: visible; transform: none; }
+        .convo-menu form { margin: 0; }
+        .convo-menu-item { display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 10px; border: 0; border-radius: 8px; background: transparent; text-align: left; font-family: 'Inter', 'DM Sans', sans-serif; font-size: 12.5px; font-weight: 500; color: #20365f; cursor: pointer; transition: background .15s ease, color .15s ease; }
+        .convo-menu-item i { width: 16px; font-size: 14px; text-align: center; color: #6545ff; }
+        .convo-menu-item:hover { background: linear-gradient(110deg, #efeaff, #e8f2ff); }
+        .convo-menu-item.is-danger, .convo-menu-item.is-danger i { color: #c22540; }
+        .convo-menu-item.is-danger:hover { background: #fdecef; }
+        .convo-menu-sep { height: 1px; margin: 4px 6px; background: #eef2fb; }
+
+        @@media (hover: none) {
+            .convo-menu-wrap { opacity: 1; }
+            .inbox-time { opacity: 0; }
+        }
+
+        .inbox-notice { display: flex; align-items: center; gap: 10px; margin: 0 0 14px; padding: 12px 16px; border-radius: 12px; border: 1px solid #bfe9d6; background: #effbf5; font-family: 'DM Sans', sans-serif; font-size: 13px; color: #1c6a4b; animation: fade-up .4s ease both; }
+        .inbox-notice i { color: #0d9c6c; }
+
         .confirm-modal-overlay {
             position: fixed;
             inset: 0;
@@ -1799,6 +1841,11 @@
 
         <!-- ================= CHAT ================= -->
 
+        @if (TempData["InboxNotice"] is string inboxNotice)
+        {
+            <div class="inbox-notice" role="status"><i class="bi bi-check-circle-fill"></i><span>@inboxNotice</span></div>
+        }
+
         <div class="messages-shell">
 
             <div class="list-panel">
@@ -1826,9 +1873,16 @@
                 <div class="list-rows">
                     @if (Model.TotalCount > 0)
                     {
+                        var pinnedCount = Model.Conversations.Count(c => c.InfluencerPinnedAt.HasValue);
+                        var shownAllLabel = false;
+                        @if (pinnedCount > 0)
+                        {
+                            <div class="list-section-label"><i class="bi bi-pin-angle-fill"></i> Pinned</div>
+                        }
                         @foreach (var conversation in Model.Conversations)
                         {
-                            var lastMessage = conversation.Messages.OrderByDescending(m => m.SentAt).FirstOrDefault();
+                            var lastMessage = conversation.VisibleMessages(false).OrderByDescending(m => m.SentAt).FirstOrDefault();
+                            var isPinned = conversation.InfluencerPinnedAt.HasValue;
                             var unread = Model.UnreadFor(conversation.Id);
                             var isSelected = selected is not null && conversation.Id == selected.Id;
                             var snippet = lastMessage is null
@@ -1836,6 +1890,12 @@
                                 : (!string.IsNullOrEmpty(lastMessage.MediaUrl) && string.IsNullOrEmpty(lastMessage.Body)
                                     ? (lastMessage.MediaType == "video" ? "Sent a video" : "Sent a photo")
                                     : lastMessage.Body);
+                            @if (pinnedCount > 0 && !isPinned && !shownAllLabel)
+                            {
+                                shownAllLabel = true;
+                                <div class="list-section-label">All conversations</div>
+                            }
+                            <div class="inbox-row-wrap @(isPinned ? "is-pinned" : "")">
                             <a href="/InfluencerMessages?open=@conversation.Id" class="inbox-row @(isSelected ? "is-selected" : "")" data-reveal>
 
                                 <div class="inbox-avatar">
@@ -1846,6 +1906,10 @@
                                     <div class="inbox-name-row">
                                         <div class="inbox-name-left">
                                             <span>@conversation.BrandProfile.CompanyName</span>
+                                            @if (isPinned)
+                                            {
+                                                <i class="bi bi-pin-angle-fill inbox-pin" title="Pinned" aria-label="Pinned"></i>
+                                            }
                                         </div>
                                         <span class="inbox-time">@((lastMessage?.SentAt ?? conversation.CreatedAt).ToBangladeshTime().ToString("MMM d"))</span>
                                     </div>
@@ -1859,6 +1923,37 @@
                                 </div>
 
                             </a>
+                            <div class="convo-menu-wrap" data-convo-menu>
+                                <button type="button" class="convo-menu-btn" data-convo-menu-toggle aria-haspopup="menu" aria-expanded="false" aria-label="Options for conversation with @conversation.BrandProfile.CompanyName">
+                                    <i class="bi bi-three-dots"></i>
+                                </button>
+                                <div class="convo-menu" role="menu">
+                                    <form method="post" action="/InfluencerMessages/TogglePin">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="conversationId" value="@conversation.Id" />
+                                        @if (selected is not null)
+                                        {
+                                            <input type="hidden" name="open" value="@selected.Id" />
+                                        }
+                                        <button type="submit" class="convo-menu-item" role="menuitem">
+                                            <i class="bi @(isPinned ? "bi-pin-angle" : "bi-pin-angle-fill")"></i>@(isPinned ? "Unpin conversation" : "Pin to top")
+                                        </button>
+                                    </form>
+                                    <div class="convo-menu-sep" role="separator"></div>
+                                    <form method="post" action="/InfluencerMessages/DeleteConversation">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="conversationId" value="@conversation.Id" />
+                                        @if (selected is not null)
+                                        {
+                                            <input type="hidden" name="open" value="@selected.Id" />
+                                        }
+                                        <button type="button" class="convo-menu-item is-danger" role="menuitem" data-convo-delete data-convo-name="@conversation.BrandProfile.CompanyName">
+                                            <i class="bi bi-trash3"></i>Delete conversation
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                            </div>
                         }
                     }
                     else if (!string.IsNullOrEmpty(Model.Search))
@@ -2100,11 +2195,90 @@
         </div>
     </div>
 
+    <div class="confirm-modal-overlay" id="convoDeleteOverlay" hidden>
+        <div class="confirm-modal" role="alertdialog" aria-labelledby="convoDeleteTitle" aria-describedby="convoDeleteBody">
+            <div class="confirm-modal-icon">
+                <i class="bi bi-trash3" style="font-size:20px;"></i>
+            </div>
+            <div class="confirm-modal-title" id="convoDeleteTitle">Delete this conversation?</div>
+            <p class="confirm-modal-body" id="convoDeleteBody">It will be removed from your inbox. The brand keeps their copy.</p>
+            <div class="confirm-modal-actions">
+                <button type="button" class="confirm-modal-cancel" id="convoDeleteCancel">Cancel</button>
+                <button type="button" class="confirm-modal-danger" id="convoDeleteOk">Delete</button>
+            </div>
+        </div>
+    </div>
+
     <div class="copy-toast" id="copyToast">Copied</div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
+
+    // Conversation options (pin / delete) — one menu open at a time.
+    (function () {
+        function closeAllConvoMenus(except) {
+            document.querySelectorAll('[data-convo-menu].is-open').forEach(function (wrap) {
+                if (wrap === except) { return; }
+                wrap.classList.remove('is-open');
+                var rowWrap = wrap.closest('.inbox-row-wrap');
+                if (rowWrap) { rowWrap.classList.remove('menu-open'); }
+                var b = wrap.querySelector('[data-convo-menu-toggle]');
+                if (b) { b.setAttribute('aria-expanded', 'false'); }
+            });
+        }
+
+        document.querySelectorAll('[data-convo-menu-toggle]').forEach(function (btn) {
+            btn.addEventListener('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                var wrap = btn.closest('[data-convo-menu]');
+                var willOpen = !wrap.classList.contains('is-open');
+                closeAllConvoMenus(wrap);
+                if (willOpen) {
+                    // Open upwards when there isn't room below inside the scrolling list.
+                    var list = wrap.closest('.list-rows');
+                    var menu = wrap.querySelector('.convo-menu');
+                    var spaceBelow = (list ? list.getBoundingClientRect().bottom : window.innerHeight) - btn.getBoundingClientRect().bottom;
+                    wrap.classList.toggle('is-up', spaceBelow < (menu ? menu.offsetHeight : 110) + 12);
+                }
+                wrap.classList.toggle('is-open', willOpen);
+                var rowWrap = wrap.closest('.inbox-row-wrap');
+                if (rowWrap) { rowWrap.classList.toggle('menu-open', willOpen); }
+                btn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+            });
+        });
+
+        document.addEventListener('click', function (e) {
+            if (!e.target.closest('[data-convo-menu]')) { closeAllConvoMenus(null); }
+        });
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') { closeAllConvoMenus(null); }
+        });
+
+        var deleteOverlay = document.getElementById('convoDeleteOverlay');
+        var deleteBody = document.getElementById('convoDeleteBody');
+        var pendingDeleteForm = null;
+        function closeDeleteConfirm() { if (deleteOverlay) { deleteOverlay.hidden = true; } pendingDeleteForm = null; }
+        if (deleteOverlay) {
+            document.getElementById('convoDeleteCancel').addEventListener('click', closeDeleteConfirm);
+            document.getElementById('convoDeleteOk').addEventListener('click', function () {
+                var form = pendingDeleteForm;
+                closeDeleteConfirm();
+                if (form) { form.submit(); }
+            });
+            deleteOverlay.addEventListener('click', function (e) { if (e.target === deleteOverlay) { closeDeleteConfirm(); } });
+            document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !deleteOverlay.hidden) { closeDeleteConfirm(); } });
+        }
+
+        document.querySelectorAll('[data-convo-delete]').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                closeAllConvoMenus(null);
+                var name = btn.getAttribute('data-convo-name') || 'They';
+                pendingDeleteForm = btn.closest('form'); if (deleteBody) { deleteBody.textContent = 'It will be removed from your inbox. ' + name + ' keeps their copy, and if they message you again it will reappear with only the new messages.'; } if (deleteOverlay) { deleteOverlay.hidden = false; }
+            });
+        });
+    })();
         (function () {
             var menuBtn = document.getElementById('menuToggleBtn');
             var sidebar = document.getElementById('dashboardSidebar');

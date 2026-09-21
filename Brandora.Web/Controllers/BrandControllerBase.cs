@@ -20,7 +20,8 @@ public abstract class BrandControllerBase(UserManager<ApplicationUser> userManag
             ViewData["CompanyName"] = brand.CompanyName;
             ViewData["UnreadNotifications"] = await db.Notifications.CountAsync(n => n.UserId == userId && !n.IsRead);
             ViewData["UnreadMessages"] = await db.Messages.CountAsync(m =>
-                m.Conversation.BrandProfileId == brand.Id && m.SenderUserId != userId && m.ReadAt == null);
+                m.Conversation.BrandProfileId == brand.Id && m.SenderUserId != userId && m.ReadAt == null &&
+                (m.Conversation.BrandClearedAt == null || m.SentAt > m.Conversation.BrandClearedAt));
             ViewData["RecentNotifications"] = await db.Notifications
                 .Where(n => n.UserId == userId)
                 .OrderByDescending(n => n.CreatedAt)

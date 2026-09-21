@@ -26,6 +26,8 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<PasswordResetCode> PasswordResetCodes => Set<PasswordResetCode>();
     public DbSet<CampaignMilestonePlan> CampaignMilestonePlans => Set<CampaignMilestonePlan>();
     public DbSet<NotificationPreference> NotificationPreferences => Set<NotificationPreference>();
+    public DbSet<PaymentAttempt> PaymentAttempts => Set<PaymentAttempt>();
+    public DbSet<WalletTransaction> WalletTransactions => Set<WalletTransaction>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -167,6 +169,10 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         builder.Entity<Payment>(entity =>
         {
             entity.Property(e => e.Amount).HasPrecision(12, 2);
+            entity.Property(e => e.PlatformFeeAmount).HasPrecision(12, 2);
+            entity.Property(e => e.NetAmount).HasPrecision(12, 2);
+            entity.Property(e => e.BrandFeeAmount).HasPrecision(12, 2);
+            entity.Property(e => e.CreatorFeePercent).HasPrecision(5, 2);
             entity.HasIndex(e => e.MilestoneId).IsUnique(false);
 
             entity.HasOne(e => e.Collaboration)
@@ -177,6 +183,29 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.HasOne(e => e.Milestone)
                 .WithOne(m => m.Payment)
                 .HasForeignKey<Payment>(e => e.MilestoneId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<PaymentAttempt>(entity =>
+        {
+            entity.HasOne(e => e.Payment)
+                .WithMany(p => p.Attempts)
+                .HasForeignKey(e => e.PaymentId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<WalletTransaction>(entity =>
+        {
+            entity.Property(e => e.Amount).HasPrecision(12, 2);
+
+            entity.HasOne(e => e.InfluencerProfile)
+                .WithMany()
+                .HasForeignKey(e => e.InfluencerProfileId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.Payment)
+                .WithMany()
+                .HasForeignKey(e => e.PaymentId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
 
@@ -214,6 +243,9 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         builder.Entity<WithdrawalRequest>(entity =>
         {
             entity.Property(e => e.Amount).HasPrecision(12, 2);
+            entity.Property(e => e.FeePercent).HasPrecision(5, 2);
+            entity.Property(e => e.FeeAmount).HasPrecision(12, 2);
+            entity.Property(e => e.PayoutAmount).HasPrecision(12, 2);
 
             entity.HasOne(e => e.InfluencerProfile)
                 .WithMany()

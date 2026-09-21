@@ -4,138 +4,131 @@
     ViewData["ActiveNav"] = "Notifications";
     Layout = "_AppLayout";
     var unreadCount = Model.Count(n => !n.IsRead);
+
+    var now = DateTime.UtcNow;
+    var weekCount = Model.Count(n => n.CreatedAt >= now.AddDays(-7));
+
+    (string Chip, string Icon, string Label) Kind(string category) => category switch
+    {
+        "Proposal" => ("violet", "bi-send", "Proposal"),
+        "Collaboration" => ("blue", "bi-people", "Collaboration"),
+        "Milestone" => ("cyan", "bi-flag", "Milestone"),
+        "Payment" => ("mint", "bi-wallet2", "Payment"),
+        "Message" => ("blue", "bi-chat-dots", "Message"),
+        "Deadline" => ("amber", "bi-alarm", "Deadline"),
+        _ => ("soft", "bi-bell", string.IsNullOrWhiteSpace(category) ? "General" : category)
+    };
+
+    string Ago(DateTime created)
+    {
+        var span = now - created;
+        if (span.TotalMinutes < 1) return "Just now";
+        if (span.TotalMinutes < 60) return $"{(int)span.TotalMinutes}m ago";
+        if (span.TotalHours < 24) return $"{(int)span.TotalHours}h ago";
+        if (span.TotalDays < 7) return $"{(int)span.TotalDays}d ago";
+        return created.ToString("MMM d");
+    }
+
+    string Group(DateTime created)
+    {
+        var days = (now.Date - created.Date).TotalDays;
+        if (days <= 0) return "Today";
+        if (days <= 1) return "Yesterday";
+        if (days <= 7) return "This Week";
+        return "Earlier";
+    }
+
+    var groups = Model.GroupBy(n => Group(n.CreatedAt)).ToList();
+    var categoryCounts = Model
+        .GroupBy(n => string.IsNullOrWhiteSpace(n.Category) ? "General" : n.Category)
+        .Select(g => new { Category = g.Key, Count = g.Count(), Unread = g.Count(n => !n.IsRead) })
+        .OrderByDescending(c => c.Count)
+        .ToList();
+
+    var faqs = new[]
+    {
+        ("What do I get notified about?", "New and updated proposals, collaborations starting, creators submitting proof of post, payment updates, new messages, and reminders when a published or active campaign's deadline is three days away or less."),
+        ("How do I mark a notification as read?", "Open it — it's marked read and you're taken straight to the campaign, proposal, milestone or conversation it's about. Use Mark All Read to clear everything at once."),
+        ("Can I turn some notifications off?", "Yes. In Settings → Notification Settings you can switch each type on or off. Turned-off types simply aren't created for you."),
+        ("Why did I get a deadline reminder?", "Brandora checks your campaigns when you open the Dashboard or this page. Any published or active campaign due within three days gets one reminder."),
+    };
 }
 
 @section Styles {
 
-    .page-head {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 20px;
+    .nt-body { margin-top: 16px; }
 
-        animation: fade-up .4s ease both;
+    .ui-card { transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease; }
+
+    /* ---- Filters ---- */
+    .nt-filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+    .nt-filter {
+        display: inline-flex; align-items: center; gap: 7px;
+        height: 32px; padding: 0 13px;
+        border-radius: 20px; border: 1px solid #d7e8ff; background: #ffffffb8;
+        font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 600; color: #33477c;
+        cursor: pointer; transition: .2s ease;
     }
+    .nt-filter:hover { border-color: #9fc2ff; color: #1451ff; transform: translateY(-1px); }
+    .nt-filter small { display: inline-grid; place-items: center; min-width: 20px; height: 18px; padding: 0 6px; border-radius: 10px; background: #e7eefc; font-size: 10.5px; color: #2f5fd0; }
+    .nt-filter.is-active { border-color: transparent; background: linear-gradient(110deg, #6425ff, #004dff 55%, #00a8f0); color: #ffffff; box-shadow: 0 8px 18px #3b4dff33; }
+    .nt-filter.is-active small { background: #ffffff33; color: #ffffff; }
 
-    .page-title {
-        font-family: 'Playfair Display', serif;
-        font-weight: 600;
-        font-size: 28px;
-    }
+    /* ---- Groups & rows ---- */
+    .nt-group + .nt-group { margin-top: 18px; }
+    .nt-group-title { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: #5877ac; }
+    .nt-group-title::after { content: ''; flex: 1; height: 1px; background: #e3edfc; }
 
-    .page-sub {
-        margin-top: 6px;
+    .nt-list { display: grid; gap: 10px; }
 
-        font-family: 'Inter', sans-serif;
-        font-size: 13.5px;
-        color: #6b7290;
-    }
-
-    .notif-list {
-        margin-top: 24px;
-        max-width: 720px;
-
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-    }
-
-    .notif-row {
-        display: flex;
-        align-items: flex-start;
+    .nt-row {
+        position: relative;
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        align-items: center;
         gap: 14px;
-
-        padding: 18px 20px;
-
-        border-radius: 14px;
-        background: #ffffff;
-        border: 1px solid #eaecf5;
-
-        transition: transform .2s ease, box-shadow .2s ease;
-
+        padding: 13px 16px;
+        border-radius: 10px;
+        border: 1px solid #e3edfc;
+        background: #ffffff8c;
+        box-shadow: 0 3px 9px #9bbfe90b;
+        transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
         animation: fade-up .45s ease both;
     }
+    .nt-row:hover { transform: translateY(-2px); border-color: #b9d3ff; box-shadow: 0 12px 24px #5b83c41a; }
 
-    a.notif-row:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 12px 26px rgba(30,34,90,.08);
-    }
+    .nt-row.is-unread { border-color: #c9dcff; background: linear-gradient(135deg, #ffffffe6, #f2f7ffcc); box-shadow: 0 6px 16px #5b83c414; }
+    .nt-row.is-unread::before { content: ''; position: absolute; left: -1px; top: 12px; bottom: 12px; width: 3px; border-radius: 0 3px 3px 0; background: linear-gradient(180deg, #7224ff, #087fff); }
 
-    .notif-row.is-unread {
-        border-color: #d9bfff;
-        background: linear-gradient(180deg, #fbf7ff, #ffffff);
-    }
+    .nt-chip-wrap { position: relative; }
+    .nt-dot { position: absolute; top: -1px; right: -1px; width: 11px; height: 11px; border-radius: 50%; border: 2px solid #ffffff; background: linear-gradient(130deg, #7224ff, #087fff); }
 
-    .notif-dot {
-        width: 8px;
-        height: 8px;
-        margin-top: 6px;
-        border-radius: 50%;
-        background: #9b2cff;
-        flex-shrink: 0;
-        opacity: 0;
-    }
+    .nt-title { font-family: 'DM Sans', sans-serif; font-size: 13.5px; font-weight: 700; color: #101d48; }
+    .nt-row:not(.is-unread) .nt-title { font-weight: 600; color: #33477c; }
+    .nt-text { margin-top: 3px; font-family: 'Inter', sans-serif; font-size: 12px; line-height: 1.5; color: #5877ac; }
+    .nt-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 7px; font-family: 'Inter', sans-serif; font-size: 11px; color: #8095c4; }
+    .nt-meta i { margin-right: 3px; }
 
-    .notif-row.is-unread .notif-dot {
-        opacity: 1;
-    }
+    .nt-action { display: inline-flex; align-items: center; gap: 6px; padding: 7px 13px; border-radius: 8px; border: 1px solid #d7e8ff; background: #ffffffb8; font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; color: #1451ff; white-space: nowrap; transition: .2s ease; }
+    .nt-action i { transition: transform .2s ease; }
+    .nt-row:hover .nt-action { border-color: #1451ff; }
+    .nt-row:hover .nt-action i { transform: translateX(3px); }
+    .nt-row.is-unread .nt-action { border-color: transparent; background: linear-gradient(110deg, #6425ff, #004dff 55%, #00a8f0); color: #ffffff; }
+    .nt-row.is-unread:hover .nt-action { box-shadow: 0 8px 18px #3b4dff40; }
 
-    .notif-body {
-        flex: 1;
-        min-width: 0;
-    }
+    .nt-filter-empty { display: none; }
+    .nt-filter-empty.is-visible { display: block; }
 
-    .notif-top-row {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        flex-wrap: wrap;
-    }
+    /* ---- Rail ---- */
+    .nt-cat-list { display: grid; gap: 4px; margin-top: 2px; }
+    .nt-cat { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 7px 6px; border-radius: 9px; transition: background .2s ease; }
+    .nt-cat:hover { background: #f3f8ffcc; }
+    .nt-cat strong { font-family: 'DM Sans', sans-serif; font-size: 13px; color: #101d48; }
+    .nt-cat span.nt-cat-count { font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 700; color: #0b124e; }
 
-    .notif-category {
-        padding: 2px 9px;
-
-        border-radius: 20px;
-
-        font-family: 'Inter', sans-serif;
-        font-size: 10px;
-        font-weight: 700;
-        letter-spacing: .3px;
-        text-transform: uppercase;
-    }
-
-    .notif-category.proposal { background: #fff2e2; color: #b5680a; }
-    .notif-category.collaboration { background: #e2faf1; color: #0d9c6c; }
-    .notif-category.milestone { background: #e4f0ff; color: #1265d6; }
-    .notif-category.payment { background: #f3e8ff; color: #7a1fd6; }
-    .notif-category.general { background: #f2f3fa; color: #545b7d; }
-
-    .notif-time {
-        font-family: 'Inter', sans-serif;
-        font-size: 11.5px;
-        color: #9096b3;
-    }
-
-    .notif-title {
-        margin-top: 6px;
-
-        font-family: 'DM Sans', sans-serif;
-        font-weight: 700;
-        font-size: 14px;
-        color: #171d3d;
-    }
-
-    .notif-row:not(.is-unread) .notif-title {
-        font-weight: 600;
-        color: #545b7d;
-    }
-
-    .notif-message {
-        margin-top: 3px;
-
-        font-family: 'Inter', sans-serif;
-        font-size: 12.5px;
-        color: #6b7290;
+    @@media(max-width: 760px) {
+        .nt-row { grid-template-columns: auto minmax(0, 1fr); }
+        .nt-action { grid-column: 2; justify-self: start; }
     }
 
 }
@@ -149,15 +142,19 @@
     @await Html.PartialAsync("_HeroWaves")
     <div class="page-hero-intro">
         <p class="page-hero-eyebrow">Notifications</p>
-        <h1 class="page-hero-title">Stay <span>Informed</span></h1>
-        <p class="page-hero-sub">Proposals, campaign activity, milestones, messages and payments that need your attention.</p>
-        <p class="page-hero-sub" style="margin-top: 4px; font-weight: 700; color: #7a2df3;">@(unreadCount > 0 ? $"{unreadCount} unread" : "You're all caught up")</p>
+        <h1 class="page-hero-title">Stay Informed. <span>Act at the Right Time.</span></h1>
+        <p class="page-hero-sub">Proposals, collaborations, milestones, messages, payments and campaign deadlines that need your attention &mdash; all in one place.</p>
+        <dl class="page-hero-stats">
+            <div><dd>@unreadCount</dd><dt>Unread</dt></div>
+            <div><dd>@weekCount</dd><dt>In the last 7 days</dt></div>
+            <div><dd>@Model.Count</dd><dt>Total</dt></div>
+        </dl>
 
         @if (unreadCount > 0)
         {
-            <form method="post" action="/Notifications/MarkAllRead" style="margin-top: 14px;">
+            <form method="post" action="/Notifications/MarkAllRead" class="hero-actions" style="margin-top: 16px;">
                 @Html.AntiForgeryToken()
-                <button type="submit" class="btn btn-secondary">Mark All Read</button>
+                <button type="submit" class="btn btn-secondary"><i class="bi bi-check2-all" style="margin-right:8px;"></i>Mark All Read</button>
             </form>
         }
     </div>
@@ -165,7 +162,7 @@
     <div class="page-hero-art" aria-hidden="true">
         <div class="hero-glass hero-glass-back"></div>
         <div class="hero-glass hero-glass-front">
-            <span class="hero-glass-copy">Stay<br />Updated<br />Always<span></span></span>
+            <span class="hero-glass-copy">Stay.<br />Updated.<br />Always.<span></span></span>
         </div>
         <span class="hero-sparkle"></span>
     </div>
@@ -173,29 +170,218 @@
     <div class="page-hero-motto">Nothing<br />Missed.<span></span></div>
 </section>
 
+<div class="page-grid nt-body">
+
+    <div class="page-main">
+
+        <section class="ui-card">
+            <div class="ui-card-head">
+                <div>
+                    <div class="ui-card-title">Your Notifications</div>
+                    <p class="ui-card-sub">
+                        @if (unreadCount > 0)
+                        {
+                            <text>@unreadCount unread notification@(unreadCount == 1 ? "" : "s") &mdash; open one to jump straight to it.</text>
+                        }
+                        else
+                        {
+                            <text>You're all caught up. Open any notification to revisit what it's about.</text>
+                        }
+                    </p>
+                </div>
+                @if (unreadCount > 0)
+                {
+                    <span class="ui-badge is-violet"><i class="bi bi-bell-fill"></i> @unreadCount new</span>
+                }
+                else
+                {
+                    <span class="ui-badge is-success"><i class="bi bi-check-circle-fill"></i> All read</span>
+                }
+            </div>
+
+            @if (Model.Count > 0)
+            {
+                <div class="nt-filters" role="tablist" aria-label="Filter notifications">
+                    <button type="button" class="nt-filter is-active" data-nt-filter="all">All <small>@Model.Count</small></button>
+                    <button type="button" class="nt-filter" data-nt-filter="unread">Unread <small>@unreadCount</small></button>
+                    @foreach (var cat in categoryCounts)
+                    {
+                        <button type="button" class="nt-filter" data-nt-filter="@cat.Category">@Kind(cat.Category).Label <small>@cat.Count</small></button>
+                    }
+                </div>
+
+                @foreach (var group in groups)
+                {
+                    <div class="nt-group" data-nt-group>
+                        <div class="nt-group-title">@group.Key</div>
+                        <div class="nt-list">
+                            @foreach (var notification in group)
+                            {
+                                var kind = Kind(notification.Category);
+                                var category = string.IsNullOrWhiteSpace(notification.Category) ? "General" : notification.Category;
+                                <a href="/Notifications/Open/@notification.Id" class="nt-row @(notification.IsRead ? "" : "is-unread")" data-nt-category="@category" data-nt-unread="@(notification.IsRead ? "false" : "true")">
+                                    <span class="nt-chip-wrap">
+                                        <span class="icon-chip @kind.Chip"><i class="bi @kind.Icon"></i></span>
+                                        @if (!notification.IsRead)
+                                        {
+                                            <span class="nt-dot" aria-label="Unread"></span>
+                                        }
+                                    </span>
+                                    <div style="min-width:0;">
+                                        <div class="nt-title">@notification.Title</div>
+                                        <div class="nt-text">@notification.Body</div>
+                                        <div class="nt-meta">
+                                            <span class="ui-badge is-neutral">@kind.Label</span>
+                                            @if (!notification.IsRead)
+                                            {
+                                                <span class="ui-badge is-violet">New</span>
+                                            }
+                                            <span title="@notification.CreatedAt.ToString("MMM d, yyyy h:mm tt")"><i class="bi bi-clock"></i>@Ago(notification.CreatedAt) &middot; @notification.CreatedAt.ToString("MMM d, h:mm tt")</span>
+                                        </div>
+                                    </div>
+                                    <span class="nt-action">@(notification.IsRead ? "View" : "Open") <i class="bi bi-arrow-right"></i></span>
+                                </a>
+                            }
+                        </div>
+                    </div>
+                }
+
+                <div class="empty-block nt-filter-empty" id="ntFilterEmpty">
+                    <span class="icon-chip soft" style="margin:0 auto 10px;"><i class="bi bi-funnel"></i></span>
+                    <div class="empty-title">Nothing in this filter</div>
+                    <p class="empty-text">No notifications match this filter right now. Switch back to All to see everything.</p>
+                </div>
+            }
+            else
+            {
+                <div class="empty-block">
+                    <span class="icon-chip lg soft" style="margin:0 auto 12px;"><i class="bi bi-bell"></i></span>
+                    <div class="empty-title">You're all caught up</div>
+                    <p class="empty-text">New proposals, creator updates, milestone submissions, payments and deadline reminders will appear here as they happen.</p>
+                    <a href="/Campaigns" class="btn btn-primary" style="margin-top: 16px; height: 40px;">View Campaigns</a>
+                </div>
+            }
+        </section>
+
+    </div>
+
+    <aside class="page-rail">
+
+        <section class="ui-card">
+            <div class="ui-card-head" style="margin-bottom:6px;">
+                <div class="ui-card-title" style="font-size:17px;">At a Glance</div>
+                <span class="ui-badge @(unreadCount > 0 ? "is-violet" : "is-success")">@unreadCount unread</span>
+            </div>
+            @if (categoryCounts.Count > 0)
+            {
+                <div class="nt-cat-list">
+                    @foreach (var cat in categoryCounts)
+                    {
+                        var kind = Kind(cat.Category);
+                        <div class="nt-cat">
+                            <span class="icon-chip sm @kind.Chip"><i class="bi @kind.Icon"></i></span>
+                            <strong>@kind.Label</strong>
+                            <span class="nt-cat-count">
+                                @if (cat.Unread > 0)
+                                {
+                                    <span class="ui-badge is-violet" style="margin-right:6px;">@cat.Unread new</span>
+                                }
+                                @cat.Count
+                            </span>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <dl class="fact-list">
+                    <div><dt>Total notifications</dt><dd>0</dd></div>
+                    <div><dt>Unread</dt><dd>0</dd></div>
+                </dl>
+            }
+        </section>
+
+        <section class="info-card">
+            <div class="info-card-head">
+                <span class="icon-chip soft"><i class="bi bi-sliders"></i></span>
+                <div class="info-card-title">Notification Settings</div>
+            </div>
+            <p>Choose which updates reach you &mdash; proposals, messages, milestones, payments and campaign deadline reminders can each be switched on or off.</p>
+            <a href="/Settings#notifications" class="info-card-btn">Manage Preferences <i class="bi bi-arrow-right"></i></a>
+        </section>
+
+        <section class="ui-card">
+            <div class="ui-card-head" style="margin-bottom:0;">
+                <div>
+                    <div class="ui-card-title" style="font-size:17px;">Stay on Top of Things</div>
+                    <p class="ui-card-sub">Quick habits that keep campaigns moving.</p>
+                </div>
+            </div>
+            <ul class="check-list">
+                <li><i class="bi bi-check-circle-fill"></i>Reply to new proposals within a day or two &mdash; good creators get booked fast.</li>
+                <li><i class="bi bi-check-circle-fill"></i>Review milestone proof as soon as it arrives so payouts aren't held up.</li>
+                <li><i class="bi bi-check-circle-fill"></i>Act on deadline reminders before a campaign's end date passes.</li>
+                <li><i class="bi bi-check-circle-fill"></i>Keep message notifications on so creators never wait on you.</li>
+            </ul>
+        </section>
+
+        <section class="ui-card">
+            <div class="ui-card-head" style="margin-bottom:2px;">
+                <div class="ui-card-title" style="font-size:17px;">Frequently Asked Questions</div>
+            </div>
+            <div class="faq-list">
+                @foreach (var faq in faqs)
+                {
+                    <details>
+                        <summary>@faq.Item1<i class="bi bi-chevron-right"></i></summary>
+                        <p>@faq.Item2</p>
+                    </details>
+                }
+            </div>
+        </section>
+
+        <section class="help-card">
+            <h3>Need Help?</h3>
+            <p>Missing a notification you expected, or getting ones you don't? Our support team can help.</p>
+            <a href="/Home/Contact">Contact Support <i class="bi bi-arrow-right"></i></a>
+            <svg viewBox="0 0 400 170" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="notifications-help-wave" x1="0" y1="1" x2="1" y2="0"><stop stop-color="#0955ca" stop-opacity="0"/><stop offset=".65" stop-color="#168cff" stop-opacity=".5"/><stop offset="1" stop-color="#783dff" stop-opacity=".15"/></linearGradient></defs><path d="M-20 160 C100 50 140 220 260 105 S350 85 420 20 L420 190 H-20Z" fill="url(#notifications-help-wave)"/><path d="M-20 164 C110 90 140 230 270 120 S360 70 420 40" fill="none" stroke="#2799ff" stroke-opacity=".4"/></svg>
+        </section>
+
+    </aside>
+
+</div>
+
 @if (Model.Count > 0)
 {
-    <div class="notif-list">
-        @foreach (var notification in Model)
-        {
-            <a href="/Notifications/Open/@notification.Id" class="notif-row @(notification.IsRead ? "" : "is-unread")">
-                <div class="notif-dot"></div>
-                <div class="notif-body">
-                    <div class="notif-top-row">
-                        <span class="notif-category @notification.Category.ToLowerInvariant()">@notification.Category</span>
-                        <span class="notif-time">@notification.CreatedAt.ToString("MMM d, h:mm tt")</span>
-                    </div>
-                    <div class="notif-title">@notification.Title</div>
-                    <div class="notif-message">@notification.Body</div>
-                </div>
-            </a>
-        }
-    </div>
-}
-else
-{
-    <div class="panel empty-block" style="margin-top: 24px; max-width: 480px;">
-        <div class="empty-title">You're all caught up</div>
-        <p class="empty-text">New campaign activity, creator updates and important account notifications will appear here.</p>
-    </div>
+    <script>
+        (function () {
+            var buttons = document.querySelectorAll('[data-nt-filter]');
+            var rows = document.querySelectorAll('.nt-row');
+            var groups = document.querySelectorAll('[data-nt-group]');
+            var empty = document.getElementById('ntFilterEmpty');
+
+            buttons.forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    var filter = btn.getAttribute('data-nt-filter');
+                    buttons.forEach(function (b) { b.classList.toggle('is-active', b === btn); });
+
+                    var shown = 0;
+                    rows.forEach(function (row) {
+                        var match = filter === 'all'
+                            || (filter === 'unread' && row.getAttribute('data-nt-unread') === 'true')
+                            || row.getAttribute('data-nt-category') === filter;
+                        row.style.display = match ? '' : 'none';
+                        if (match) shown++;
+                    });
+
+                    groups.forEach(function (group) {
+                        var visible = Array.prototype.some.call(group.querySelectorAll('.nt-row'), function (r) { return r.style.display !== 'none'; });
+                        group.style.display = visible ? '' : 'none';
+                    });
+
+                    if (empty) empty.classList.toggle('is-visible', shown === 0);
+                });
+            });
+        })();
+    </script>
 }

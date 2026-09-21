@@ -3,7 +3,7 @@
 @using Brandora.Web.Models.Domain
 @{
     ViewData["Title"] = "Applicants";
-    ViewData["ActiveNav"] = "Applicants";
+    ViewData["ActiveNav"] = "Applications";
     Layout = "_AppLayout";
 
     string BuildUrl(int? overridePage = null, ProposalStatus? overrideStatus = null, bool clearStatus = false)
@@ -19,294 +19,387 @@
         qp.Add($"page={overridePage ?? Model.Page}");
         return "/Proposals?" + string.Join("&", qp);
     }
+
+    (string Label, string Badge) StatusBadge(ProposalStatus status) => status switch
+    {
+        ProposalStatus.Pending => ("Pending Review", "is-pending"),
+        ProposalStatus.Accepted => ("Accepted", "is-success"),
+        ProposalStatus.Rejected => ("Not Selected", "is-neutral"),
+        _ => (status.ToString(), "is-neutral")
+    };
+
+    var decided = Model.AcceptedCount + Model.RejectedCount;
+    var acceptanceRate = decided > 0 ? (int)Math.Round(Model.AcceptedCount * 100d / decided) : (int?)null;
+    var hasFilters = Model.CampaignId.HasValue || Model.Status.HasValue || !string.IsNullOrWhiteSpace(Model.Search) || Model.From.HasValue || Model.To.HasValue;
+
+    var faqs = new[]
+    {
+        ("What happens when I accept an application?", "A collaboration starts straight away. The milestones from your campaign plan are created for this creator, a chat with them is opened and they're notified."),
+        ("What does Not Selected do?", "It closes the application and records your decision. You can still message the creator or send them a fresh invite later."),
+        ("How are accepted creators paid?", "Per milestone. When the creator submits proof of post, you and Brandora both approve it, then you release the payment through bKash or Nagad."),
+        ("What's the difference between an application and an invite?", "Applications come from creators who applied to your campaign; invites are proposals you sent from a creator's profile. Both appear here and are decided the same way.")
+    };
 }
 
 @section Styles {
 
-    .page-head { animation: fade-up .4s ease both; }
+    .ap-body { align-items: start; }
 
-    .detail-crumb { font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 500; color: #8189a8; }
-    .page-title { margin-top: 6px; font-family: 'Playfair Display', serif; font-weight: 600; font-size: 28px; }
-    .page-sub { margin-top: 6px; font-family: 'Inter', sans-serif; font-size: 13.5px; color: #6b7290; }
+    /* ---- Status tabs ---- */
+    .ap-tabs { display: flex; flex-wrap: wrap; gap: 6px; padding: 6px; border-radius: 12px; border: 1px solid #d6e6ff; background: #ffffff85; }
+    .status-tab { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 9px; font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 600; color: #33477c; transition: background .2s ease, color .2s ease, transform .2s ease, box-shadow .2s ease; }
+    .status-tab:hover { background: #eef4ff; color: #1451ff; transform: translateY(-1px); }
+    .status-tab .count { min-width: 22px; padding: 1px 7px; border-radius: 20px; background: #e7eefc; font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 700; text-align: center; color: #2f5fd0; }
+    .status-tab.is-active { background: linear-gradient(110deg, #6425ff, #004dff 55%, #00a8f0); color: #ffffff; box-shadow: 0 8px 18px -8px #3b4dff80; }
+    .status-tab.is-active .count { background: #ffffff33; color: #ffffff; }
 
-    .filter-bar { margin-top: 22px; display: flex; flex-wrap: wrap; gap: 8px; animation: fade-up .45s ease both; }
+    /* ---- Filter toolbar ---- */
+    .ap-toolbar { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr); align-items: end; gap: 10px 12px; margin-top: 14px; }
+    .ap-field { display: grid; gap: 5px; min-width: 0; }
+    .ap-field > span { font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; color: #5877ac; }
+    .ap-search { position: relative; }
+    .ap-search i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 13px; color: #7d93c8; pointer-events: none; }
+    .ap-toolbar input, .ap-toolbar select { width: 100%; height: 40px; padding: 0 12px; border-radius: 10px; border: 1px solid #d3e4ff; background: #ffffffcc; font-family: 'Inter', sans-serif; font-size: 12.5px; color: #20365f; outline: none; transition: border-color .2s ease, box-shadow .2s ease, background .2s ease; }
+    .ap-search input { padding-left: 34px; }
+    .ap-toolbar select { padding-right: 30px; appearance: none; -webkit-appearance: none; cursor: pointer; background: #ffffffcc url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6' fill='none'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%235877ac' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 12px center; }
+    .ap-toolbar input:hover, .ap-toolbar select:hover { border-color: #a9c9ff; }
+    .ap-toolbar input:focus, .ap-toolbar select:focus { border-color: #8f7bff; box-shadow: 0 0 0 3px #7862ef22; background-color: #ffffff; }
+    .ap-toolbar-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 8px; }
+    .ap-toolbar-actions .btn { height: 40px; }
+    .toolbar-reset { display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 14px; border-radius: 10px; border: 1px solid #d7e8ff; background: #ffffffb8; font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 600; color: #1451ff; transition: .2s ease; }
+    .toolbar-reset:hover { border-color: #1451ff; transform: translateY(-1px); }
 
-    .status-tab {
-        display: inline-flex; align-items: center; gap: 7px;
-        padding: 9px 16px;
-        border-radius: 20px; border: 1px solid #e2e5f2; background: #ffffff;
-        font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 600; color: #545b7d;
-        transition: transform .2s ease, box-shadow .2s ease, background .2s ease, color .2s ease, border-color .2s ease;
+    /* ---- Application rows ---- */
+    .ap-list { display: grid; gap: 10px; }
+    .ap-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) auto auto;
+        align-items: center;
+        gap: 18px;
+        padding: 14px 16px;
+        border-radius: 12px;
+        border: 1px solid #e3edfc;
+        background: #ffffff8c;
+        box-shadow: 0 3px 9px #9bbfe90b;
+        transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+        animation: fade-up .45s ease both;
     }
-    .status-tab:hover { transform: translateY(-2px); box-shadow: 0 8px 18px rgba(30,34,90,.08); border-color: #d6d0f5; }
-    .status-tab .count { padding: 1px 7px; border-radius: 20px; background: #f1f2f8; font-size: 11px; font-weight: 700; color: #6b7290; transition: .2s; }
-    .status-tab.is-active { border-color: transparent; color: #ffffff; background: linear-gradient(105deg, #a326ff, #236eff, #18a9ff); }
-    .status-tab.is-active .count { background: rgba(255,255,255,.22); color: #ffffff; }
+    .ap-row:hover { transform: translateY(-2px); border-color: #b9d3ff; box-shadow: 0 12px 24px #5b83c41a; }
 
-    .toolbar {
-        margin-top: 16px;
-        padding: 16px 18px;
-        border-radius: 16px;
-        background: #ffffff;
-        border: 1px solid #eaecf5;
-        display: flex; flex-wrap: wrap; align-items: center; gap: 12px;
-        animation: fade-up .5s ease both;
-    }
+    .ap-who { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .ap-avatar { display: grid; place-items: center; flex-shrink: 0; width: 44px; height: 44px; border-radius: 50%; color: #ffffff; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 700; box-shadow: inset 0 0 6px #ffffff55; }
+    .ap-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 700; color: #101d48; }
+    .ap-sub { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin-top: 3px; font-family: 'Inter', sans-serif; font-size: 11.5px; color: #5877ac; }
+    .ap-sub .ui-badge { padding: 1px 8px; font-size: 10.5px; }
 
-    .toolbar-input-wrap {
-        position: relative;
-        flex: 1;
-        min-width: 200px;
-    }
-    .toolbar-input-wrap svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #9096b3; }
-    .toolbar-input-wrap input {
-        width: 100%;
-        padding: 10px 12px 10px 34px;
-        border-radius: 10px; border: 1px solid #e2e5f2; background: #fbfbfe;
-        font-family: 'Inter', sans-serif; font-size: 13px; color: #171d3d; outline: none;
-        transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
-    }
-    .toolbar-input-wrap input:focus { border-color: #a978ff; box-shadow: 0 0 0 4px rgba(155,44,255,.1); background: #fff; }
+    .ap-what { min-width: 0; }
+    .ap-campaign { display: flex; align-items: center; gap: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 600; color: #172a5c; }
+    .ap-campaign i { color: #5b4dff; }
+    .ap-deliverables { margin-top: 3px; font-family: 'Inter', sans-serif; font-size: 11.5px; line-height: 1.5; color: #5877ac; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
-    .toolbar select, .toolbar input[type="date"] {
-        padding: 10px 30px 10px 12px;
-        border-radius: 10px; border: 1px solid #e2e5f2; background: #fbfbfe;
-        font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 600; color: #3c4363; outline: none;
-        transition: border-color .2s ease, box-shadow .2s ease;
-        appearance: none; -webkit-appearance: none;
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6' fill='none'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%23545b7d' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-        background-repeat: no-repeat; background-position: right 12px center;
-    }
-    .toolbar input[type="date"] { background-image: none; padding-right: 12px; }
-    .toolbar select:focus, .toolbar input[type="date"]:focus { border-color: #a978ff; box-shadow: 0 0 0 4px rgba(155,44,255,.1); }
+    .ap-money { text-align: right; padding-left: 16px; border-left: 1px solid #e9f1fd; }
+    .ap-money strong { display: block; font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 700; color: #0b124e; white-space: nowrap; }
+    .ap-money small { display: block; margin-top: 2px; font-family: 'Inter', sans-serif; font-size: 11px; color: #6680ad; white-space: nowrap; }
 
-    .toolbar-reset {
-        display: inline-flex; align-items: center; justify-content: center;
-        height: 38px; padding: 0 16px;
-        border-radius: 10px; border: 1.5px solid #a326ff33;
-        background: #fff; color: #7a2df3;
-        font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 700;
-        cursor: pointer; transition: .2s;
-        text-decoration: none;
-    }
-    .toolbar-reset:hover { background: rgba(155,44,255,.08); border-color: #a326ff; transform: translateY(-1px); }
+    .ap-end { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+    .row-view-btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 8px; border: 1px solid #d7e8ff; background: #ffffffb8; font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; color: #1451ff; white-space: nowrap; transition: .2s ease; }
+    .row-view-btn i { transition: transform .2s ease; }
+    .ap-row:hover .row-view-btn { border-color: #1451ff; }
+    .row-view-btn:hover i { transform: translateX(3px); }
+    .row-view-btn.is-primary { border-color: transparent; background: linear-gradient(110deg, #6425ff, #004dff 55%, #00a8f0); color: #ffffff; }
+    .ap-row:hover .row-view-btn.is-primary { box-shadow: 0 8px 18px #3b4dff40; }
 
-    .applicants-table-wrap {
-        margin-top: 18px;
-        border-radius: 18px;
-        background: #ffffff;
-        border: 1px solid #eaecf5;
-        overflow: hidden;
-        animation: fade-up .55s ease both;
-    }
-
-    .applicants-table { width: 100%; border-collapse: collapse; }
-    .applicants-table th {
-        text-align: left;
-        padding: 14px 18px;
-        background: linear-gradient(180deg, #f8f7ff, #f4f5fc);
-        font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: .3px; text-transform: uppercase; color: #7a819e;
-        border-bottom: 1px solid #eaecf5;
-        white-space: nowrap;
-    }
-    .applicants-table td {
-        padding: 16px 18px;
-        border-bottom: 1px solid #f2f3f9;
-        vertical-align: middle;
-        font-family: 'Inter', sans-serif; font-size: 13px; color: #3c4363;
-    }
-    .applicants-table tbody tr { transition: background .2s ease, transform .2s ease; }
-    .applicants-table tbody tr:hover { background: #faf9ff; }
-    .applicants-table tbody tr:last-child td { border-bottom: none; }
-
-    .applicant-cell { display: flex; align-items: center; gap: 12px; min-width: 190px; }
-    .applicant-name { font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 13.5px; color: #171d3d; }
-    .applicant-sub { margin-top: 2px; font-size: 11.5px; color: #9096b3; }
-
-    .cell-campaign-title { font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 13px; color: #171d3d; }
-    .cell-campaign-sub { margin-top: 2px; font-size: 11.5px; color: #9096b3; }
-
-    .cell-content { max-width: 260px; color: #6b7290; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-
-    .cell-rate { font-family: 'DM Sans', sans-serif; font-weight: 800; font-size: 14px; color: #171d3d; white-space: nowrap; }
-
-    .row-view-btn {
-        display: inline-flex; align-items: center; justify-content: center;
-        height: 36px; padding: 0 16px;
-        border-radius: 9px; border: 1px solid #dde1f0; background: #ffffff;
-        font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 700; color: #2a3157;
-        transition: .2s; white-space: nowrap;
-    }
-    .row-view-btn:hover { border-color: transparent; color: #ffffff; background: linear-gradient(105deg, #a326ff, #236eff, #18a9ff); transform: translateY(-1px); box-shadow: 0 8px 18px rgba(140,60,255,.25); }
-
-    .pagination-bar {
-        margin-top: 16px;
-        display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
-        font-family: 'Inter', sans-serif; font-size: 12.5px; color: #6b7290;
-    }
+    /* ---- Pagination ---- */
+    .pagination-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-top: 16px; padding-top: 14px; border-top: 1px solid #e3edfc; font-family: 'Inter', sans-serif; font-size: 12px; color: #5877ac; }
+    .pagination-bar strong { color: #101d48; }
     .pagination-controls { display: flex; align-items: center; gap: 6px; }
-    .page-btn {
-        display: inline-flex; align-items: center; justify-content: center;
-        width: 34px; height: 34px;
-        border-radius: 9px; border: 1px solid #e2e5f2; background: #fff;
-        font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 700; color: #3c4363;
-        transition: .2s;
-    }
-    .page-btn:hover { border-color: #a326ff; color: #7a2df3; transform: translateY(-1px); }
-    .page-btn.is-active { background: linear-gradient(105deg, #a326ff, #236eff, #18a9ff); border-color: transparent; color: #fff; }
+    .page-btn { display: inline-grid; place-items: center; min-width: 34px; height: 34px; padding: 0 8px; border-radius: 9px; border: 1px solid #d7e8ff; background: #ffffffb8; font-family: 'DM Sans', sans-serif; font-size: 12.5px; font-weight: 700; color: #33477c; transition: .2s ease; }
+    .page-btn:hover { border-color: #1451ff; color: #1451ff; transform: translateY(-1px); }
+    .page-btn.is-active { border-color: transparent; background: linear-gradient(110deg, #6425ff, #004dff 55%, #00a8f0); color: #ffffff; }
     .page-btn.is-disabled { opacity: .4; pointer-events: none; }
+    .page-size-form { display: flex; align-items: center; gap: 8px; margin: 0; }
+    .page-size-select { height: 34px; padding: 0 28px 0 10px; border-radius: 9px; border: 1px solid #d3e4ff; background: #ffffffcc url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6' fill='none'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%235877ac' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 10px center; font-family: 'DM Sans', sans-serif; font-size: 12.5px; font-weight: 700; color: #33477c; appearance: none; -webkit-appearance: none; cursor: pointer; outline: none; }
 
-    .page-size-select { padding: 7px 26px 7px 10px; }
+    .ap-empty { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 36px 20px; text-align: center; }
+    .ap-empty strong { font: 600 19px/1.3 'Playfair Display', Georgia, serif; color: #0b084e; }
+    .ap-empty p { max-width: 440px; margin: 0; font-family: 'Inter', sans-serif; font-size: 12.5px; line-height: 1.6; color: #5877ac; }
+    .ap-empty-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 8px; }
+
+    .ap-rate { font-family: 'DM Sans', sans-serif; font-size: 26px; font-weight: 700; color: #101d48; }
+    .ap-rate small { font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 500; color: #5877ac; }
+    .ap-track { margin-top: 10px; height: 7px; border-radius: 7px; background: #e3edfc; overflow: hidden; }
+    .ap-fill { height: 100%; border-radius: 7px; background: linear-gradient(110deg, #6323ff, #0759ff); }
+
+    @@media(max-width: 1350px) { .ap-toolbar { grid-template-columns: 1fr 1fr; } }
+    @@media(max-width: 900px) {
+        .ap-row { grid-template-columns: minmax(0, 1fr) auto; }
+        .ap-what { grid-column: 1 / -1; grid-row: 2; }
+        .ap-money { padding-left: 0; border-left: 0; text-align: left; }
+    }
+    @@media(max-width: 560px) { .ap-toolbar { grid-template-columns: 1fr; } }
 
 }
 
-<a href="/Dashboard" class="back-to-dashboard">
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    Back
-</a>
+<nav class="crumb-trail" aria-label="Breadcrumb">
+    <a href="/Dashboard">Dashboard</a><i class="bi bi-chevron-right"></i>
+    @if (Model.Campaign is not null)
+    {
+        <a href="/Proposals">Applications</a><i class="bi bi-chevron-right"></i>
+        <a href="/Campaigns/Detail/@Model.Campaign.Id">@Model.Campaign.Title</a><i class="bi bi-chevron-right"></i>
+        <strong>Applicants</strong>
+    }
+    else
+    {
+        <strong>Applications</strong>
+    }
+</nav>
 
 <section class="page-hero">
     @await Html.PartialAsync("_HeroWaves")
     <div class="page-hero-intro">
-        @if (Model.Campaign is not null)
-        {
-            <div class="detail-crumb"><a href="/Campaigns/Detail/@Model.Campaign.Id">@Model.Campaign.Title</a> / Applicants</div>
-        }
-        else
-        {
-            <p class="page-hero-eyebrow">Applicants</p>
-        }
-        <h1 class="page-hero-title">@if (Model.Campaign is not null) { <text>Applicants for @Model.Campaign.Title</text> } else { <text>Campaign <span>Applicants</span></text> }</h1>
-        <p class="page-hero-sub">Review every creator who applied to your campaigns, compare their proposals, and accept, decline or message them straight from here.</p>
+        <p class="page-hero-eyebrow">Applications</p>
+        <h1 class="page-hero-title">
+            @if (Model.Campaign is not null)
+            {
+                <text>Applicants for <span>@Model.Campaign.Title</span></text>
+            }
+            else
+            {
+                <text>Review Every <span>Application</span></text>
+            }
+        </h1>
+        <p class="page-hero-sub">Compare creators who applied to your campaigns and the invites you've sent, then accept, decline or message them.</p>
+        <dl class="page-hero-stats">
+            <div><dd>@Model.AllCount</dd><dt>All Applications</dt></div>
+            <div><dd>@Model.PendingCount</dd><dt>Awaiting Decision</dt></div>
+            <div><dd>@Model.AcceptedCount</dd><dt>Accepted</dt></div>
+            <div><dd>@Model.RejectedCount</dd><dt>Not Selected</dt></div>
+        </dl>
     </div>
 
     <div class="page-hero-art" aria-hidden="true">
         <div class="hero-glass hero-glass-back"></div>
         <div class="hero-glass hero-glass-front">
-            <span class="hero-glass-copy">Ideas<br />Collaborations<br />Real Impact<span></span></span>
+            <span class="hero-glass-copy">Review<br />Decide<br />Collaborate<span></span></span>
         </div>
         <span class="hero-sparkle"></span>
     </div>
 
-    <div class="page-hero-motto">Consistent Effort<br />Creates Greater<br />Opportunities.<span></span></div>
+    <div class="page-hero-motto">Every Applicant,<br />Clearly Reviewed.<span></span></div>
 </section>
 
-<div class="filter-bar">
-    <a href="@BuildUrl(overridePage: 1, clearStatus: true)" class="status-tab @(Model.Status == null ? "is-active" : "")">All Applications <span class="count">@Model.AllCount</span></a>
-    <a href="@BuildUrl(overridePage: 1, overrideStatus: ProposalStatus.Pending)" class="status-tab @(Model.Status == ProposalStatus.Pending ? "is-active" : "")">Pending <span class="count">@Model.PendingCount</span></a>
-    <a href="@BuildUrl(overridePage: 1, overrideStatus: ProposalStatus.Accepted)" class="status-tab @(Model.Status == ProposalStatus.Accepted ? "is-active" : "")">Accepted <span class="count">@Model.AcceptedCount</span></a>
-    <a href="@BuildUrl(overridePage: 1, overrideStatus: ProposalStatus.Rejected)" class="status-tab @(Model.Status == ProposalStatus.Rejected ? "is-active" : "")">Not Selected <span class="count">@Model.RejectedCount</span></a>
-</div>
+<div class="page-grid ap-body">
 
-<form method="get" action="/Proposals" class="toolbar">
+    <div class="page-main">
 
-    <div class="toolbar-input-wrap">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="m20 20-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-        <input type="text" name="search" placeholder="Search by influencer name..." value="@Model.Search" />
-    </div>
+        <section class="ui-card">
+            <nav class="ap-tabs" aria-label="Filter by status">
+                <a href="@BuildUrl(overridePage: 1, clearStatus: true)" class="status-tab @(Model.Status == null ? "is-active" : "")">All Applications <span class="count">@Model.AllCount</span></a>
+                <a href="@BuildUrl(overridePage: 1, overrideStatus: ProposalStatus.Pending)" class="status-tab @(Model.Status == ProposalStatus.Pending ? "is-active" : "")">Pending <span class="count">@Model.PendingCount</span></a>
+                <a href="@BuildUrl(overridePage: 1, overrideStatus: ProposalStatus.Accepted)" class="status-tab @(Model.Status == ProposalStatus.Accepted ? "is-active" : "")">Accepted <span class="count">@Model.AcceptedCount</span></a>
+                <a href="@BuildUrl(overridePage: 1, overrideStatus: ProposalStatus.Rejected)" class="status-tab @(Model.Status == ProposalStatus.Rejected ? "is-active" : "")">Not Selected <span class="count">@Model.RejectedCount</span></a>
+            </nav>
 
-    <select name="campaignId" onchange="this.form.submit()">
-        <option value="">All Campaigns</option>
-        @foreach (var c in Model.AvailableCampaigns)
-        {
-            <option value="@c.Id" selected="@(Model.CampaignId == c.Id)">@c.Title</option>
-        }
-    </select>
+            <form method="get" action="/Proposals" class="ap-toolbar">
+                <label class="ap-field">
+                    <span>Influencer</span>
+                    <span class="ap-search">
+                        <i class="bi bi-search"></i>
+                        <input type="text" name="search" placeholder="Search by influencer name..." value="@Model.Search" />
+                    </span>
+                </label>
 
-    <input type="date" name="from" value="@(Model.From?.ToString("yyyy-MM-dd"))" title="From date" />
-    <input type="date" name="to" value="@(Model.To?.ToString("yyyy-MM-dd"))" title="To date" />
+                <label class="ap-field">
+                    <span>Campaign</span>
+                    <select name="campaignId" onchange="this.form.submit()">
+                        <option value="">All Campaigns</option>
+                        @foreach (var c in Model.AvailableCampaigns)
+                        {
+                            <option value="@c.Id" selected="@(Model.CampaignId == c.Id)">@c.Title</option>
+                        }
+                    </select>
+                </label>
 
-    @if (Model.Status.HasValue) { <input type="hidden" name="status" value="@Model.Status" /> }
-    <input type="hidden" name="pageSize" value="@Model.PageSize" />
+                <label class="ap-field">
+                    <span>From</span>
+                    <input type="date" name="from" value="@(Model.From?.ToString("yyyy-MM-dd"))" title="From date" />
+                </label>
+                <label class="ap-field">
+                    <span>To</span>
+                    <input type="date" name="to" value="@(Model.To?.ToString("yyyy-MM-dd"))" title="To date" />
+                </label>
 
-    <button type="submit" class="btn btn-secondary" style="height:38px;">Filter</button>
-    <a href="/Proposals" class="toolbar-reset">Reset</a>
+                @if (Model.Status.HasValue) { <input type="hidden" name="status" value="@Model.Status" /> }
+                <input type="hidden" name="pageSize" value="@Model.PageSize" />
 
-</form>
+                <div class="ap-toolbar-actions">
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-funnel" style="margin-right:7px;"></i>Filter</button>
+                    <a href="/Proposals" class="toolbar-reset"><i class="bi bi-arrow-counterclockwise"></i>Reset</a>
+                </div>
+            </form>
+        </section>
 
-@if (Model.Proposals.Count > 0)
-{
-    <div class="applicants-table-wrap">
-        <table class="applicants-table">
-            <thead>
-                <tr>
-                    <th>Influencer</th>
-                    <th>Campaign</th>
-                    <th>Proposed Content</th>
-                    <th>Proposed Rate</th>
-                    <th>Submitted On</th>
-                    <th>Status</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var proposal in Model.Proposals)
-                {
-                    var hue = (proposal.InfluencerProfile.Id * 47) % 360;
-                    <tr>
-                        <td>
-                            <div class="applicant-cell">
-                                <div class="creator-avatar" style="width:40px;height:40px;font-size:13px;background: linear-gradient(135deg, hsl(@(hue)deg 75% 58%), hsl(@((hue + 45) % 360)deg 75% 48%));">
-                                    @FollowerFormat.InitialsOf(proposal.InfluencerProfile.FullName)
-                                </div>
-                                <div>
-                                    <div class="applicant-name">@proposal.InfluencerProfile.FullName</div>
-                                    <div class="applicant-sub">@FollowerFormat.Format(proposal.InfluencerProfile.Followers) followers</div>
+        <section class="ui-card">
+            <div class="ui-card-head">
+                <div>
+                    <div class="ui-card-title">@(Model.Campaign is not null ? "Applicants" : "All Applications")</div>
+                    <p class="ui-card-sub">Newest first &middot; @Model.TotalCount result@(Model.TotalCount == 1 ? "" : "s")@(hasFilters ? " for your filters" : "")</p>
+                </div>
+                <a href="/Influencers" class="ui-card-link">Invite creators <i class="bi bi-arrow-right"></i></a>
+            </div>
+
+            @if (Model.Proposals.Count > 0)
+            {
+                <div class="ap-list">
+                    @foreach (var proposal in Model.Proposals)
+                    {
+                        var creator = proposal.InfluencerProfile;
+                        var hue = (creator.Id * 47) % 360;
+                        var badge = StatusBadge(proposal.Status);
+                        var isPending = proposal.Status == ProposalStatus.Pending;
+                        <article class="ap-row">
+                            <div class="ap-who">
+                                <span class="ap-avatar" style="background: linear-gradient(135deg, hsl(@(hue)deg 75% 58%), hsl(@((hue + 45) % 360)deg 75% 48%));">@FollowerFormat.InitialsOf(creator.FullName)</span>
+                                <div style="min-width:0;">
+                                    <div class="ap-name">@creator.FullName</div>
+                                    <div class="ap-sub">
+                                        <span>@FollowerFormat.Format(creator.Followers) followers</span>
+                                        <span class="ui-badge @(proposal.InitiatedBy == ProposalInitiator.Brand ? "is-violet" : "is-info")">@(proposal.InitiatedBy == ProposalInitiator.Brand ? "Your invite" : "Applied")</span>
+                                    </div>
                                 </div>
                             </div>
-                        </td>
-                        <td>
-                            <div class="cell-campaign-title">@proposal.Campaign.Title</div>
-                            @if (!string.IsNullOrEmpty(proposal.Campaign.Niche))
+
+                            <div class="ap-what">
+                                <div class="ap-campaign"><i class="bi bi-megaphone"></i> @(proposal.Campaign.Title)@(string.IsNullOrEmpty(proposal.Campaign.Niche) ? "" : $" · {proposal.Campaign.Niche}")</div>
+                                <div class="ap-deliverables">@proposal.Deliverables</div>
+                            </div>
+
+                            <div class="ap-money">
+                                <strong>৳@proposal.ProposedAmount.ToString("N0")</strong>
+                                <small>@proposal.CreatedAt.ToString("MMM d, yyyy")</small>
+                            </div>
+
+                            <div class="ap-end">
+                                <span class="ui-badge @badge.Badge">@badge.Label</span>
+                                <a href="/Proposals/Detail/@proposal.Id" class="row-view-btn @(isPending ? "is-primary" : "")">@(isPending ? "Review" : "View Details") <i class="bi bi-arrow-right"></i></a>
+                            </div>
+                        </article>
+                    }
+                </div>
+
+                <div class="pagination-bar">
+                    <div>
+                        Showing <strong>@((Model.Page - 1) * Model.PageSize + 1)&ndash;@(Math.Min(Model.Page * Model.PageSize, Model.TotalCount))</strong> of <strong>@Model.TotalCount</strong> applicant@(Model.TotalCount == 1 ? "" : "s")
+                    </div>
+
+                    <div class="pagination-controls">
+                        <a href="@BuildUrl(overridePage: Math.Max(1, Model.Page - 1))" class="page-btn @(Model.Page <= 1 ? "is-disabled" : "")" aria-label="Previous page"><i class="bi bi-chevron-left"></i></a>
+                        @for (var p = 1; p <= Model.TotalPages; p++)
+                        {
+                            <a href="@BuildUrl(overridePage: p)" class="page-btn @(p == Model.Page ? "is-active" : "")">@p</a>
+                        }
+                        <a href="@BuildUrl(overridePage: Math.Min(Model.TotalPages, Model.Page + 1))" class="page-btn @(Model.Page >= Model.TotalPages ? "is-disabled" : "")" aria-label="Next page"><i class="bi bi-chevron-right"></i></a>
+                    </div>
+
+                    <form method="get" action="/Proposals" class="page-size-form">
+                        @if (Model.CampaignId.HasValue) { <input type="hidden" name="campaignId" value="@Model.CampaignId" /> }
+                        @if (Model.Status.HasValue) { <input type="hidden" name="status" value="@Model.Status" /> }
+                        @if (!string.IsNullOrWhiteSpace(Model.Search)) { <input type="hidden" name="search" value="@Model.Search" /> }
+                        @if (Model.From.HasValue) { <input type="hidden" name="from" value="@(Model.From?.ToString("yyyy-MM-dd"))" /> }
+                        @if (Model.To.HasValue) { <input type="hidden" name="to" value="@(Model.To?.ToString("yyyy-MM-dd"))" /> }
+                        Show
+                        <select name="pageSize" class="page-size-select" onchange="this.form.submit()">
+                            @foreach (var size in new[] { 6, 10, 25, 50 })
                             {
-                                <div class="cell-campaign-sub">@proposal.Campaign.Niche</div>
+                                <option value="@size" selected="@(Model.PageSize == size)">@size</option>
                             }
-                        </td>
-                        <td><div class="cell-content">@proposal.Deliverables</div></td>
-                        <td class="cell-rate">৳@proposal.ProposedAmount.ToString("N0")</td>
-                        <td>@proposal.CreatedAt.ToString("MMM d, yyyy")</td>
-                        <td><span class="status-pill @proposal.Status.ToString().ToLowerInvariant()">@(proposal.Status == ProposalStatus.Rejected ? "Not Selected" : proposal.Status.ToString())</span></td>
-                        <td><a href="/Proposals/Detail/@proposal.Id" class="row-view-btn">View Details</a></td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    </div>
-
-    <div class="pagination-bar">
-        <div>
-            Showing @((Model.Page - 1) * Model.PageSize + 1)&ndash;@(Math.Min(Model.Page * Model.PageSize, Model.TotalCount)) of @Model.TotalCount applicant@(Model.TotalCount == 1 ? "" : "s")
-        </div>
-
-        <div class="pagination-controls">
-            <a href="@BuildUrl(overridePage: Math.Max(1, Model.Page - 1))" class="page-btn @(Model.Page <= 1 ? "is-disabled" : "")">&lsaquo;</a>
-            @for (var p = 1; p <= Model.TotalPages; p++)
-            {
-                <a href="@BuildUrl(overridePage: p)" class="page-btn @(p == Model.Page ? "is-active" : "")">@p</a>
+                        </select>
+                        per page
+                    </form>
+                </div>
             }
-            <a href="@BuildUrl(overridePage: Math.Min(Model.TotalPages, Model.Page + 1))" class="page-btn @(Model.Page >= Model.TotalPages ? "is-disabled" : "")">&rsaquo;</a>
-        </div>
+            else
+            {
+                <div class="ap-empty">
+                    <span class="icon-chip lg soft"><i class="bi bi-inbox"></i></span>
+                    <strong>@(hasFilters ? "No applications match these filters" : "No applications yet")</strong>
+                    <p>@(hasFilters ? "Try a different name, campaign or date range." : "When creators apply to your published campaigns they'll appear here. You can also invite creators directly from Discovery or Smart Match.")</p>
+                    <div class="ap-empty-actions">
+                        @if (hasFilters)
+                        {
+                            <a href="/Proposals" class="btn btn-secondary">Reset Filters</a>
+                        }
+                        <a href="/Influencers" class="btn btn-primary">Discover Creators</a>
+                    </div>
+                </div>
+            }
+        </section>
 
-        <form method="get" action="/Proposals" style="display:flex;align-items:center;gap:8px;">
-            @if (Model.CampaignId.HasValue) { <input type="hidden" name="campaignId" value="@Model.CampaignId" /> }
-            @if (Model.Status.HasValue) { <input type="hidden" name="status" value="@Model.Status" /> }
-            @if (!string.IsNullOrWhiteSpace(Model.Search)) { <input type="hidden" name="search" value="@Model.Search" /> }
-            Show
-            <select name="pageSize" class="page-size-select" onchange="this.form.submit()">
-                @foreach (var size in new[] { 6, 10, 25, 50 })
+    </div>
+
+    <aside class="page-rail">
+
+        <section class="ui-card">
+            <div class="ui-card-head" style="margin-bottom:6px;">
+                <div>
+                    <div class="ui-card-title" style="font-size:17px;">Decision Summary</div>
+                    <p class="ui-card-sub">Across all of your campaigns.</p>
+                </div>
+                <span class="icon-chip sm violet"><i class="bi bi-clipboard-check"></i></span>
+            </div>
+            @if (acceptanceRate.HasValue)
+            {
+                <div class="ap-rate">@acceptanceRate%<small> acceptance rate</small></div>
+                <div class="ap-track"><div class="ap-fill" style="width: @(acceptanceRate)%;"></div></div>
+            }
+            <dl class="fact-list" style="margin-top:8px;">
+                <div><dt>Awaiting your decision</dt><dd>@Model.PendingCount</dd></div>
+                <div><dt>Accepted</dt><dd>@Model.AcceptedCount</dd></div>
+                <div><dt>Not selected</dt><dd>@Model.RejectedCount</dd></div>
+                <div><dt>Total received</dt><dd>@Model.AllCount</dd></div>
+            </dl>
+            @if (Model.PendingCount > 0 && Model.Status != ProposalStatus.Pending)
+            {
+                <a href="@BuildUrl(overridePage: 1, overrideStatus: ProposalStatus.Pending)" class="info-card-btn" style="margin-top:10px;">Review pending <i class="bi bi-arrow-right"></i></a>
+            }
+        </section>
+
+        <section class="info-card">
+            <div class="info-card-head">
+                <span class="icon-chip soft"><i class="bi bi-signpost-2"></i></span>
+                <div class="info-card-title">What's Next?</div>
+            </div>
+            <ol class="next-steps">
+                <li class="is-done"><h4>Application received</h4><p>A creator applies, or you send an invite from their profile.</p></li>
+                <li class="is-current"><h4>You decide</h4><p>Review the offer and deliverables, then accept or mark Not Selected.</p></li>
+                <li><h4>Collaboration starts</h4><p>Milestones from your campaign plan are created and a chat opens.</p></li>
+                <li><h4>Approve the proof</h4><p>You and Brandora both check each milestone's proof of post.</p></li>
+                <li><h4>Pay via bKash or Nagad</h4><p>Release each milestone and pay it through bKash or Nagad.</p></li>
+            </ol>
+        </section>
+
+        <section class="ui-card">
+            <div class="ui-card-head" style="margin-bottom:2px;">
+                <div class="ui-card-title" style="font-size:17px;">Frequently Asked Questions</div>
+            </div>
+            <div class="faq-list">
+                @foreach (var faq in faqs)
                 {
-                    <option value="@size" selected="@(Model.PageSize == size)">@size</option>
+                    <details>
+                        <summary>@faq.Item1<i class="bi bi-chevron-right"></i></summary>
+                        <p>@faq.Item2</p>
+                    </details>
                 }
-            </select>
-            per page
-        </form>
-    </div>
-}
-else
-{
-    <div class="panel empty-block" style="margin-top: 24px;">
-        <div class="empty-title">No applicants match these filters</div>
-        <p class="empty-text">Try a different search term, or invite a creator from Discovery or Smart Match to send your first proposal.</p>
-        <a href="/Influencers" class="btn btn-primary" style="margin-top: 16px;">Discover Creators</a>
-    </div>
-}
+            </div>
+        </section>
+
+        <section class="help-card">
+            <h3>Need Help?</h3>
+            <p>Unsure about an application or a creator's offer? Our support team can step in.</p>
+            <a href="/Home/Contact">Contact Support <i class="bi bi-arrow-right"></i></a>
+            <svg viewBox="0 0 400 170" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="ap-help-wave" x1="0" y1="1" x2="1" y2="0"><stop stop-color="#0955ca" stop-opacity="0"/><stop offset=".65" stop-color="#168cff" stop-opacity=".5"/><stop offset="1" stop-color="#783dff" stop-opacity=".15"/></linearGradient></defs><path d="M-20 160 C100 50 140 220 260 105 S350 85 420 20 L420 190 H-20Z" fill="url(#ap-help-wave)"/><path d="M-20 164 C110 90 140 230 270 120 S360 70 420 40" fill="none" stroke="#2799ff" stroke-opacity=".4"/></svg>
+        </section>
+
+    </aside>
+
+</div>

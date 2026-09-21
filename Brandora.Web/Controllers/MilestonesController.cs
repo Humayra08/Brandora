@@ -97,75 +97,11 @@ public class MilestonesController(UserManager<ApplicationUser> userManager, Appl
         return View(milestone);
     }
 
-    public async Task<IActionResult> LogSubmission(int id)
-    {
-        var brand = await GetCurrentBrandAsync();
-        if (brand is null)
-        {
-            return RedirectToAction("Index", "Home");
-        }
-
-        var milestone = await db.Milestones
-            .Include(m => m.Collaboration).ThenInclude(c => c.Campaign)
-            .Include(m => m.Collaboration).ThenInclude(c => c.InfluencerProfile)
-            .FirstOrDefaultAsync(m => m.Id == id && m.Collaboration.Campaign.BrandProfileId == brand.Id);
-
-        if (milestone is null)
-        {
-            return NotFound();
-        }
-
-        ViewData["Milestone"] = milestone;
-        return View(new ProofSubmissionViewModel
-        {
-            MilestoneId = milestone.Id,
-            ProofUrl = milestone.ProofUrl ?? string.Empty,
-            ProofNotes = milestone.ProofNotes
-        });
-    }
-
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> LogSubmission(ProofSubmissionViewModel model)
-    {
-        var brand = await GetCurrentBrandAsync();
-        if (brand is null)
-        {
-            return RedirectToAction("Index", "Home");
-        }
-
-        var milestone = await db.Milestones
-            .Include(m => m.Collaboration).ThenInclude(c => c.Campaign)
-            .Include(m => m.Collaboration).ThenInclude(c => c.InfluencerProfile)
-            .FirstOrDefaultAsync(m => m.Id == model.MilestoneId && m.Collaboration.Campaign.BrandProfileId == brand.Id);
-
-        if (milestone is null)
-        {
-            return NotFound();
-        }
-
-        if (!ModelState.IsValid)
-        {
-            ViewData["Milestone"] = milestone;
-            return View(model);
-        }
-
-        milestone.ProofUrl = model.ProofUrl;
-        milestone.ProofNotes = model.ProofNotes;
-        milestone.Status = MilestoneStatus.Submitted;
-
-        await notifications.NotifyAsync(
-            userManager.GetUserId(User)!,
-            "Milestone",
-            "Submission logged",
-            $"{milestone.Collaboration.InfluencerProfile.FullName}'s submission for \"{milestone.Title}\" is ready for review.",
-            $"/Milestones/Detail/{milestone.Id}");
-
-        await db.SaveChangesAsync();
-
-        return RedirectToAction("Detail", new { id = milestone.Id });
-    }
-
+    // Brand reviews and signs off on what the influencer already submitted via their own
+    // Upload Proof flow (UploadProofController). Brand never authors or edits the proof
+    // itself — only Approve / RequestRevision, both of which are independent of Admin's
+    // own sign-off (AdminProofReviewController) so a milestone only becomes payment-eligible
+    // once BOTH sides have approved it.
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Approve(int id)
@@ -186,15 +122,25 @@ public class MilestonesController(UserManager<ApplicationUser> userManager, Appl
             return NotFound();
         }
 
-        if (milestone.Status == MilestoneStatus.Submitted)
+        var canApprove = milestone.BrandApprovedAt is null &&
+            (milestone.Status == MilestoneStatus.Submitted || milestone.Status == MilestoneStatus.Approved);
+
+        if (canApprove)
         {
-            milestone.Status = MilestoneStatus.Approved;
+            milestone.BrandApprovedAt = DateTime.UtcNow;
+
+            // Status == Approved here means Admin already signed off before the Brand did —
+            // so this Brand approval is the second (final) one, and the milestone is now
+            // genuinely payment-eligible. Otherwise this is only the first of the two approvals.
+            var bothApproved = milestone.Status == MilestoneStatus.Approved;
 
             await notifications.NotifyAsync(
                 milestone.Collaboration.InfluencerProfile.UserId,
                 "Milestone",
-                "Milestone approved",
-                $"\"{milestone.Title}\" for {milestone.Collaboration.Campaign.Title} is approved and ready for payment.",
+                bothApproved ? "Milestone approved — ready for payment" : "Brand approved your submission",
+                bothApproved
+                    ? $"\"{milestone.Title}\" for {milestone.Collaboration.Campaign.Title} is approved by both Brand and Admin and ready for payment."
+                    : $"{brand.CompanyName} approved \"{milestone.Title}\". It's now awaiting Admin's final review before payment.",
                 "/InfluencerEarnings");
 
             await db.SaveChangesAsync();
@@ -205,7 +151,7 @@ public class MilestonesController(UserManager<ApplicationUser> userManager, Appl
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> RequestRevision(int id)
+    public async Task<IActionResult> RequestRevision(int id, string reason)
     {
         var brand = await GetCurrentBrandAsync();
         if (brand is null)
@@ -215,6 +161,7 @@ public class MilestonesController(UserManager<ApplicationUser> userManager, Appl
 
         var milestone = await db.Milestones
             .Include(m => m.Collaboration).ThenInclude(c => c.Campaign)
+            .Include(m => m.Collaboration).ThenInclude(c => c.InfluencerProfile)
             .FirstOrDefaultAsync(m => m.Id == id && m.Collaboration.Campaign.BrandProfileId == brand.Id);
 
         if (milestone is null)
@@ -222,9 +169,25 @@ public class MilestonesController(UserManager<ApplicationUser> userManager, Appl
             return NotFound();
         }
 
-        if (milestone.Status == MilestoneStatus.Submitted)
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            TempData["MilestoneError"] = "Add a reason so the influencer knows what to change.";
+            return RedirectToAction("Detail", new { id });
+        }
+
+        if (milestone.Status == MilestoneStatus.Submitted || milestone.Status == MilestoneStatus.Approved)
         {
             milestone.Status = MilestoneStatus.RevisionRequested;
+            milestone.BrandApprovedAt = null;
+            milestone.BrandRevisionReason = reason.Trim();
+
+            await notifications.NotifyAsync(
+                milestone.Collaboration.InfluencerProfile.UserId,
+                "Milestone",
+                "Revision requested",
+                $"{brand.CompanyName} requested a revision for \"{milestone.Title}\": {reason.Trim()}",
+                "/UploadProof");
+
             await db.SaveChangesAsync();
         }
 

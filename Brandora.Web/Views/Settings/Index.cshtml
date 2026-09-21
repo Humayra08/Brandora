@@ -1,4 +1,5 @@
 @model Brandora.Web.Models.Settings.BrandSettingsViewModel
+@using Brandora.Web.Models.Domain
 @{
     ViewData["Title"] = "Settings";
     ViewData["ActiveNav"] = "Settings";
@@ -9,728 +10,200 @@
     var profileSaved = TempData["ProfileSaved"] as string == "true";
     var passwordChanged = TempData["PasswordChanged"] as string == "true";
     var notificationPrefsSaved = TempData["NotificationPrefsSaved"] as string == "true";
+    var rejectionReason = TempData["RejectionReason"] as string;
+
+    var prefs = Model.NotificationPreferences;
+    var prefsOn = new[] { prefs.NewProposals, prefs.ProposalUpdates, prefs.Messages, prefs.MilestoneUpdates, prefs.PaymentUpdates, prefs.CampaignDeadlines }.Count(p => p);
+
+    (string Badge, string Icon, string Label) Verification() => Model.VerificationStatus switch
+    {
+        VerificationStatus.Verified => ("is-success", "bi-patch-check-fill", "Verified"),
+        VerificationStatus.Rejected => ("is-danger", "bi-x-circle-fill", "Not approved"),
+        _ => ("is-pending", "bi-hourglass-split", "Under review")
+    };
+    var verification = Verification();
+
+    var faqs = new[]
+    {
+        ("Who can see my brand profile?", "Creators see your company name, logo and industry on your campaigns, proposals and messages. Your contact details and budget range are only used by Brandora's review team."),
+        ("My verification wasn't approved — what now?", "Update the details in Brand Profile (a real company name, website and logo help most) and save. Our admin team re-reviews updated profiles."),
+        ("Can I change my sign-in email?", "Not from Settings. Contact support and we'll help you move your account to a new email safely."),
+        ("What happens if I turn a notification type off?", "Those notifications simply aren't created for you. You'll still see the underlying activity on your Dashboard, Applications and Finance pages."),
+        ("How do I pay creators?", "Payments are released per milestone after you and Brandora approve the proof of post, then paid through bKash or Nagad from Finance."),
+    };
 }
 
 @section Styles {
- 
-    .page-head {
-        animation: fade-up .4s ease both;
-    }
-
-    .page-title {
-        font-family: 'Playfair Display', serif;
-        font-weight: 600;
-        font-size: 28px;
-    }
-
-    .page-sub {
-        margin-top: 6px;
-
-        font-family: 'Inter', sans-serif;
-        font-size: 13.5px;
-        color: #6b7290;
-    }
 
     /* ==============================
-       SETTINGS LAYOUT (matches the
-       Influencer Settings page design)
+       SETTINGS — shared glass system
     ============================== */
 
     .ps-grid {
-        margin-top: 24px;
-
+        margin-top: 16px;
         display: grid;
-        grid-template-columns: 300px 1fr;
-        gap: 20px;
+        grid-template-columns: 290px minmax(0, 1fr);
+        grid-template-rows: auto 1fr;
+        grid-template-areas: "nav panels" "extra panels";
+        gap: 16px;
         align-items: start;
     }
+    .ps-side { grid-area: nav; display: grid; gap: 16px; min-width: 0; }
+    .ps-side-extra { grid-area: extra; display: grid; gap: 16px; align-content: start; min-width: 0; }
+    .ps-panels { grid-area: panels; display: grid; gap: 16px; min-width: 0; }
 
-    .ps-card {
-        background: #ffffff;
-        border: 1px solid #eaecf5;
-        border-radius: 16px;
-
-        animation: fade-up .5s ease both;
-    }
+    .ui-card { transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease; }
 
     /* Settings nav */
-
-    .ps-nav {
-        padding: 10px;
-    }
-
+    .ps-nav { padding: 10px; }
+    .ps-nav-label { padding: 6px 10px 8px; font-family: 'Inter', sans-serif; font-size: 10.5px; font-weight: 700; letter-spacing: 1.4px; text-transform: uppercase; color: #5877ac; }
     .ps-nav-item {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-
-        padding: 12px;
-
-        border-radius: 12px;
-        text-decoration: none;
-        color: inherit;
-        cursor: pointer;
-
-        margin-bottom: 2px;
-
-        transition: background .15s ease;
+        display: flex; align-items: center; gap: 12px;
+        margin-bottom: 2px; padding: 9px 10px;
+        border-radius: 10px; border: 1px solid transparent;
+        color: inherit; text-decoration: none; cursor: pointer;
+        transition: background .2s ease, border-color .2s ease, transform .2s ease;
     }
+    .ps-nav-item:hover { background: #f3f8ffcc; transform: translateX(2px); }
+    .ps-nav-item.is-active { border-color: #cddfff; background: linear-gradient(110deg, #efeaffcc, #e6f1ffcc); box-shadow: 0 6px 14px #5b83c414; }
+    .ps-nav-icon { display: grid; place-items: center; flex-shrink: 0; width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, #e4eeff, #cce2ff); color: #135bff; transition: .2s ease; }
+    .ps-nav-icon svg { width: 16px; height: 16px; }
+    .ps-nav-item.is-active .ps-nav-icon { background: linear-gradient(130deg, #7224ff, #3735ff 55%, #087fff); color: #ffffff; box-shadow: 0 6px 14px #3b4dff33; }
+    .ps-nav-title { flex: 1; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; color: #33477c; }
+    .ps-nav-item.is-active .ps-nav-title { color: #101d48; }
+    .ps-nav-num { font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 700; color: #a2b3d6; }
+    .ps-nav-item.is-active .ps-nav-num { color: #5b3df0; }
 
-    .ps-nav-item:hover {
-        background: #f6f7fc;
-    }
+    /* Panels */
+    .ps-panel { padding: 22px 24px; scroll-margin-top: 90px; }
+    .ps-panel:hover { border-color: #b9d3ff; box-shadow: 0 14px 30px #5b83c414; }
+    .ps-panel-head { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 18px; padding-bottom: 16px; border-bottom: 1px solid #e3edfc; }
+    .ps-step { display: grid; place-items: center; flex-shrink: 0; width: 30px; height: 30px; margin-top: 2px; border-radius: 50%; background: linear-gradient(130deg, #7224ff, #3735ff 55%, #087fff); box-shadow: 0 6px 14px #3b4dff33; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 700; color: #ffffff; }
+    .ps-panel-copy { flex: 1; min-width: 0; }
+    .ps-panel-title { font: 600 20px/1.3 'Playfair Display', Georgia, serif; letter-spacing: -.4px; color: #0b084e; }
+    .ps-panel-sub { margin-top: 3px; font-family: 'Inter', sans-serif; font-size: 12.5px; line-height: 1.5; color: #5877ac; }
+    .ps-panel-chip { margin-left: auto; }
 
-    .ps-nav-item.is-active {
-        background: linear-gradient(105deg, rgba(163,38,255,.1), rgba(24,169,255,.08));
-        border: 1px solid #e3d9ff;
-    }
-
-    .ps-nav-icon {
-        width: 36px;
-        height: 36px;
-        flex-shrink: 0;
-
-        display: flex;
-        align-items: center;
-        justify-content: center;
-
-        border-radius: 10px;
-        background: #f1f2f8;
-        color: #56617f;
-    }
-
-    .ps-nav-icon svg {
-        width: 16px;
-        height: 16px;
-    }
-
-    .ps-nav-item.is-active .ps-nav-icon {
-        background: linear-gradient(105deg, #a326ff, #236eff, #18a9ff);
-        color: #ffffff;
-    }
-
-    .ps-nav-title {
-        font-family: 'Inter', sans-serif;
-        font-size: 13.5px;
-        font-weight: 400;
-        color: #171d3d;
-    }
-
-    .ps-nav-item.is-active .ps-nav-title {
-        color: #6322d4;
-        font-weight: 600;
-    }
-
-    .ps-help-card {
-        margin-top: 16px;
-        padding: 22px;
-    }
-
-    .ps-help-top {
-        display: flex;
-        align-items: center;
-        gap: 14px;
-
-        margin-bottom: 14px;
-    }
-
-    .ps-help-icon {
-        width: 44px;
-        height: 44px;
-        flex-shrink: 0;
-
-        display: flex;
-        align-items: center;
-        justify-content: center;
-
-        border-radius: 50%;
-        background: linear-gradient(135deg, #a326ff, #6a3cff 55%, #18a9ff);
-        color: #ffffff;
-
-        font-family: 'DM Sans', sans-serif;
-        font-size: 18px;
-        font-weight: 700;
-    }
-
-    .ps-help-title {
-        font-family: 'DM Sans', sans-serif;
-        font-size: 16px;
-        font-weight: 700;
-        color: #171d3d;
-    }
-
-    .ps-help-desc {
-        margin: 0 0 18px;
-
-        font-family: 'Inter', sans-serif;
-        font-size: 13px;
-        line-height: 1.6;
-        color: #8189a8;
-        text-align: center;
-    }
-
-    .ps-support-btn {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-
-        width: 100%;
-
-        padding: 12px 20px;
-
-        border: 1px solid #dde1f0;
-        border-radius: 12px;
-        background: #ffffff;
-
-        font-family: 'Inter', sans-serif;
-        font-size: 13.5px;
-        font-weight: 700;
-        color: #6322d4;
-
-        cursor: pointer;
-        text-decoration: none;
-    }
-
-    .ps-support-btn:hover {
-        border-color: #9b2cff;
-    }
-
-    /* Panels (right column) */
-
-    .ps-panels {
-        display: flex;
-        flex-direction: column;
-        gap: 20px;
-    }
-
-    .ps-panel {
-        padding: 26px 28px;
-        scroll-margin-top: 92px;
-    }
-
-    .ps-panel-head {
-        margin-bottom: 22px;
-    }
-
-    .ps-panel-title {
-        font-family: 'DM Sans', sans-serif;
-        font-size: 17px;
-        font-weight: 700;
-        color: #171d3d;
-    }
-
-    .ps-panel-sub {
-        margin-top: 4px;
-
-        font-family: 'Inter', sans-serif;
-        font-size: 13px;
-        color: #8189a8;
-    }
+    .ps-subhead { display: flex; flex-direction: column; gap: 2px; margin: 4px 0 14px; }
+    .ps-subhead span { font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 700; color: #101d48; }
+    .ps-subhead small { font-family: 'Inter', sans-serif; font-size: 11.5px; color: #6680ad; }
 
     /* Photo row */
-
-    .ps-photo-row {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        gap: 18px;
-
-        padding-bottom: 22px;
-        margin-bottom: 22px;
-
-        border-bottom: 1px solid #eef0f8;
-    }
-
-    .ps-photo-avatar-wrap {
-        position: relative;
-        flex-shrink: 0;
-    }
-
-    .avatar-circle {
-        position: relative;
-        overflow: hidden;
-        flex-shrink: 0;
-
-        display: flex;
-        align-items: center;
-        justify-content: center;
-
-        border-radius: 50%;
-        background: linear-gradient(135deg, #a326ff, #236eff);
-
-        font-family: 'DM Sans', sans-serif;
-        font-weight: 700;
-        line-height: 1;
-        color: #ffffff;
-
-        box-shadow: 0 0 0 4px #f3e8ff;
-    }
-
-    .avatar-circle.large {
-        width: 76px;
-        height: 76px;
-        font-size: 24px;
-    }
-
-    .avatar-circle img {
-        display: block;
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
-
-    .ps-photo-camera {
-        position: absolute;
-        right: -2px;
-        bottom: -2px;
-
-        width: 26px;
-        height: 26px;
-
-        display: flex;
-        align-items: center;
-        justify-content: center;
-
-        border-radius: 50%;
-        border: 2px solid #ffffff;
-        background: linear-gradient(105deg, #a326ff, #236eff, #18a9ff);
-        color: #ffffff;
-    }
-
-    .ps-photo-camera svg {
-        width: 12px;
-        height: 12px;
-    }
-
-    .ps-photo-name {
-        font-family: 'DM Sans', sans-serif;
-        font-size: 14.5px;
-        font-weight: 700;
-        color: #171d3d;
-    }
-
-    .ps-photo-hint {
-        margin: 3px 0 10px;
-
-        font-family: 'Inter', sans-serif;
-        font-size: 12px;
-        color: #8a93ad;
-    }
-
-    .ps-photo-actions {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-    }
-
+    .ps-photo-row { display: flex; flex-wrap: wrap; align-items: center; gap: 18px; margin-bottom: 22px; padding: 16px; border-radius: 12px; border: 1px solid #e3edfc; background: #ffffff8c; }
+    .ps-photo-avatar-wrap { position: relative; flex-shrink: 0; }
+    .avatar-circle { position: relative; overflow: hidden; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: linear-gradient(135deg, #7224ff, #3735ff 55%, #087fff); font-family: 'DM Sans', sans-serif; font-weight: 700; line-height: 1; color: #ffffff; box-shadow: 0 0 0 4px #ffffff, 0 10px 22px #3b4dff26; }
+    .avatar-circle.large { width: 76px; height: 76px; font-size: 24px; }
+    .avatar-circle img { display: block; width: 100%; height: 100%; object-fit: cover; }
+    .ps-photo-camera { position: absolute; right: -2px; bottom: -2px; display: flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 50%; border: 2px solid #ffffff; background: linear-gradient(110deg, #6425ff, #004dff 55%, #00a8f0); color: #ffffff; }
+    .ps-photo-camera svg { width: 12px; height: 12px; }
+    .ps-photo-name { font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 700; color: #101d48; }
+    .ps-photo-hint { margin: 3px 0 10px; font-family: 'Inter', sans-serif; font-size: 12px; color: #6680ad; }
+    .ps-photo-actions { display: flex; flex-wrap: wrap; gap: 8px; }
     .ps-change-photo-btn {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-
-        border: 1px solid #dce7ff;
-        background: #ffffff;
-        color: #6322d4;
-
-        padding: 7px 14px;
-
-        border-radius: 8px;
-
-        font-family: 'Inter', sans-serif;
-        font-size: 12px;
-        font-weight: 600;
-
-        cursor: pointer;
+        display: inline-flex; align-items: center; height: 34px; padding: 0 14px;
+        border-radius: 9px; border: 1px solid #b7d3ff; background: #ffffffcc;
+        font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; color: #1451ff;
+        cursor: pointer; transition: .2s ease;
     }
-
-    .ps-change-photo-btn:hover {
-        border-color: #9b2cff;
-    }
-
-    .ps-change-photo-btn.is-remove {
-        color: #c22540;
-        border-color: #f3d3da;
-    }
-
-    .ps-change-photo-btn.is-remove:hover {
-        border-color: #e0507a;
-    }
+    .ps-change-photo-btn:hover { border-color: #1451ff; transform: translateY(-1px); box-shadow: 0 6px 14px #5b83c41f; }
+    .ps-change-photo-btn.is-remove { border-color: #f1ccd3; color: #c22540; }
+    .ps-change-photo-btn.is-remove:hover { border-color: #c22540; }
 
     /* Form */
-
-    .ps-form-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 18px 20px;
-
-        margin-bottom: 4px;
-    }
-
-    .ps-form-group {
-        display: flex;
-        flex-direction: column;
-    }
-
-    .ps-form-group.full {
-        grid-column: 1 / -1;
-    }
-
-    .ps-form-group label {
-        margin-bottom: 8px;
-
-        font-family: 'Inter', sans-serif;
-        font-size: 12.5px;
-        font-weight: 700;
-        color: #3a4360;
-    }
-
+    .ps-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 18px; }
+    .ps-form-group { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
+    .ps-form-group.full { grid-column: span 2; }
+    .ps-form-group label { font-family: 'DM Sans', sans-serif; font-size: 12.5px; font-weight: 700; color: #1f3264; }
     .ps-form-group input,
     .ps-form-group select {
-        width: 100%;
-
-        padding: 11px 13px;
-
-        border: 1px solid #dce7ff;
-        border-radius: 10px;
-        background: #ffffff;
-
-        font-family: 'DM Sans', sans-serif;
-        font-size: 13.5px;
-        color: #20283a;
-
-        outline: 0;
-        transition: border-color .2s ease;
+        width: 100%; height: 44px; padding: 0 14px;
+        border-radius: 10px; border: 1px solid #cfe0fb; background: #ffffffd9;
+        font-family: 'Inter', sans-serif; font-size: 13.5px; color: #101d48;
+        outline: none; transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
     }
-
+    .ps-form-group input:hover,
+    .ps-form-group select:hover { border-color: #b3cdf7; }
     .ps-form-group input:focus,
-    .ps-form-group select:focus {
-        border-color: #9b2cff;
-    }
+    .ps-form-group select:focus { border-color: #6b8dff; background: #ffffff; box-shadow: 0 0 0 3px #3b4dff1f; }
+    .ps-form-group input:disabled { background: #eef4fbcc; color: #6680ad; cursor: not-allowed; }
+    .ps-form-hint { margin: 0; font-family: 'Inter', sans-serif; font-size: 11.5px; line-height: 1.5; color: #6680ad; }
+    .ps-form-hint i { margin-right: 3px; }
+    .ps-input-icon-wrap { position: relative; }
+    .ps-input-icon-wrap svg { position: absolute; left: 13px; top: 50%; width: 16px; height: 16px; transform: translateY(-50%); color: #5877ac; pointer-events: none; }
+    .ps-input-icon-wrap input { padding-left: 38px; }
+    .ps-select-wrap { position: relative; }
+    .ps-select-wrap select { padding-right: 36px; appearance: none; -webkit-appearance: none; cursor: pointer; }
+    .ps-select-wrap svg { position: absolute; right: 14px; top: 50%; width: 10px; height: 6px; transform: translateY(-50%); color: #5877ac; pointer-events: none; }
 
-    .ps-form-group input:disabled {
-        color: #9096b3;
-        background: #f5f6fb;
-    }
-
-    .ps-form-hint {
-        margin-top: 6px;
-
-        font-family: 'Inter', sans-serif;
-        font-size: 11.5px;
-        color: #8a93ad;
-    }
-
-    .ps-input-icon-wrap {
-        position: relative;
-        display: flex;
-        align-items: center;
-    }
-
-    .ps-input-icon-wrap svg {
-        position: absolute;
-        left: 13px;
-
-        width: 14px;
-        height: 14px;
-
-        color: #8a93ad;
-        pointer-events: none;
-    }
-
-    .ps-input-icon-wrap input {
-        padding-left: 36px;
-    }
-
-    .ps-select-wrap {
-        position: relative;
-    }
-
-    .ps-select-wrap select {
-        appearance: none;
-        -webkit-appearance: none;
-        background-image: none;
-        cursor: pointer;
-        padding-right: 34px;
-    }
-
-    .ps-select-wrap svg {
-        position: absolute;
-        right: 13px;
-        top: 50%;
-
-        width: 10px;
-        height: 10px;
-
-        transform: translateY(-50%);
-        color: #8a93ad;
-        pointer-events: none;
-    }
-
-    .ps-actions {
-        display: flex;
-        justify-content: flex-end;
-        gap: 12px;
-
-        margin-top: 22px;
-    }
-
-    .ps-cancel-btn {
-        display: inline-flex;
-        align-items: center;
-
-        border: 1px solid #dce7ff;
-        background: #f6f7fc;
-        color: #56617f;
-
-        padding: 11px 22px;
-
-        border-radius: 10px;
-
-        font-family: 'Inter', sans-serif;
-        font-size: 13px;
-        font-weight: 600;
-
-        cursor: pointer;
-        text-decoration: none;
-    }
-
+    .ps-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; padding-top: 16px; border-top: 1px solid #e3edfc; }
     .ps-save-btn {
-        border: 0;
-        color: #ffffff;
-
-        padding: 11px 24px;
-
-        border-radius: 10px;
-        background: linear-gradient(105deg, #a326ff, #236eff, #18a9ff);
-
-        font-family: 'Inter', sans-serif;
-        font-size: 13px;
-        font-weight: 600;
-
-        cursor: pointer;
-        transition: .2s;
+        display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+        height: 42px; padding: 0 22px;
+        border: 0; border-radius: 10px;
+        background: linear-gradient(110deg, #6425ff, #004dff 55%, #00a8f0);
+        box-shadow: 0 10px 22px #3b4dff33;
+        font-family: 'DM Sans', sans-serif; font-size: 13.5px; font-weight: 700; color: #ffffff;
+        cursor: pointer; transition: transform .2s ease, box-shadow .2s ease;
     }
+    .ps-save-btn:hover { transform: translateY(-2px); box-shadow: 0 14px 28px #3b4dff4d; }
 
-    .ps-save-btn:hover {
-        transform: translateY(-2px);
-    }
+    .ps-panel .notice ul { margin: 2px 0 0; padding-left: 16px; }
 
     /* Notification preference toggles */
-
-    .pref-list {
-        margin-top: 18px;
-        display: flex;
-        flex-direction: column;
-    }
-
+    .pref-list { display: grid; gap: 10px; }
     .pref-row {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 20px;
-
-        padding: 14px 4px;
-        border-bottom: 1px solid #f0f1f7;
+        display: flex; align-items: center; gap: 14px;
+        padding: 12px 14px; border-radius: 10px; border: 1px solid #e3edfc; background: #ffffff8c;
+        transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
     }
-
-    .pref-row:last-child {
-        border-bottom: none;
-    }
-
-    .pref-title {
-        font-family: 'Inter', sans-serif;
-        font-size: 13.5px;
-        font-weight: 600;
-        color: #171d3d;
-    }
-
-    .pref-desc {
-        margin-top: 3px;
-        font-family: 'Inter', sans-serif;
-        font-size: 12px;
-        color: #8189a8;
-        max-width: 440px;
-    }
-
-    .pref-toggle {
-        position: relative;
-        flex-shrink: 0;
-        display: inline-block;
-        width: 42px;
-        height: 24px;
-    }
-
-    .pref-toggle input {
-        position: absolute;
-        opacity: 0;
-        width: 100%;
-        height: 100%;
-        margin: 0;
-        cursor: pointer;
-        z-index: 1;
-    }
-
-    .pref-toggle span {
-        position: absolute;
-        inset: 0;
-        border-radius: 999px;
-        background: #e2e5f2;
-        transition: .2s;
-    }
-
-    .pref-toggle span::before {
-        content: "";
-        position: absolute;
-        top: 3px;
-        left: 3px;
-        width: 18px;
-        height: 18px;
-        border-radius: 50%;
-        background: #ffffff;
-        box-shadow: 0 1px 3px rgba(0,0,0,.2);
-        transition: .2s;
-    }
-
-    .pref-toggle input:checked + span {
-        background: linear-gradient(105deg, #a326ff, #236eff);
-    }
-
-    .pref-toggle input:checked + span::before {
-        transform: translateX(18px);
-    }
+    .pref-row:hover { transform: translateY(-2px); border-color: #b9d3ff; box-shadow: 0 12px 24px #5b83c41a; }
+    .pref-copy { flex: 1; min-width: 0; }
+    .pref-title { font-family: 'DM Sans', sans-serif; font-size: 13.5px; font-weight: 700; color: #101d48; }
+    .pref-desc { margin-top: 2px; font-family: 'Inter', sans-serif; font-size: 12px; line-height: 1.5; color: #5877ac; }
+    .pref-toggle { position: relative; flex-shrink: 0; width: 44px; height: 24px; cursor: pointer; }
+    .pref-toggle input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; z-index: 1; }
+    .pref-toggle span { position: absolute; inset: 0; border-radius: 24px; background: #d4def0; transition: background .25s ease; }
+    .pref-toggle span::before { content: ''; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #ffffff; box-shadow: 0 2px 5px #1a2b5c33; transition: transform .25s cubic-bezier(.22,1,.36,1); }
+    .pref-toggle input:checked + span { background: linear-gradient(110deg, #6425ff, #004dff 55%, #00a8f0); }
+    .pref-toggle input:checked + span::before { transform: translateX(20px); }
+    .pref-toggle input:focus-visible + span { box-shadow: 0 0 0 3px #3b4dff33; }
 
     /* Billing */
-
-    .billing-grid {
-        margin-top: 18px;
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 16px;
-    }
-
-    .billing-figure {
-        padding: 16px;
-        border-radius: 12px;
-        border: 1px solid #eaecf5;
-        background: #fbfbfe;
-    }
-
-    .billing-value {
-        font-family: 'DM Sans', sans-serif;
-        font-weight: 800;
-        font-size: 18px;
-        color: #171d3d;
-    }
-
-    .billing-label {
-        margin-top: 3px;
-        font-family: 'Inter', sans-serif;
-        font-size: 10.5px;
-        font-weight: 600;
-        letter-spacing: .3px;
-        text-transform: uppercase;
-        color: #9096b3;
-    }
-
-    .billing-note {
-        margin-top: 18px;
-        padding: 14px 16px;
-        border-radius: 12px;
-        background: linear-gradient(105deg, rgba(163,38,255,.06), rgba(24,169,255,.05));
-        border: 1px solid #e3d9ff;
-        font-family: 'Inter', sans-serif;
-        font-size: 12px;
-        color: #56617f;
-        line-height: 1.6;
-    }
+    .billing-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+    .billing-figure { padding: 14px; border-radius: 11px; border: 1px solid #e3edfc; background: #ffffff8c; transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease; }
+    .billing-figure:hover { transform: translateY(-2px); border-color: #b9d3ff; box-shadow: 0 12px 24px #5b83c41a; }
+    .billing-value { margin-top: 10px; font-family: 'DM Sans', sans-serif; font-size: 19px; font-weight: 700; color: #0b124e; }
+    .billing-label { margin-top: 2px; font-family: 'Inter', sans-serif; font-size: 11.5px; color: #5877ac; }
+    .billing-note { display: flex; gap: 10px; margin-top: 14px; padding: 12px 14px; border-radius: 10px; border: 1px solid #dfe9ff; background: #eef4ffbd; font-family: 'Inter', sans-serif; font-size: 12px; line-height: 1.6; color: #33477c; }
+    .billing-note i { margin-top: 1px; color: #1451ff; }
 
     /* Connected accounts */
+    .connected-list { display: grid; gap: 10px; }
+    .connected-row { display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-radius: 10px; border: 1px solid #e3edfc; background: #ffffff8c; transition: transform .2s ease, border-color .2s ease; }
+    .connected-row:hover { transform: translateY(-2px); border-color: #b9d3ff; }
+    .connected-row-name { flex: 1; font-family: 'DM Sans', sans-serif; font-size: 13.5px; font-weight: 700; color: #101d48; }
+    .connected-row-name small { display: block; font-family: 'Inter', sans-serif; font-size: 11.5px; font-weight: 400; color: #6680ad; }
 
-    .connected-list {
-        margin-top: 16px;
-        display: flex;
-        flex-direction: column;
-    }
+    /* Rail extras */
+    .ps-account-top { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+    .ps-account-top .avatar-circle { width: 44px; height: 44px; font-size: 16px; box-shadow: 0 0 0 3px #ffffff, 0 6px 14px #3b4dff26; }
+    .ps-account-name { font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 700; color: #101d48; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .ps-account-mail { font-family: 'Inter', sans-serif; font-size: 11.5px; color: #6680ad; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-    .connected-row {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 14px 4px;
-        border-bottom: 1px solid #f0f1f7;
-    }
-
-    .connected-row:last-child {
-        border-bottom: none;
-    }
-
-    .connected-row-name {
-        font-family: 'Inter', sans-serif;
-        font-size: 13.5px;
-        font-weight: 600;
-        color: #171d3d;
-    }
-
-    @@media(max-width: 700px) {
-        .billing-grid { grid-template-columns: repeat(2, 1fr); }
-    }
-
-    @@media(max-width: 560px) {
-        .pref-row { flex-wrap: wrap; }
-    }
-
-    .ps-saved-note,
-    .ps-error-note {
-        display: flex;
-        align-items: flex-start;
-        gap: 8px;
-
-        border-radius: 10px;
-        padding: 10px 14px;
-        margin-bottom: 18px;
-
-        font-family: 'Inter', sans-serif;
-        font-size: 13px;
-        font-weight: 600;
-    }
-
-    .ps-saved-note svg,
-    .ps-error-note svg {
-        width: 15px;
-        height: 15px;
-        flex-shrink: 0;
-        margin-top: 1px;
-    }
-
-    .ps-saved-note {
-        background: #e2faf1;
-        color: #0d9c6c;
-        border: 1px solid #c7f2e2;
-    }
-
-    .ps-error-note {
-        background: rgba(220,50,70,.06);
-        color: #a71b34;
-        border: 1px solid rgba(220,50,70,.25);
-    }
-
-    .ps-error-note ul {
-        margin: 2px 0 0;
-        padding-left: 16px;
-        font-weight: 500;
+    @@media(max-width: 1100px) {
+        .billing-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
 
     @@media(max-width: 980px) {
-        .ps-grid { grid-template-columns: 1fr; }
+        .ps-grid { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto; grid-template-areas: "nav" "panels" "extra"; }
     }
 
     @@media(max-width: 560px) {
         .ps-form-grid { grid-template-columns: 1fr; }
         .ps-form-group.full { grid-column: span 1; }
         .ps-panel { padding: 18px; }
-        .ps-panel-head { flex-direction: column; gap: 12px; }
-        .ps-photo-row { flex-wrap: wrap; }
+        .ps-panel-chip { display: none; }
+        .billing-grid { grid-template-columns: 1fr; }
     }
 
 }
@@ -743,15 +216,20 @@
 <section class="page-hero">
     @await Html.PartialAsync("_HeroWaves")
     <div class="page-hero-intro">
-        <p class="page-hero-eyebrow">Profile Settings</p>
-        <h1 class="page-hero-title">Manage Your <span>Account</span></h1>
-        <p class="page-hero-sub">Manage your Brandora account, preferences, billing connections and communication settings.</p>
+        <p class="page-hero-eyebrow">Settings</p>
+        <h1 class="page-hero-title">Manage Your Brand. <span>Stay in Control.</span></h1>
+        <p class="page-hero-sub">Update your brand profile, keep your account secure, and choose exactly which campaign updates reach you.</p>
+        <dl class="page-hero-stats">
+            <div><dd>@verification.Label</dd><dt>Verification</dt></div>
+            <div><dd>@Model.MemberSince.ToString("MMM yyyy")</dd><dt>Member since</dt></div>
+            <div><dd>@prefsOn of 6</dd><dt>Notification types on</dt></div>
+        </dl>
     </div>
 
     <div class="page-hero-art" aria-hidden="true">
         <div class="hero-glass hero-glass-back"></div>
         <div class="hero-glass hero-glass-front">
-            <span class="hero-glass-copy">Your<br />Brand<br />Your Control<span></span></span>
+            <span class="hero-glass-copy">Your Brand.<br />Your Rules.<br />Your Control.<span></span></span>
         </div>
         <span class="hero-sparkle"></span>
     </div>
@@ -763,14 +241,16 @@
 
     <!-- SETTINGS NAV -->
 
-    <div>
-        <div class="ps-card ps-nav">
+    <aside class="ps-side">
+        <div class="ui-card ps-nav">
+            <div class="ps-nav-label">Settings</div>
 
             <a href="#brand-profile" class="ps-nav-item is-active" data-ps-nav>
                 <span class="ps-nav-icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
                 </span>
                 <span class="ps-nav-title">Brand Profile</span>
+                <span class="ps-nav-num">01</span>
             </a>
 
             <a href="#password" class="ps-nav-item" data-ps-nav>
@@ -778,6 +258,7 @@
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
                 </span>
                 <span class="ps-nav-title">Password &amp; Security</span>
+                <span class="ps-nav-num">02</span>
             </a>
 
             <a href="#notifications" class="ps-nav-item" data-ps-nav>
@@ -785,6 +266,7 @@
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9a6 6 0 1 1 12 0c0 4 1.5 5.5 1.5 5.5H4.5S6 13 6 9Z"/><path d="M10 18a2 2 0 0 0 4 0"/></svg>
                 </span>
                 <span class="ps-nav-title">Notification Settings</span>
+                <span class="ps-nav-num">03</span>
             </a>
 
             <a href="#billing" class="ps-nav-item" data-ps-nav>
@@ -792,6 +274,7 @@
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/></svg>
                 </span>
                 <span class="ps-nav-title">Billing &amp; Payments</span>
+                <span class="ps-nav-num">04</span>
             </a>
 
             <a href="#connected-accounts" class="ps-nav-item" data-ps-nav>
@@ -799,46 +282,114 @@
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M4.2 7.8l2.1 1.2M17.7 15l2.1 1.2M4.2 16.2l2.1-1.2M17.7 9l2.1-1.2"/></svg>
                 </span>
                 <span class="ps-nav-title">Connected Accounts</span>
+                <span class="ps-nav-num">05</span>
             </a>
-
         </div>
+    </aside>
 
-        <div class="ps-card ps-help-card">
-            <div class="ps-help-top">
-                <div class="ps-help-icon">?</div>
-                <div class="ps-help-title">Need Help?</div>
+    <aside class="ps-side-extra">
+
+        <section class="ui-card">
+            <div class="ps-account-top">
+                <div class="avatar-circle">
+                    @if (!string.IsNullOrEmpty(Model.ExistingProfilePictureUrl))
+                    {
+                        <img src="@Model.ExistingProfilePictureUrl" alt="" />
+                    }
+                    else
+                    {
+                        @(string.IsNullOrEmpty(Model.CompanyName) ? "B" : Model.CompanyName[..1].ToUpperInvariant())
+                    }
+                </div>
+                <div style="min-width:0;">
+                    <div class="ps-account-name">@Model.CompanyName</div>
+                    <div class="ps-account-mail">@ViewData["Email"]</div>
+                </div>
             </div>
-            <p class="ps-help-desc">If you need any assistance, our support team is here to help.</p>
-            <a href="/contact" class="ps-support-btn">
-                Contact Support
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            </a>
-        </div>
-    </div>
+            <dl class="fact-list">
+                <div><dt>Verification</dt><dd><span class="ui-badge @verification.Badge"><i class="bi @verification.Icon"></i> @verification.Label</span></dd></div>
+                @if (Model.VerifiedAt.HasValue)
+                {
+                    <div><dt>Verified on</dt><dd>@Model.VerifiedAt.Value.ToString("MMM d, yyyy")</dd></div>
+                }
+                <div><dt>Member since</dt><dd>@Model.MemberSince.ToString("MMM d, yyyy")</dd></div>
+                <div><dt>Industry</dt><dd>@(string.IsNullOrWhiteSpace(Model.Industry) ? "Not set" : Model.Industry)</dd></div>
+                <div><dt>Notifications on</dt><dd>@prefsOn of 6</dd></div>
+            </dl>
+            <a href="/Settings/Profile" class="info-card-btn" style="margin-top:10px;">View Public Profile <i class="bi bi-arrow-right"></i></a>
+        </section>
+
+        <section class="info-card">
+            <div class="info-card-head">
+                <span class="icon-chip soft"><i class="bi bi-shield-check"></i></span>
+                <div class="info-card-title">Security Tips</div>
+            </div>
+            <ul class="check-list">
+                <li><i class="bi bi-check-circle-fill"></i>Use 8+ characters with upper- and lowercase letters, a number and a symbol.</li>
+                <li><i class="bi bi-check-circle-fill"></i>Don't reuse a password from another site or share it with anyone.</li>
+                <li><i class="bi bi-check-circle-fill"></i>After 5 wrong attempts your account is locked for 15 minutes to stop guessing.</li>
+                <li><i class="bi bi-check-circle-fill"></i>Brandora will never ask for your password by email or message.</li>
+                <li><i class="bi bi-check-circle-fill"></i>Sign out when you use a shared or public computer.</li>
+            </ul>
+        </section>
+
+        <section class="ui-card">
+            <div class="ui-card-head" style="margin-bottom:2px;">
+                <div class="ui-card-title" style="font-size:17px;">Frequently Asked Questions</div>
+            </div>
+            <div class="faq-list">
+                @foreach (var faq in faqs)
+                {
+                    <details>
+                        <summary>@faq.Item1<i class="bi bi-chevron-right"></i></summary>
+                        <p>@faq.Item2</p>
+                    </details>
+                }
+            </div>
+        </section>
+
+        <section class="help-card">
+            <h3>Need Help?</h3>
+            <p>Questions about your account, verification or billing? Our support team is here to help.</p>
+            <a href="/Home/Contact">Contact Support <i class="bi bi-arrow-right"></i></a>
+            <svg viewBox="0 0 400 170" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="settings-help-wave" x1="0" y1="1" x2="1" y2="0"><stop stop-color="#0955ca" stop-opacity="0"/><stop offset=".65" stop-color="#168cff" stop-opacity=".5"/><stop offset="1" stop-color="#783dff" stop-opacity=".15"/></linearGradient></defs><path d="M-20 160 C100 50 140 220 260 105 S350 85 420 20 L420 190 H-20Z" fill="url(#settings-help-wave)"/><path d="M-20 164 C110 90 140 230 270 120 S360 70 420 40" fill="none" stroke="#2799ff" stroke-opacity=".4"/></svg>
+        </section>
+
+    </aside>
 
 
     <!-- PANELS -->
 
     <div class="ps-panels">
 
-        <div class="ps-card ps-panel" id="brand-profile">
+        @if (!string.IsNullOrWhiteSpace(rejectionReason))
+        {
+            <div class="notice is-error" style="margin:0;"><i class="bi bi-exclamation-circle-fill"></i><span>@rejectionReason</span></div>
+        }
+        else if (Model.VerificationStatus == VerificationStatus.Rejected)
+        {
+            <div class="notice is-error" style="margin:0;"><i class="bi bi-exclamation-circle-fill"></i><span>Your brand verification wasn't approved. Update your Brand Profile below and save &mdash; our team will review it again.</span></div>
+        }
+
+        <div class="ui-card ps-panel" id="brand-profile">
 
             <div class="ps-panel-head">
-                <div class="ps-panel-title">Brand Profile</div>
-                <div class="ps-panel-sub">This is what creators and your team see across Brandora.</div>
+                <span class="ps-step">1</span>
+                <div class="ps-panel-copy">
+                    <div class="ps-panel-title">Brand Profile</div>
+                    <div class="ps-panel-sub">How your brand appears to creators on proposals, messages and campaign pages.</div>
+                </div>
+                <span class="icon-chip violet ps-panel-chip"><i class="bi bi-building"></i></span>
             </div>
 
             @if (profileSaved)
             {
-                <div class="ps-saved-note">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 12.5l2.5 2.5 5-5"/></svg>
-                    Profile updated.
-                </div>
+                <div class="notice is-success"><i class="bi bi-check-circle-fill"></i><span>Profile updated.</span></div>
             }
             @if (profileErrors.Length > 0)
             {
-                <div class="ps-error-note">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+                <div class="notice is-error">
+                    <i class="bi bi-exclamation-circle-fill"></i>
                     <ul>
                         @foreach (var error in profileErrors)
                         {
@@ -850,6 +401,8 @@
 
             <form method="post" action="/Settings/Update" enctype="multipart/form-data" id="brandProfileForm">
                 @Html.AntiForgeryToken()
+
+                <div class="ps-subhead"><span>Brand Identity</span><small>Your logo appears on campaigns, proposals and messages.</small></div>
 
                 <div class="ps-photo-row">
                     <div class="ps-photo-avatar-wrap">
@@ -885,21 +438,26 @@
                     </div>
                 </div>
 
+                <div class="ps-subhead"><span>Company Details</span><small>Used to verify your brand and shown to creators you work with.</small></div>
+
                 <div class="ps-form-grid">
 
                     <div class="ps-form-group">
                         <label for="Email">Email Address</label>
                         <input type="email" id="Email" value="@ViewData["Email"]" disabled />
+                        <p class="ps-form-hint"><i class="bi bi-lock"></i> Your sign-in email can't be changed here.</p>
                     </div>
 
                     <div class="ps-form-group">
                         <label for="ContactFullName">Contact Full Name</label>
                         <input type="text" id="ContactFullName" name="ContactFullName" value="@Model.ContactFullName" required />
+                        <p class="ps-form-hint">The person creators will talk to.</p>
                     </div>
 
                     <div class="ps-form-group full">
                         <label for="CompanyName">Company Name</label>
                         <input type="text" id="CompanyName" name="CompanyName" value="@Model.CompanyName" required />
+                        <p class="ps-form-hint">Use your registered or trading name so creators recognise you.</p>
                     </div>
 
                     <div class="ps-form-group full">
@@ -908,6 +466,7 @@
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 3.8 5.8 3.8 9s-1.3 6.5-3.8 9c-2.5-2.5-3.8-5.8-3.8-9S9.5 5.5 12 3Z"/></svg>
                             <input type="url" id="WebsiteUrl" name="WebsiteUrl" value="@Model.WebsiteUrl" placeholder="https://" />
                         </div>
+                        <p class="ps-form-hint">Optional &mdash; a website helps creators and our review team trust your brand.</p>
                     </div>
 
                     <div class="ps-form-group">
@@ -944,24 +503,25 @@
             </form>
         </div>
 
-        <div class="ps-card ps-panel" id="password">
+        <div class="ui-card ps-panel" id="password">
 
             <div class="ps-panel-head">
-                <div class="ps-panel-title">Password &amp; Security</div>
-                <div class="ps-panel-sub">Change the password used to sign in to Brandora.</div>
+                <span class="ps-step">2</span>
+                <div class="ps-panel-copy">
+                    <div class="ps-panel-title">Password &amp; Security</div>
+                    <div class="ps-panel-sub">Keep your account secure with a strong, unique password.</div>
+                </div>
+                <span class="icon-chip blue ps-panel-chip"><i class="bi bi-shield-lock"></i></span>
             </div>
 
             @if (passwordChanged)
             {
-                <div class="ps-saved-note">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 12.5l2.5 2.5 5-5"/></svg>
-                    Password changed.
-                </div>
+                <div class="notice is-success"><i class="bi bi-check-circle-fill"></i><span>Password changed.</span></div>
             }
             @if (passwordErrors.Length > 0)
             {
-                <div class="ps-error-note">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+                <div class="notice is-error">
+                    <i class="bi bi-exclamation-circle-fill"></i>
                     <ul>
                         @foreach (var error in passwordErrors)
                         {
@@ -982,10 +542,12 @@
                     <div class="ps-form-group">
                         <label for="NewPassword">New Password</label>
                         <input type="password" id="NewPassword" name="NewPassword" required />
+                        <p class="ps-form-hint">At least 8 characters with upper- and lowercase letters, a number and a symbol.</p>
                     </div>
                     <div class="ps-form-group">
                         <label for="ConfirmNewPassword">Confirm New Password</label>
                         <input type="password" id="ConfirmNewPassword" name="ConfirmNewPassword" required />
+                        <p class="ps-form-hint">Type the new password again to confirm it.</p>
                     </div>
                 </div>
 
@@ -995,19 +557,20 @@
             </form>
         </div>
 
-        <div class="ps-card ps-panel" id="notifications">
+        <div class="ui-card ps-panel" id="notifications">
 
             <div class="ps-panel-head">
-                <div class="ps-panel-title">Notification Settings</div>
-                <div class="ps-panel-sub">Choose which updates you want to receive while keeping important campaign activity within reach.</div>
+                <span class="ps-step">3</span>
+                <div class="ps-panel-copy">
+                    <div class="ps-panel-title">Notification Settings</div>
+                    <div class="ps-panel-sub">Choose which updates reach you. Important activity always stays on your Dashboard.</div>
+                </div>
+                <span class="icon-chip cyan ps-panel-chip"><i class="bi bi-bell"></i></span>
             </div>
 
             @if (notificationPrefsSaved)
             {
-                <div class="ps-saved-note">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 12.5l2.5 2.5 5-5"/></svg>
-                    Notification preferences updated.
-                </div>
+                <div class="notice is-success"><i class="bi bi-check-circle-fill"></i><span>Notification preferences updated.</span></div>
             }
 
             <form method="post" action="/Settings/UpdateNotificationPreferences">
@@ -1015,7 +578,8 @@
 
                 <div class="pref-list">
                     <div class="pref-row">
-                        <div>
+                        <span class="icon-chip sm violet"><i class="bi bi-send"></i></span>
+                        <div class="pref-copy">
                             <div class="pref-title">New Proposals</div>
                             <div class="pref-desc">Receive notifications when a creator submits a proposal for your campaign.</div>
                         </div>
@@ -1026,7 +590,8 @@
                     </div>
 
                     <div class="pref-row">
-                        <div>
+                        <span class="icon-chip sm blue"><i class="bi bi-people"></i></span>
+                        <div class="pref-copy">
                             <div class="pref-title">Proposal &amp; Collaboration Updates</div>
                             <div class="pref-desc">Stay informed when a proposal changes status or a collaboration begins.</div>
                         </div>
@@ -1037,7 +602,8 @@
                     </div>
 
                     <div class="pref-row">
-                        <div>
+                        <span class="icon-chip sm blue"><i class="bi bi-chat-dots"></i></span>
+                        <div class="pref-copy">
                             <div class="pref-title">Messages</div>
                             <div class="pref-desc">Receive notifications when creators send you new messages.</div>
                         </div>
@@ -1048,7 +614,8 @@
                     </div>
 
                     <div class="pref-row">
-                        <div>
+                        <span class="icon-chip sm cyan"><i class="bi bi-flag"></i></span>
+                        <div class="pref-copy">
                             <div class="pref-title">Milestone Updates</div>
                             <div class="pref-desc">Stay informed about milestone submissions and approvals.</div>
                         </div>
@@ -1059,7 +626,8 @@
                     </div>
 
                     <div class="pref-row">
-                        <div>
+                        <span class="icon-chip sm mint"><i class="bi bi-wallet2"></i></span>
+                        <div class="pref-copy">
                             <div class="pref-title">Payment Updates</div>
                             <div class="pref-desc">Receive updates about funding and payment activity.</div>
                         </div>
@@ -1070,7 +638,8 @@
                     </div>
 
                     <div class="pref-row">
-                        <div>
+                        <span class="icon-chip sm amber"><i class="bi bi-alarm"></i></span>
+                        <div class="pref-copy">
                             <div class="pref-title">Campaign Deadlines</div>
                             <div class="pref-desc">Receive reminders about important campaign dates and upcoming deliverables.</div>
                         </div>
@@ -1087,68 +656,84 @@
             </form>
         </div>
 
-        <div class="ps-card ps-panel" id="billing">
+        <div class="ui-card ps-panel" id="billing">
 
             <div class="ps-panel-head">
-                <div class="ps-panel-title">Billing &amp; Payments</div>
-                <div class="ps-panel-sub">Manage your campaign funding information and keep track of payment activity associated with your Brand account.</div>
+                <span class="ps-step">4</span>
+                <div class="ps-panel-copy">
+                    <div class="ps-panel-title">Billing &amp; Payments</div>
+                    <div class="ps-panel-sub">A live summary of the money moving through your campaign milestones.</div>
+                </div>
+                <span class="icon-chip mint ps-panel-chip"><i class="bi bi-wallet2"></i></span>
             </div>
 
             <div class="billing-grid">
                 <div class="billing-figure">
+                    <span class="icon-chip sm violet"><i class="bi bi-safe"></i></span>
                     <div class="billing-value">৳@Model.TotalFunded.ToString("N0")</div>
                     <div class="billing-label">Total Funded</div>
                 </div>
                 <div class="billing-figure">
+                    <span class="icon-chip sm amber"><i class="bi bi-hourglass-split"></i></span>
                     <div class="billing-value">৳@Model.PendingPayments.ToString("N0")</div>
                     <div class="billing-label">Pending Payments</div>
                 </div>
                 <div class="billing-figure">
+                    <span class="icon-chip sm mint"><i class="bi bi-check2-circle"></i></span>
                     <div class="billing-value">৳@Model.ReleasedPayments.ToString("N0")</div>
                     <div class="billing-label">Released Payments</div>
                 </div>
                 <div class="billing-figure">
+                    <span class="icon-chip sm blue"><i class="bi bi-pie-chart"></i></span>
                     <div class="billing-value">৳@Model.CampaignSpend.ToString("N0")</div>
                     <div class="billing-label">Campaign Spend</div>
                 </div>
             </div>
 
             <div class="billing-note">
-                This is real funding and payment activity from your campaigns' milestones — reflected the moment a payment is released or confirmed. A configured external payment gateway is not yet connected to this account, so releases and confirmations are recorded here directly rather than processed automatically.
+                <i class="bi bi-info-circle"></i>
+                <span>These figures come straight from your campaigns' milestone payments. Payments are released per milestone and paid through bKash or Nagad &mdash; a payment only counts as paid once the provider confirms it.</span>
             </div>
 
             <div class="ps-actions" style="margin-top: 18px;">
-                <a href="/Payments" class="btn btn-secondary">View Full Payment History</a>
+                <a href="/Payments" class="btn btn-secondary">View Full Payment History <i class="bi bi-arrow-right" style="margin-left:8px;"></i></a>
             </div>
         </div>
 
-        <div class="ps-card ps-panel" id="connected-accounts">
+        <div class="ui-card ps-panel" id="connected-accounts">
 
             <div class="ps-panel-head">
-                <div class="ps-panel-title">Connected Accounts</div>
-                <div class="ps-panel-sub">Connect the platforms and services you use to make campaign management and creator collaboration more seamless.</div>
+                <span class="ps-step">5</span>
+                <div class="ps-panel-copy">
+                    <div class="ps-panel-title">Connected Accounts</div>
+                    <div class="ps-panel-sub">Social platforms you can link to your brand account.</div>
+                </div>
+                <span class="icon-chip pink ps-panel-chip"><i class="bi bi-link-45deg"></i></span>
             </div>
 
             <div class="connected-list">
                 @foreach (var platform in new[] { "Instagram", "TikTok", "YouTube", "Facebook" })
                 {
                     <div class="connected-row">
-                        <div class="connected-row-name">@platform</div>
+                        <span class="icon-chip sm soft"><i class="bi bi-@platform.ToLowerInvariant()"></i></span>
+                        <div class="connected-row-name">@platform<small>Not linked to this account</small></div>
                         <div class="connected-row-status">
-                            <span class="status-pill pending">Not Connected</span>
+                            <span class="ui-badge is-neutral">Not Connected</span>
                         </div>
                     </div>
                 }
             </div>
 
             <div class="billing-note" style="margin-top: 16px;">
-                Platform connections require an external integration that isn't configured for this Brandora instance yet — nothing here is falsely marked as connected. Once integration credentials are available, connecting an account will let you cross-post campaign briefs and verify your own social presence to creators.
+                <i class="bi bi-info-circle"></i>
+                <span>Platform connections require an external integration that isn't configured for this Brandora instance yet — nothing here is falsely marked as connected. Once integration credentials are available, connecting an account will let you cross-post campaign briefs and verify your own social presence to creators.</span>
             </div>
         </div>
 
     </div>
 
 </div>
+
 
 @section Scripts {
     <script>

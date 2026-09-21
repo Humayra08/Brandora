@@ -5,829 +5,338 @@
     ViewData["Title"] = "Discover Creators";
     ViewData["ActiveNav"] = "Influencers";
     Layout = "_AppLayout";
+
+    var hasFilters = !string.IsNullOrWhiteSpace(Model.Search) || !string.IsNullOrWhiteSpace(Model.Niche)
+        || !string.IsNullOrWhiteSpace(Model.Platform) || !string.IsNullOrWhiteSpace(Model.Sort) || Model.SelectedCampaign is not null;
+    var sortLabel = Model.Sort switch
+    {
+        "followers" => "Most followers",
+        "engagement" => "Highest engagement",
+        _ => "Newest first"
+    };
+    var verifiedInResults = Model.Creators.Count(c => c.Verified);
+
+    var faqs = new[]
+    {
+        ("What is Campaign Fit?", "Pick one of your campaigns in the filter bar and every creator gets a score out of 100: 50 points for posting on the campaign's platform, 35 for working in its niche and up to 15 for engagement rate."),
+        ("What does shortlisting do?", "It saves a creator to your private Shortlist so you can compare them later. Creators aren't notified when you shortlist them."),
+        ("How do I start working with a creator?", "Open their profile and choose Invite to Campaign. You set the amount, deliverables and timeline; the invite is saved as a pending application you can confirm once terms are agreed."),
+        ("What does the Verified tick mean?", "Brandora's team has reviewed the creator's account and confirmed it belongs to them."),
+        ("Can I message a creator before inviting them?", "Yes. Use Message on any card or profile to open a chat without committing to a campaign.")
+    };
 }
 
 @section Styles {
-    <style>
-        :root {
-            --brandora-purple: #8b35ff;
-            --brandora-violet: #a84dff;
-            --brandora-blue: #159cff;
-            --brandora-navy: #171d3d;
-            --brandora-muted: #737b9d;
-            --brandora-border: #e9e7f5;
-            --brandora-soft: #f8f7ff;
-        }
 
-        .influencer-page {
-            position: relative;
-            min-height: 100%;
-            overflow: hidden;
-            padding-bottom: 40px;
-        }
+    .fi-body { align-items: start; }
+
+    /* ---- Filter bar ---- */
+    .fi-filters { display: grid; gap: 12px; }
+    .fi-filter-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+    .fi-search { position: relative; flex: 1 1 260px; min-width: 220px; }
+    .fi-search i { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); font-size: 14px; color: #7d93c8; pointer-events: none; }
+    .fi-search input { width: 100%; height: 42px; padding: 0 14px 0 36px; border-radius: 10px; border: 1px solid #d3e4ff; background: #ffffffcc; font-family: 'Inter', sans-serif; font-size: 13px; color: #20365f; outline: none; transition: border-color .2s ease, box-shadow .2s ease, background .2s ease; }
+    .fi-search input::placeholder { color: #7b8fbf; }
+    .fi-select { height: 42px; min-width: 150px; padding: 0 32px 0 12px; border-radius: 10px; border: 1px solid #d3e4ff; background: #ffffffcc url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6' fill='none'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%235877ac' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 12px center; font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 600; color: #33477c; outline: none; appearance: none; -webkit-appearance: none; cursor: pointer; transition: border-color .2s ease, box-shadow .2s ease; }
+    .fi-search input:focus, .fi-select:focus { border-color: #8f7bff; box-shadow: 0 0 0 3px #7862ef22; background-color: #ffffff; }
+    .fi-search input:hover, .fi-select:hover { border-color: #a9c9ff; }
+    .fi-filter-row .btn { height: 42px; }
+    .fi-filter-row .btn i { margin-right: 7px; }
+    .fi-fit-select { border-color: #cfc6ff; color: #4a36d6; }
+
+    .fi-active { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding-top: 12px; border-top: 1px solid #e3edfc; font-family: 'Inter', sans-serif; font-size: 12px; color: #5877ac; }
+    .fi-active .tag { display: inline-flex; align-items: center; gap: 5px; }
+    .fi-active .tag i { color: #5b4dff; }
+    .fi-clear { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; font-weight: 600; color: #1451ff; }
+    .fi-clear i { transition: transform .2s ease; }
+    .fi-clear:hover i { transform: rotate(90deg); }
+
+    .fi-results-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 14px; margin: 4px 0 -2px; }
+    .fi-results-head .ui-card-sub strong { color: #101d48; }
+
+    .fi-fit-note { display: flex; align-items: center; gap: 12px; }
+    .fi-fit-note .decision-card-text { margin-top: 2px; }
+
+    /* ---- Creator cards ---- */
+    .creator-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+
+    .creator-card {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        padding: 18px 18px 16px;
+        border-radius: 12px;
+        border: 1px solid #cfe2ff;
+        background: linear-gradient(135deg, #ffffffbd, #f5faff8c 55%, #fafdffd9);
+        box-shadow: inset 0 1px 2px #fff, 0 3px 10px #6f9bce07;
+        opacity: 0;
+        transform: translateY(22px);
+        transition: opacity .6s ease, transform .6s cubic-bezier(.22,1,.36,1), box-shadow .3s ease, border-color .3s ease;
+    }
+    .creator-card.is-visible { opacity: 1; transform: translateY(0); }
+    .creator-card.is-visible:hover { transform: translateY(-4px); border-color: #b9d3ff; box-shadow: 0 18px 34px #5b83c424; transition-delay: 0s !important; }
+
+    .cc-head { display: flex; align-items: center; gap: 12px; }
+    .cc-avatar { display: grid; place-items: center; flex-shrink: 0; width: 52px; height: 52px; border-radius: 50%; color: #ffffff; font-family: 'DM Sans', sans-serif; font-size: 16px; font-weight: 700; box-shadow: 0 8px 18px -6px #3a2bb055, inset 0 0 6px #ffffff55; transition: transform .35s cubic-bezier(.22,1,.36,1); }
+    .creator-card:hover .cc-avatar { transform: scale(1.06); }
+    .cc-id { min-width: 0; flex: 1; }
+    .cc-name { display: flex; align-items: center; gap: 6px; font: 600 17px/1.25 'Playfair Display', Georgia, serif; letter-spacing: -.2px; color: #0b084e; }
+    .cc-name a { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: inherit; transition: color .2s ease; }
+    .cc-name a:hover { color: #1451ff; }
+    .cc-name i { flex-shrink: 0; font-size: 13px; color: #1d7bff; }
+    .cc-handle { margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: 'Inter', sans-serif; font-size: 11.5px; color: #5877ac; }
+
+    .cc-fit { display: grid; place-items: center; flex-shrink: 0; width: 50px; height: 50px; border-radius: 50%; background: conic-gradient(#7224ff 0%, #3735ff calc(var(--score) * .55%), #087fff calc(var(--score) * 1%), #e3ecfb calc(var(--score) * 1%) 100%); position: relative; }
+    .cc-fit::before { content: ''; position: absolute; inset: 5px; border-radius: 50%; background: #ffffff; }
+    .cc-fit span { position: relative; font-family: 'DM Sans', sans-serif; font-size: 12.5px; font-weight: 700; color: #101d48; line-height: 1; text-align: center; }
+    .cc-fit small { display: block; margin-top: 1px; font-family: 'Inter', sans-serif; font-size: 7.5px; font-weight: 600; letter-spacing: .4px; text-transform: uppercase; color: #5877ac; }
+
+    .cc-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+    .cc-tags span { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 20px; background: #f3f7ff; border: 1px solid #e0ebfc; font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; color: #33477c; }
+    .cc-tags span i { color: #5b4dff; font-size: 11px; }
+
+    .cc-reasons { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+    .cc-reasons span { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 20px; background: #efebff; border: 1px solid #ded6ff; font-family: 'Inter', sans-serif; font-size: 10.5px; font-weight: 600; color: #5b3df0; }
+    .cc-reasons span:nth-child(2n) { background: #e7f0ff; border-color: #d3e3ff; color: #1d5fd6; }
+
+    .cc-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 14px; }
+    .cc-stats > div { padding: 9px 6px; border-radius: 9px; border: 1px solid #e1ecfa; background: #fafdff99; text-align: center; }
+    .cc-stats strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: 'DM Sans', sans-serif; font-size: 14.5px; font-weight: 700; color: #101d48; }
+    .cc-stats span { font-family: 'Inter', sans-serif; font-size: 10.5px; color: #5877ac; }
+
+    .cc-bio { margin-top: 12px; font-family: 'Inter', sans-serif; font-size: 12px; line-height: 1.55; color: #52649b; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+    .creator-actions { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; margin-top: auto; padding-top: 14px; }
+    .creator-actions form { margin: 0; }
+    .creator-actions .btn, .creator-actions .shortlist-btn, .cc-chat { width: 100%; height: 38px; font-size: 12px; }
+    .creator-actions .btn i, .creator-actions .shortlist-btn i { margin-right: 6px; }
+    .creator-actions .shortlist-btn { border-color: #d7e8ff; background: #ffffffb8; color: #1451ff; }
+    .creator-actions .shortlist-btn:hover { border-color: #1451ff; transform: translateY(-1px); }
+    .creator-actions .shortlist-btn.is-saved { border-color: transparent; background: linear-gradient(110deg, #6425ff, #004dff 55%, #00a8f0); color: #ffffff; }
+    .cc-chat { display: grid; place-items: center; width: 38px; border-radius: 9px; border: 1px solid #d7e8ff; background: #ffffffb8; color: #1451ff; font-size: 15px; cursor: pointer; transition: .2s ease; }
+    .cc-chat:hover { border-color: #1451ff; transform: translateY(-1px); }
+
+    .fi-empty { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 38px 20px; text-align: center; }
+    .fi-empty strong { font: 600 19px/1.3 'Playfair Display', Georgia, serif; color: #0b084e; }
+    .fi-empty p { max-width: 420px; margin: 0; font-family: 'Inter', sans-serif; font-size: 12.5px; line-height: 1.6; color: #5877ac; }
+    .fi-empty .btn { margin-top: 8px; }
+
+    .fi-campaign-link { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-top: 1px solid #e3edfc; font-family: 'Inter', sans-serif; font-size: 12.5px; color: #101d48; transition: color .2s ease; }
+    .fi-campaign-link:first-of-type { border-top: 0; }
+    .fi-campaign-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+    .fi-campaign-link > i:last-child { color: #8095c4; transition: transform .2s ease, color .2s ease; }
+    .fi-campaign-link:hover { color: #1451ff; }
+    .fi-campaign-link:hover > i:last-child { transform: translateX(3px); color: #1451ff; }
 
-        .influencer-page::before {
-            content: "";
-            position: absolute;
-            top: 10px;
-            right: -180px;
-            width: 620px;
-            height: 420px;
-            background:
-                radial-gradient(circle at 40% 40%, rgba(139,53,255,.10), transparent 42%),
-                radial-gradient(circle at 70% 60%, rgba(21,156,255,.08), transparent 45%);
-            filter: blur(8px);
-            pointer-events: none;
-        }
+    @@media(max-width: 1350px) and (min-width: 1151px) { .creator-grid { grid-template-columns: minmax(0, 1fr); } }
+    @@media(max-width: 700px) { .creator-grid { grid-template-columns: minmax(0, 1fr); } .fi-select, .fi-filter-row .btn { flex: 1 1 100%; } }
+    @@media (prefers-reduced-motion: reduce) { .creator-card, .creator-card.is-visible { opacity: 1; transform: none; transition: none; } }
 
-        .creator-stars {
-            position: absolute;
-            inset: 0;
-            pointer-events: none;
-            overflow: hidden;
-            z-index: 0;
-        }
-
-        .creator-stars span {
-            position: absolute;
-            width: 4px;
-            height: 4px;
-            border-radius: 50%;
-            background: #a84dff;
-            opacity: .22;
-            animation: star-float 5s ease-in-out infinite;
-        }
-
-        .creator-stars span:nth-child(1) { top: 9%; right: 19%; animation-delay: -.8s; }
-        .creator-stars span:nth-child(2) { top: 22%; right: 38%; width: 3px; height: 3px; animation-delay: -2s; }
-        .creator-stars span:nth-child(3) { top: 34%; right: 8%; animation-delay: -3s; }
-        .creator-stars span:nth-child(4) { top: 46%; left: 8%; width: 3px; height: 3px; animation-delay: -1.2s; }
-        .creator-stars span:nth-child(5) { top: 68%; right: 15%; width: 5px; height: 5px; animation-delay: -2.8s; }
-        .creator-stars span:nth-child(6) { top: 82%; left: 48%; width: 3px; height: 3px; animation-delay: -4s; }
-
-        .creator-wave {
-            position: absolute;
-            top: 24px;
-            right: -70px;
-            width: 760px;
-            height: 300px;
-            opacity: .45;
-            pointer-events: none;
-            z-index: 0;
-        }
-
-        .creator-wave path {
-            fill: none;
-            stroke: url(#creatorWaveGradient);
-            stroke-width: 1.2;
-            stroke-linecap: round;
-            animation: wave-drift 9s ease-in-out infinite alternate;
-        }
-
-        .creator-shell {
-            position: relative;
-            z-index: 1;
-        }
-
-        .back-to-dashboard {
-            display: inline-flex;
-            align-items: center;
-            gap: 7px;
-            margin-bottom: 18px;
-            color: #70789a;
-            font: 600 12px 'Inter', sans-serif;
-            text-decoration: none;
-            transition: color .2s ease, transform .2s ease;
-        }
-
-        .back-to-dashboard:hover {
-            color: var(--brandora-purple);
-            transform: translateX(-2px);
-        }
-
-        .discovery-toolbar {
-            position: relative;
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            gap: 9px;
-            padding: 12px;
-            margin-bottom: 24px;
-            border: 1px solid #d1e2ff;
-            border-radius: 20px;
-            background: linear-gradient(120deg, #eef6ffcc, #f7fbffcc);
-            box-shadow: 0 12px 35px rgba(35, 25, 91, .05);
-            backdrop-filter: blur(14px);
-            animation: hero-enter .7s .08s cubic-bezier(.22,1,.36,1) both;
-        }
-
-        .filter-input,
-        .filter-select {
-            height: 42px;
-            border: 1px solid #d1e2ff;
-            border-radius: 14px;
-            background: #fff;
-            color: #2a3157;
-            font: 500 12.5px 'Inter', sans-serif;
-            outline: none;
-            transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
-        }
-
-        .filter-input {
-            flex: 1 1 245px;
-            min-width: 210px;
-            padding: 0 15px;
-        }
-
-        .filter-select {
-            min-width: 145px;
-            padding: 0 12px;
-        }
-
-        .filter-input:focus,
-        .filter-select:focus {
-            border-color: #a978ff;
-            box-shadow: 0 0 0 4px rgba(139,53,255,.08);
-        }
-
-        .filter-input:hover,
-        .filter-select:hover {
-            border-color: #a9c9ff;
-        }
-
-        .discovery-toolbar .btn {
-            height: 42px;
-            border-radius: 12px;
-            padding: 0 18px;
-        }
-
-        .creator-grid {
-            display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 18px;
-        }
-
-        .creator-card {
-            --card-accent: #8b35ff;
-            position: relative;
-            overflow: hidden;
-            min-width: 0;
-            border: 1px solid #e8e7f2;
-            border-radius: 22px;
-            background: #fff;
-            box-shadow: 0 10px 30px rgba(32, 24, 82, .055);
-            opacity: 0;
-            transform: translateY(28px);
-            transition:
-                opacity .65s ease,
-                transform .65s cubic-bezier(.22,1,.36,1),
-                box-shadow .4s ease,
-                border-color .35s ease;
-        }
-
-        .creator-card.is-visible {
-            opacity: 1;
-            transform: translateY(0);
-        }
-
-        .creator-card:hover {
-            transform: translateY(-8px);
-            border-color: rgba(139,53,255,.28);
-            box-shadow:
-                0 25px 55px rgba(49, 31, 119, .12),
-                0 0 0 1px rgba(139,53,255,.04);
-        }
-
-        .creator-card::before {
-            content: "";
-            position: absolute;
-            inset: 0;
-            background:
-                radial-gradient(circle at 0 0, rgba(139,53,255,.11), transparent 34%),
-                radial-gradient(circle at 100% 100%, rgba(21,156,255,.07), transparent 35%);
-            opacity: .35;
-            pointer-events: none;
-            transition: opacity .35s ease;
-        }
-
-        .creator-card:hover::before {
-            opacity: .8;
-        }
-
-        .creator-media {
-            position: relative;
-            height: 185px;
-            overflow: hidden;
-            background: linear-gradient(135deg, #eee9ff, #e9f7ff);
-        }
-
-        .creator-media::after {
-            content: "";
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(180deg, transparent 45%, rgba(17, 19, 47, .7) 100%);
-            pointer-events: none;
-        }
-
-        .creator-mark {
-            position: absolute;
-            inset: 0;
-            display: grid;
-            place-items: center;
-
-            color: rgba(255,255,255,.55);
-            font: 700 64px 'Playfair Display', serif;
-
-            transition: transform .65s cubic-bezier(.22,1,.36,1);
-        }
-
-        .creator-card:hover .creator-mark {
-            transform: scale(1.08);
-        }
-
-        .platform-badge,
-        .availability-badge,
-        .fit-badge,
-        .creator-bookmark {
-            position: absolute;
-            z-index: 3;
-            top: 12px;
-            border: 1px solid rgba(255,255,255,.68);
-            background: rgba(255,255,255,.91);
-            box-shadow: 0 8px 22px rgba(20, 20, 60, .10);
-            backdrop-filter: blur(12px);
-        }
-
-        .platform-badge {
-            left: 12px;
-            padding: 7px 10px;
-            border-radius: 999px;
-            color: #343a5b;
-            font: 700 10px 'Inter', sans-serif;
-        }
-
-        .availability-badge {
-            right: 45px;
-            padding: 7px 10px;
-            border-radius: 999px;
-            color: #2d7651;
-            font: 700 10px 'Inter', sans-serif;
-        }
-
-        .availability-badge::before {
-            content: "";
-            display: inline-block;
-            width: 6px;
-            height: 6px;
-            margin-right: 5px;
-            border-radius: 50%;
-            background: #45bd79;
-            box-shadow: 0 0 0 3px rgba(69,189,121,.13);
-        }
-
-        .fit-badge {
-            right: 45px;
-            padding: 7px 10px;
-            border-radius: 999px;
-            color: #7a2df3;
-            font: 750 10px 'Inter', sans-serif;
-        }
-
-        .fit-reasons {
-            margin-bottom: 10px;
-            color: #7a2df3;
-            font: 600 10.5px 'Inter', sans-serif;
-            line-height: 1.5;
-        }
-
-        .creator-bookmark {
-            right: 12px;
-            width: 31px;
-            height: 31px;
-            display: grid;
-            place-items: center;
-            padding: 0;
-            border-radius: 10px;
-            color: #545a7c;
-            cursor: pointer;
-        }
-
-        .creator-overlay {
-            position: absolute;
-            left: 14px;
-            right: 14px;
-            bottom: 12px;
-            z-index: 4;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            color: #fff;
-        }
-
-        .creator-avatar {
-            width: 47px;
-            height: 47px;
-            flex: 0 0 47px;
-            overflow: hidden;
-            border: 3px solid rgba(255,255,255,.92);
-            border-radius: 50%;
-            background: linear-gradient(135deg, #8b35ff, #159cff);
-            box-shadow: 0 8px 20px rgba(20,20,50,.22);
-            transition: transform .45s cubic-bezier(.22,1,.36,1);
-        }
-
-        .creator-avatar-initial {
-            display: grid;
-            place-items: center;
-            color: #fff;
-            font: 700 17px 'DM Sans', sans-serif;
-        }
-
-        .creator-card:hover .creator-avatar {
-            transform: scale(1.06);
-        }
-
-        .creator-name {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            margin: 0;
-            color: #fff;
-            font: 750 15px 'DM Sans', sans-serif;
-        }
-
-        .creator-handle {
-            margin-top: 2px;
-            color: rgba(255,255,255,.77);
-            font: 500 10px 'Inter', sans-serif;
-        }
-
-        .verified-mark {
-            width: 15px;
-            height: 15px;
-            display: inline-grid;
-            place-items: center;
-            border-radius: 50%;
-            color: #fff;
-            background: linear-gradient(135deg, #8b35ff, #159cff);
-            font-size: 9px;
-        }
-
-        .creator-body {
-            position: relative;
-            z-index: 2;
-            padding: 16px 17px 17px;
-        }
-
-        .creator-tags {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-            margin-bottom: 14px;
-        }
-
-        .creator-tags .tag {
-            padding: 6px 8px;
-            border: 1px solid #ebe8f7;
-            border-radius: 999px;
-            background: #faf9ff;
-            color: #656c8c;
-            font: 650 9.5px 'Inter', sans-serif;
-        }
-
-        .creator-figures {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 7px;
-            padding: 12px 0;
-            border-top: 1px solid #eeeef5;
-            border-bottom: 1px solid #eeeef5;
-        }
-
-        .figure {
-            min-width: 0;
-            padding-right: 8px;
-            border-right: 1px solid #eeeef5;
-        }
-
-        .figure:last-child {
-            border-right: 0;
-        }
-
-        .figure-value {
-            color: var(--brandora-navy);
-            font: 800 16px 'DM Sans', sans-serif;
-        }
-
-        .figure-label {
-            margin-top: 2px;
-            color: #969bb3;
-            font: 650 8.5px 'Inter', sans-serif;
-            letter-spacing: .05em;
-            text-transform: uppercase;
-        }
-
-        .engagement-meter {
-            position: relative;
-            width: 38px;
-            height: 38px;
-            margin-left: auto;
-            border-radius: 50%;
-            background: conic-gradient(var(--card-accent) 0deg 220deg, #ecebf4 220deg 360deg);
-        }
-
-        .engagement-meter::after {
-            content: "";
-            position: absolute;
-            inset: 5px;
-            border-radius: 50%;
-            background: #fff;
-        }
-
-        .engagement-meter span {
-            position: absolute;
-            inset: 0;
-            z-index: 1;
-            display: grid;
-            place-items: center;
-            color: var(--brandora-navy);
-            font: 800 8px 'DM Sans', sans-serif;
-        }
-
-        .creator-audience {
-            margin: 12px 0 13px;
-        }
-
-        .audience-title {
-            margin-bottom: 5px;
-            color: #252b4b;
-            font: 750 10px 'Inter', sans-serif;
-        }
-
-        .audience-list {
-            color: #777e9d;
-            font: 500 9.5px 'Inter', sans-serif;
-        }
-
-        .creator-actions {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-        }
-
-        .creator-actions .btn,
-        .creator-actions .shortlist-btn {
-            width: 100%;
-            min-height: 39px;
-            border-radius: 11px;
-            font: 700 11px 'Inter', sans-serif;
-            cursor: pointer;
-            transition: transform .2s ease, box-shadow .25s ease, background .25s ease, color .25s ease;
-        }
-
-        .creator-actions .btn:hover,
-        .creator-actions .shortlist-btn:hover {
-            transform: translateY(-2px);
-        }
-
-        .creator-actions .btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            border: 1px solid #e3e1ed;
-            color: #444b6b;
-            background: #fff;
-            text-decoration: none;
-        }
-
-        .creator-actions .btn:hover {
-            border-color: #bba2ef;
-            color: #762cff;
-        }
-
-        .creator-actions .shortlist-btn {
-            border: 1px solid rgba(139,53,255,.32);
-            color: #7c2df2;
-            background: linear-gradient(180deg, #fff, #fbf9ff);
-        }
-
-        .creator-actions .shortlist-btn.is-saved {
-            border-color: transparent;
-            color: #fff;
-            background: linear-gradient(110deg, #812fff, #159cff);
-            box-shadow: 0 8px 20px rgba(117, 44, 239, .18);
-        }
-
-        .creator-actions form {
-            margin: 0;
-        }
-
-        .empty-block {
-            border-radius: 22px;
-            border: 1px solid #e9e7f3;
-            background: #fff;
-            box-shadow: 0 12px 35px rgba(35,25,91,.05);
-        }
-
-        @@keyframes hero-enter {
-            from { opacity: 0; transform: translateY(18px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        @@keyframes star-float {
-            0%, 100% { transform: translateY(0) scale(1); opacity: .18; }
-            50% { transform: translateY(-8px) scale(1.25); opacity: .55; }
-        }
-
-        @@keyframes sparkle {
-            0%, 100% { transform: scale(.8) rotate(0deg); opacity: .35; }
-            50% { transform: scale(1.15) rotate(12deg); opacity: .9; }
-        }
-
-        @@keyframes wave-drift {
-            from { transform: translateX(-15px); }
-            to { transform: translateX(15px); }
-        }
-
-        @@media (max-width: 1180px) {
-            .creator-grid {
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-            }
-        }
-
-        @@media (max-width: 650px) {
-            .creator-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .discovery-toolbar {
-                align-items: stretch;
-            }
-
-            .filter-input,
-            .filter-select,
-            .discovery-toolbar .btn {
-                width: 100%;
-                flex-basis: 100%;
-            }
-        }
-
-        @@media (prefers-reduced-motion: reduce) {
-            .creator-card,
-            .creator-card.is-visible {
-                opacity: 1;
-                transform: none;
-            }
-
-            .creator-stars span,
-            .creator-wave path {
-                animation: none;
-            }
-
-            .creator-avatar {
-                transition: none;
-            }
-        }
-    </style>
 }
 
-<div class="influencer-page">
-    <div class="creator-stars" aria-hidden="true">
-        <span></span><span></span><span></span><span></span><span></span><span></span>
+<nav class="crumb-trail" aria-label="Breadcrumb">
+    <a href="/Dashboard">Dashboard</a><i class="bi bi-chevron-right"></i>
+    <strong>Find Influencers</strong>
+</nav>
+
+<section class="page-hero">
+    @await Html.PartialAsync("_HeroWaves")
+    <div class="page-hero-intro">
+        <p class="page-hero-eyebrow">Brandora Creator Network</p>
+        <h1 class="page-hero-title">Find the Right <span>Creative Voice</span></h1>
+        <p class="page-hero-sub">Search verified creators by platform, niche and engagement, score them against your campaigns, and shortlist the ones you want to work with.</p>
+        <dl class="page-hero-stats">
+            <div><dd>@Model.TotalCount</dd><dt>Creators</dt></div>
+            <div><dd>@Model.AvgEngagementRate.ToString("0.0")%</dd><dt>Avg Engagement</dt></div>
+            <div><dd>@Model.PlatformCount</dd><dt>Platforms</dt></div>
+            <div><dd>@Model.ShortlistedIds.Count</dd><dt>Shortlisted</dt></div>
+        </dl>
+        <div class="hero-actions" style="margin-top:16px;">
+            <a href="/Influencers/Shortlist" class="btn btn-secondary"><i class="bi bi-bookmark-star" style="margin-right:8px;"></i>View Shortlist (@Model.ShortlistedIds.Count)</a>
+        </div>
     </div>
 
-    <svg class="creator-wave" viewBox="0 0 760 300" aria-hidden="true">
-        <defs>
-            <linearGradient id="creatorWaveGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stop-color="#8b35ff" stop-opacity=".05" />
-                <stop offset="50%" stop-color="#8b35ff" stop-opacity=".42" />
-                <stop offset="100%" stop-color="#159cff" stop-opacity=".08" />
-            </linearGradient>
-        </defs>
-        <path d="M0 170 C150 40 230 290 380 155 S610 40 760 135" />
-        <path d="M0 205 C150 75 240 315 390 185 S620 70 760 165" />
-        <path d="M0 235 C150 105 250 335 410 215 S630 105 760 195" />
-        <path d="M0 135 C140 10 225 255 370 125 S600 20 760 105" />
-    </svg>
+    <div class="page-hero-art" aria-hidden="true">
+        <div class="hero-glass hero-glass-back"></div>
+        <div class="hero-glass hero-glass-front">
+            <span class="hero-glass-copy">Explore<br />Evaluate<br />Connect<span></span></span>
+        </div>
+        <span class="hero-sparkle"></span>
+    </div>
 
-    <div class="creator-shell">
-        <a href="/Dashboard" class="back-to-dashboard">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-                <path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            Back
-        </a>
+    <div class="page-hero-motto">Real Creators.<br />Real Impact.<span></span></div>
+</section>
 
-        <section class="page-hero">
-            @await Html.PartialAsync("_HeroWaves")
-            <div class="page-hero-intro">
-                <p class="page-hero-eyebrow">Brandora Creator Network</p>
+<div class="page-grid fi-body">
 
-                <h1 class="page-hero-title">Discover <span>Influencers</span></h1>
+    <div class="page-main">
 
-                <p class="page-hero-sub">
-                    Find creators whose content, audience and experience align with the campaigns you want to build.
-                </p>
-
-                <dl class="page-hero-stats">
-                    <div>
-                        <dd>@Model.TotalCount</dd>
-                        <dt>Creators</dt>
-                    </div>
-                    <div>
-                        <dd>@Model.AvgEngagementRate.ToString("0.0")%</dd>
-                        <dt>Avg Engagement</dt>
-                    </div>
-                    <div>
-                        <dd>@Model.PlatformCount</dd>
-                        <dt>Platforms</dt>
-                    </div>
-                </dl>
-            </div>
-
-            <div class="page-hero-art" aria-hidden="true">
-                <div class="hero-glass hero-glass-back"></div>
-                <div class="hero-glass hero-glass-front">
-                    <span class="hero-glass-copy">Explore<br />Evaluate<br />Connect<span></span></span>
+        <section class="ui-card">
+            <form method="get" action="/Influencers" class="fi-filters">
+                <div class="fi-filter-row">
+                    <label class="fi-search">
+                        <i class="bi bi-search"></i>
+                        <input type="text" name="search" placeholder="Search by creator name or handle..." value="@Model.Search" aria-label="Search creators" />
+                    </label>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-search"></i>Search</button>
                 </div>
-                <span class="hero-sparkle"></span>
-            </div>
+                <div class="fi-filter-row">
+                    <select name="platform" class="fi-select" onchange="this.form.submit()" aria-label="Platform">
+                        <option value="" selected="@(string.IsNullOrEmpty(Model.Platform))">All platforms</option>
+                        @foreach (var platform in new[] { "Instagram", "TikTok", "YouTube", "Facebook", "X", "LinkedIn" })
+                        {
+                            <option value="@platform" selected="@(Model.Platform == platform)">@platform</option>
+                        }
+                    </select>
 
-            <div class="page-hero-motto">
-                Real Creators.<br />Real Impact.<span></span>
-                <a href="/Influencers/Shortlist" class="btn btn-secondary" style="margin-top: 12px; display: inline-flex;">
-                    View Shortlist (@Model.ShortlistedIds.Count)
-                </a>
-            </div>
+                    <select name="niche" class="fi-select" onchange="this.form.submit()" aria-label="Niche">
+                        <option value="" selected="@(string.IsNullOrEmpty(Model.Niche))">All niches</option>
+                        @foreach (var niche in new[] { "Fashion & Style", "Beauty & Skincare", "Food & Cooking", "Travel & Lifestyle", "Fitness & Health", "Gaming", "Tech & Gadgets", "Education", "Comedy & Entertainment", "Home & Lifestyle", "Finance", "Other" })
+                        {
+                            <option value="@niche" selected="@(Model.Niche == niche)">@niche</option>
+                        }
+                    </select>
+
+                    <select name="sort" class="fi-select" onchange="this.form.submit()" aria-label="Sort">
+                        <option value="" selected="@(string.IsNullOrEmpty(Model.Sort))">Newest first</option>
+                        <option value="followers" selected="@(Model.Sort == "followers")">Most followers</option>
+                        <option value="engagement" selected="@(Model.Sort == "engagement")">Highest engagement</option>
+                    </select>
+
+                    @if (Model.AvailableCampaigns.Count > 0)
+                    {
+                        <select name="campaignId" class="fi-select fi-fit-select" onchange="this.form.submit()" aria-label="Campaign Fit">
+                            <option value="">Campaign Fit: off</option>
+                            @foreach (var c in Model.AvailableCampaigns)
+                            {
+                                <option value="@c.Id" selected="@(Model.SelectedCampaign?.Id == c.Id)">Fit for "@c.Title"</option>
+                            }
+                        </select>
+                    }
+                </div>
+
+                @if (hasFilters)
+                {
+                    <div class="fi-active">
+                        <span>Active:</span>
+                        @if (!string.IsNullOrWhiteSpace(Model.Search)) { <span class="tag"><i class="bi bi-search"></i> &ldquo;@Model.Search&rdquo;</span> }
+                        @if (!string.IsNullOrWhiteSpace(Model.Platform)) { <span class="tag"><i class="bi bi-broadcast"></i> @Model.Platform</span> }
+                        @if (!string.IsNullOrWhiteSpace(Model.Niche)) { <span class="tag"><i class="bi bi-tags"></i> @Model.Niche</span> }
+                        @if (!string.IsNullOrWhiteSpace(Model.Sort)) { <span class="tag"><i class="bi bi-sort-down"></i> @sortLabel</span> }
+                        @if (Model.SelectedCampaign is not null) { <span class="tag"><i class="bi bi-stars"></i> Fit: @Model.SelectedCampaign.Title</span> }
+                        <a href="/Influencers" class="fi-clear"><i class="bi bi-x-circle"></i>Clear all</a>
+                    </div>
+                }
+            </form>
         </section>
 
-        <form method="get" action="/Influencers" class="discovery-toolbar">
-            <input type="text"
-                   name="search"
-                   class="filter-input"
-                   placeholder="Search creators, niches, locations or handles..."
-                   value="@Model.Search" />
-
-            <select name="platform" class="filter-select" onchange="this.form.submit()">
-                <option value="" selected="@(string.IsNullOrEmpty(Model.Platform))">All platforms</option>
-                @foreach (var platform in new[] { "Instagram", "TikTok", "YouTube", "Facebook", "X", "LinkedIn" })
-                {
-                    <option value="@platform" selected="@(Model.Platform == platform)">@platform</option>
-                }
-            </select>
-
-            <select name="niche" class="filter-select" onchange="this.form.submit()">
-                <option value="" selected="@(string.IsNullOrEmpty(Model.Niche))">All niches</option>
-                @foreach (var niche in new[] { "Fashion & Style", "Beauty & Skincare", "Food & Cooking", "Travel & Lifestyle", "Fitness & Health", "Gaming", "Tech & Gadgets", "Education", "Comedy & Entertainment", "Home & Lifestyle", "Finance", "Other" })
-                {
-                    <option value="@niche" selected="@(Model.Niche == niche)">@niche</option>
-                }
-            </select>
-
-            <select name="sort" class="filter-select" onchange="this.form.submit()">
-                <option value="" selected="@(string.IsNullOrEmpty(Model.Sort))">Newest first</option>
-                <option value="followers" selected="@(Model.Sort == "followers")">Most followers</option>
-                <option value="engagement" selected="@(Model.Sort == "engagement")">Highest engagement</option>
-            </select>
-
-            @if (Model.AvailableCampaigns.Count > 0)
-            {
-                <select name="campaignId" class="filter-select" onchange="this.form.submit()">
-                    <option value="">Campaign Fit: off</option>
-                    @foreach (var c in Model.AvailableCampaigns)
-                    {
-                        <option value="@c.Id" selected="@(Model.SelectedCampaign?.Id == c.Id)">Fit for "@c.Title"</option>
-                    }
-                </select>
-            }
-
-            <button type="submit" class="btn btn-secondary">Search</button>
-        </form>
+        @if (Model.SelectedCampaign is not null)
+        {
+            <section class="decision-card">
+                <div class="fi-fit-note">
+                    <span class="icon-chip violet"><i class="bi bi-stars"></i></span>
+                    <div style="flex:1;min-width:0;">
+                        <div class="decision-card-eyebrow">Campaign Fit is on</div>
+                        <p class="decision-card-text">Each creator is scored against <strong>@Model.SelectedCampaign.Title</strong> (@(Model.SelectedCampaign.Platform ?? "any platform") &middot; @(Model.SelectedCampaign.Niche ?? "any niche")). See everyone ranked by score in Smart Match.</p>
+                    </div>
+                    <a href="/Influencers/SmartMatch?campaignId=@Model.SelectedCampaign.Id" class="btn btn-secondary">Open Smart Match</a>
+                </div>
+            </section>
+        }
 
         @if (Model.Creators.Count > 0)
         {
+            <div class="fi-results-head">
+                <div>
+                    <div class="ui-card-title">Creators</div>
+                    <p class="ui-card-sub">Showing <strong>@Model.Creators.Count</strong> of @Model.TotalCount creator@(Model.TotalCount == 1 ? "" : "s") &middot; @verifiedInResults verified &middot; @sortLabel</p>
+                </div>
+            </div>
+
             <div class="creator-grid">
                 @foreach (var creator in Model.Creators)
                 {
                     var hue = (creator.Id * 47) % 360;
-                    var hue2 = (hue + 48) % 360;
-                    var initial = string.IsNullOrEmpty(creator.FullName) ? "?" : creator.FullName[..1].ToUpperInvariant();
                     Model.FitByCreatorId.TryGetValue(creator.Id, out var fit);
+                    var isSaved = Model.IsShortlisted(creator.Id);
 
-                    <article class="creator-card"
-                             data-reveal
-                             style="--card-accent: hsl(@(hue)deg 85% 58%);">
-
-                        <div class="creator-media" style="background: linear-gradient(135deg, hsl(@(hue)deg 85% 62%), hsl(@(hue2)deg 85% 58%));">
-                            <div class="creator-mark" aria-hidden="true">@initial</div>
-
-                            <div class="platform-badge">
-                                @creator.PrimaryPlatform
+                    <article class="creator-card" data-reveal>
+                        <div class="cc-head">
+                            <span class="cc-avatar" style="background: linear-gradient(135deg, hsl(@(hue)deg 75% 58%), hsl(@((hue + 45) % 360)deg 75% 48%));">@FollowerFormat.InitialsOf(creator.FullName)</span>
+                            <div class="cc-id">
+                                <h2 class="cc-name">
+                                    <a href="/Influencers/Profile/@creator.Id">@creator.FullName</a>
+                                    @if (creator.Verified)
+                                    {
+                                        <i class="bi bi-patch-check-fill" title="Verified"></i>
+                                    }
+                                </h2>
+                                <div class="cc-handle">@@@creator.PlatformUsername &middot; @creator.PrimaryPlatform</div>
                             </div>
-
                             @if (Model.SelectedCampaign is not null)
                             {
-                                <div class="fit-badge" title="@string.Join(" · ", fit.Reasons)">
-                                    @fit.Score% Fit
+                                <div class="cc-fit" style="--score: @fit.Score;" title="Campaign Fit for @Model.SelectedCampaign.Title">
+                                    <span>@fit.Score%<small>Fit</small></span>
                                 </div>
                             }
-                            else
-                            {
-                                <div class="availability-badge">
-                                    Available
-                                </div>
-                            }
-
-                            <button class="creator-bookmark"
-                                    type="button"
-                                    aria-label="Save @creator.FullName visually"
-                                    tabindex="-1">
-                                ♡
-                            </button>
-
-                            <div class="creator-overlay">
-                                <div class="creator-avatar creator-avatar-initial" style="background: linear-gradient(135deg, hsl(@(hue)deg 80% 55%), hsl(@(hue2)deg 80% 50%));">
-                                    @initial
-                                </div>
-
-                                <div>
-                                    <h2 class="creator-name">
-                                        @creator.FullName
-                                        @if (creator.Verified)
-                                        {
-                                            <span class="verified-mark" title="Verified">✓</span>
-                                        }
-                                    </h2>
-                                    <div class="creator-handle">
-                                        @creator.PlatformUsername
-                                    </div>
-                                </div>
-                            </div>
                         </div>
 
-                        <div class="creator-body">
-                            @if (Model.SelectedCampaign is not null && fit.Reasons.Count > 0)
+                        <div class="cc-tags">
+                            @if (!string.IsNullOrWhiteSpace(creator.ContentNiche))
                             {
-                                <div class="fit-reasons">@string.Join(" · ", fit.Reasons)</div>
+                                <span><i class="bi bi-tags"></i> @creator.ContentNiche</span>
                             }
+                            @if (!string.IsNullOrEmpty(creator.Location))
+                            {
+                                <span><i class="bi bi-geo-alt"></i> @creator.Location</span>
+                            }
+                        </div>
 
-                            <div class="creator-tags">
-                                <span class="tag">@creator.ContentNiche</span>
-                                @if (!string.IsNullOrEmpty(creator.Location))
+                        @if (Model.SelectedCampaign is not null && fit.Reasons is { Count: > 0 })
+                        {
+                            <div class="cc-reasons">
+                                @foreach (var reason in fit.Reasons)
                                 {
-                                    <span class="tag">@creator.Location</span>
+                                    <span>@reason</span>
                                 }
                             </div>
+                        }
 
-                            <div class="creator-figures">
-                                <div class="figure">
-                                    <div class="figure-value">@FollowerFormat.Format(creator.Followers)</div>
-                                    <div class="figure-label">Followers</div>
-                                </div>
+                        <div class="cc-stats">
+                            <div><strong>@FollowerFormat.Format(creator.Followers)</strong><span>Followers</span></div>
+                            <div><strong>@creator.EngagementRate.ToString("0.0")%</strong><span>Engagement</span></div>
+                            <div><strong>@(string.IsNullOrWhiteSpace(creator.AudienceSize) ? "—" : creator.AudienceSize)</strong><span>Audience</span></div>
+                        </div>
 
-                                <div class="figure">
-                                    <div class="figure-value">@creator.EngagementRate.ToString("0.0")%</div>
-                                    <div class="figure-label">Engagement</div>
-                                </div>
+                        @if (!string.IsNullOrWhiteSpace(creator.Bio))
+                        {
+                            <p class="cc-bio">@creator.Bio</p>
+                        }
 
-                                <div class="figure">
-                                    <div class="engagement-meter"
-                                         aria-label="@creator.EngagementRate.ToString("0.0") percent engagement">
-                                        <span>@creator.EngagementRate.ToString("0.0")%</span>
-                                    </div>
-                                </div>
-                            </div>
+                        <div class="creator-actions">
+                            <a href="/Influencers/Profile/@creator.Id" class="btn btn-secondary"><i class="bi bi-person"></i>View Profile</a>
 
-                            <div class="creator-audience">
-                                <div class="audience-title">Creator profile</div>
-                                <div class="audience-list">
-                                    @creator.ContentNiche
-                                    @if (!string.IsNullOrEmpty(creator.Location))
+                            <form method="post" action="/Influencers/ToggleShortlist">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="influencerId" value="@creator.Id" />
+                                <input type="hidden" name="returnUrl" value="@Context.Request.Path@Context.Request.QueryString" />
+                                <button type="submit" class="shortlist-btn @(isSaved ? "is-saved" : "")">
+                                    @if (isSaved)
                                     {
-                                        <span> • @creator.Location</span>
+                                        <i class="bi bi-bookmark-check-fill"></i><text>Shortlisted</text>
                                     }
-                                </div>
-                            </div>
+                                    else
+                                    {
+                                        <i class="bi bi-bookmark-plus"></i><text>Shortlist</text>
+                                    }
+                                </button>
+                            </form>
 
-                            <div class="creator-actions">
-                                <a href="/Influencers/Profile/@creator.Id"
-                                   class="btn btn-secondary">
-                                    View Profile
-                                </a>
-
-                                <form method="post" action="/Influencers/ToggleShortlist">
-                                    @Html.AntiForgeryToken()
-                                    <input type="hidden" name="influencerId" value="@creator.Id" />
-                                    <input type="hidden"
-                                           name="returnUrl"
-                                           value="@Context.Request.Path@Context.Request.QueryString" />
-
-                                    <button type="submit"
-                                            class="shortlist-btn @(Model.IsShortlisted(creator.Id) ? "is-saved" : "")">
-                                        @(Model.IsShortlisted(creator.Id) ? "✓ Shortlisted" : "+ Shortlist")
-                                    </button>
-                                </form>
-                            </div>
+                            <button type="button" class="cc-chat js-open-chat" title="Message @creator.FullName" aria-label="Message @creator.FullName"
+                                    data-influencer-id="@creator.Id"
+                                    data-influencer-name="@creator.FullName"
+                                    data-hue="@hue"><i class="bi bi-chat-dots"></i></button>
                         </div>
                     </article>
                 }
@@ -835,24 +344,106 @@
         }
         else if (Model.TotalCount == 0)
         {
-            <div class="panel empty-block" style="margin-top: 24px;">
-                <div class="empty-title">No creators yet</div>
-                <p class="empty-text">
-                    Once influencers join Brandora, they'll appear here for you to discover and shortlist.
-                </p>
-            </div>
+            <section class="ui-card">
+                <div class="fi-empty">
+                    <span class="icon-chip lg soft"><i class="bi bi-people"></i></span>
+                    <strong>No creators yet</strong>
+                    <p>Once influencers join Brandora, they'll appear here for you to discover, score and shortlist.</p>
+                    <a href="/Campaigns" class="btn btn-secondary">Prepare a campaign</a>
+                </div>
+            </section>
         }
         else
         {
-            <div class="panel empty-block" style="margin-top: 24px;">
-                <div class="empty-title">No creators match these filters</div>
-                <p class="empty-text">Try a different search term or clear your filters.</p>
-                <a href="/Influencers" class="btn btn-secondary" style="margin-top: 16px;">
-                    Clear Filters
-                </a>
-            </div>
+            <section class="ui-card">
+                <div class="fi-empty">
+                    <span class="icon-chip lg soft"><i class="bi bi-funnel"></i></span>
+                    <strong>No creators match these filters</strong>
+                    <p>Try a different name or handle, or widen the platform and niche filters.</p>
+                    <a href="/Influencers" class="btn btn-secondary">Clear Filters</a>
+                </div>
+            </section>
         }
+
     </div>
+
+    <aside class="page-rail">
+
+        <section class="info-card">
+            <div class="info-card-head">
+                <span class="icon-chip soft"><i class="bi bi-stars"></i></span>
+                <div class="info-card-title">Smart Match</div>
+            </div>
+            <p>Rank every creator against one of your campaigns by platform (50 pts), niche (35 pts) and engagement (up to 15 pts).</p>
+            @if (Model.AvailableCampaigns.Count > 0)
+            {
+                <div style="margin-top:10px;">
+                    @foreach (var c in Model.AvailableCampaigns.Take(4))
+                    {
+                        <a href="/Influencers/SmartMatch?campaignId=@c.Id" class="fi-campaign-link">
+                            <span class="icon-chip sm blue"><i class="bi bi-megaphone"></i></span>
+                            <span class="fi-campaign-title">@c.Title</span>
+                            <i class="bi bi-arrow-right"></i>
+                        </a>
+                    }
+                </div>
+            }
+            else
+            {
+                <a href="/Campaigns" class="info-card-btn">Create a campaign first <i class="bi bi-arrow-right"></i></a>
+            }
+        </section>
+
+        <section class="ui-card">
+            <div class="ui-card-head" style="margin-bottom:6px;">
+                <div class="ui-card-title" style="font-size:17px;">Network Snapshot</div>
+                <span class="icon-chip sm violet"><i class="bi bi-bar-chart"></i></span>
+            </div>
+            <dl class="fact-list">
+                <div><dt>Creators on Brandora</dt><dd>@Model.TotalCount</dd></div>
+                <div><dt>Average engagement</dt><dd>@Model.AvgEngagementRate.ToString("0.0")%</dd></div>
+                <div><dt>Platforms covered</dt><dd>@Model.PlatformCount</dd></div>
+                <div><dt>In your shortlist</dt><dd>@Model.ShortlistedIds.Count</dd></div>
+            </dl>
+        </section>
+
+        <section class="info-card">
+            <div class="info-card-head">
+                <span class="icon-chip soft"><i class="bi bi-lightbulb"></i></span>
+                <div class="info-card-title">Tips for Discovery</div>
+            </div>
+            <ul class="check-list">
+                <li><i class="bi bi-check-circle-fill"></i>Sort by engagement to find creators whose audience actually responds.</li>
+                <li><i class="bi bi-check-circle-fill"></i>Turn on Campaign Fit to see why each creator suits a specific brief.</li>
+                <li><i class="bi bi-check-circle-fill"></i>Shortlist first, then compare creators side by side before inviting.</li>
+                <li><i class="bi bi-check-circle-fill"></i>Look for the verified tick when you need confirmed accounts.</li>
+            </ul>
+        </section>
+
+        <section class="ui-card">
+            <div class="ui-card-head" style="margin-bottom:2px;">
+                <div class="ui-card-title" style="font-size:17px;">Frequently Asked Questions</div>
+            </div>
+            <div class="faq-list">
+                @foreach (var faq in faqs)
+                {
+                    <details>
+                        <summary>@faq.Item1<i class="bi bi-chevron-right"></i></summary>
+                        <p>@faq.Item2</p>
+                    </details>
+                }
+            </div>
+        </section>
+
+        <section class="help-card">
+            <h3>Need Help?</h3>
+            <p>Looking for a specific kind of creator? Our team can point you in the right direction.</p>
+            <a href="/Home/Contact">Contact Support <i class="bi bi-arrow-right"></i></a>
+            <svg viewBox="0 0 400 170" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="fi-help-wave" x1="0" y1="1" x2="1" y2="0"><stop stop-color="#0955ca" stop-opacity="0"/><stop offset=".65" stop-color="#168cff" stop-opacity=".5"/><stop offset="1" stop-color="#783dff" stop-opacity=".15"/></linearGradient></defs><path d="M-20 160 C100 50 140 220 260 105 S350 85 420 20 L420 190 H-20Z" fill="url(#fi-help-wave)"/><path d="M-20 164 C110 90 140 230 270 120 S360 70 420 40" fill="none" stroke="#2799ff" stroke-opacity=".4"/></svg>
+        </section>
+
+    </aside>
+
 </div>
 
 @section Scripts {

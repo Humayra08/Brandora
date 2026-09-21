@@ -132,10 +132,13 @@ public class DashboardController(UserManager<ApplicationUser> userManager, Appli
             attentionItems.Add(new AttentionItem
             {
                 Kind = "Payment",
-                Title = $"Confirm payment to {payment.Collaboration.InfluencerProfile.FullName}",
-                Detail = $"৳{payment.Amount:N0} · transfer initiated",
-                LinkUrl = "/Payments",
-                ActionLabel = "Confirm"
+                Title = $"Pay {payment.Collaboration.InfluencerProfile.FullName} via bKash or Nagad",
+                Detail = $"৳{payment.TotalCharged:N0} incl. platform fee · released, awaiting payment",
+                // The actual "Pay with bKash" action lives on the milestone detail page,
+                // not on /Payments (a read-only transaction ledger) — this must be the
+                // Milestone this Payment was created for, since Release always sets it.
+                LinkUrl = payment.MilestoneId is not null ? $"/Milestones/Detail/{payment.MilestoneId}" : "/Payments",
+                ActionLabel = "Pay Now"
             });
         }
 
@@ -253,8 +256,8 @@ public class DashboardController(UserManager<ApplicationUser> userManager, Appli
             PendingProposalCount = proposals.Count(p => p.Status == ProposalStatus.Pending),
             ShortlistedCount = shortlistedIds.Count,
             ActiveCollaborationCount = collaborations.Count(c => c.Status == CollaborationStatus.Active),
-            PendingPaymentsAmount = payments.Where(p => p.Status == PaymentStatus.Pending).Sum(p => p.Amount),
-            CompletedPaymentsAmount = payments.Where(p => p.Status == PaymentStatus.Completed).Sum(p => p.Amount),
+            PendingPaymentsAmount = payments.Where(p => p.Status == PaymentStatus.Pending).Sum(p => p.TotalCharged),
+            CompletedPaymentsAmount = payments.Where(p => p.Status == PaymentStatus.Completed).Sum(p => p.TotalCharged),
             RecentCampaigns = campaigns.OrderByDescending(c => c.CreatedAt).Take(5).ToList(),
             CampaignWorkspace = campaignWorkspace,
             AttentionItems = attentionItems,

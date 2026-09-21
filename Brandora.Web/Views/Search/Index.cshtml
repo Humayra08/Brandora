@@ -1,0 +1,477 @@
+@model Brandora.Web.Models.Search.SearchResultsViewModel
+@using Brandora.Web.Models.Domain
+@{
+    ViewData["Title"] = "Search";
+    Layout = "_AppLayout";
+    var hasQuery = !string.IsNullOrWhiteSpace(Model.Query);
+    var tooShort = hasQuery && Model.Query.Length < 2;
+
+    string Initial(string? text, string fallback) => string.IsNullOrWhiteSpace(text) ? fallback : text.Trim()[..1].ToUpperInvariant();
+
+    (string Badge, string Label) CampaignBadge(CampaignStatus s) => s switch
+    {
+        CampaignStatus.Draft => ("is-neutral", "Draft"),
+        CampaignStatus.Published => ("is-info", "Published"),
+        CampaignStatus.Active => ("is-violet", "Active"),
+        CampaignStatus.Completed => ("is-success", "Completed"),
+        _ => ("is-danger", "Cancelled")
+    };
+
+    (string Badge, string Label) ProposalBadge(ProposalStatus s) => s switch
+    {
+        ProposalStatus.Accepted => ("is-success", "Accepted"),
+        ProposalStatus.Rejected => ("is-danger", "Rejected"),
+        _ => ("is-pending", "Pending")
+    };
+
+    (string Badge, string Label) CollabBadge(CollaborationStatus s) => s switch
+    {
+        CollaborationStatus.Active => ("is-info", "Active"),
+        CollaborationStatus.Completed => ("is-success", "Completed"),
+        _ => ("is-danger", "Cancelled")
+    };
+
+    (string Badge, string Label) PaymentBadge(PaymentStatus s) => s switch
+    {
+        PaymentStatus.Completed => ("is-success", "Paid"),
+        PaymentStatus.Pending => ("is-pending", "Awaiting payment"),
+        _ => ("is-danger", "Failed")
+    };
+
+    var sections = new[]
+    {
+        ("campaigns", "Campaigns", "bi-megaphone", "violet", Model.Campaigns.Count),
+        ("influencers", "Influencers", "bi-person-badge", "blue", Model.Influencers.Count),
+        ("applications", "Applications", "bi-send", "cyan", Model.Applications.Count),
+        ("collaborations", "Collaborations", "bi-people", "pink", Model.Collaborations.Count),
+        ("payments", "Payments", "bi-wallet2", "mint", Model.Payments.Count),
+    };
+}
+
+@section Styles {
+
+    .sr-body { margin-top: 16px; }
+
+    .sr-hero-form { display: flex; gap: 10px; max-width: 470px; margin-top: 16px; }
+    .sr-input-wrap { position: relative; flex: 1; }
+    .sr-input-wrap i { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); font-size: 15px; color: #5877ac; pointer-events: none; }
+    .sr-hero-form input {
+        width: 100%; height: 46px; padding: 0 16px 0 42px;
+        border-radius: 12px; border: 1px solid #c9dcff; background: #ffffffd9;
+        box-shadow: 0 6px 16px #5b83c414;
+        font-family: 'Inter', sans-serif; font-size: 14px; color: #101d48; outline: none;
+        transition: border-color .2s ease, box-shadow .2s ease;
+    }
+    .sr-hero-form input:focus { border-color: #6b8dff; box-shadow: 0 0 0 3px #3b4dff22; }
+    .sr-hero-form .btn { height: 46px; padding: 0 22px; }
+
+    .ui-card { transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease; }
+
+    .sr-head-left { display: flex; align-items: center; gap: 12px; }
+    .sr-count { font-family: 'DM Sans', sans-serif; }
+
+    .sr-list { display: grid; gap: 10px; }
+
+    .sr-row {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto auto;
+        align-items: center;
+        gap: 14px;
+        padding: 12px 14px;
+        border-radius: 10px;
+        border: 1px solid #e3edfc;
+        background: #ffffff8c;
+        box-shadow: 0 3px 9px #9bbfe90b;
+        transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+    }
+    .sr-row:hover { transform: translateY(-2px); border-color: #b9d3ff; box-shadow: 0 12px 24px #5b83c41a; }
+
+    .sr-avatar { display: grid; place-items: center; flex-shrink: 0; width: 42px; height: 42px; border-radius: 50%; background: linear-gradient(135deg, #7224ff, #3735ff 55%, #087fff); font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 700; color: #ffffff; }
+
+    .sr-title { font-family: 'DM Sans', sans-serif; font-size: 13.5px; font-weight: 700; color: #101d48; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .sr-title .bi-patch-check-fill { margin-left: 4px; font-size: 12px; color: #1f7bff; }
+    .sr-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; margin-top: 3px; font-family: 'Inter', sans-serif; font-size: 11.5px; color: #5877ac; }
+    .sr-meta span { display: inline-flex; align-items: center; gap: 5px; }
+    .sr-meta i { font-size: 11px; color: #8095c4; }
+
+    .sr-arrow { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; border: 1px solid #d7e8ff; background: #ffffffb8; color: #1451ff; transition: .2s ease; }
+    .sr-row:hover .sr-arrow { border-color: transparent; background: linear-gradient(110deg, #6425ff, #004dff 55%, #00a8f0); color: #ffffff; transform: translateX(2px); }
+
+    /* ---- Rail ---- */
+    .sr-jump { display: grid; gap: 4px; }
+    .sr-jump a { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 7px 6px; border-radius: 9px; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; color: #101d48; transition: background .2s ease; }
+    .sr-jump a:hover { background: #f3f8ffcc; }
+    .sr-jump a.is-empty { color: #8095c4; }
+    .sr-jump a i.bi-arrow-right { font-size: 12px; color: #1451ff; transition: transform .2s ease; }
+    .sr-jump a:hover i.bi-arrow-right { transform: translateX(3px); }
+
+    .sr-quick { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 4px; }
+    .sr-quick a { display: flex; align-items: center; gap: 8px; padding: 10px; border-radius: 10px; border: 1px solid #e3edfc; background: #ffffff8c; font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; color: #33477c; transition: .2s ease; }
+    .sr-quick a:hover { transform: translateY(-2px); border-color: #b9d3ff; color: #1451ff; box-shadow: 0 10px 20px #5b83c41a; }
+    .sr-quick .icon-chip { width: 30px; height: 30px; font-size: 14px; }
+
+    .sr-suggest { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 16px; }
+
+    @@media(max-width: 760px) {
+        .sr-hero-form { flex-direction: column; }
+        .sr-row { grid-template-columns: auto minmax(0, 1fr) auto; }
+        .sr-row .ui-badge { grid-column: 2; grid-row: 2; }
+    }
+
+}
+
+<nav class="crumb-trail" aria-label="Breadcrumb">
+    <a href="/Dashboard">Dashboard</a>
+    <i class="bi bi-chevron-right"></i>
+    <strong>Search</strong>
+</nav>
+
+<section class="page-hero">
+    @await Html.PartialAsync("_HeroWaves")
+    <div class="page-hero-intro">
+        <p class="page-hero-eyebrow">Search</p>
+        @if (hasQuery)
+        {
+            <h1 class="page-hero-title">Results for <span>&ldquo;@Model.Query&rdquo;</span></h1>
+            <p class="page-hero-sub">
+                @if (tooShort)
+                {
+                    @:Type at least two characters to search your campaigns, influencers, applications, collaborations and payments.
+                }
+                else
+                {
+                    @($"{Model.TotalCount} result{(Model.TotalCount == 1 ? "" : "s")} across campaigns, influencers, applications, collaborations and payments.")
+                }
+            </p>
+        }
+        else
+        {
+            <h1 class="page-hero-title">Find Anything. <span>Instantly.</span></h1>
+            <p class="page-hero-sub">Search across your campaigns, influencers, applications, collaborations and payments from one place.</p>
+        }
+
+        <form method="get" action="/Search" class="sr-hero-form" role="search">
+            <div class="sr-input-wrap">
+                <i class="bi bi-search"></i>
+                <input type="text" name="q" value="@Model.Query" placeholder="Search campaigns, influencers, applications…" autofocus />
+            </div>
+            <button type="submit" class="btn btn-primary">Search</button>
+        </form>
+    </div>
+
+    <div class="page-hero-art" aria-hidden="true">
+        <div class="hero-glass hero-glass-back"></div>
+        <div class="hero-glass hero-glass-front">
+            <span class="hero-glass-copy">Search.<br />Find.<br />Act.<span></span></span>
+        </div>
+        <span class="hero-sparkle"></span>
+    </div>
+
+    <div class="page-hero-motto">Everything<br />in One Place.<span></span></div>
+</section>
+
+<div class="page-grid sr-body">
+
+    <div class="page-main">
+
+        @if (!hasQuery || tooShort)
+        {
+            <section class="ui-card">
+                <div class="empty-block" style="margin-top:0;">
+                    <span class="icon-chip lg soft" style="margin:0 auto 12px;"><i class="bi bi-search"></i></span>
+                    <div class="empty-title">@(tooShort ? "Keep typing" : "What are you looking for?")</div>
+                    <p class="empty-text">Search by campaign title, a creator's name, username or niche, or a bKash / Nagad transaction ID. Or jump straight to a section:</p>
+                    <div class="sr-suggest">
+                        <a href="/Campaigns" class="btn btn-secondary">Campaigns</a>
+                        <a href="/Influencers" class="btn btn-secondary">Find Influencers</a>
+                        <a href="/Proposals" class="btn btn-secondary">Applications</a>
+                    </div>
+                </div>
+            </section>
+        }
+        else if (Model.TotalCount == 0)
+        {
+            <section class="ui-card">
+                <div class="empty-block" style="margin-top:0;">
+                    <span class="icon-chip lg soft" style="margin:0 auto 12px;"><i class="bi bi-binoculars"></i></span>
+                    <div class="empty-title">No results for &ldquo;@Model.Query&rdquo;</div>
+                    <p class="empty-text">Check the spelling, try a shorter keyword, or search by a creator's name or a campaign title instead.</p>
+                    <div class="sr-suggest">
+                        <a href="/Campaigns" class="btn btn-primary">Browse Campaigns</a>
+                        <a href="/Influencers" class="btn btn-secondary">Find Influencers</a>
+                        <a href="/Proposals" class="btn btn-secondary">View Applications</a>
+                    </div>
+                </div>
+            </section>
+        }
+
+        @if (Model.Campaigns.Count > 0)
+        {
+            <section class="ui-card" id="campaigns">
+                <div class="ui-card-head">
+                    <div class="sr-head-left">
+                        <span class="icon-chip sm violet"><i class="bi bi-megaphone"></i></span>
+                        <div>
+                            <div class="ui-card-title">Campaigns</div>
+                            <p class="ui-card-sub">@Model.Campaigns.Count matching campaign@(Model.Campaigns.Count == 1 ? "" : "s")</p>
+                        </div>
+                    </div>
+                    <a href="/Campaigns" class="ui-card-link">All Campaigns <i class="bi bi-arrow-right"></i></a>
+                </div>
+                <div class="sr-list">
+                    @foreach (var c in Model.Campaigns)
+                    {
+                        var badge = CampaignBadge(c.Status);
+                        <a href="/Campaigns/Detail/@c.Id" class="sr-row">
+                            <span class="icon-chip violet"><i class="bi bi-megaphone"></i></span>
+                            <div style="min-width:0;">
+                                <div class="sr-title">@c.Title</div>
+                                <div class="sr-meta">
+                                    <span><i class="bi bi-wallet2"></i>Budget ৳@c.Budget.ToString("N0")</span>
+                                    @if (!string.IsNullOrWhiteSpace(c.Platform))
+                                    {
+                                        <span><i class="bi bi-broadcast"></i>@c.Platform</span>
+                                    }
+                                    @if (c.Deadline.HasValue)
+                                    {
+                                        <span><i class="bi bi-calendar4-week"></i>Due @c.Deadline.Value.ToString("MMM d, yyyy")</span>
+                                    }
+                                </div>
+                            </div>
+                            <span class="ui-badge @badge.Badge">@badge.Label</span>
+                            <span class="sr-arrow"><i class="bi bi-arrow-right"></i></span>
+                        </a>
+                    }
+                </div>
+            </section>
+        }
+
+        @if (Model.Influencers.Count > 0)
+        {
+            <section class="ui-card" id="influencers">
+                <div class="ui-card-head">
+                    <div class="sr-head-left">
+                        <span class="icon-chip sm blue"><i class="bi bi-person-badge"></i></span>
+                        <div>
+                            <div class="ui-card-title">Influencers</div>
+                            <p class="ui-card-sub">@Model.Influencers.Count matching creator@(Model.Influencers.Count == 1 ? "" : "s")</p>
+                        </div>
+                    </div>
+                    <a href="/Influencers" class="ui-card-link">Find Influencers <i class="bi bi-arrow-right"></i></a>
+                </div>
+                <div class="sr-list">
+                    @foreach (var i in Model.Influencers)
+                    {
+                        <a href="/Influencers/Profile/@i.Id" class="sr-row">
+                            <span class="sr-avatar">@Initial(i.FullName, "I")</span>
+                            <div style="min-width:0;">
+                                <div class="sr-title">
+                                    @i.FullName
+                                    @if (i.Verified)
+                                    {
+                                        <i class="bi bi-patch-check-fill" title="Verified"></i>
+                                    }
+                                </div>
+                                <div class="sr-meta">
+                                    @if (!string.IsNullOrWhiteSpace(i.ContentNiche))
+                                    {
+                                        <span><i class="bi bi-tag"></i>@i.ContentNiche</span>
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(i.PrimaryPlatform))
+                                    {
+                                        <span><i class="bi bi-broadcast"></i>@i.PrimaryPlatform</span>
+                                    }
+                                    <span><i class="bi bi-people"></i>@i.Followers.ToString("N0") followers</span>
+                                </div>
+                            </div>
+                            @if (i.Verified)
+                            {
+                                <span class="ui-badge is-success"><i class="bi bi-patch-check-fill"></i> Verified</span>
+                            }
+                            else
+                            {
+                                <span class="ui-badge is-neutral">Creator</span>
+                            }
+                            <span class="sr-arrow"><i class="bi bi-arrow-right"></i></span>
+                        </a>
+                    }
+                </div>
+            </section>
+        }
+
+        @if (Model.Applications.Count > 0)
+        {
+            <section class="ui-card" id="applications">
+                <div class="ui-card-head">
+                    <div class="sr-head-left">
+                        <span class="icon-chip sm cyan"><i class="bi bi-send"></i></span>
+                        <div>
+                            <div class="ui-card-title">Applications</div>
+                            <p class="ui-card-sub">@Model.Applications.Count matching application@(Model.Applications.Count == 1 ? "" : "s")</p>
+                        </div>
+                    </div>
+                    <a href="/Proposals" class="ui-card-link">All Applications <i class="bi bi-arrow-right"></i></a>
+                </div>
+                <div class="sr-list">
+                    @foreach (var p in Model.Applications)
+                    {
+                        var badge = ProposalBadge(p.Status);
+                        <a href="/Proposals/Detail/@p.Id" class="sr-row">
+                            <span class="icon-chip cyan"><i class="bi bi-send"></i></span>
+                            <div style="min-width:0;">
+                                <div class="sr-title">@p.InfluencerProfile.FullName</div>
+                                <div class="sr-meta">
+                                    <span><i class="bi bi-megaphone"></i>@p.Campaign.Title</span>
+                                    <span><i class="bi bi-cash-coin"></i>Proposed ৳@p.ProposedAmount.ToString("N0")</span>
+                                    <span><i class="bi bi-clock"></i>@p.CreatedAt.ToString("MMM d, yyyy")</span>
+                                </div>
+                            </div>
+                            <span class="ui-badge @badge.Badge">@badge.Label</span>
+                            <span class="sr-arrow"><i class="bi bi-arrow-right"></i></span>
+                        </a>
+                    }
+                </div>
+            </section>
+        }
+
+        @if (Model.Collaborations.Count > 0)
+        {
+            <section class="ui-card" id="collaborations">
+                <div class="ui-card-head">
+                    <div class="sr-head-left">
+                        <span class="icon-chip sm pink"><i class="bi bi-people"></i></span>
+                        <div>
+                            <div class="ui-card-title">Collaborations</div>
+                            <p class="ui-card-sub">@Model.Collaborations.Count matching collaboration@(Model.Collaborations.Count == 1 ? "" : "s")</p>
+                        </div>
+                    </div>
+                    <a href="/Collaborations" class="ui-card-link">Manage Collaborations <i class="bi bi-arrow-right"></i></a>
+                </div>
+                <div class="sr-list">
+                    @foreach (var c in Model.Collaborations)
+                    {
+                        var badge = CollabBadge(c.Status);
+                        <a href="/Collaborations/Detail/@c.Id" class="sr-row">
+                            <span class="sr-avatar">@Initial(c.InfluencerProfile.FullName, "C")</span>
+                            <div style="min-width:0;">
+                                <div class="sr-title">@c.InfluencerProfile.FullName</div>
+                                <div class="sr-meta">
+                                    <span><i class="bi bi-megaphone"></i>@c.Campaign.Title</span>
+                                    <span><i class="bi bi-calendar4-week"></i>Since @c.CreatedAt.ToString("MMM d, yyyy")</span>
+                                </div>
+                            </div>
+                            <span class="ui-badge @badge.Badge">@badge.Label</span>
+                            <span class="sr-arrow"><i class="bi bi-arrow-right"></i></span>
+                        </a>
+                    }
+                </div>
+            </section>
+        }
+
+        @if (Model.Payments.Count > 0)
+        {
+            <section class="ui-card" id="payments">
+                <div class="ui-card-head">
+                    <div class="sr-head-left">
+                        <span class="icon-chip sm mint"><i class="bi bi-wallet2"></i></span>
+                        <div>
+                            <div class="ui-card-title">Payments</div>
+                            <p class="ui-card-sub">@Model.Payments.Count matching payment@(Model.Payments.Count == 1 ? "" : "s")</p>
+                        </div>
+                    </div>
+                    <a href="/Payments" class="ui-card-link">Go to Finance <i class="bi bi-arrow-right"></i></a>
+                </div>
+                <div class="sr-list">
+                    @foreach (var p in Model.Payments)
+                    {
+                        var badge = PaymentBadge(p.Status);
+                        <a href="/Payments" class="sr-row">
+                            <span class="icon-chip mint"><i class="bi bi-wallet2"></i></span>
+                            <div style="min-width:0;">
+                                <div class="sr-title">৳@p.Amount.ToString("N0") &middot; @p.Collaboration.InfluencerProfile.FullName</div>
+                                <div class="sr-meta">
+                                    <span><i class="bi bi-megaphone"></i>@p.Collaboration.Campaign.Title</span>
+                                    <span><i class="bi bi-clock"></i>@((p.PaidAt ?? p.CreatedAt).ToString("MMM d, yyyy"))</span>
+                                    @if (!string.IsNullOrWhiteSpace(p.TransactionReference))
+                                    {
+                                        <span><i class="bi bi-receipt"></i>@p.TransactionReference</span>
+                                    }
+                                </div>
+                            </div>
+                            <span class="ui-badge @badge.Badge">@badge.Label</span>
+                            <span class="sr-arrow"><i class="bi bi-arrow-right"></i></span>
+                        </a>
+                    }
+                </div>
+            </section>
+        }
+
+    </div>
+
+    <aside class="page-rail">
+
+        @if (hasQuery && !tooShort)
+        {
+            <section class="ui-card">
+                <div class="ui-card-head" style="margin-bottom:6px;">
+                    <div class="ui-card-title" style="font-size:17px;">Results by Type</div>
+                    <span class="ui-badge is-violet">@Model.TotalCount total</span>
+                </div>
+                <div class="sr-jump">
+                    @foreach (var s in sections)
+                    {
+                        <a href="@(s.Item5 > 0 ? "#" + s.Item1 : "#")" class="@(s.Item5 > 0 ? "" : "is-empty")">
+                            <span class="icon-chip sm @s.Item4"><i class="bi @s.Item3"></i></span>
+                            <span>@s.Item2</span>
+                            @if (s.Item5 > 0)
+                            {
+                                <span><span class="ui-badge is-info">@s.Item5</span> <i class="bi bi-arrow-right"></i></span>
+                            }
+                            else
+                            {
+                                <span class="ui-badge is-neutral">0</span>
+                            }
+                        </a>
+                    }
+                </div>
+                <p class="ui-card-sub" style="margin-top:10px;">Up to 8 of the most recent matches are shown per type.</p>
+            </section>
+        }
+
+        <section class="info-card">
+            <div class="info-card-head">
+                <span class="icon-chip soft"><i class="bi bi-lightbulb"></i></span>
+                <div class="info-card-title">Search Tips</div>
+            </div>
+            <ul class="check-list">
+                <li><i class="bi bi-check-circle-fill"></i>Campaigns match on their title.</li>
+                <li><i class="bi bi-check-circle-fill"></i>Creators match on name, username or content niche.</li>
+                <li><i class="bi bi-check-circle-fill"></i>Applications and collaborations match on the creator's name or the campaign title.</li>
+                <li><i class="bi bi-check-circle-fill"></i>Paste a bKash or Nagad transaction ID to find a payment.</li>
+            </ul>
+        </section>
+
+        <section class="ui-card">
+            <div class="ui-card-head" style="margin-bottom:6px;">
+                <div class="ui-card-title" style="font-size:17px;">Quick Links</div>
+            </div>
+            <div class="sr-quick">
+                <a href="/Campaigns"><span class="icon-chip violet"><i class="bi bi-megaphone"></i></span>Campaigns</a>
+                <a href="/Influencers"><span class="icon-chip blue"><i class="bi bi-person-badge"></i></span>Influencers</a>
+                <a href="/Proposals"><span class="icon-chip cyan"><i class="bi bi-send"></i></span>Applications</a>
+                <a href="/Collaborations"><span class="icon-chip pink"><i class="bi bi-people"></i></span>Collaborations</a>
+                <a href="/Payments"><span class="icon-chip mint"><i class="bi bi-wallet2"></i></span>Finance</a>
+                <a href="/Messages"><span class="icon-chip amber"><i class="bi bi-chat-dots"></i></span>Messages</a>
+            </div>
+        </section>
+
+        <section class="help-card">
+            <h3>Need Help?</h3>
+            <p>Can't find a campaign, creator or payment you expected to see? Our support team can help.</p>
+            <a href="/Home/Contact">Contact Support <i class="bi bi-arrow-right"></i></a>
+            <svg viewBox="0 0 400 170" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="search-help-wave" x1="0" y1="1" x2="1" y2="0"><stop stop-color="#0955ca" stop-opacity="0"/><stop offset=".65" stop-color="#168cff" stop-opacity=".5"/><stop offset="1" stop-color="#783dff" stop-opacity=".15"/></linearGradient></defs><path d="M-20 160 C100 50 140 220 260 105 S350 85 420 20 L420 190 H-20Z" fill="url(#search-help-wave)"/><path d="M-20 164 C110 90 140 230 270 120 S360 70 420 40" fill="none" stroke="#2799ff" stroke-opacity=".4"/></svg>
+        </section>
+
+    </aside>
+
+</div>

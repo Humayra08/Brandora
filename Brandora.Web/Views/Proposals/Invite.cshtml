@@ -5,187 +5,112 @@
     ViewData["ActiveNav"] = "Influencers";
     Layout = "_AppLayout";
     var hue = (Model.Creator.Id * 47) % 360;
+
+    var creator = Model.Creator;
+    var avatarGradient = $"linear-gradient(135deg, hsl({hue}deg 75% 58%), hsl({(hue + 45) % 360}deg 75% 48%))";
+    var firstName = creator.FullName.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? creator.FullName;
+    var selectedCampaign = Model.AvailableCampaigns.FirstOrDefault(c => c.Id == Model.CampaignId) ?? Model.AvailableCampaigns.FirstOrDefault();
 }
 
 @section Styles {
 
-    .form-shell {
-        max-width: 680px;
-        margin: 0 auto;
+    .iv-body { align-items: start; }
 
-        animation: fade-up .4s ease both;
-    }
+    .iv-section-head { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 16px; }
+    .iv-step { display: grid; place-items: center; flex-shrink: 0; width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(130deg, #8a12ff, #0759ff 60%, #00b4ff); box-shadow: inset 0 1px 3px #ffffff60; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 700; color: #ffffff; }
 
-    .invite-target {
-        display: flex;
-        align-items: center;
-        gap: 14px;
+    .form-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .form-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+    .form-field.span-2 { grid-column: span 2; }
+    .form-field label { font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 600; color: #20365f; }
+    .form-field label small { font-weight: 500; color: #7b8fbf; }
+    .form-hint { font-family: 'Inter', sans-serif; font-size: 11.5px; line-height: 1.5; color: #6680ad; }
+    .form-hint i { color: #1451ff; }
 
-        padding: 20px 24px;
+    .form-field input, .form-field select, .form-field textarea { width: 100%; padding: 11px 13px; border-radius: 10px; border: 1px solid #d3e4ff; background: #ffffffcc; font-family: 'Inter', sans-serif; font-size: 13px; color: #20365f; outline: none; transition: border-color .2s ease, box-shadow .2s ease, background .2s ease; }
+    .form-field input::placeholder, .form-field textarea::placeholder { color: #8a9cc6; }
+    .form-field input:hover, .form-field select:hover, .form-field textarea:hover { border-color: #a9c9ff; }
+    .form-field input:focus, .form-field select:focus, .form-field textarea:focus { border-color: #8f7bff; background: #ffffff; box-shadow: 0 0 0 3px #7862ef22; }
+    .form-field textarea { min-height: 96px; resize: vertical; line-height: 1.55; }
+    .form-field select { padding-right: 34px; appearance: none; -webkit-appearance: none; cursor: pointer; background: #ffffffcc url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6' fill='none'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%235877ac' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 14px center; }
 
-        border-radius: 16px;
-        background: #ffffff;
-        border: 1px solid #eaecf5;
-    }
+    .iv-amount { position: relative; }
+    .iv-amount span { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 700; color: #5877ac; pointer-events: none; }
+    .iv-amount input { padding-left: 30px; font-family: 'DM Sans', sans-serif; font-weight: 600; }
 
-    .invite-target-name {
-        font-family: 'DM Sans', sans-serif;
-        font-weight: 700;
-        font-size: 15.5px;
-        color: #171d3d;
-    }
+    .form-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+    .form-actions p { margin: 0; font-family: 'Inter', sans-serif; font-size: 12px; color: #5877ac; }
+    .form-actions p i { color: #1451ff; }
+    .form-actions div { display: flex; gap: 10px; }
+    .form-actions .btn i { margin-right: 8px; }
 
-    .invite-target-handle {
-        margin-top: 2px;
+    .iv-errors ul { margin: 4px 0 0; padding-left: 18px; }
 
-        font-family: 'Inter', sans-serif;
-        font-size: 12px;
-        color: #8189a8;
-    }
+    /* ---- Live preview ---- */
+    .iv-preview-row { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; border-top: 1px solid #e3edfc; font-family: 'Inter', sans-serif; font-size: 12.5px; }
+    .iv-preview-row:first-of-type { border-top: 0; }
+    .iv-preview-row span { color: #5877ac; }
+    .iv-preview-row strong { max-width: 60%; text-align: right; overflow-wrap: anywhere; font-weight: 600; color: #101d48; }
+    .iv-preview-amount { margin: 4px 0 8px; font-family: 'DM Sans', sans-serif; font-size: 26px; font-weight: 700; color: #101d48; }
+    .iv-preview-amount small { font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 500; color: #5877ac; }
+    .iv-preview-text { margin-top: 10px; padding: 10px 12px; border-radius: 9px; background: #eef4ffbd; border: 1px solid #dfe9ff; font-family: 'Inter', sans-serif; font-size: 12px; line-height: 1.55; color: #33477c; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .iv-preview-text.is-empty { color: #8a9cc6; font-style: italic; }
 
-    .form-head {
-        margin-top: 24px;
-        text-align: center;
-    }
-
-    .form-eyebrow {
-        font-family: 'Inter', sans-serif;
-        font-size: 11.5px;
-        font-weight: 700;
-        letter-spacing: 2px;
-        text-transform: uppercase;
-        color: #9b2cff;
-    }
-
-    .form-title {
-        margin-top: 10px;
-
-        font-family: 'Playfair Display', serif;
-        font-weight: 600;
-        font-size: 27px;
-    }
-
-    .form-sub {
-        margin-top: 8px;
-
-        font-family: 'Inter', sans-serif;
-        font-size: 13.5px;
-        color: #6b7290;
-    }
-
-    .form-section {
-        margin-top: 22px;
-        padding: 26px 28px;
-
-        border-radius: 16px;
-        background: #ffffff;
-        border: 1px solid #eaecf5;
-    }
-
-    .form-fields {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 18px 16px;
-    }
-
-    .form-field {
-        display: flex;
-        flex-direction: column;
-        gap: 7px;
-    }
-
-    .form-field.span-2 {
-        grid-column: span 2;
-    }
-
-    .form-field label {
-        font-family: 'Inter', sans-serif;
-        font-size: 12.5px;
-        font-weight: 600;
-        color: #2a3157;
-    }
-
-    .form-field input,
-    .form-field select,
-    .form-field textarea {
-        padding: 12px 14px;
-
-        border-radius: 10px;
-        border: 1px solid #e2e5f2;
-        background: #fbfbfe;
-
-        font-family: 'Inter', sans-serif;
-        font-size: 13.5px;
-        color: #171d3d;
-
-        outline: none;
-        transition: .2s;
-    }
-
-    .form-field textarea {
-        min-height: 90px;
-        resize: vertical;
-    }
-
-    .form-field input:focus,
-    .form-field select:focus,
-    .form-field textarea:focus {
-        border-color: #a978ff;
-        background: #ffffff;
-        box-shadow: 0 0 0 4px rgba(155,44,255,.1);
-    }
-
-    .form-field select {
-        appearance: none;
-        -webkit-appearance: none;
-
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6' fill='none'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%23545b7d' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-        background-repeat: no-repeat;
-        background-position: right 14px center;
-        padding-right: 34px;
-    }
-
-    .form-actions {
-        margin-top: 24px;
-
-        display: flex;
-        justify-content: flex-end;
-        gap: 12px;
-    }
-
-    @@media(max-width: 600px) {
+    @@media(max-width: 640px) {
         .form-fields { grid-template-columns: 1fr; }
         .form-field.span-2 { grid-column: span 1; }
     }
 
 }
 
-<div class="form-shell">
+<nav class="crumb-trail" aria-label="Breadcrumb">
+    <a href="/Dashboard">Dashboard</a><i class="bi bi-chevron-right"></i>
+    <a href="/Influencers">Find Influencers</a><i class="bi bi-chevron-right"></i>
+    <a href="/Influencers/Profile/@Model.InfluencerProfileId">@creator.FullName</a><i class="bi bi-chevron-right"></i>
+    <strong>Invite</strong>
+</nav>
 
-    <a href="/Influencers/Profile/@Model.InfluencerProfileId" class="back-to-dashboard">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        Back
-    </a>
-
-    <div class="invite-target">
-        <div class="creator-avatar" style="background: linear-gradient(135deg, hsl(@(hue)deg 75% 58%), hsl(@((hue + 45) % 360)deg 75% 48%));">
-            @FollowerFormat.InitialsOf(Model.Creator.FullName)
+<section class="page-hero detail-hero">
+    @await Html.PartialAsync("_HeroWaves")
+    <div class="detail-hero-top">
+        <div class="detail-hero-avatar is-person" style="background: @avatarGradient;">@FollowerFormat.InitialsOf(creator.FullName)</div>
+        <div class="detail-hero-copy">
+            <div class="detail-hero-tags">
+                <span><i class="bi bi-send"></i> Invite to Campaign</span>
+                @if (!string.IsNullOrWhiteSpace(creator.PrimaryPlatform))
+                {
+                    <span><i class="bi bi-broadcast"></i> @creator.PrimaryPlatform</span>
+                }
+                @if (!string.IsNullOrWhiteSpace(creator.ContentNiche))
+                {
+                    <span><i class="bi bi-tags"></i> @creator.ContentNiche</span>
+                }
+            </div>
+            <h1>Send <span>@creator.FullName</span> an invite</h1>
+            <p>Propose terms for one of your campaigns. It's saved as a pending application you can confirm once you've both agreed.</p>
         </div>
+        <div class="detail-hero-side">
+            @if (creator.Verified)
+            {
+                <span class="ui-badge is-info"><i class="bi bi-patch-check-fill"></i> Verified Creator</span>
+            }
+            <div class="page-hero-motto" style="margin-left:0;">Real Creators.<br />Real Results.<span></span></div>
+        </div>
+    </div>
+    <dl class="detail-hero-stats">
+        <div><dt>Handle</dt><dd>@(string.IsNullOrWhiteSpace(creator.PlatformUsername) ? "—" : creator.PlatformUsername)</dd></div>
+        <div><dt>Followers</dt><dd>@FollowerFormat.Format(creator.Followers)</dd></div>
+        <div><dt>Engagement Rate</dt><dd>@creator.EngagementRate.ToString("0.0")%</dd></div>
+        <div><dt>Open Campaigns</dt><dd>@Model.AvailableCampaigns.Count</dd></div>
+    </dl>
+</section>
+
+@if (!ViewData.ModelState.IsValid)
+{
+    <div class="notice is-error iv-errors" role="alert">
+        <i class="bi bi-exclamation-circle-fill"></i>
         <div>
-            <div class="invite-target-name">@Model.Creator.FullName</div>
-            <div class="invite-target-handle">@Model.Creator.PrimaryPlatform &middot; @Model.Creator.PlatformUsername &middot; @FollowerFormat.Format(Model.Creator.Followers) followers</div>
-        </div>
-    </div>
-
-    <div class="form-head">
-        <div class="form-eyebrow">Invite to Campaign</div>
-        <h1 class="form-title">Send @Model.Creator.FullName an invite</h1>
-        <p class="form-sub">Propose terms for this campaign. They'll show up as a pending proposal until confirmed.</p>
-    </div>
-
-    @if (!ViewData.ModelState.IsValid)
-    {
-        <div class="form-errors" style="margin-top: 20px;">
+            <strong>Please fix the following:</strong>
             <ul>
                 @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
                 {
@@ -193,56 +118,214 @@
                 }
             </ul>
         </div>
-    }
+    </div>
+}
 
-    <form method="post" action="/Proposals/Invite">
+<div class="page-grid iv-body">
 
-        @Html.AntiForgeryToken()
-        <input type="hidden" name="InfluencerProfileId" value="@Model.InfluencerProfileId" />
+    <div class="page-main">
 
-        <div class="form-section">
+        <form method="post" action="/Proposals/Invite" id="inviteForm" style="display:grid;gap:16px;">
 
-            <div class="form-fields">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="InfluencerProfileId" value="@Model.InfluencerProfileId" />
 
-                <div class="form-field span-2">
-                    <label for="CampaignId">Campaign</label>
-                    <select id="CampaignId" name="CampaignId" required>
-                        @foreach (var campaign in Model.AvailableCampaigns)
+            <section class="ui-card">
+                <div class="iv-section-head">
+                    <span class="iv-step">1</span>
+                    <div>
+                        <div class="ui-card-title">Choose a Campaign</div>
+                        <p class="ui-card-sub">Only campaigns that aren't completed or cancelled can receive invites.</p>
+                    </div>
+                </div>
+                <div class="form-fields">
+                    <div class="form-field span-2">
+                        <label for="CampaignId">Campaign</label>
+                        <select id="CampaignId" name="CampaignId" required>
+                            @foreach (var campaign in Model.AvailableCampaigns)
+                            {
+                                <option value="@campaign.Id" selected="@(Model.CampaignId == campaign.Id)">@campaign.Title (@campaign.Status)</option>
+                            }
+                        </select>
+                        <span class="form-hint"><i class="bi bi-info-circle"></i> Confirming the invite later creates this creator's milestones from the chosen campaign's milestone plan.</span>
+                    </div>
+                </div>
+            </section>
+
+            <section class="ui-card">
+                <div class="iv-section-head">
+                    <span class="iv-step">2</span>
+                    <div>
+                        <div class="ui-card-title">Your Offer</div>
+                        <p class="ui-card-sub">The total you're proposing to pay and when you need the work.</p>
+                    </div>
+                </div>
+                <div class="form-fields">
+                    <div class="form-field">
+                        <label for="ProposedAmount">Proposed Amount (৳)</label>
+                        <div class="iv-amount">
+                            <span>৳</span>
+                            <input type="number" id="ProposedAmount" name="ProposedAmount" min="1" step="1" placeholder="20000" value="@(Model.ProposedAmount == 0 ? "" : Model.ProposedAmount.ToString())" required />
+                        </div>
+                        @if (!string.IsNullOrWhiteSpace(creator.RateNote))
                         {
-                            <option value="@campaign.Id" selected="@(Model.CampaignId == campaign.Id)">@campaign.Title (@campaign.Status)</option>
+                            <span class="form-hint"><i class="bi bi-cash-coin"></i> @firstName's rate guide: @creator.RateNote</span>
                         }
-                    </select>
-                </div>
+                        else
+                        {
+                            <span class="form-hint">Paid per milestone via bKash or Nagad once work is approved.</span>
+                        }
+                    </div>
 
-                <div class="form-field">
-                    <label for="ProposedAmount">Proposed Amount (৳)</label>
-                    <input type="number" id="ProposedAmount" name="ProposedAmount" min="1" step="1" placeholder="20000" value="@(Model.ProposedAmount == 0 ? "" : Model.ProposedAmount.ToString())" required />
+                    <div class="form-field">
+                        <label for="Timeline">Timeline <small>(optional)</small></label>
+                        <input type="text" id="Timeline" name="Timeline" placeholder="e.g. Deliver within 2 weeks" value="@Model.Timeline" maxlength="200" />
+                        <span class="form-hint">A deadline or window, up to 200 characters.</span>
+                    </div>
                 </div>
+            </section>
 
-                <div class="form-field">
-                    <label for="Timeline">Timeline (optional)</label>
-                    <input type="text" id="Timeline" name="Timeline" placeholder="e.g. Deliver within 2 weeks" value="@Model.Timeline" />
+            <section class="ui-card">
+                <div class="iv-section-head">
+                    <span class="iv-step">3</span>
+                    <div>
+                        <div class="ui-card-title">Deliverables &amp; Message</div>
+                        <p class="ui-card-sub">Be specific so @firstName knows exactly what you're asking for.</p>
+                    </div>
                 </div>
+                <div class="form-fields">
+                    <div class="form-field span-2">
+                        <label for="Deliverables">Deliverables</label>
+                        <textarea id="Deliverables" name="Deliverables" placeholder="e.g. 1 Instagram Reel + 3 Stories featuring the product" maxlength="1000" required>@Model.Deliverables</textarea>
+                        <span class="form-hint">Formats, number of posts and any must-haves (tags, links, hashtags). Up to 1,000 characters.</span>
+                    </div>
 
-                <div class="form-field span-2">
-                    <label for="Deliverables">Deliverables</label>
-                    <textarea id="Deliverables" name="Deliverables" placeholder="e.g. 1 Instagram Reel + 3 Stories featuring the product" required>@Model.Deliverables</textarea>
+                    <div class="form-field span-2">
+                        <label for="Message">Personal Message <small>(optional)</small></label>
+                        <textarea id="Message" name="Message" placeholder="Introduce your brand and why you'd love to work with them." maxlength="1000">@Model.Message</textarea>
+                    </div>
                 </div>
+            </section>
 
-                <div class="form-field span-2">
-                    <label for="Message">Personal Message (optional)</label>
-                    <textarea id="Message" name="Message" placeholder="Introduce your brand and why you'd love to work with them.">@Model.Message</textarea>
+            <section class="ui-card">
+                <div class="form-actions">
+                    <p><i class="bi bi-bell"></i> @firstName is notified as soon as you send.</p>
+                    <div>
+                        <a href="/Influencers/Profile/@Model.InfluencerProfileId" class="btn btn-outline-brand">Cancel</a>
+                        <button type="submit" class="btn btn-primary"><i class="bi bi-send"></i>Send Invite</button>
+                    </div>
                 </div>
+            </section>
 
+        </form>
+
+    </div>
+
+    <aside class="page-rail">
+
+        <section class="ui-card">
+            <div class="ui-card-head" style="margin-bottom:6px;">
+                <div>
+                    <div class="ui-card-title" style="font-size:17px;">Invite Preview</div>
+                    <p class="ui-card-sub">What @firstName will see.</p>
+                </div>
+                <span class="icon-chip sm violet"><i class="bi bi-eye"></i></span>
             </div>
+            <div class="iv-preview-amount"><span data-preview="amount">@(Model.ProposedAmount == 0 ? "৳—" : "৳" + Model.ProposedAmount.ToString("N0"))</span> <small>proposed</small></div>
+            <div class="iv-preview-row"><span>Campaign</span><strong data-preview="campaign">@(selectedCampaign?.Title ?? "—")</strong></div>
+            <div class="iv-preview-row"><span>Timeline</span><strong data-preview="timeline">@(string.IsNullOrWhiteSpace(Model.Timeline) ? "Flexible" : Model.Timeline)</strong></div>
+            <div class="iv-preview-text @(string.IsNullOrWhiteSpace(Model.Deliverables) ? "is-empty" : "")" data-preview="deliverables">@(string.IsNullOrWhiteSpace(Model.Deliverables) ? "Deliverables will appear here." : Model.Deliverables)</div>
+        </section>
 
-        </div>
+        <section class="ui-card">
+            <div class="person-card-top">
+                <span class="person-avatar" style="background: @avatarGradient;">@FollowerFormat.InitialsOf(creator.FullName)</span>
+                <div style="min-width:0;">
+                    <div class="person-name">@creator.FullName @if (creator.Verified) { <i class="bi bi-patch-check-fill" title="Verified"></i> }</div>
+                    <div class="person-handle">@creator.PrimaryPlatform &middot; @creator.PlatformUsername</div>
+                </div>
+            </div>
+            <div class="person-stats">
+                <div><strong>@FollowerFormat.Format(creator.Followers)</strong><span>Followers</span></div>
+                <div><strong>@creator.EngagementRate.ToString("0.0")%</strong><span>Engagement</span></div>
+                <div><strong>@(string.IsNullOrWhiteSpace(creator.ContentNiche) ? "—" : creator.ContentNiche)</strong><span>Niche</span></div>
+            </div>
+            <div class="person-actions">
+                <a href="/Influencers/Profile/@creator.Id"><i class="bi bi-person"></i> Profile</a>
+                <button type="button" class="js-open-chat" data-influencer-id="@creator.Id" data-influencer-name="@creator.FullName" data-hue="@hue"><i class="bi bi-chat-dots"></i> Message</button>
+            </div>
+        </section>
 
-        <div class="form-actions">
-            <a href="/Influencers/Profile/@Model.InfluencerProfileId" class="btn btn-outline-brand">Cancel</a>
-            <button type="submit" class="btn btn-primary">Send Invite</button>
-        </div>
+        <section class="info-card">
+            <div class="info-card-head">
+                <span class="icon-chip soft"><i class="bi bi-lightbulb"></i></span>
+                <div class="info-card-title">Writing a Great Invite</div>
+            </div>
+            <ul class="check-list">
+                <li><i class="bi bi-check-circle-fill"></i>Offer a fair amount &mdash; check the creator's rate guide and engagement.</li>
+                <li><i class="bi bi-check-circle-fill"></i>List every post, story or video you expect, with the platform.</li>
+                <li><i class="bi bi-check-circle-fill"></i>Give a realistic timeline that leaves room for revisions.</li>
+                <li><i class="bi bi-check-circle-fill"></i>A short personal note about your brand makes a big difference.</li>
+            </ul>
+        </section>
 
-    </form>
+        <section class="info-card">
+            <div class="info-card-head">
+                <span class="icon-chip soft"><i class="bi bi-signpost-2"></i></span>
+                <div class="info-card-title">What's Next?</div>
+            </div>
+            <ol class="next-steps">
+                <li class="is-current"><h4>Send the invite</h4><p>It's saved as a pending application and @firstName is notified.</p></li>
+                <li><h4>Agree the terms</h4><p>Chat to settle details, then confirm the application to start the collaboration.</p></li>
+                <li><h4>Milestones &amp; approval</h4><p>@firstName submits proof for each milestone; you and Brandora approve it.</p></li>
+                <li><h4>Paid via bKash or Nagad</h4><p>You release each approved milestone and pay it through bKash or Nagad.</p></li>
+            </ol>
+        </section>
+
+        <section class="help-card">
+            <h3>Need Help?</h3>
+            <p>Not sure what to offer or how to word your brief? Our support team can help.</p>
+            <a href="/Home/Contact">Contact Support <i class="bi bi-arrow-right"></i></a>
+            <svg viewBox="0 0 400 170" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="iv-help-wave" x1="0" y1="1" x2="1" y2="0"><stop stop-color="#0955ca" stop-opacity="0"/><stop offset=".65" stop-color="#168cff" stop-opacity=".5"/><stop offset="1" stop-color="#783dff" stop-opacity=".15"/></linearGradient></defs><path d="M-20 160 C100 50 140 220 260 105 S350 85 420 20 L420 190 H-20Z" fill="url(#iv-help-wave)"/><path d="M-20 164 C110 90 140 230 270 120 S360 70 420 40" fill="none" stroke="#2799ff" stroke-opacity=".4"/></svg>
+        </section>
+
+    </aside>
 
 </div>
+
+@section Scripts {
+    <script>
+        (function () {
+            var form = document.getElementById('inviteForm');
+            if (!form) { return; }
+            function el(k) { return document.querySelector('[data-preview="' + k + '"]'); }
+            var campaign = form.querySelector('#CampaignId');
+            var amount = form.querySelector('#ProposedAmount');
+            var timeline = form.querySelector('#Timeline');
+            var deliverables = form.querySelector('#Deliverables');
+
+            function update() {
+                if (campaign && el('campaign')) {
+                    var opt = campaign.options[campaign.selectedIndex];
+                    el('campaign').textContent = opt ? opt.text.replace(/\s*\([^)]*\)\s*$/, '') : '—';
+                }
+                if (amount && el('amount')) {
+                    var n = parseFloat(amount.value);
+                    el('amount').textContent = n > 0 ? '৳' + Math.round(n).toLocaleString('en-US') : '৳—';
+                }
+                if (timeline && el('timeline')) {
+                    el('timeline').textContent = timeline.value.trim() || 'Flexible';
+                }
+                if (deliverables && el('deliverables')) {
+                    var d = deliverables.value.trim();
+                    el('deliverables').textContent = d || 'Deliverables will appear here.';
+                    el('deliverables').classList.toggle('is-empty', !d);
+                }
+            }
+
+            [campaign, amount, timeline, deliverables].forEach(function (f) {
+                if (f) { f.addEventListener('input', update); f.addEventListener('change', update); }
+            });
+        })();
+    </script>
+}

@@ -6,6 +6,7 @@ using Brandora.Web.Data;
 using Brandora.Web.Models.Domain;
 using Brandora.Web.Services;
 using Brandora.Web.Services.Email;
+using Brandora.Web.Services.Payments;
 
 DotNetEnv.Env.TraversePath().Load();
 
@@ -67,6 +68,17 @@ builder.Services.AddScoped<NotificationService>();
 builder.Services.AddScoped<MediaUploadService>();
 builder.Services.AddScoped<AdminAuthService>();
 builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
+
+// Real checkout providers the Brand can choose between: bKash Tokenized Checkout and
+// Nagad Online Payment. Each is a typed HttpClient (base address/handler lifetime managed
+// by the factory), exposed as an IPaymentGateway so PaymentSettlementService receives
+// all of them and routes each payment to the one the Brand picked.
+builder.Services.AddHttpClient<BkashGateway>();
+builder.Services.AddHttpClient<NagadGateway>();
+builder.Services.AddTransient<IPaymentGateway>(sp => sp.GetRequiredService<BkashGateway>());
+builder.Services.AddTransient<IPaymentGateway>(sp => sp.GetRequiredService<NagadGateway>());
+builder.Services.AddScoped<WalletService>();
+builder.Services.AddScoped<PaymentSettlementService>();
 
 builder.Services.AddAuthentication()
     .AddCookie("AdminScheme", options =>

@@ -4,132 +4,121 @@
     ViewData["Title"] = "Campaigns";
     ViewData["ActiveNav"] = "Campaigns";
     Layout = "_AppLayout";
+
+    var liveCount = Model.PublishedCount + Model.ActiveCount;
+    var hasFilters = !string.IsNullOrWhiteSpace(Model.Search) || Model.Status.HasValue
+        || !string.IsNullOrWhiteSpace(Model.Platform) || !string.IsNullOrWhiteSpace(Model.Category)
+        || !string.IsNullOrWhiteSpace(Model.Sort);
+
+    (string Badge, string Icon, string Chip) StatusStyle(CampaignStatus status) => status switch
+    {
+        CampaignStatus.Draft => ("is-neutral", "bi-pencil-square", "soft"),
+        CampaignStatus.Published => ("is-info", "bi-broadcast", "blue"),
+        CampaignStatus.Active => ("is-success", "bi-lightning-charge-fill", "mint"),
+        CampaignStatus.Completed => ("is-violet", "bi-check2-circle", "violet"),
+        CampaignStatus.Cancelled => ("is-danger", "bi-x-circle", "pink"),
+        _ => ("is-neutral", "bi-circle", "soft")
+    };
+
+    var faqs = new[]
+    {
+        ("What do Draft, Published and Active mean?", "Drafts are private to you while you finish setup. Published campaigns are visible to creators, who can send proposals. Mark a campaign Active once work is under way, and Completed when it wraps up."),
+        ("When can creators apply?", "Creators can discover and apply to Published or Active campaigns until the campaign's end date. Drafts, completed and cancelled campaigns don't accept new proposals."),
+        ("Can I edit a campaign after publishing?", "Yes. You can update the details, budget, dates and creative at any time from Edit. Milestone plans and targeting are managed from the campaign's own page."),
+        ("What happens when I delete a campaign?", "Deleting permanently removes the campaign together with its proposals, collaborations, milestones and payment records. If you just want to stop new applications, cancel it instead."),
+        ("How do I find creators for a campaign?", "Open the campaign and use Smart Match to see creators ranked against your targeting, or browse Find Influencers and invite creators directly.")
+    };
 }
 
 @section Styles {
 
-    .page-head {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 20px;
+    .metric-band.four { grid-template-columns: repeat(4, 1fr); }
+    @@media(max-width: 1250px) { .metric-band.four { grid-template-columns: repeat(2, 1fr); } }
+    @@media(max-width: 640px) { .metric-band.four { grid-template-columns: 1fr; } }
 
-        animation: fade-up .4s ease both;
-    }
-
-    .page-title {
-        font-family: 'Playfair Display', serif;
-        font-weight: 600;
-        font-size: 28px;
-    }
-
-    .page-sub {
-        margin-top: 6px;
-
-        font-family: 'Inter', sans-serif;
-        font-size: 13.5px;
-        color: #6b7290;
-    }
-
+    /* ---- Filter bar ---- */
     .filter-bar {
-        margin-top: 26px;
-        padding: 12px;
-
+        margin-top: 16px;
+        padding: 10px;
         display: flex;
         flex-wrap: wrap;
         align-items: center;
         gap: 6px;
-
-        border-radius: 20px;
-        border: 1px solid #d1e2ff;
-        background: linear-gradient(120deg, #eef6ffcc, #f7fbffcc);
-
+        border-radius: 12px;
+        border: 1px solid #cfe2ff;
+        background: linear-gradient(135deg, #ffffffbd, #f5faff8c 55%, #fafdffd9);
+        box-shadow: inset 0 1px 2px #fff, 0 3px 10px #6f9bce07;
         animation: fade-up .45s ease both;
     }
 
     .status-tab {
         display: inline-flex;
         align-items: center;
-        gap: 6px;
-
-        padding: 10px 18px;
-
-        border-radius: 14px;
-        border: 1px solid transparent;
-        background: transparent;
-
-        font-family: 'Inter', sans-serif;
-        font-size: 13px;
-        font-weight: 600;
-        color: #2a3157;
-
-        transition: .2s;
+        gap: 7px;
+        padding: 9px 15px;
+        border-radius: 9px;
+        font-family: 'DM Sans', sans-serif;
+        font-size: 12.5px;
+        font-weight: 700;
+        color: #33477c;
+        transition: background .2s ease, color .2s ease, box-shadow .2s ease;
     }
 
-    .status-tab:hover {
-        background: #ffffffa8;
+    .status-tab:hover { background: #ffffffd9; color: #1451ff; }
+
+    .status-tab .count {
+        min-width: 20px;
+        padding: 1px 7px;
+        border-radius: 20px;
+        background: #e7eefc;
+        font-size: 11px;
+        text-align: center;
+        color: #2f5fd0;
     }
 
     .status-tab.is-active {
         color: #ffffff;
-        background: linear-gradient(105deg, #a326ff, #236eff);
-        box-shadow: 0 6px 16px rgba(114,36,255,.22);
+        background: linear-gradient(110deg, #6425ff, #004dff 55%, #00a8f0);
+        box-shadow: 0 6px 16px #3b4dff33;
     }
 
-    .status-tab .count {
-        opacity: .75;
-        font-weight: 700;
-        font-size: 11.5px;
-    }
+    .status-tab.is-active .count { background: #ffffff33; color: #ffffff; }
 
-    .filter-spacer {
-        flex: 1;
-    }
+    .filter-spacer { flex: 1; }
 
-    .filter-input-wrap {
-        position: relative;
-        flex-shrink: 0;
-    }
+    .filter-input-wrap { position: relative; flex-shrink: 0; }
 
-    .filter-input-wrap svg {
+    .filter-input-wrap i {
         position: absolute;
-        left: 14px;
+        left: 13px;
         top: 50%;
         transform: translateY(-50%);
-        color: #a9c9ff;
+        font-size: 13px;
+        color: #7b8fbf;
         pointer-events: none;
     }
 
     .filter-input,
     .filter-select {
-        height: 42px;
-
-        padding: 0 14px;
-
-        border-radius: 14px;
-        border: 1px solid #d1e2ff;
-        background: #ffffff;
-
+        height: 40px;
+        padding: 0 12px;
+        border-radius: 9px;
+        border: 1px solid #d3e4ff;
+        background: #ffffffcc;
         font-family: 'Inter', sans-serif;
-        font-size: 13px;
-        color: #2a3157;
-
+        font-size: 12.5px;
+        color: #20365f;
         outline: none;
-        transition: .2s;
+        transition: border-color .2s ease, box-shadow .2s ease;
     }
 
-    .filter-input {
-        padding-left: 38px;
-    }
+    .filter-input { width: 210px; padding-left: 34px; }
+    .filter-input::placeholder { color: #7b8fbf; }
 
     .filter-input:focus,
     .filter-select:focus {
-        border-color: #a978ff;
-        box-shadow: 0 0 0 3px rgba(155,44,255,.1);
-    }
-
-    .filter-input {
-        width: 220px;
+        border-color: #8f7bff;
+        box-shadow: 0 0 0 3px #7862ef22;
     }
 
     .sr-only-submit {
@@ -144,207 +133,137 @@
         border: 0;
     }
 
-    /* Campaign rows — matches the Influencer side's Discover Campaigns
-       row layout exactly, adapted with Brand-appropriate actions. */
+    .camp-body { margin-top: 16px; }
 
-    .campaign-list {
-        margin-top: 24px;
-
-        display: flex;
-        flex-direction: column;
-        gap: 14px;
-    }
+    /* ---- Campaign rows ---- */
+    .campaign-list { display: grid; gap: 12px; }
 
     .campaign-row {
-        display: flex;
-        align-items: center;
-        gap: 20px;
-
-        padding: 20px;
-
-        border-radius: 16px;
-        background: linear-gradient(135deg, #ffffffbd, #f5faff8c 55%, #fafdffd9);
-        border: 1px solid #cfe2ff;
-
+        padding: 16px;
+        border-radius: 12px;
+        border: 1px solid #e3edfc;
+        background: #ffffff8c;
+        box-shadow: 0 3px 9px #9bbfe90b;
         transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
-
         animation: fade-up .5s ease both;
     }
 
     .campaign-row:hover {
         transform: translateY(-2px);
-        box-shadow: 0 16px 34px rgba(30,34,90,.08);
-        border-color: #a9c9ff;
+        border-color: #b9d3ff;
+        box-shadow: 0 14px 28px #5b83c41f;
+    }
+
+    .campaign-row-top {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        gap: 16px;
+        align-items: start;
     }
 
     .campaign-row-thumb {
         position: relative;
-        flex-shrink: 0;
         overflow: hidden;
-
-        width: 88px;
-        height: 88px;
-
+        width: 72px;
+        height: 72px;
         border-radius: 14px;
         background: linear-gradient(135deg, #7224ff, #3735ff 55%, #087fff);
-
-        display: flex;
-        align-items: center;
-        justify-content: center;
-
+        display: grid;
+        place-items: center;
         color: #ffffff;
         font-family: 'Playfair Display', serif;
         font-weight: 700;
-        font-size: 26px;
+        font-size: 24px;
+        box-shadow: 0 8px 18px #3a2bb026;
     }
 
     .campaign-row-thumb img,
-    .campaign-row-thumb video {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
+    .campaign-row-thumb video { width: 100%; height: 100%; object-fit: cover; }
 
-    .campaign-row-body {
-        flex: 1;
-        min-width: 0;
-    }
+    .campaign-row-body { min-width: 0; }
 
-    .campaign-row-title-line {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
+    .campaign-row-title-line { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
 
     .campaign-row-title {
-        font-family: 'Playfair Display', serif;
+        font-family: 'Playfair Display', Georgia, serif;
         font-weight: 600;
-        font-size: 19px;
-        color: #171d3d;
-        text-decoration: none;
+        font-size: 18px;
+        letter-spacing: -.3px;
+        color: #0b084e;
+        transition: color .2s ease;
     }
 
-    .campaign-row-title:hover {
-        text-decoration: underline;
-    }
+    .campaign-row-title:hover { color: #1451ff; }
 
     .campaign-row-meta {
-        margin-top: 4px;
-        font-family: 'Inter', sans-serif;
-        font-size: 12.5px;
-        color: #56617f;
-    }
-
-    .campaign-row-meta strong {
-        color: #171d3d;
-        font-weight: 600;
-    }
-
-    .campaign-row-desc {
-        margin-top: 6px;
-        max-width: 520px;
-
-        font-family: 'Inter', sans-serif;
-        font-size: 12.5px;
-        color: #6b7290;
-
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-
-    .campaign-row-tags {
-        margin-top: 10px;
-
         display: flex;
         flex-wrap: wrap;
-        gap: 6px;
-    }
-
-    .tag {
-        padding: 3px 10px;
-
-        border-radius: 20px;
-        background: #eaf2ff;
-
+        gap: 4px 14px;
+        margin-top: 4px;
         font-family: 'Inter', sans-serif;
-        font-size: 11px;
-        font-weight: 600;
-        color: #2b467d;
+        font-size: 11.5px;
+        color: #5877ac;
     }
 
-    .campaign-row-figures {
-        flex-shrink: 0;
+    .campaign-row-meta span { display: inline-flex; align-items: center; gap: 5px; }
+    .campaign-row-meta i { color: #5b4dff; font-size: 12px; }
 
-        display: flex;
-        gap: 28px;
-    }
-
-    .figure-value {
-        font-family: 'DM Sans', sans-serif;
-        font-weight: 800;
-        font-size: 16px;
-        color: #171d3d;
-        white-space: nowrap;
-    }
-
-    .figure-label {
-        margin-top: 2px;
-
+    .campaign-row-desc {
+        margin-top: 7px;
         font-family: 'Inter', sans-serif;
-        font-size: 10.5px;
-        font-weight: 600;
-        letter-spacing: .3px;
-        text-transform: uppercase;
-        color: #6681af;
-    }
-
-    .campaign-row-actions {
-        flex-shrink: 0;
-
-        display: flex;
-        flex-direction: column;
-        align-items: stretch;
-        gap: 8px;
-
-        min-width: 140px;
-    }
-
-    .campaign-row-actions .btn {
-        min-height: 38px;
-        padding: 0 16px;
         font-size: 12.5px;
-        justify-content: center;
+        line-height: 1.55;
+        color: #52649b;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
     }
 
-    .campaign-row-applied {
-        text-align: center;
-        font-family: 'Inter', sans-serif;
-        font-size: 11px;
-        color: #6681af;
-    }
+    .campaign-row-actions { display: flex; align-items: center; gap: 8px; }
+    .campaign-row-actions form { margin: 0; }
 
-    .campaign-row-delete {
+    .row-btn {
         display: inline-flex;
         align-items: center;
-        justify-content: center;
         gap: 6px;
-        width: 100%;
-
-        min-height: 38px;
-        padding: 0 16px;
-
-        border-radius: 10px;
-        border: 1.5px solid #f6c3ca;
-        background: #fff;
-        color: #c22540;
-
+        height: 36px;
+        padding: 0 14px;
+        border-radius: 8px;
+        border: 1px solid #d7e8ff;
+        background: #ffffffb8;
         font-family: 'Inter', sans-serif;
-        font-size: 12.5px;
+        font-size: 12px;
         font-weight: 600;
-
+        color: #1451ff;
+        white-space: nowrap;
         cursor: pointer;
-        transition: .2s;
+        transition: .2s ease;
+    }
+
+    .row-btn i { transition: transform .2s ease; }
+    .row-btn:hover { border-color: #1451ff; transform: translateY(-1px); }
+    .row-btn:hover .bi-arrow-right { transform: translateX(3px); }
+
+    .row-btn.is-primary {
+        border-color: transparent;
+        background: linear-gradient(110deg, #6425ff, #004dff 55%, #00a8f0);
+        color: #ffffff;
+    }
+
+    .row-btn.is-primary:hover { box-shadow: 0 8px 18px #3b4dff40; }
+
+    .campaign-row-delete {
+        display: grid;
+        place-items: center;
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        border: 1px solid #f4d3d9;
+        background: #ffffffb8;
+        color: #c22540;
+        cursor: pointer;
+        transition: .2s ease;
     }
 
     .campaign-row-delete:hover {
@@ -355,17 +274,42 @@
         box-shadow: 0 8px 18px rgba(214,35,74,.25);
     }
 
+    .campaign-row-figures {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        margin: 14px 0 0;
+        border: 1px solid #e6effc;
+        border-radius: 10px;
+        background: #f7faffb3;
+    }
+
+    .campaign-row-figures > div {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 14px;
+        border-left: 1px solid #e6effc;
+        min-width: 0;
+    }
+
+    .campaign-row-figures > div:first-child { border-left: 0; }
+    .campaign-row-figures dt { font-family: 'Inter', sans-serif; font-size: 10.5px; font-weight: 500; color: #5877ac; }
+    .campaign-row-figures dd { margin: 1px 0 0; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 700; color: #101d48; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .campaign-row-figures .icon-chip { width: 30px; height: 30px; font-size: 13px; }
+
+    .list-count { font-family: 'Inter', sans-serif; font-size: 11.5px; color: #5877ac; white-space: nowrap; }
+
     @@media(max-width: 900px) {
-        .campaign-row { flex-wrap: wrap; }
-        .campaign-row-figures { order: 3; width: 100%; justify-content: space-between; padding-top: 12px; border-top: 1px solid #e3edff; }
-        .campaign-row-actions { order: 4; width: 100%; flex-direction: row; }
+        .campaign-row-top { grid-template-columns: auto minmax(0, 1fr); }
+        .campaign-row-actions { grid-column: 1 / -1; flex-wrap: wrap; }
+        .campaign-row-figures { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .campaign-row-figures > div:nth-child(3) { border-left: 0; }
+        .campaign-row-figures > div:nth-child(n+3) { border-top: 1px solid #e6effc; }
     }
 
     @@media(max-width: 560px) {
-        .page-head { flex-direction: column; }
         .filter-input, .filter-input-wrap { width: 100%; }
-        .campaign-row-thumb { width: 64px; height: 64px; font-size: 20px; }
-        .campaign-row-desc { max-width: 100%; }
+        .campaign-row-thumb { width: 56px; height: 56px; font-size: 19px; }
     }
 
 }
@@ -379,17 +323,22 @@
     @await Html.PartialAsync("_HeroWaves")
     <div class="page-hero-intro">
         <p class="page-hero-eyebrow">Campaigns</p>
-        <h1 class="page-hero-title">Your <span>Campaigns</span></h1>
-        <p class="page-hero-sub">Create, manage and track every creator campaign from one place.</p>
+        <h1 class="page-hero-title">Every Campaign. <span>One Clear View.</span></h1>
+        <p class="page-hero-sub">Create, publish and track every creator campaign &mdash; from first draft to final payout.</p>
+        <dl class="page-hero-stats">
+            <div><dd>@Model.TotalCount</dd><dt>Campaigns</dt></div>
+            <div><dd>@liveCount</dd><dt>Live Now</dt></div>
+            <div><dd>@Model.DraftCount</dd><dt>Drafts</dt></div>
+        </dl>
         <div class="hero-actions" style="margin-top: 16px;">
-            <a href="/Campaigns/Create" class="btn btn-primary">Create a Campaign</a>
+            <a href="/Campaigns/Create" class="btn btn-primary"><i class="bi bi-plus-lg" style="margin-right:8px;"></i>Create a Campaign</a>
         </div>
     </div>
 
     <div class="page-hero-art" aria-hidden="true">
         <div class="hero-glass hero-glass-back"></div>
         <div class="hero-glass hero-glass-front">
-            <span class="hero-glass-copy">Create<br />Collaborate<br />Get Rewarded<span></span></span>
+            <span class="hero-glass-copy">Create<br />Collaborate<br />Get Results<span></span></span>
         </div>
         <span class="hero-sparkle"></span>
     </div>
@@ -399,12 +348,64 @@
 
 @if (TempData["CampaignError"] is string campaignError)
 {
-    <div class="form-errors" style="margin-top: 18px;">@campaignError</div>
+    <div class="notice is-error" role="alert"><i class="bi bi-exclamation-circle-fill"></i><span>@campaignError</span></div>
 }
 @if (TempData["CampaignSuccess"] is string campaignSuccess)
 {
-    <div class="form-errors" style="margin-top: 18px; border-color: rgba(13,156,108,.25); background: rgba(13,156,108,.08); color: #0d9c6c;">@campaignSuccess</div>
+    <div class="notice is-success" role="status"><i class="bi bi-check-circle-fill"></i><span>@campaignSuccess</span></div>
 }
+
+<section class="metric-band four">
+
+    <div class="metric-block tone-a is-visible">
+        <div class="metric-main">
+            <span class="metric-icon" aria-hidden="true"><i class="bi bi-megaphone-fill" style="font-size:20px;"></i></span>
+            <div>
+                <div class="metric-label">Total Campaigns</div>
+                <strong class="metric-value" data-count-to="@Model.TotalCount">@Model.TotalCount</strong>
+                <p class="metric-context">@Model.CompletedCount completed so far</p>
+            </div>
+        </div>
+        <div class="metric-footer"><span class="metric-accent"></span><span class="metric-footer-link">All time</span></div>
+    </div>
+
+    <div class="metric-block tone-b is-visible">
+        <div class="metric-main">
+            <span class="metric-icon" aria-hidden="true"><i class="bi bi-broadcast" style="font-size:20px;"></i></span>
+            <div>
+                <div class="metric-label">Open for Applications</div>
+                <strong class="metric-value" data-count-to="@Model.PublishedCount">@Model.PublishedCount</strong>
+                <p class="metric-context">Published and visible to creators</p>
+            </div>
+        </div>
+        <div class="metric-footer"><span class="metric-accent"></span><span class="metric-footer-link">Published</span></div>
+    </div>
+
+    <div class="metric-block tone-d is-visible">
+        <div class="metric-main">
+            <span class="metric-icon" aria-hidden="true"><i class="bi bi-lightning-charge-fill" style="font-size:20px;"></i></span>
+            <div>
+                <div class="metric-label">Active Campaigns</div>
+                <strong class="metric-value" data-count-to="@Model.ActiveCount">@Model.ActiveCount</strong>
+                <p class="metric-context">Running with creators right now</p>
+            </div>
+        </div>
+        <div class="metric-footer"><span class="metric-accent"></span><span class="metric-footer-link">In progress</span></div>
+    </div>
+
+    <div class="metric-block tone-e is-visible">
+        <div class="metric-main">
+            <span class="metric-icon" aria-hidden="true"><i class="bi bi-pencil-square" style="font-size:20px;"></i></span>
+            <div>
+                <div class="metric-label">Drafts</div>
+                <strong class="metric-value" data-count-to="@Model.DraftCount">@Model.DraftCount</strong>
+                <p class="metric-context">Waiting to be finished and published</p>
+            </div>
+        </div>
+        <div class="metric-footer"><span class="metric-accent"></span><span class="metric-footer-link">Private to you</span></div>
+    </div>
+
+</section>
 
 <form method="get" action="/Campaigns" class="filter-bar">
 
@@ -427,7 +428,7 @@
     <div class="filter-spacer"></div>
 
     <div class="filter-input-wrap">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="m20 20-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <i class="bi bi-search" aria-hidden="true"></i>
         <input type="text" name="search" class="filter-input" placeholder="Search campaigns.." value="@Model.Search" />
     </div>
 
@@ -462,119 +463,181 @@
 
 </form>
 
-@if (Model.Campaigns.Count > 0)
-{
-    <div class="campaign-list">
-        @foreach (var campaign in Model.Campaigns)
-        {
-            var milestoneCount = Model.MilestonesFor(campaign.Id);
-            <div class="campaign-row">
+<div class="page-grid camp-body">
 
-                <div class="campaign-row-thumb">
-                    @if (!string.IsNullOrEmpty(campaign.MediaUrl))
+    <div class="page-main">
+
+        <section class="ui-card">
+            <div class="ui-card-head">
+                <div>
+                    <div class="ui-card-title">@(Model.Status.HasValue ? $"{Model.Status} Campaigns" : "All Campaigns")</div>
+                    <p class="ui-card-sub">Budget, applicants, milestones and deadline for each campaign at a glance.</p>
+                </div>
+                <span class="list-count">@Model.Campaigns.Count shown</span>
+            </div>
+
+            @if (Model.Campaigns.Count > 0)
+            {
+                <div class="campaign-list">
+                    @foreach (var campaign in Model.Campaigns)
                     {
-                        @if (campaign.MediaType == "video")
-                        {
-                            <video src="@campaign.MediaUrl" muted loop playsinline preload="metadata"></video>
-                        }
-                        else
-                        {
-                            <img src="@campaign.MediaUrl" alt="@campaign.Title" />
-                        }
-                    }
-                    else
-                    {
-                        @(campaign.Title.Length > 0 ? campaign.Title[..1].ToUpperInvariant() : "C")
-                    }
-                </div>
-
-                <div class="campaign-row-body">
-                    <div class="campaign-row-title-line">
-                        <a href="/Campaigns/Detail/@campaign.Id" class="campaign-row-title">@campaign.Title</a>
-                        <span class="status-pill @campaign.Status.ToString().ToLowerInvariant()">@campaign.Status</span>
-                    </div>
-                    <div class="campaign-row-meta">
-                        @{
-                            var metaParts = new List<string>();
-                            if (!string.IsNullOrEmpty(campaign.Platform)) { metaParts.Add(campaign.Platform); }
-                            if (!string.IsNullOrEmpty(campaign.Niche)) { metaParts.Add(campaign.Niche); }
-                            metaParts.Add("Posted " + campaign.CreatedAt.ToString("MMM d, yyyy"));
-                        }
-                        @string.Join(" · ", metaParts)
-                    </div>
-                    <div class="campaign-row-desc">@campaign.Description</div>
-                    <div class="campaign-row-tags">
-                        @foreach (var p in (campaign.Platform ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-                        {
-                            <span class="tag">@p</span>
-                        }
-                        @if (!string.IsNullOrEmpty(campaign.Niche))
-                        {
-                            <span class="tag">@campaign.Niche</span>
-                        }
-                    </div>
-                </div>
-
-                <div class="campaign-row-figures">
-                    <div>
-                        <div class="figure-value">৳@campaign.Budget.ToString("N0")</div>
-                        <div class="figure-label">Budget</div>
-                    </div>
-                    <div>
-                        <div class="figure-value">@(milestoneCount > 0 ? milestoneCount.ToString() : "Not set")</div>
-                        <div class="figure-label">Milestones</div>
-                    </div>
-                    <div>
-                        <div class="figure-value">@(campaign.Deadline?.ToString("MMM d, yyyy") ?? "No deadline")</div>
-                        <div class="figure-label">Deadline</div>
-                    </div>
-                </div>
-
-                <div class="campaign-row-actions">
-                    <a href="/Campaigns/Detail/@campaign.Id" class="btn btn-secondary">View Details</a>
-                    <a href="/Campaigns/Edit/@campaign.Id" class="btn btn-primary">Edit</a>
-                    @{
+                        var milestoneCount = Model.MilestonesFor(campaign.Id);
                         var applicantCount = Model.ApplicantsFor(campaign.Id);
+                        var style = StatusStyle(campaign.Status);
                         var deleteWarning = campaign.Status == CampaignStatus.Draft
                             ? $"Are you sure you want to delete \"{campaign.Title}\"? This cannot be undone."
                             : $"Are you sure you want to delete \"{campaign.Title}\"? This is a {campaign.Status.ToString().ToLowerInvariant()} campaign" +
                               (applicantCount > 0 ? $" with {applicantCount} applicant{(applicantCount == 1 ? "" : "s")}" : "") +
                               " — deleting it will permanently remove its applicants and any collaborations. This cannot be undone.";
-                    }
-                    <form method="post" action="/Campaigns/Delete/@campaign.Id">
-                        @Html.AntiForgeryToken()
-                        <button type="button" class="campaign-row-delete js-confirm" aria-label="Delete campaign"
-                                data-confirm-title="Delete this campaign?"
-                                data-confirm-text="@deleteWarning"
-                                data-confirm-label="Delete"
-                                data-confirm-danger="true">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6h16Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                            Delete
-                        </button>
-                    </form>
-                    <div class="campaign-row-applied">@applicantCount applied</div>
-                </div>
+                        <article class="campaign-row">
+                            <div class="campaign-row-top">
 
+                                <div class="campaign-row-thumb">
+                                    @if (!string.IsNullOrEmpty(campaign.MediaUrl))
+                                    {
+                                        @if (campaign.MediaType == "video")
+                                        {
+                                            <video src="@campaign.MediaUrl" muted loop playsinline preload="metadata"></video>
+                                        }
+                                        else
+                                        {
+                                            <img src="@campaign.MediaUrl" alt="@campaign.Title" />
+                                        }
+                                    }
+                                    else
+                                    {
+                                        @(campaign.Title.Length > 0 ? campaign.Title[..1].ToUpperInvariant() : "C")
+                                    }
+                                </div>
+
+                                <div class="campaign-row-body">
+                                    <div class="campaign-row-title-line">
+                                        <a href="/Campaigns/Detail/@campaign.Id" class="campaign-row-title">@campaign.Title</a>
+                                        <span class="ui-badge @style.Badge"><i class="bi @style.Icon"></i> @campaign.Status</span>
+                                    </div>
+                                    <div class="campaign-row-meta">
+                                        @if (!string.IsNullOrEmpty(campaign.Platform))
+                                        {
+                                            <span><i class="bi bi-broadcast"></i>@campaign.Platform</span>
+                                        }
+                                        @if (!string.IsNullOrEmpty(campaign.Niche))
+                                        {
+                                            <span><i class="bi bi-tag"></i>@campaign.Niche</span>
+                                        }
+                                        <span><i class="bi bi-calendar3"></i>Posted @campaign.CreatedAt.ToString("MMM d, yyyy")</span>
+                                    </div>
+                                    <div class="campaign-row-desc">@campaign.Description</div>
+                                </div>
+
+                                <div class="campaign-row-actions">
+                                    <a href="/Campaigns/Edit/@campaign.Id" class="row-btn"><i class="bi bi-pencil"></i> Edit</a>
+                                    <a href="/Campaigns/Detail/@campaign.Id" class="row-btn is-primary">View Details <i class="bi bi-arrow-right"></i></a>
+                                    <form method="post" action="/Campaigns/Delete/@campaign.Id">
+                                        @Html.AntiForgeryToken()
+                                        <button type="button" class="campaign-row-delete js-confirm" aria-label="Delete campaign" title="Delete campaign"
+                                                data-confirm-title="Delete this campaign?"
+                                                data-confirm-text="@deleteWarning"
+                                                data-confirm-label="Delete"
+                                                data-confirm-danger="true">
+                                            <i class="bi bi-trash3"></i>
+                                        </button>
+                                    </form>
+                                </div>
+
+                            </div>
+
+                            <dl class="campaign-row-figures">
+                                <div><span class="icon-chip violet"><i class="bi bi-cash-stack"></i></span><div><dt>Budget</dt><dd>৳@campaign.Budget.ToString("N0")</dd></div></div>
+                                <div><span class="icon-chip blue"><i class="bi bi-people"></i></span><div><dt>Applicants</dt><dd>@applicantCount applied</dd></div></div>
+                                <div><span class="icon-chip cyan"><i class="bi bi-flag"></i></span><div><dt>Milestones</dt><dd>@(milestoneCount > 0 ? $"{milestoneCount} planned" : "Not set")</dd></div></div>
+                                <div><span class="icon-chip @style.Chip"><i class="bi bi-calendar4-week"></i></span><div><dt>Deadline</dt><dd>@(campaign.Deadline?.ToString("MMM d, yyyy") ?? "No deadline")</dd></div></div>
+                            </dl>
+                        </article>
+                    }
+                </div>
+            }
+            else if (Model.TotalCount == 0)
+            {
+                <div class="empty-block">
+                    <span class="icon-chip soft" style="margin:0 auto 10px;"><i class="bi bi-rocket-takeoff"></i></span>
+                    <div class="empty-title">Your next campaign starts here</div>
+                    <p class="empty-text">You haven't launched a campaign yet. Define your goals, plan your milestones and discover creators who can bring it to life.</p>
+                    <a href="/Campaigns/Create" class="btn btn-primary" style="margin-top: 16px; height: 40px;">Create Your First Campaign</a>
+                </div>
+            }
+            else
+            {
+                <div class="empty-block">
+                    <span class="icon-chip soft" style="margin:0 auto 10px;"><i class="bi bi-funnel"></i></span>
+                    <div class="empty-title">No campaigns match these filters</div>
+                    <p class="empty-text">Try a different search term, status or category &mdash; or clear the filters to see all @Model.TotalCount campaigns.</p>
+                    <a href="/Campaigns" class="btn btn-secondary" style="margin-top: 16px; height: 40px;">Clear Filters</a>
+                </div>
+            }
+        </section>
+
+    </div>
+
+    <aside class="page-rail">
+
+        <section class="info-card">
+            <div class="info-card-head">
+                <span class="icon-chip soft"><i class="bi bi-signpost-split"></i></span>
+                <div class="info-card-title">Campaign Lifecycle</div>
             </div>
-        }
-    </div>
-}
-else if (Model.TotalCount == 0)
-{
-    <div class="panel empty-block" style="margin-top: 24px;">
-        <div class="empty-title">Your next campaign starts here</div>
-        <p class="empty-text">You haven't launched a campaign yet. Define your goals, set your milestones and discover creators who can bring your campaign to life.</p>
-        <a href="/Campaigns/Create" class="btn btn-primary" style="margin-top: 16px;">Create Your First Campaign</a>
-    </div>
-}
-else
-{
-    <div class="panel empty-block" style="margin-top: 24px;">
-        <div class="empty-title">No campaigns match these filters</div>
-        <p class="empty-text">Try a different search term or clear your filters.</p>
-        <a href="/Campaigns" class="btn btn-secondary" style="margin-top: 16px;">Clear Filters</a>
-    </div>
-}
+            <ol class="next-steps">
+                <li class="@(Model.DraftCount > 0 ? "is-done" : "")"><h4>Draft (@Model.DraftCount)</h4><p>Add details, plan milestones and set targeting &mdash; only you can see it.</p></li>
+                <li class="@(Model.PublishedCount > 0 ? "is-done" : "")"><h4>Published (@Model.PublishedCount)</h4><p>Creators can discover it and send proposals.</p></li>
+                <li class="@(Model.ActiveCount > 0 ? "is-done" : "")"><h4>Active (@Model.ActiveCount)</h4><p>Collaborations are under way and milestones are being delivered.</p></li>
+                <li class="@(Model.CompletedCount > 0 ? "is-done" : "")"><h4>Completed (@Model.CompletedCount)</h4><p>All work delivered and paid &mdash; the campaign is wrapped up.</p></li>
+            </ol>
+        </section>
+
+        <section class="ui-card">
+            <div class="ui-card-head" style="margin-bottom:0;">
+                <div>
+                    <div class="ui-card-title" style="font-size:17px;">Tips for Better Campaigns</div>
+                    <p class="ui-card-sub">What gets the strongest proposals from creators.</p>
+                </div>
+            </div>
+            <ul class="check-list">
+                <li><i class="bi bi-check-circle-fill"></i>Write a clear brief with goals and must-haves</li>
+                <li><i class="bi bi-check-circle-fill"></i>Break the budget into measurable milestones</li>
+                <li><i class="bi bi-check-circle-fill"></i>Add a cover image or video to stand out</li>
+                <li><i class="bi bi-check-circle-fill"></i>Set targeting so Smart Match can rank creators</li>
+                <li><i class="bi bi-check-circle-fill"></i>Give creators a realistic end date</li>
+            </ul>
+            @if (hasFilters)
+            {
+                <a href="/Campaigns" class="info-card-btn" style="margin-top:14px;"><i class="bi bi-x-circle"></i> Clear all filters</a>
+            }
+        </section>
+
+        <section class="ui-card">
+            <div class="ui-card-head" style="margin-bottom:2px;">
+                <div class="ui-card-title" style="font-size:17px;">Frequently Asked Questions</div>
+            </div>
+            <div class="faq-list">
+                @foreach (var faq in faqs)
+                {
+                    <details>
+                        <summary>@faq.Item1<i class="bi bi-chevron-right"></i></summary>
+                        <p>@faq.Item2</p>
+                    </details>
+                }
+            </div>
+        </section>
+
+        <section class="help-card">
+            <h3>Need Help?</h3>
+            <p>Questions about setting up, publishing or managing a campaign? Our support team can help.</p>
+            <a href="/Home/Contact">Contact Support <i class="bi bi-arrow-right"></i></a>
+            <svg viewBox="0 0 400 170" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="camp-list-help-wave" x1="0" y1="1" x2="1" y2="0"><stop stop-color="#0955ca" stop-opacity="0"/><stop offset=".65" stop-color="#168cff" stop-opacity=".5"/><stop offset="1" stop-color="#783dff" stop-opacity=".15"/></linearGradient></defs><path d="M-20 160 C100 50 140 220 260 105 S350 85 420 20 L420 190 H-20Z" fill="url(#camp-list-help-wave)"/><path d="M-20 164 C110 90 140 230 270 120 S360 70 420 40" fill="none" stroke="#2799ff" stroke-opacity=".4"/></svg>
+        </section>
+
+    </aside>
+
+</div>
 
 @section Scripts {
     <script>

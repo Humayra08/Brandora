@@ -106,6 +106,20 @@
     .pr-btn-review { background: linear-gradient(105deg, #a326ff, #236eff); color: #fff; }
     .pr-btn-view-details { background: #eef1fb; color: #6b52d8; }
 
+    .pr-quick-actions { margin-top: 8px; display: flex; gap: 8px; }
+    .pr-quick-form { flex: 1; }
+    .pr-quick-approve, .pr-quick-reject { width: 100%; display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 34px; border-radius: 9px; border: none; font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 700; cursor: pointer; transition: transform .12s ease, box-shadow .12s ease; }
+    .pr-quick-approve { background: linear-gradient(105deg, #0d9c6c, #0bbf82); color: #fff; }
+    .pr-quick-approve:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(13,156,108,.28); }
+    .pr-quick-reject { background: #fde3e3; color: #d92d2d; }
+    .pr-quick-reject:hover { background: #fbd0d0; }
+    .pr-quick-reject-panel { display: none; margin-top: 8px; flex-direction: column; gap: 8px; padding: 10px; border-radius: 10px; background: #fff8f8; border: 1px solid #fbd0d0; }
+    .pr-quick-reject-panel textarea { width: 100%; min-height: 56px; padding: 8px; border-radius: 8px; border: 1px solid #f0d0d0; font-family: 'Inter', sans-serif; font-size: 12px; resize: vertical; box-sizing: border-box; }
+    .pr-quick-reject-actions { display: flex; justify-content: flex-end; gap: 8px; }
+    .pr-quick-reject-cancel { height: 30px; padding: 0 12px; border-radius: 8px; border: 1px solid #e3d0d0; background: #fff; color: #8189a8; font-family: 'Inter', sans-serif; font-size: 11.5px; font-weight: 700; cursor: pointer; }
+    .pr-quick-reject-send { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 14px; border-radius: 8px; border: none; background: #d92d2d; color: #fff; font-family: 'Inter', sans-serif; font-size: 11.5px; font-weight: 700; cursor: pointer; }
+    .pr-quick-reject-send:hover { background: #c02323; }
+
     .pr-side-panel { padding: 20px; border-radius: 15px; background: #ffffff; border: 1px solid #dce7ff; margin-bottom: 18px; }
     .pr-side-title { font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 14.5px; color: #171d3d; }
 
@@ -234,6 +248,30 @@
                                     @(isActionable ? "Review" : "View Details") <i class="bi bi-arrow-right"></i>
                                 </a>
                             </div>
+                            @if (isActionable)
+                            {
+                                <div class="pr-quick-actions" id="pr-quick-@m.Id">
+                                    <form method="post" action="/Admin/AdminProofReview/Approve" class="pr-quick-form">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@m.Id" />
+                                        <button type="submit" class="pr-quick-approve"><i class="bi bi-check-circle-fill"></i> Approve</button>
+                                    </form>
+                                    <button type="button" class="pr-quick-reject" onclick="document.getElementById('pr-reject-@m.Id').style.display='flex'; document.getElementById('pr-quick-@m.Id').style.display='none';">
+                                        <i class="bi bi-x-circle-fill"></i> Reject
+                                    </button>
+                                </div>
+                                <div class="pr-quick-reject-panel" id="pr-reject-@m.Id">
+                                    <form method="post" action="/Admin/AdminProofReview/Reject">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@m.Id" />
+                                        <textarea name="comment" maxlength="500" required placeholder="Explain what needs to change..."></textarea>
+                                        <div class="pr-quick-reject-actions">
+                                            <button type="button" class="pr-quick-reject-cancel" onclick="document.getElementById('pr-reject-@m.Id').style.display='none'; document.getElementById('pr-quick-@m.Id').style.display='flex';">Cancel</button>
+                                            <button type="submit" class="pr-quick-reject-send"><i class="bi bi-send-fill"></i> Send</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            }
                         </div>
                     </div>
                 }

@@ -21,7 +21,8 @@ public abstract class InfluencerControllerBase(UserManager<ApplicationUser> user
             ViewData["CompanyName"] = influencer.FullName;
             ViewData["UnreadNotifications"] = await db.Notifications.CountAsync(n => n.UserId == userId && !n.IsRead);
             ViewData["UnreadMessages"] = await db.Messages.CountAsync(m =>
-                m.Conversation.InfluencerProfileId == influencer.Id && m.SenderUserId != userId && m.ReadAt == null);
+                m.Conversation.InfluencerProfileId == influencer.Id && m.SenderUserId != userId && m.ReadAt == null &&
+                (m.Conversation.InfluencerClearedAt == null || m.SentAt > m.Conversation.InfluencerClearedAt));
         }
 
         return influencer;

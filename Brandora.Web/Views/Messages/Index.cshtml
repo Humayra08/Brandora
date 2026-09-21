@@ -7,7 +7,7 @@
     Layout = "_AppLayout";
     var currentUserId = UserManager.GetUserId(User);
     var selected = Model.Selected;
-    var selectedMessages = selected?.Messages.OrderBy(m => m.SentAt).ThenBy(m => m.Id).ToList() ?? new List<Brandora.Web.Models.Domain.Message>();
+    var selectedMessages = selected?.VisibleMessages(true).OrderBy(m => m.SentAt).ThenBy(m => m.Id).ToList() ?? new List<Brandora.Web.Models.Domain.Message>();
 }
 
 @section Styles {
@@ -26,13 +26,20 @@
         grid-template-columns: 340px 1fr;
         gap: 20px;
 
-        height: calc(100vh - 150px);
+        /* The inbox gets (almost) a full screen of its own below the hero:
+           viewport minus the sticky topbar, never cramped, never absurdly tall. */
+        height: clamp(640px, calc(100vh - 118px), 940px);
 
         animation: fade-up .4s ease both;
     }
 
+    .messages-shell > .list-panel,
+    .messages-shell > .thread-panel { min-height: 0; }
+
     @@media(max-width: 900px) {
         .messages-shell { grid-template-columns: 1fr; height: auto; }
+        .messages-shell > .list-panel { max-height: 420px; }
+        .messages-shell > .thread-panel { height: clamp(560px, calc(100vh - 110px), 820px); }
     }
 
     /* ---- List panel ---- */
@@ -1347,6 +1354,96 @@
         transform: translateX(-50%) translateY(0);
     }
 
+
+    /* =========================================================
+       Chrome aligned with the shared glass system
+       (surfaces, borders, Playfair titles, soft chips).
+       Layout sizes and chat behaviour are unchanged.
+    ========================================================= */
+
+    .list-panel,
+    .thread-panel {
+        border-radius: 14px;
+        border: 1px solid #cfe2ff;
+        background: linear-gradient(135deg, #ffffffe0, #f5faffcc 55%, #fafdffe6);
+        box-shadow: inset 0 1px 2px #ffffff, 0 12px 30px -12px #3b5bdb24;
+    }
+
+    .list-head { border-bottom-color: #e3edfc; }
+    .list-head-title { font-family: 'Playfair Display', Georgia, serif; letter-spacing: -.4px; color: #0b084e; }
+    .list-head-sub { color: #5877ac; }
+
+    .list-filter-btn { border-color: #d7e8ff; background: #ffffffb8; color: #33477c; }
+    .list-filter-btn:hover,
+    .list-filter-btn.is-active { border-color: #1451ff; color: #1451ff; background: #eef4ff; }
+
+    .list-search { border-bottom-color: #e3edfc; }
+    .list-search input { border-color: #cfe0fb; background: #ffffffd9; color: #101d48; }
+    .list-search input:focus { border-color: #6b8dff; box-shadow: 0 0 0 3px #3b4dff1f; }
+
+    a.inbox-row:hover { background: #f1f7ffcc; }
+    .inbox-row.is-selected { background: linear-gradient(110deg, #efeaffcc, #e6f1ffcc); box-shadow: inset 0 0 0 1px #cddfff; }
+    .inbox-avatar { background: linear-gradient(135deg, #7224ff, #3735ff 55%, #087fff); }
+    .inbox-name-row { color: #101d48; }
+    .inbox-time { color: #8095c4; }
+    .inbox-snippet { color: #5877ac; }
+    .inbox-snippet.is-unread { color: #101d48; }
+    .inbox-unread-dot { background: linear-gradient(110deg, #6425ff, #004dff 55%, #00a8f0); }
+
+    .start-convo-card { border-radius: 12px; border: 1px solid #d6e6ff; background: radial-gradient(ellipse at 95% 100%, #c1ddff, transparent 65%), linear-gradient(120deg, #eff7ff, #e0eeff); }
+    .start-convo-icon.icon-chip { width: 42px; height: 42px; margin: 0 auto 12px; background: linear-gradient(135deg, #e4eeff, #cce2ff); color: #135bff; }
+    .start-convo-title { color: #101d48; }
+    .start-convo-text { color: #52649b; }
+
+    .thread-header { background: linear-gradient(120deg, #f3f8ffe6, #eef3ffd9); border-bottom-color: #e3edfc; }
+    .thread-name { color: #101d48; }
+    .thread-sub { color: #5877ac; }
+
+    .thread-empty { color: #5877ac; }
+    .thread-empty-state { display: flex; flex-direction: column; align-items: center; gap: 8px; max-width: 320px; padding: 20px; }
+    .thread-empty-state .icon-chip { margin-bottom: 4px; }
+    .thread-empty-title { font: 600 19px/1.3 'Playfair Display', Georgia, serif; color: #0b084e; }
+    .thread-empty-state p { margin: 0; font-family: 'Inter', sans-serif; font-size: 12.5px; line-height: 1.6; color: #5877ac; }
+    .thread-empty-state .btn { margin-top: 8px; height: 40px; }
+
+    /* ---- Conversation pin / delete (per-side) ---- */
+    .inbox-row-wrap { position: relative; }
+    .inbox-time { transition: opacity .18s ease; }
+    .inbox-pin { flex-shrink: 0; font-size: 11px; color: #6545ff; }
+    .inbox-row-wrap.is-pinned .inbox-row:not(.is-selected) { background: linear-gradient(110deg, #f6f3ffb3, #f1f7ffb3); }
+
+    .list-section-label { display: flex; align-items: center; gap: 6px; padding: 10px 12px 6px; font-family: 'Inter', sans-serif; font-size: 10.5px; font-weight: 700; letter-spacing: 1.1px; text-transform: uppercase; color: #5877ac; }
+    .list-section-label i { font-size: 11px; color: #6545ff; }
+
+    .convo-menu-wrap { position: absolute; top: 10px; right: 10px; z-index: 6; opacity: 0; transition: opacity .18s ease; }
+    .inbox-row-wrap:hover .convo-menu-wrap,
+    .inbox-row-wrap:focus-within .convo-menu-wrap,
+    .convo-menu-wrap.is-open { opacity: 1; }
+    .inbox-row-wrap:hover .inbox-time,
+    .inbox-row-wrap:focus-within .inbox-time,
+    .inbox-row-wrap.menu-open .inbox-time { opacity: 0; }
+
+    .convo-menu-btn { display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border-radius: 50%; border: 1px solid #d7e8ff; background: #ffffffeb; color: #33477c; font-size: 14px; cursor: pointer; box-shadow: 0 4px 12px -6px #3b5bdb55; transition: border-color .18s ease, color .18s ease, background .18s ease, transform .18s ease; }
+    .convo-menu-btn:hover,
+    .convo-menu-wrap.is-open .convo-menu-btn { border-color: #1451ff; background: #eef4ff; color: #1451ff; transform: scale(1.05); }
+    .convo-menu-btn:focus-visible { outline: 2px solid #1451ff; outline-offset: 2px; }
+
+    .convo-menu { position: absolute; top: calc(100% + 6px); right: 0; min-width: 196px; padding: 6px; border-radius: 12px; border: 1px solid #d7e8ff; background: #ffffff; box-shadow: 0 18px 40px -12px rgba(30,34,90,.28); opacity: 0; visibility: hidden; transform: translateY(-6px) scale(.97); transform-origin: top right; transition: opacity .16s ease, transform .16s cubic-bezier(.22,1,.36,1), visibility .16s; }
+    .convo-menu-wrap.is-up .convo-menu { top: auto; bottom: calc(100% + 6px); transform-origin: bottom right; }
+    .convo-menu-wrap.is-open .convo-menu { opacity: 1; visibility: visible; transform: none; }
+    .convo-menu form { margin: 0; }
+    .convo-menu-item { display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 10px; border: 0; border-radius: 8px; background: transparent; text-align: left; font-family: 'Inter', 'DM Sans', sans-serif; font-size: 12.5px; font-weight: 500; color: #20365f; cursor: pointer; transition: background .15s ease, color .15s ease; }
+    .convo-menu-item i { width: 16px; font-size: 14px; text-align: center; color: #6545ff; }
+    .convo-menu-item:hover { background: linear-gradient(110deg, #efeaff, #e8f2ff); }
+    .convo-menu-item.is-danger, .convo-menu-item.is-danger i { color: #c22540; }
+    .convo-menu-item.is-danger:hover { background: #fdecef; }
+    .convo-menu-sep { height: 1px; margin: 4px 6px; background: #eef2fb; }
+
+    @@media (hover: none) {
+        .convo-menu-wrap { opacity: 1; }
+        .inbox-time { opacity: 0; }
+    }
+
 }
 
 <a href="/Dashboard" class="back-to-dashboard">
@@ -1354,7 +1451,35 @@
     Back
 </a>
 
-<div class="messages-shell">
+<section class="page-hero">
+    @await Html.PartialAsync("_HeroWaves")
+    <div class="page-hero-intro">
+        <p class="page-hero-eyebrow">Messages</p>
+        <h1 class="page-hero-title">Your <span>Creator Inbox</span></h1>
+        <p class="page-hero-sub">Every creator conversation, brief and deliverable in one inbox.</p>
+        <dl class="page-hero-stats">
+            <div><dd>@Model.TotalCount</dd><dt>Conversation@(Model.TotalCount == 1 ? "" : "s")</dt></div>
+            <div><dd>@Model.TotalUnread</dd><dt>Unread message@(Model.TotalUnread == 1 ? "" : "s")</dt></div>
+        </dl>
+    </div>
+
+    <div class="page-hero-art" aria-hidden="true">
+        <div class="hero-glass hero-glass-back"></div>
+        <div class="hero-glass hero-glass-front">
+            <span class="hero-glass-copy">Chat.<br />Align.<br />Deliver.<span></span></span>
+        </div>
+        <span class="hero-sparkle"></span>
+    </div>
+
+    <div class="page-hero-motto">Real Creators.<br />Real Conversations.<span></span></div>
+</section>
+
+@if (TempData["InboxNotice"] is string inboxNotice)
+{
+    <div class="notice is-success" role="status" style="margin-top:14px;"><i class="bi bi-check-circle-fill"></i><span>@inboxNotice</span></div>
+}
+
+<div class="messages-shell" id="messagesShell">
 
     <div class="list-panel">
 
@@ -1381,9 +1506,16 @@
         <div class="list-rows">
             @if (Model.TotalCount > 0)
             {
+                var pinnedCount = Model.Conversations.Count(c => c.BrandPinnedAt.HasValue);
+                var shownAllLabel = false;
+                @if (pinnedCount > 0)
+                {
+                    <div class="list-section-label"><i class="bi bi-pin-angle-fill"></i> Pinned</div>
+                }
                 @foreach (var conversation in Model.Conversations)
                 {
-                    var lastMessage = conversation.Messages.OrderByDescending(m => m.SentAt).FirstOrDefault();
+                    var lastMessage = conversation.VisibleMessages(true).OrderByDescending(m => m.SentAt).FirstOrDefault();
+                    var isPinned = conversation.BrandPinnedAt.HasValue;
                     var unread = Model.UnreadFor(conversation.Id);
                     var isSelected = selected is not null && conversation.Id == selected.Id;
                     var snippet = lastMessage is null
@@ -1391,6 +1523,12 @@
                         : (!string.IsNullOrEmpty(lastMessage.MediaUrl) && string.IsNullOrEmpty(lastMessage.Body)
                             ? (lastMessage.MediaType == "video" ? "Sent a video" : "Sent a photo")
                             : lastMessage.Body);
+                    @if (pinnedCount > 0 && !isPinned && !shownAllLabel)
+                    {
+                        shownAllLabel = true;
+                        <div class="list-section-label">All conversations</div>
+                    }
+                    <div class="inbox-row-wrap @(isPinned ? "is-pinned" : "")">
                     <a href="/Messages?open=@conversation.Id" class="inbox-row @(isSelected ? "is-selected" : "")" data-reveal>
 
                         <div class="inbox-avatar">
@@ -1401,6 +1539,10 @@
                             <div class="inbox-name-row">
                                 <div class="inbox-name-left">
                                     <span>@conversation.InfluencerProfile.FullName</span>
+                                    @if (isPinned)
+                                    {
+                                        <i class="bi bi-pin-angle-fill inbox-pin" title="Pinned" aria-label="Pinned"></i>
+                                    }
                                     @if (conversation.InfluencerProfile.Verified)
                                     {
                                         <span class="verified-badge">Verified</span>
@@ -1418,6 +1560,37 @@
                         </div>
 
                     </a>
+                    <div class="convo-menu-wrap" data-convo-menu>
+                        <button type="button" class="convo-menu-btn" data-convo-menu-toggle aria-haspopup="menu" aria-expanded="false" aria-label="Options for conversation with @conversation.InfluencerProfile.FullName">
+                            <i class="bi bi-three-dots"></i>
+                        </button>
+                        <div class="convo-menu" role="menu">
+                            <form method="post" action="/Messages/TogglePin">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="conversationId" value="@conversation.Id" />
+                                @if (selected is not null)
+                                {
+                                    <input type="hidden" name="open" value="@selected.Id" />
+                                }
+                                <button type="submit" class="convo-menu-item" role="menuitem">
+                                    <i class="bi @(isPinned ? "bi-pin-angle" : "bi-pin-angle-fill")"></i>@(isPinned ? "Unpin conversation" : "Pin to top")
+                                </button>
+                            </form>
+                            <div class="convo-menu-sep" role="separator"></div>
+                            <form method="post" action="/Messages/DeleteConversation">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="conversationId" value="@conversation.Id" />
+                                @if (selected is not null)
+                                {
+                                    <input type="hidden" name="open" value="@selected.Id" />
+                                }
+                                <button type="button" class="convo-menu-item is-danger" role="menuitem" data-convo-delete data-convo-name="@conversation.InfluencerProfile.FullName">
+                                    <i class="bi bi-trash3"></i>Delete conversation
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    </div>
                 }
             }
             else if (!string.IsNullOrEmpty(Model.Search))
@@ -1428,11 +1601,11 @@
             @if (string.IsNullOrEmpty(Model.Search))
             {
                 <div class="start-convo-card">
-                    <div class="start-convo-icon">
+                    <div class="start-convo-icon icon-chip soft">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/></svg>
                     </div>
-                    <div class="start-convo-title">No conversations yet</div>
-                    <p class="start-convo-text">Start a conversation with a creator to discuss a campaign, deliverable or collaboration opportunity.</p>
+                    <div class="start-convo-title">@(Model.TotalCount > 0 ? "Start a new conversation" : "No conversations yet")</div>
+                    <p class="start-convo-text">Message a creator to discuss a campaign, deliverable or collaboration opportunity.</p>
                     <a href="/Influencers" class="btn btn-secondary">Discover Influencers</a>
                 </div>
             }
@@ -1665,7 +1838,15 @@
         }
         else
         {
-            <div class="thread-empty">Select or start a conversation to see it here.</div>
+            <div class="thread-empty thread-empty-state">
+                <span class="icon-chip lg soft"><i class="bi bi-chat-square-text"></i></span>
+                <div class="thread-empty-title">@(Model.TotalCount > 0 ? "Select a conversation" : "Your inbox is ready")</div>
+                <p>@(Model.TotalCount > 0 ? "Pick a creator on the left to read and reply to your conversation." : "When you message a creator, your conversation appears here.")</p>
+                @if (Model.TotalCount == 0)
+                {
+                    <a href="/Influencers" class="btn btn-primary">Discover Influencers</a>
+                }
+            </div>
         }
 
     </section>
@@ -1690,6 +1871,56 @@
 
 @section Scripts {
     <script>
+
+        // Conversation options (pin / delete) — one menu open at a time.
+        (function () {
+            function closeAllConvoMenus(except) {
+                document.querySelectorAll('[data-convo-menu].is-open').forEach(function (wrap) {
+                    if (wrap === except) { return; }
+                    wrap.classList.remove('is-open');
+                    var rowWrap = wrap.closest('.inbox-row-wrap');
+                    if (rowWrap) { rowWrap.classList.remove('menu-open'); }
+                    var b = wrap.querySelector('[data-convo-menu-toggle]');
+                    if (b) { b.setAttribute('aria-expanded', 'false'); }
+                });
+            }
+
+            document.querySelectorAll('[data-convo-menu-toggle]').forEach(function (btn) {
+                btn.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    var wrap = btn.closest('[data-convo-menu]');
+                    var willOpen = !wrap.classList.contains('is-open');
+                    closeAllConvoMenus(wrap);
+                    if (willOpen) {
+                        // Open upwards when there isn't room below inside the scrolling list.
+                        var list = wrap.closest('.list-rows');
+                        var menu = wrap.querySelector('.convo-menu');
+                        var spaceBelow = (list ? list.getBoundingClientRect().bottom : window.innerHeight) - btn.getBoundingClientRect().bottom;
+                        wrap.classList.toggle('is-up', spaceBelow < (menu ? menu.offsetHeight : 110) + 12);
+                    }
+                    wrap.classList.toggle('is-open', willOpen);
+                    var rowWrap = wrap.closest('.inbox-row-wrap');
+                    if (rowWrap) { rowWrap.classList.toggle('menu-open', willOpen); }
+                    btn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+                });
+            });
+
+            document.addEventListener('click', function (e) {
+                if (!e.target.closest('[data-convo-menu]')) { closeAllConvoMenus(null); }
+            });
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') { closeAllConvoMenus(null); }
+            });
+
+            document.querySelectorAll('[data-convo-delete]').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    closeAllConvoMenus(null);
+                    var name = btn.getAttribute('data-convo-name') || 'They';
+                    window.brandoraConfirm(btn, { title: 'Delete this conversation?', text: 'It will be removed from your inbox. ' + name + ' keeps their copy, and if they message you again it will reappear with only the new messages.', danger: true, confirmLabel: 'Delete' });
+                });
+            });
+        })();
         (function () {
             var rows = document.querySelectorAll('.inbox-row[data-reveal]');
             if (rows.length) {
@@ -1801,6 +2032,18 @@
 
             if (threadBody) {
                 threadBody.scrollTop = threadBody.scrollHeight;
+            }
+
+            // Opening a specific conversation (row click, chat widget, "Open Chat")
+            // lands the page on the inbox itself rather than back on the hero.
+            var shell = document.getElementById('messagesShell');
+            if (shell && /[?&]open=/.test(window.location.search)) {
+                requestAnimationFrame(function () {
+                    var topbar = document.querySelector('.main-topbar');
+                    var offset = (topbar ? topbar.getBoundingClientRect().height : 0) + 16;
+                    var target = shell.getBoundingClientRect().top + window.pageYOffset - offset;
+                    window.scrollTo({ top: Math.max(0, target), behavior: 'smooth' });
+                });
             }
 
             // Message actions: 3-dot menu (Edit / Copy / Unsend)

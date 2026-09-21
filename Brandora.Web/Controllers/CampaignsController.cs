@@ -123,8 +123,16 @@ public class CampaignsController(UserManager<ApplicationUser> userManager, Appli
             return View(model);
         }
 
+        var fileError = ValidateCampaignFiles(model);
+        if (fileError is not null)
+        {
+            ModelState.AddModelError(string.Empty, fileError);
+            return View(model);
+        }
+
         string? mediaUrl = null;
         string? mediaType = null;
+        string? videoUrl = null;
 
         if (model.MediaFile is { Length: > 0 })
         {
@@ -137,6 +145,20 @@ public class CampaignsController(UserManager<ApplicationUser> userManager, Appli
 
             mediaUrl = url;
             mediaType = type;
+        }
+
+        if (model.VideoFile is { Length: > 0 })
+        {
+            var (url, _, error) = await mediaUploads.SaveMediaAsync(model.VideoFile, "campaigns");
+            if (error is not null)
+            {
+                // Don't leave the banner orphaned in storage if the video fails.
+                mediaUploads.DeleteMedia(mediaUrl);
+                ModelState.AddModelError(string.Empty, error);
+                return View(model);
+            }
+
+            videoUrl = url;
         }
 
         var campaign = new Campaign
@@ -152,7 +174,8 @@ public class CampaignsController(UserManager<ApplicationUser> userManager, Appli
             ContentGuidelines = model.ContentGuidelines,
             Status = CampaignStatus.Draft,
             MediaUrl = mediaUrl,
-            MediaType = mediaType
+            MediaType = mediaType,
+            VideoUrl = videoUrl
         };
 
         db.Campaigns.Add(campaign);
@@ -161,6 +184,26 @@ public class CampaignsController(UserManager<ApplicationUser> userManager, Appli
         return returnToList
             ? RedirectToAction("Index")
             : RedirectToAction("Milestones", new { id = campaign.Id });
+    }
+
+    // The banner slot takes images only (it's the campaign's cover everywhere); the video
+    // slot takes videos only (played on the details page). Checked before anything is
+    // uploaded so a wrong file never reaches storage.
+    private static string? ValidateCampaignFiles(CampaignFormViewModel model)
+    {
+        if (model.MediaFile is { Length: > 0 } banner &&
+            !banner.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
+        {
+            return "The campaign banner must be an image (JPG, PNG, WEBP or GIF). Add videos in the Campaign Video slot.";
+        }
+
+        if (model.VideoFile is { Length: > 0 } video &&
+            !video.ContentType.StartsWith("video/", StringComparison.OrdinalIgnoreCase))
+        {
+            return "The campaign video must be an MP4, WEBM or MOV file.";
+        }
+
+        return null;
     }
 
     public async Task<IActionResult> Edit(int id)
@@ -189,7 +232,8 @@ public class CampaignsController(UserManager<ApplicationUser> userManager, Appli
             Deadline = campaign.Deadline,
             ContentGuidelines = campaign.ContentGuidelines,
             ExistingMediaUrl = campaign.MediaUrl,
-            ExistingMediaType = campaign.MediaType
+            ExistingMediaType = campaign.MediaType,
+            ExistingVideoUrl = campaign.VideoUrl
         });
     }
 
@@ -215,11 +259,18 @@ public class CampaignsController(UserManager<ApplicationUser> userManager, Appli
             ModelState.AddModelError(nameof(model.Deadline), "End date must be on or after the start date.");
         }
 
+        var fileError = ValidateCampaignFiles(model);
+        if (fileError is not null)
+        {
+            ModelState.AddModelError(string.Empty, fileError);
+        }
+
         if (!ModelState.IsValid)
         {
             model.Id = id;
             model.ExistingMediaUrl = campaign.MediaUrl;
             model.ExistingMediaType = campaign.MediaType;
+            model.ExistingVideoUrl = campaign.VideoUrl;
             return View("Create", model);
         }
 
@@ -245,14 +296,39 @@ public class CampaignsController(UserManager<ApplicationUser> userManager, Appli
             if (error is not null)
             {
                 ModelState.AddModelError(string.Empty, error);
+                model.Id = id;
                 model.ExistingMediaUrl = campaign.MediaUrl;
                 model.ExistingMediaType = campaign.MediaType;
+                model.ExistingVideoUrl = campaign.VideoUrl;
                 return View("Create", model);
             }
 
             mediaUploads.DeleteMedia(campaign.MediaUrl);
             campaign.MediaUrl = url;
             campaign.MediaType = type;
+        }
+
+        if (model.RemoveVideo && campaign.VideoUrl is not null)
+        {
+            mediaUploads.DeleteMedia(campaign.VideoUrl);
+            campaign.VideoUrl = null;
+        }
+
+        if (model.VideoFile is { Length: > 0 })
+        {
+            var (url, _, error) = await mediaUploads.SaveMediaAsync(model.VideoFile, "campaigns");
+            if (error is not null)
+            {
+                ModelState.AddModelError(string.Empty, error);
+                model.Id = id;
+                model.ExistingMediaUrl = campaign.MediaUrl;
+                model.ExistingMediaType = campaign.MediaType;
+                model.ExistingVideoUrl = campaign.VideoUrl;
+                return View("Create", model);
+            }
+
+            mediaUploads.DeleteMedia(campaign.VideoUrl);
+            campaign.VideoUrl = url;
         }
 
         await db.SaveChangesAsync();
@@ -303,6 +379,11 @@ public class CampaignsController(UserManager<ApplicationUser> userManager, Appli
         if (!string.IsNullOrEmpty(campaign.MediaUrl))
         {
             mediaUploads.DeleteMedia(campaign.MediaUrl);
+        }
+
+        if (!string.IsNullOrEmpty(campaign.VideoUrl))
+        {
+            mediaUploads.DeleteMedia(campaign.VideoUrl);
         }
 
         db.Campaigns.Remove(campaign);
@@ -568,6 +649,9 @@ public class CampaignsController(UserManager<ApplicationUser> userManager, Appli
         return RedirectToAction("Detail", new { id });
     }
 
+    // Only the exact transitions the UI ever offers are accepted server-side — never an
+    // arbitrary CampaignStatus value straight from the request (e.g. jumping Draft
+    // straight to Completed, or reverting Completed back to Active).
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> UpdateStatus(int id, CampaignStatus status)
@@ -582,6 +666,16 @@ public class CampaignsController(UserManager<ApplicationUser> userManager, Appli
         if (campaign is null)
         {
             return NotFound();
+        }
+
+        var allowed =
+            (campaign.Status == CampaignStatus.Published && status == CampaignStatus.Active) ||
+            (campaign.Status == CampaignStatus.Active && status == CampaignStatus.Completed) ||
+            (status == CampaignStatus.Cancelled && campaign.Status is not (CampaignStatus.Completed or CampaignStatus.Cancelled));
+
+        if (!allowed)
+        {
+            return RedirectToAction("Detail", new { id });
         }
 
         campaign.Status = status;

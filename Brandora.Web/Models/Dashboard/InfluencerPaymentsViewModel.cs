@@ -33,6 +33,10 @@ public class InfluencerPaymentsViewModel
     public decimal TotalEarnings { get; set; }
     public decimal PendingAmount { get; set; }
     public decimal CompletedAmount { get; set; }
+
+    // Credited earnings not yet withdrawn, and the platform fee taken at withdrawal.
+    public decimal AvailableBalance { get; set; }
+    public decimal WithdrawalFeePercent { get; set; }
     public int PendingCount { get; set; }
     public int CompletedCount { get; set; }
     public int? GrowthPercent { get; set; }

@@ -26,6 +26,15 @@ public class AdminDashboardViewModel
     public decimal TotalTransactionVolume { get; set; }
     public List<RecentActivityItem> RecentActivity { get; set; } = new();
 
+    // Platform wallet — the commission collected from both sides.
+    public decimal CommissionPercent { get; set; }
+    public decimal BrandFeesCollected { get; set; }          // added on top at Brand checkout
+    public int BrandFeePaymentCount { get; set; }
+    public decimal WithdrawalFeesCollected { get; set; }     // creator share, withdrawal approved/paid
+    public decimal WithdrawalFeesPending { get; set; }       // creator share, withdrawal awaiting review
+    public decimal LegacySettlementFees { get; set; }        // deducted from creators before the two-sided model
+    public decimal PlatformWalletBalance => BrandFeesCollected + WithdrawalFeesCollected + LegacySettlementFees;
+
     // KPI trend deltas (% change vs previous period), null when there's no prior-period data to compare against
     public decimal? TotalUsersTrendPct { get; set; }
     public decimal? ActiveCampaignsTrendPct { get; set; }
@@ -60,7 +69,7 @@ public class AdminDashboardViewModel
     public int[] SparkPayments { get; set; } = Array.Empty<int>();
 }
 
-public class AdminDashboardController(ApplicationDbContext db) : AdminControllerBase(db)
+public class AdminDashboardController(ApplicationDbContext db, IConfiguration config) : AdminControllerBase(db)
 {
     private static decimal? PctChange(decimal previous, decimal current)
     {
@@ -92,6 +101,18 @@ public class AdminDashboardController(ApplicationDbContext db) : AdminController
             OpenDisputes = await db.Disputes.CountAsync(d => d.Status == DisputeStatus.Open),
             TotalTransactionVolume = await db.Payments.Where(p => p.Status == PaymentStatus.Completed).SumAsync(p => (decimal?)p.Amount) ?? 0m
         };
+
+        // ---- Platform wallet (commission from both sides) ----
+        vm.CommissionPercent = decimal.TryParse(config["PLATFORM_COMMISSION_PERCENT"], out var commissionPct) ? commissionPct : 10m;
+        vm.BrandFeesCollected = await db.Payments.Where(p => p.Status == PaymentStatus.Completed).SumAsync(p => (decimal?)p.BrandFeeAmount) ?? 0m;
+        vm.BrandFeePaymentCount = await db.Payments.CountAsync(p => p.Status == PaymentStatus.Completed && p.BrandFeeAmount > 0);
+        vm.LegacySettlementFees = await db.Payments.Where(p => p.Status == PaymentStatus.Completed).SumAsync(p => (decimal?)p.PlatformFeeAmount) ?? 0m;
+        vm.WithdrawalFeesCollected = await db.WithdrawalRequests
+            .Where(w => w.Status == WithdrawalStatus.Approved || w.Status == WithdrawalStatus.Paid)
+            .SumAsync(w => (decimal?)w.FeeAmount) ?? 0m;
+        vm.WithdrawalFeesPending = await db.WithdrawalRequests
+            .Where(w => w.Status == WithdrawalStatus.Pending)
+            .SumAsync(w => (decimal?)w.FeeAmount) ?? 0m;
 
         // ---- KPI trend deltas (this month vs last month, by records created) ----
         var usersThisMonth = await db.Users.CountAsync(u => u.CreatedAt >= monthStart);

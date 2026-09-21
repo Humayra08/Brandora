@@ -1,125 +1,285 @@
 @model List<Brandora.Web.Models.Domain.Collaboration>
 @using Brandora.Web.Models.Influencers
+@using Brandora.Web.Models.Domain
 @{
     ViewData["Title"] = "Collaborations";
-    ViewData["ActiveNav"] = "Campaigns";
+    ViewData["ActiveNav"] = "Collaborations";
     Layout = "_AppLayout";
+
+    var activeCount = Model.Count(c => c.Status == CollaborationStatus.Active);
+    var completedCount = Model.Count(c => c.Status == CollaborationStatus.Completed);
+    var cancelledCount = Model.Count(c => c.Status == CollaborationStatus.Cancelled);
+
+    var allMilestones = Model.SelectMany(c => c.Milestones).ToList();
+    bool NeedsBrand(Milestone m) =>
+        (m.BrandApprovedAt is null && (m.Status == MilestoneStatus.Submitted || m.Status == MilestoneStatus.Approved)) ||
+        (m.Status == MilestoneStatus.Approved && m.BrandApprovedAt is not null && m.Payment is null) ||
+        m.Payment is { Status: PaymentStatus.Pending };
+    var actionCount = allMilestones.Count(NeedsBrand);
+    var paidTotal = allMilestones.Where(m => m.Status == MilestoneStatus.Paid).Sum(m => m.Amount);
+    var committedTotal = allMilestones.Sum(m => m.Amount);
+
+    (string Label, string Badge) StatusBadge(CollaborationStatus s) => s switch
+    {
+        CollaborationStatus.Active => ("Active", "is-violet"),
+        CollaborationStatus.Completed => ("Completed", "is-success"),
+        CollaborationStatus.Cancelled => ("Cancelled", "is-danger"),
+        _ => (s.ToString(), "is-neutral")
+    };
+
+    var faqs = new[]
+    {
+        ("Where does a collaboration come from?", "When you accept a creator's application (or they accept your invite and you confirm it), Brandora opens a collaboration using the milestones planned for that campaign."),
+        ("How do I pay a creator?", "Open the collaboration, then the milestone. Once you've approved the proof of post and Brandora has verified it, release the payment and pay it through bKash or Nagad."),
+        ("Why does a row say it needs my action?", "At least one milestone is waiting on you — a proof to review, a payment to release, or a bKash / Nagad checkout to complete."),
+        ("Can I work with the same creator again?", "Yes. Invite them to another campaign from their profile; each campaign gets its own collaboration.")
+    };
 }
 
 @section Styles {
 
-    .page-head {
-        animation: fade-up .4s ease both;
-    }
+    .collab-tabs { display: flex; flex-wrap: wrap; gap: 4px; padding: 4px; margin-bottom: 14px; border: 1px solid #deebff; border-radius: 11px; background: #e7f2ff99; }
+    .collab-tabs button { flex: 1; min-width: 110px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 9px 12px; border: 0; border-radius: 8px; background: transparent; font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 600; color: #122150; cursor: pointer; transition: .2s ease; }
+    .collab-tabs button:hover { background: #ffffffa6; }
+    .collab-tabs button.is-active { background: linear-gradient(110deg, #7557ff, #009fff); color: #ffffff; box-shadow: 0 6px 14px #4a5bff33; }
+    .collab-tabs .count { padding: 1px 7px; border-radius: 20px; background: #ffffffb3; font-size: 11px; color: #33477c; }
+    .collab-tabs button.is-active .count { background: #ffffff33; color: #ffffff; }
 
-    .page-title {
-        font-family: 'Playfair Display', serif;
-        font-weight: 600;
-        font-size: 28px;
-    }
+    .collab-cards { display: grid; gap: 12px; }
 
-    .page-sub {
-        margin-top: 6px;
+    .collab-card { display: grid; grid-template-columns: auto minmax(0, 1.4fr) minmax(0, 1fr) auto; align-items: center; gap: 18px; padding: 16px 18px; border-radius: 13px; border: 1px solid #dbe8fc; background: linear-gradient(135deg, #ffffffd9, #f7fbffb3); box-shadow: 0 4px 12px #6f9bce0d; transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease; animation: fade-up .5s ease both; }
+    .collab-card:hover { transform: translateY(-3px); border-color: #b9d3ff; box-shadow: 0 16px 30px #5b83c421; }
+    .collab-card[hidden] { display: none; }
 
-        font-family: 'Inter', sans-serif;
-        font-size: 13.5px;
-        color: #6b7290;
-    }
+    .collab-name { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 700; color: #101d48; }
+    .collab-name i.bi-patch-check-fill { color: #1d7bff; font-size: 13px; }
+    .collab-sub { margin-top: 3px; font-family: 'Inter', sans-serif; font-size: 12px; color: #5877ac; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .collab-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 
-    .collab-list {
-        margin-top: 24px;
+    .collab-progress-label { display: flex; justify-content: space-between; gap: 10px; font-family: 'Inter', sans-serif; font-size: 11.5px; color: #5877ac; }
+    .collab-progress-label strong { font-family: 'DM Sans', sans-serif; font-size: 13px; color: #101d48; }
+    .collab-progress-track { margin-top: 7px; height: 6px; border-radius: 6px; background: #e3edfc; overflow: hidden; }
+    .collab-progress-fill { height: 100%; border-radius: 6px; background: linear-gradient(110deg, #6323ff, #0759ff); }
+    .collab-progress-note { margin-top: 6px; font-family: 'Inter', sans-serif; font-size: 11px; color: #6680ad; }
 
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-    }
+    .collab-open { display: inline-flex; align-items: center; gap: 6px; padding: 8px 15px; border-radius: 9px; border: 1px solid #d7e8ff; background: #ffffffb8; font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; color: #1451ff; white-space: nowrap; transition: .2s ease; }
+    .collab-open i { transition: transform .2s ease; }
+    .collab-card:hover .collab-open { border-color: #1451ff; }
+    .collab-card:hover .collab-open i { transform: translateX(3px); }
+    .collab-open.is-primary { border-color: transparent; background: linear-gradient(110deg, #6425ff, #004dff 55%, #00a8f0); color: #ffffff; }
 
-    .collab-row {
-        display: flex;
-        align-items: center;
-        gap: 18px;
+    .collab-filter-empty { display: none; padding: 26px; border: 1px dashed #cfdcf5; border-radius: 12px; background: #f7faffb3; text-align: center; font-family: 'Inter', sans-serif; font-size: 12.5px; color: #6b7fb1; }
 
-        padding: 20px 24px;
-
-        border-radius: 16px;
-        background: #ffffff;
-        border: 1px solid #eaecf5;
-
-        transition: transform .2s ease, box-shadow .2s ease;
-
-        animation: fade-up .5s ease both;
-    }
-
-    a.collab-row:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 14px 30px rgba(30,34,90,.08);
-    }
-
-    .collab-body {
-        flex: 1;
-        min-width: 0;
-    }
-
-    .collab-name-row {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-
-        font-family: 'DM Sans', sans-serif;
-        font-weight: 700;
-        font-size: 15px;
-        color: #171d3d;
-    }
-
-    .collab-meta {
-        margin-top: 3px;
-
-        font-family: 'Inter', sans-serif;
-        font-size: 12px;
-        color: #8189a8;
+    @@media(max-width: 1000px) {
+        .collab-card { grid-template-columns: auto minmax(0, 1fr); }
+        .collab-card > .collab-progress, .collab-card > .collab-open { grid-column: 2; }
+        .collab-card > .collab-open { justify-self: start; }
     }
 
 }
 
-<a href="/Dashboard" class="back-to-dashboard">
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    Back
-</a>
+<nav class="crumb-trail" aria-label="Breadcrumb">
+    <a href="/Dashboard">Dashboard</a><i class="bi bi-chevron-right"></i>
+    <strong>Manage Collaborations</strong>
+</nav>
 
-<div class="page-head">
-    <h1 class="page-title">Collaborations</h1>
-    <p class="page-sub">@Model.Count active or past collaboration@(Model.Count == 1 ? "" : "s").</p>
+<section class="page-hero">
+    @await Html.PartialAsync("_HeroWaves")
+    <div class="page-hero-intro">
+        <p class="page-hero-eyebrow">Manage Collaborations</p>
+        <h1 class="page-hero-title">Every Creator Partnership. <span>One Clear View.</span></h1>
+        <p class="page-hero-sub">Review proof of post, approve milestones and release bKash or Nagad payments for every creator you work with.</p>
+        <ul class="hero-highlights">
+            <li>@activeCount active partnership@(activeCount == 1 ? "" : "s")</li>
+            <li>@actionCount milestone@(actionCount == 1 ? "" : "s") need@(actionCount == 1 ? "s" : "") you</li>
+            <li>৳@paidTotal.ToString("N0") paid to creators</li>
+        </ul>
+    </div>
+    <div class="page-hero-art" aria-hidden="true">
+        <div class="hero-glass hero-glass-back"></div>
+        <div class="hero-glass hero-glass-front">
+            <span class="hero-glass-copy">Review.<br />Approve.<br />Pay Securely.<span></span></span>
+        </div>
+        <span class="hero-sparkle"></span>
+    </div>
+    <div class="page-hero-motto">Real Creators.<br />Real Partnerships.<span></span></div>
+</section>
+
+<section class="metric-band four">
+    <div class="metric-block tone-a is-visible">
+        <div class="metric-main">
+            <span class="metric-icon"><i class="bi bi-people-fill" style="font-size:20px;"></i></span>
+            <div><div class="metric-label">Active</div><strong class="metric-value">@activeCount</strong><p class="metric-context">of @Model.Count collaboration@(Model.Count == 1 ? "" : "s")</p></div>
+        </div>
+        <div class="metric-footer"><span class="metric-accent"></span><span class="metric-footer-link">In progress now</span></div>
+    </div>
+    <div class="metric-block tone-b is-visible">
+        <div class="metric-main">
+            <span class="metric-icon"><i class="bi bi-bell-fill" style="font-size:19px;"></i></span>
+            <div><div class="metric-label">Need Your Action</div><strong class="metric-value">@actionCount</strong><p class="metric-context">Reviews, releases or checkouts</p></div>
+        </div>
+        <div class="metric-footer"><span class="metric-accent"></span><span class="metric-footer-link">Milestones waiting on you</span></div>
+    </div>
+    <div class="metric-block tone-d is-visible">
+        <div class="metric-main">
+            <span class="metric-icon"><i class="bi bi-check2-circle" style="font-size:20px;"></i></span>
+            <div><div class="metric-label">Completed</div><strong class="metric-value">@completedCount</strong><p class="metric-context">@cancelledCount cancelled</p></div>
+        </div>
+        <div class="metric-footer"><span class="metric-accent"></span><span class="metric-footer-link">Fully delivered &amp; paid</span></div>
+    </div>
+    <div class="metric-block tone-c is-visible">
+        <div class="metric-main">
+            <span class="metric-icon"><i class="bi bi-wallet2" style="font-size:19px;"></i></span>
+            <div><div class="metric-label">Paid to Creators</div><strong class="metric-value">৳@paidTotal.ToString("N0")</strong><p class="metric-context">of ৳@committedTotal.ToString("N0") in milestones</p></div>
+        </div>
+        <div class="metric-footer"><span class="metric-accent"></span><span class="metric-footer-link">Via bKash &amp; Nagad</span></div>
+    </div>
+</section>
+
+<div class="page-grid" style="margin-top:16px;">
+
+    <div class="page-main">
+
+        <section class="ui-card">
+            <div class="ui-card-head">
+                <div>
+                    <div class="ui-card-title">All Collaborations</div>
+                    <p class="ui-card-sub">Open one to review milestones and manage payments.</p>
+                </div>
+                <a href="/Payments" class="ui-card-link">Go to Finance <i class="bi bi-arrow-right"></i></a>
+            </div>
+
+            @if (Model.Count > 0)
+            {
+                <div class="collab-tabs" role="tablist">
+                    <button type="button" class="is-active" data-filter="all">All <span class="count">@Model.Count</span></button>
+                    <button type="button" data-filter="Active">Active <span class="count">@activeCount</span></button>
+                    <button type="button" data-filter="action">Needs Action <span class="count">@Model.Count(c => c.Milestones.Any(NeedsBrand))</span></button>
+                    <button type="button" data-filter="Completed">Completed <span class="count">@completedCount</span></button>
+                    <button type="button" data-filter="Cancelled">Cancelled <span class="count">@cancelledCount</span></button>
+                </div>
+
+                <div class="collab-cards">
+                    @foreach (var collaboration in Model)
+                    {
+                        var creator = collaboration.InfluencerProfile;
+                        var hue = (creator.Id * 47) % 360;
+                        var ms = collaboration.Milestones.ToList();
+                        var paid = ms.Count(m => m.Status == MilestoneStatus.Paid);
+                        var pct = ms.Count > 0 ? (int)Math.Round(paid * 100.0 / ms.Count) : 0;
+                        var waiting = ms.Count(NeedsBrand);
+                        var badge = StatusBadge(collaboration.Status);
+                        <a href="/Collaborations/Detail/@collaboration.Id" class="collab-card" data-status="@collaboration.Status" data-action="@(waiting > 0 ? "yes" : "no")">
+                            <span class="person-avatar" style="background: linear-gradient(135deg, hsl(@(hue)deg 75% 58%), hsl(@((hue + 45) % 360)deg 75% 48%));">@FollowerFormat.InitialsOf(creator.FullName)</span>
+                            <div style="min-width:0;">
+                                <div class="collab-name">
+                                    @creator.FullName
+                                    @if (creator.Verified) { <i class="bi bi-patch-check-fill" title="Verified"></i> }
+                                    <span class="ui-badge @badge.Badge">@badge.Label</span>
+                                </div>
+                                <div class="collab-sub">@collaboration.Campaign.Title &middot; since @collaboration.CreatedAt.ToString("MMM d, yyyy")</div>
+                                <div class="collab-tags">
+                                    @if (!string.IsNullOrWhiteSpace(creator.PrimaryPlatform)) { <span class="ui-badge is-neutral"><i class="bi bi-broadcast"></i> @creator.PrimaryPlatform</span> }
+                                    @if (waiting > 0) { <span class="ui-badge is-info"><i class="bi bi-bell"></i> @waiting need@(waiting == 1 ? "s" : "") you</span> }
+                                </div>
+                            </div>
+                            <div class="collab-progress">
+                                <div class="collab-progress-label"><span>Milestones paid</span><strong>@paid / @ms.Count</strong></div>
+                                <div class="collab-progress-track"><div class="collab-progress-fill" style="width: @pct%;"></div></div>
+                                <div class="collab-progress-note">৳@ms.Where(m => m.Status == MilestoneStatus.Paid).Sum(m => m.Amount).ToString("N0") of ৳@ms.Sum(m => m.Amount).ToString("N0") paid</div>
+                            </div>
+                            <span class="collab-open @(waiting > 0 ? "is-primary" : "")">@(waiting > 0 ? "Take action" : "Open") <i class="bi bi-arrow-right"></i></span>
+                        </a>
+                    }
+                </div>
+                <div class="collab-filter-empty" data-filter-empty>No collaborations match this filter.</div>
+            }
+            else
+            {
+                <div class="empty-block">
+                    <span class="icon-chip soft" style="margin:0 auto 10px;"><i class="bi bi-people"></i></span>
+                    <div class="empty-title">No collaborations yet</div>
+                    <p class="empty-text">Once you accept a creator's application, the collaboration appears here with its milestones and payments.</p>
+                    <div style="display:flex;gap:10px;justify-content:center;margin-top:16px;flex-wrap:wrap;">
+                        <a href="/Proposals" class="btn btn-primary">Review Applications</a>
+                        <a href="/Influencers" class="btn btn-secondary">Discover Creators</a>
+                    </div>
+                </div>
+            }
+        </section>
+
+    </div>
+
+    <aside class="page-rail">
+
+        <section class="info-card">
+            <div class="info-card-head">
+                <span class="icon-chip soft"><i class="bi bi-signpost-2"></i></span>
+                <div class="info-card-title">How a Collaboration Runs</div>
+            </div>
+            <ol class="next-steps">
+                <li class="is-done"><h4>Application accepted</h4><p>A collaboration opens with the campaign's milestones.</p></li>
+                <li class="is-done"><h4>Creator delivers</h4><p>They post and submit proof for each milestone.</p></li>
+                <li class="is-current"><h4>You approve, Brandora verifies</h4><p>Two independent sign-offs protect your budget.</p></li>
+                <li><h4>Release &amp; pay via bKash or Nagad</h4><p>Mark it completed once every milestone is paid.</p></li>
+            </ol>
+        </section>
+
+        <section class="ui-card">
+            <div class="ui-card-head" style="margin-bottom:4px;">
+                <div class="ui-card-title" style="font-size:17px;">Tips for Smooth Partnerships</div>
+            </div>
+            <ul class="check-list">
+                <li><i class="bi bi-check-circle-fill"></i>Review proof within a day or two so creators stay motivated.</li>
+                <li><i class="bi bi-check-circle-fill"></i>When requesting a revision, say exactly what to change.</li>
+                <li><i class="bi bi-check-circle-fill"></i>Keep due dates realistic and agree them in chat.</li>
+                <li><i class="bi bi-check-circle-fill"></i>Release payments promptly after approval.</li>
+            </ul>
+        </section>
+
+        <section class="ui-card">
+            <div class="ui-card-head" style="margin-bottom:2px;">
+                <div class="ui-card-title" style="font-size:17px;">Frequently Asked Questions</div>
+            </div>
+            <div class="faq-list">
+                @foreach (var faq in faqs)
+                {
+                    <details>
+                        <summary>@faq.Item1<i class="bi bi-chevron-right"></i></summary>
+                        <p>@faq.Item2</p>
+                    </details>
+                }
+            </div>
+        </section>
+
+        <section class="help-card">
+            <h3>Need Help?</h3>
+            <p>Having trouble with a creator, a deliverable or a payment? We're here to help.</p>
+            <a href="/Home/Contact">Contact Support <i class="bi bi-arrow-right"></i></a>
+            <svg viewBox="0 0 400 170" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="collabs-help-wave" x1="0" y1="1" x2="1" y2="0"><stop stop-color="#0955ca" stop-opacity="0"/><stop offset=".65" stop-color="#168cff" stop-opacity=".5"/><stop offset="1" stop-color="#783dff" stop-opacity=".15"/></linearGradient></defs><path d="M-20 160 C100 50 140 220 260 105 S350 85 420 20 L420 190 H-20Z" fill="url(#collabs-help-wave)"/><path d="M-20 164 C110 90 140 230 270 120 S360 70 420 40" fill="none" stroke="#2799ff" stroke-opacity=".4"/></svg>
+        </section>
+
+    </aside>
+
 </div>
 
-@if (Model.Count > 0)
-{
-    <div class="collab-list">
-        @foreach (var collaboration in Model)
-        {
-            var hue = (collaboration.InfluencerProfile.Id * 47) % 360;
-            <a href="/Collaborations/Detail/@collaboration.Id" class="collab-row">
-
-                <div class="creator-avatar" style="width:44px;height:44px;font-size:14px;background: linear-gradient(135deg, hsl(@(hue)deg 75% 58%), hsl(@((hue + 45) % 360)deg 75% 48%));">
-                    @FollowerFormat.InitialsOf(collaboration.InfluencerProfile.FullName)
-                </div>
-
-                <div class="collab-body">
-                    <div class="collab-name-row">
-                        @collaboration.InfluencerProfile.FullName
-                        <span class="status-pill @collaboration.Status.ToString().ToLowerInvariant()">@collaboration.Status</span>
-                    </div>
-                    <div class="collab-meta">@collaboration.Campaign.Title &middot; started @collaboration.CreatedAt.ToString("MMM d, yyyy")</div>
-                </div>
-
-            </a>
-        }
-    </div>
-}
-else
-{
-    <div class="panel empty-block" style="margin-top: 24px;">
-        <div class="empty-title">No collaborations yet</div>
-        <p class="empty-text">Once you confirm an accepted proposal, the collaboration will appear here.</p>
-        <a href="/Influencers" class="btn btn-primary" style="margin-top: 16px;">Discover Creators</a>
-    </div>
-}
+<script>
+    (function () {
+        var tabs = document.querySelectorAll('.collab-tabs button');
+        var cards = document.querySelectorAll('.collab-card');
+        var empty = document.querySelector('[data-filter-empty]');
+        tabs.forEach(function (tab) {
+            tab.addEventListener('click', function () {
+                tabs.forEach(function (t) { t.classList.remove('is-active'); });
+                tab.classList.add('is-active');
+                var f = tab.dataset.filter, shown = 0;
+                cards.forEach(function (card) {
+                    var match = f === 'all' || (f === 'action' ? card.dataset.action === 'yes' : card.dataset.status === f);
+                    card.hidden = !match;
+                    if (match) { shown++; }
+                });
+                if (empty) { empty.style.display = shown === 0 ? 'block' : 'none'; }
+            });
+        });
+    })();
+</script>

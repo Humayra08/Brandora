@@ -3,325 +3,365 @@
 @using Brandora.Web.Models.Domain
 @{
     ViewData["Title"] = "Collaboration";
-    ViewData["ActiveNav"] = "Campaigns";
+    ViewData["ActiveNav"] = "Collaborations";
     Layout = "_AppLayout";
-    var hue = (Model.InfluencerProfile.Id * 47) % 360;
+
+    var creator = Model.InfluencerProfile;
+    var campaign = Model.Campaign;
+    var hue = (creator.Id * 47) % 360;
+    var avatarGradient = $"linear-gradient(135deg, hsl({hue}deg 75% 58%), hsl({(hue + 45) % 360}deg 75% 48%))";
     var conversationId = ViewData["ConversationId"] as int?;
+    var collaborationError = TempData["CollaborationError"] as string;
+
+    var milestones = Model.Milestones.OrderBy(m => m.DueDate ?? DateTime.MaxValue).ThenBy(m => m.CreatedAt).ToList();
+    var canComplete = !Model.Milestones.Any(m => m.Status != MilestoneStatus.Paid);
+    var totalAgreed = milestones.Sum(m => m.Amount);
+    var paidAmount = milestones.Where(m => m.Status == MilestoneStatus.Paid).Sum(m => m.Amount);
+    var paidCount = milestones.Count(m => m.Status == MilestoneStatus.Paid);
+    var progressPercent = milestones.Count > 0 ? (int)Math.Round(paidCount * 100.0 / milestones.Count) : 0;
+    var needsYou = milestones.Where(m =>
+        (m.BrandApprovedAt is null && (m.Status == MilestoneStatus.Submitted || m.Status == MilestoneStatus.Approved)) ||
+        (m.Status == MilestoneStatus.Approved && m.BrandApprovedAt is not null && m.Payment is null) ||
+        m.Payment is { Status: PaymentStatus.Pending }).ToList();
+
+    var hasDelivered = milestones.Any(m => m.Status != MilestoneStatus.Pending);
+    var allPaid = milestones.Count > 0 && milestones.All(m => m.Status == MilestoneStatus.Paid);
+    var steps = new[]
+    {
+        (Done: true, Title: "Proposal Accepted", Sub: Model.Proposal.DecidedAt?.ToString("MMM d, yyyy") ?? Model.CreatedAt.ToString("MMM d, yyyy")),
+        (Done: milestones.Count > 0, Title: "Milestones Agreed", Sub: milestones.Count > 0 ? $"{milestones.Count} deliverable{(milestones.Count == 1 ? "" : "s")}" : "Add the first one"),
+        (Done: hasDelivered, Title: "Content Delivered", Sub: "Proof of post submitted"),
+        (Done: paidCount > 0, Title: "Payments Released", Sub: $"{paidCount} of {milestones.Count} paid"),
+        (Done: Model.Status == CollaborationStatus.Completed || allPaid, Title: "Completed", Sub: "Everything paid")
+    };
+    var currentIndex = Model.Status == CollaborationStatus.Cancelled ? -1 : Array.FindIndex(steps, s => !s.Done);
+
+    (string Label, string Badge, string Chip, string Icon, string Action, bool Primary) Stage(Milestone m)
+    {
+        if (m.Status == MilestoneStatus.Paid) return ("Paid", "is-success", "mint", "bi-check2-circle", "View", false);
+        if (m.Payment is { Status: PaymentStatus.Pending }) return ("Awaiting Payment", "is-pending", "amber", "bi-wallet2", "Pay now", true);
+        if (m.Status == MilestoneStatus.Approved && m.BrandApprovedAt is not null) return ("Ready to Release", "is-violet", "violet", "bi-unlock", "Release", true);
+        if (m.Status == MilestoneStatus.Approved) return ("Needs Your Approval", "is-info", "blue", "bi-patch-check", "Review", true);
+        if (m.BrandApprovedAt is not null) return ("Brandora Verifying", "is-info", "cyan", "bi-shield-check", "View", false);
+        if (m.Status == MilestoneStatus.Submitted) return ("Needs Your Review", "is-info", "blue", "bi-eye", "Review", true);
+        if (m.Status == MilestoneStatus.RevisionRequested) return ("Revision Requested", "is-pending", "pink", "bi-arrow-repeat", "View", false);
+        return ("Awaiting Content", "is-neutral", "soft", "bi-hourglass-split", "View", false);
+    }
+
+    var statusBadge = Model.Status switch
+    {
+        CollaborationStatus.Active => ("Active", "is-violet"),
+        CollaborationStatus.Completed => ("Completed", "is-success"),
+        CollaborationStatus.Cancelled => ("Cancelled", "is-danger"),
+        _ => (Model.Status.ToString(), "is-neutral")
+    };
+
+    var faqs = new[]
+    {
+        ("How do milestone payments work?", "Each milestone is paid on its own. Once the creator submits proof of post, you approve it and Brandora verifies it; you then release the payment and pay it through bKash or Nagad."),
+        ("Can I add more milestones later?", "Yes. Add a milestone any time the collaboration is active — for example an extra story or a follow-up post — with its own amount and due date."),
+        ("When can I mark the collaboration completed?", "Once every milestone is paid. This keeps creators from being left with unpaid, delivered work."),
+        ("What if I need to cancel?", "You can cancel an active collaboration. Anything already paid stays paid, and nothing further is charged.")
+    };
 }
 
 @section Styles {
 
-    .detail-shell {
-        max-width: 780px;
-        margin: 0 auto;
+    .collab-flow { margin: 0 0 16px; }
 
-        animation: fade-up .4s ease both;
-    }
+    .collab-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
+    .collab-summary > div { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 12px; border: 1px solid #cfe2ff; background: linear-gradient(135deg, #ffffffbd, #f5faff8c 55%, #fafdffd9); box-shadow: inset 0 1px 2px #fff, 0 3px 10px #6f9bce07; transition: transform .2s ease, box-shadow .2s ease; }
+    .collab-summary > div:hover { transform: translateY(-2px); box-shadow: 0 12px 24px #5b83c41a; }
+    .collab-summary strong { display: block; font-family: 'DM Sans', sans-serif; font-size: 20px; font-weight: 700; color: #101d48; }
+    .collab-summary span.lbl { font-family: 'Inter', sans-serif; font-size: 11.5px; color: #5877ac; }
+    @@media(max-width: 900px) { .collab-summary { grid-template-columns: 1fr; } }
 
-    .detail-crumb {
-        font-family: 'Inter', sans-serif;
-        font-size: 12.5px;
-        font-weight: 500;
-        color: #8189a8;
-    }
+    .ms-list { display: grid; gap: 10px; }
+    .ms-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: 14px; padding: 12px 14px; border-radius: 11px; border: 1px solid #e3edfc; background: #ffffff8c; box-shadow: 0 3px 9px #9bbfe90b; transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease; }
+    .ms-row:hover { transform: translateY(-2px); border-color: #b9d3ff; box-shadow: 0 12px 24px #5b83c41a; }
+    .ms-row-title { font-family: 'DM Sans', sans-serif; font-size: 13.5px; font-weight: 700; color: #101d48; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .ms-row-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 5px; font-family: 'Inter', sans-serif; font-size: 11.5px; color: #6680ad; }
+    .ms-row-meta i { margin-right: 3px; }
+    .ms-row-amount { padding-left: 14px; border-left: 1px solid #e9f1fd; font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 700; color: #0b124e; white-space: nowrap; }
+    .ms-row-action { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 8px; border: 1px solid #d7e8ff; background: #ffffffb8; font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; color: #1451ff; white-space: nowrap; transition: .2s ease; }
+    .ms-row:hover .ms-row-action { border-color: #1451ff; }
+    .ms-row-action i { transition: transform .2s ease; }
+    .ms-row:hover .ms-row-action i { transform: translateX(3px); }
+    .ms-row-action.is-primary { border-color: transparent; background: linear-gradient(110deg, #6425ff, #004dff 55%, #00a8f0); color: #ffffff; }
+    .ms-row:hover .ms-row-action.is-primary { box-shadow: 0 8px 18px #3b4dff40; }
+    @@media(max-width: 760px) { .ms-row { grid-template-columns: auto minmax(0, 1fr); } .ms-row-amount { padding-left: 0; border-left: 0; } }
 
-    .collab-header {
-        margin-top: 14px;
-        padding: 28px 30px;
+    .ms-empty { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 30px 16px; border: 1px dashed #cfdcf5; border-radius: 12px; background: #f7faffb3; text-align: center; font-family: 'Inter', sans-serif; font-size: 12.5px; color: #6b7fb1; }
+    .ms-empty strong { font-family: 'DM Sans', sans-serif; font-size: 14px; color: #142652; }
 
-        border-radius: 18px;
-        background: #ffffff;
-        border: 1px solid #eaecf5;
+    .collab-progress-track { margin-top: 12px; height: 7px; border-radius: 7px; background: #e3edfc; overflow: hidden; }
+    .collab-progress-fill { height: 100%; border-radius: 7px; background: linear-gradient(110deg, #6323ff, #0759ff); transition: width 1s cubic-bezier(.22,1,.36,1); }
+    .collab-progress-figure { font-family: 'DM Sans', sans-serif; font-size: 26px; font-weight: 700; color: #101d48; }
+    .collab-progress-figure small { font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 500; color: #5877ac; }
 
-        display: flex;
-        align-items: flex-start;
-        gap: 18px;
-    }
-
-    .collab-title {
-        font-family: 'Playfair Display', serif;
-        font-weight: 600;
-        font-size: 22px;
-        color: #171d3d;
-    }
-
-    .collab-sub {
-        margin-top: 4px;
-
-        font-family: 'Inter', sans-serif;
-        font-size: 13px;
-        color: #6b7290;
-    }
-
-    .collab-actions {
-        margin-left: auto;
-
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-
-        flex-shrink: 0;
-    }
-
-    .collab-actions .btn {
-        width: 170px;
-    }
-
-    .progress-track {
-        margin-top: 18px;
-        padding: 26px 30px;
-
-        border-radius: 18px;
-        background: #ffffff;
-        border: 1px solid #eaecf5;
-    }
-
-    .progress-title {
-        font-family: 'DM Sans', sans-serif;
-        font-weight: 700;
-        font-size: 15px;
-        color: #171d3d;
-    }
-
-    .progress-line {
-        margin-top: 22px;
-
-        display: flex;
-        align-items: center;
-    }
-
-    .progress-step {
-        flex: 1;
-        text-align: center;
-        position: relative;
-    }
-
-    .progress-step::before {
-        content: "";
-        position: absolute;
-        top: 6px;
-        left: -50%;
-        width: 100%;
-        height: 2px;
-        background: #e8eaf5;
-        z-index: 0;
-    }
-
-    .progress-step:first-child::before {
-        display: none;
-    }
-
-    .progress-step.is-done::before {
-        background: linear-gradient(90deg, #9b2cff, #2694ff);
-    }
-
-    .progress-dot {
-        position: relative;
-        z-index: 1;
-
-        width: 14px;
-        height: 14px;
-        margin: 0 auto;
-
-        border-radius: 50%;
-        background: #e8eaf5;
-        border: 2px solid #ffffff;
-        box-shadow: 0 0 0 2px #e8eaf5;
-    }
-
-    .progress-step.is-done .progress-dot {
-        background: linear-gradient(135deg, #9b2cff, #2694ff);
-        box-shadow: 0 0 0 2px #d9bfff;
-    }
-
-    .progress-label {
-        margin-top: 10px;
-
-        font-family: 'Inter', sans-serif;
-        font-size: 11px;
-        font-weight: 600;
-        color: #9096b3;
-    }
-
-    .progress-step.is-done .progress-label {
-        color: #2a3157;
-    }
-
-    .soon-grid {
-        margin-top: 18px;
-
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 18px;
-    }
-
-    .soon-panel {
-        padding: 24px;
-
-        border-radius: 16px;
-        background: #fafbfe;
-        border: 1px dashed #dde1f0;
-
-        text-align: center;
-    }
-
-    .soon-panel .panel-title {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-    }
-
-    .milestone-row {
-        display: grid;
-        grid-template-columns: 1.6fr .8fr .8fr .8fr;
-        align-items: center;
-        gap: 14px;
-
-        padding: 16px 0;
-        border-top: 1px solid #f0f1f7;
-
-        font-family: 'Inter', sans-serif;
-        font-size: 13px;
-        color: inherit;
-
-        transition: .15s;
-    }
-
-    .milestone-row:first-of-type {
-        border-top: none;
-    }
-
-    .milestone-row:hover {
-        background: #fafbfe;
-        margin: 0 -12px;
-        padding: 16px 12px;
-        border-radius: 10px;
-    }
-
-    .milestone-row-title {
-        font-weight: 600;
-        color: #1a2044;
-    }
-
-    .milestone-row-amount {
-        color: #4b5273;
-    }
-
-    .milestone-row-date {
-        color: #9096b3;
-    }
-
-    @@media(max-width: 700px) {
-        .milestone-row { grid-template-columns: 1.4fr .8fr; row-gap: 4px; }
-        .collab-header { flex-direction: column; }
-        .collab-actions { margin-left: 0; flex-direction: row; width: 100%; }
-        .collab-actions .btn { flex: 1; width: auto; }
-        .soon-grid { grid-template-columns: 1fr; }
-    }
+    .collab-manage { display: grid; gap: 8px; margin-top: 4px; }
+    .collab-manage form { margin: 0; }
+    .collab-manage .btn { width: 100%; height: 42px; }
+    .collab-manage-note { font-family: 'Inter', sans-serif; font-size: 11.5px; line-height: 1.5; color: #6680ad; }
 
 }
 
-<div class="detail-shell">
+<nav class="crumb-trail" aria-label="Breadcrumb">
+    <a href="/Dashboard">Dashboard</a><i class="bi bi-chevron-right"></i>
+    <a href="/Collaborations">Manage Collaborations</a><i class="bi bi-chevron-right"></i>
+    <strong>@creator.FullName</strong>
+</nav>
 
-    <a href="/Collaborations" class="back-to-dashboard">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        Back
-    </a>
+@if (!string.IsNullOrEmpty(collaborationError))
+{
+    <div class="notice is-error" role="alert"><i class="bi bi-exclamation-circle-fill"></i><span>@collaborationError</span></div>
+}
 
-    <div class="detail-crumb"><a href="/Collaborations">Collaborations</a> / @Model.InfluencerProfile.FullName</div>
-
-    <div class="collab-header">
-        <div class="creator-avatar" style="background: linear-gradient(135deg, hsl(@(hue)deg 75% 58%), hsl(@((hue + 45) % 360)deg 75% 48%));">
-            @FollowerFormat.InitialsOf(Model.InfluencerProfile.FullName)
-        </div>
-        <div>
-            <div class="collab-title">@Model.InfluencerProfile.FullName</div>
-            <div class="collab-sub">@Model.Campaign.Title &middot; ৳@Model.Proposal.ProposedAmount.ToString("N0") &middot; started @Model.CreatedAt.ToString("MMM d, yyyy")</div>
-            <div style="margin-top: 10px;">
-                <span class="status-pill @Model.Status.ToString().ToLowerInvariant()">@Model.Status</span>
-            </div>
-        </div>
-
-        <div class="collab-actions">
-            @if (conversationId.HasValue)
-            {
-                <a href="/Messages/Conversation/@conversationId" class="btn btn-primary">Open Chat</a>
-            }
-            @if (Model.Status == CollaborationStatus.Active)
-            {
-                <form method="post" action="/Collaborations/UpdateStatus/@Model.Id">
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" name="status" value="Completed" />
-                    <button type="submit" class="btn btn-secondary">Mark Completed</button>
-                </form>
-                <form method="post" action="/Collaborations/UpdateStatus/@Model.Id">
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" name="status" value="Cancelled" />
-                    <button type="submit" class="btn btn-outline-brand">Cancel</button>
-                </form>
-            }
-        </div>
-    </div>
-
-    @{
-        var hasDeliveredMilestone = Model.Milestones.Any(m => m.Status is MilestoneStatus.Approved or MilestoneStatus.Paid);
-        var allPaid = Model.Milestones.Count > 0 && Model.Milestones.All(m => m.Status == MilestoneStatus.Paid);
-    }
-
-    <div class="progress-track">
-        <div class="progress-title">Collaboration Progress</div>
-
-        <div class="progress-line">
-            <div class="progress-step is-done">
-                <div class="progress-dot"></div>
-                <div class="progress-label">Proposal Accepted</div>
-            </div>
-            <div class="progress-step @(Model.Status != CollaborationStatus.Cancelled ? "is-done" : "")">
-                <div class="progress-dot"></div>
-                <div class="progress-label">Collaboration Active</div>
-            </div>
-            <div class="progress-step @(hasDeliveredMilestone ? "is-done" : "")">
-                <div class="progress-dot"></div>
-                <div class="progress-label">Milestones Delivered</div>
-            </div>
-            <div class="progress-step @(Model.Status == CollaborationStatus.Completed || allPaid ? "is-done" : "")">
-                <div class="progress-dot"></div>
-                <div class="progress-label">Completed &amp; Paid</div>
-            </div>
-        </div>
-    </div>
-
-    <div class="panel" style="margin-top: 18px;">
-        <div style="display:flex; align-items:center; justify-content:space-between; gap: 16px;">
-            <div>
-                <div class="panel-title">Milestones</div>
-                <div class="panel-sub">Deliverables agreed with @Model.InfluencerProfile.FullName.</div>
-            </div>
-            <a href="/Milestones/Create?collaborationId=@Model.Id" class="btn btn-primary">Add Milestone</a>
-        </div>
-
-        @if (Model.Milestones.Count > 0)
-        {
-            <div style="margin-top: 18px;">
-                @foreach (var milestone in Model.Milestones.OrderBy(m => m.CreatedAt))
+<section class="page-hero detail-hero">
+    @await Html.PartialAsync("_HeroWaves")
+    <div class="detail-hero-top">
+        <div class="detail-hero-avatar is-person" style="background: @avatarGradient;">@FollowerFormat.InitialsOf(creator.FullName)</div>
+        <div class="detail-hero-copy">
+            <div class="detail-hero-tags">
+                <span><i class="bi bi-people-fill"></i> Collaboration</span>
+                @if (!string.IsNullOrWhiteSpace(creator.PrimaryPlatform))
                 {
-                    <a href="/Milestones/Detail/@milestone.Id" class="milestone-row">
-                        <span class="milestone-row-title">@milestone.Title</span>
-                        <span class="status-pill @milestone.Status.ToString().ToLowerInvariant()" style="width:fit-content;">@milestone.Status</span>
-                        <span class="milestone-row-amount">৳@milestone.Amount.ToString("N0")</span>
-                        <span class="milestone-row-date">@(milestone.DueDate?.ToString("MMM d, yyyy") ?? "No due date")</span>
-                    </a>
+                    <span><i class="bi bi-broadcast"></i> @creator.PrimaryPlatform</span>
+                }
+                @if (!string.IsNullOrWhiteSpace(creator.ContentNiche))
+                {
+                    <span><i class="bi bi-tags"></i> @creator.ContentNiche</span>
                 }
             </div>
-        }
-        else
-        {
-            <div class="empty-block">
-                <div class="empty-title">No milestones yet</div>
-                <p class="empty-text">Add a milestone to define what @Model.InfluencerProfile.FullName will deliver and when.</p>
+            <h1>@creator.FullName <span>&times; @campaign.Title</span></h1>
+            <p>Working together since @Model.CreatedAt.ToString("MMM d, yyyy") on <a href="/Campaigns/Detail/@campaign.Id">@campaign.Title</a>. Every milestone is approved by you and verified by Brandora before it's paid through bKash or Nagad.</p>
+        </div>
+        <div class="detail-hero-side">
+            <span class="ui-badge @statusBadge.Item2">@statusBadge.Item1</span>
+            <div class="hero-actions" style="display:flex;gap:8px;">
+                @if (conversationId.HasValue)
+                {
+                    <a href="/Messages/Conversation/@conversationId" class="btn btn-primary" style="height:42px;"><i class="bi bi-chat-dots" style="margin-right:8px;"></i>Open Chat</a>
+                }
+                else
+                {
+                    <button type="button" class="btn btn-primary js-open-chat" style="height:42px;" data-influencer-id="@creator.Id" data-influencer-name="@creator.FullName" data-hue="@hue"><i class="bi bi-chat-dots" style="margin-right:8px;"></i>Message</button>
+                }
+                <a href="/Influencers/Profile/@creator.Id" class="btn btn-secondary" style="height:42px;">Profile</a>
             </div>
-        }
+        </div>
     </div>
+    <dl class="detail-hero-stats">
+        <div><dt>Agreed Amount</dt><dd>৳@Model.Proposal.ProposedAmount.ToString("N0")</dd></div>
+        <div><dt>Milestones</dt><dd>@milestones.Count <small>@paidCount paid</small></dd></div>
+        <div><dt>Paid So Far</dt><dd>৳@paidAmount.ToString("N0")</dd></div>
+        <div><dt>Followers</dt><dd>@FollowerFormat.Format(creator.Followers)</dd></div>
+        <div><dt>Engagement</dt><dd>@creator.EngagementRate.ToString("0.#")%</dd></div>
+    </dl>
+</section>
+
+@if (Model.Status == CollaborationStatus.Cancelled)
+{
+    <div class="notice is-error"><i class="bi bi-x-circle-fill"></i><span>This collaboration was cancelled. Milestones that were already paid stay paid; nothing further will be charged.</span></div>
+}
+else
+{
+    <ol class="flow-steps collab-flow" aria-label="Collaboration progress">
+        @for (var i = 0; i < steps.Length; i++)
+        {
+            var step = steps[i];
+            <li class="@(step.Done ? "is-done" : i == currentIndex ? "is-current" : "")">
+                <span class="flow-step-num">@if (step.Done) { <i class="bi bi-check-lg"></i> } else { @(i + 1) }</span>
+                <div><strong>@step.Title</strong><small>@step.Sub</small></div>
+            </li>
+        }
+    </ol>
+}
+
+<div class="collab-summary">
+    <div><span class="icon-chip violet"><i class="bi bi-flag"></i></span><div><strong>@milestones.Count</strong><span class="lbl">Milestones planned</span></div></div>
+    <div><span class="icon-chip blue"><i class="bi bi-bell"></i></span><div><strong>@needsYou.Count</strong><span class="lbl">Need your action</span></div></div>
+    <div><span class="icon-chip mint"><i class="bi bi-wallet2"></i></span><div><strong>৳@paidAmount.ToString("N0")</strong><span class="lbl">of ৳@totalAgreed.ToString("N0") milestone value paid</span></div></div>
+</div>
+
+<div class="page-grid">
+
+    <div class="page-main">
+
+        @if (needsYou.Count > 0)
+        {
+            var first = needsYou[0];
+            var s = Stage(first);
+            <section class="decision-card">
+                <div class="decision-card-head">
+                    <span class="icon-chip @s.Chip"><i class="bi @s.Icon"></i></span>
+                    <div>
+                        <div class="decision-card-eyebrow">Needs your action@(needsYou.Count > 1 ? $" · 1 of {needsYou.Count}" : "")</div>
+                        <div class="decision-card-title">@first.Title &mdash; @s.Label</div>
+                        <p class="decision-card-text">Open the milestone to @(s.Action == "Review" ? "review the proof of post and approve it or request changes" : s.Action == "Release" ? "release the payment to " + creator.FullName : "complete the bKash or Nagad checkout") for ৳@first.Amount.ToString("N0").</p>
+                    </div>
+                </div>
+                <div class="decision-card-actions">
+                    <a href="/Milestones/Detail/@first.Id" class="btn btn-primary">@s.Action milestone <i class="bi bi-arrow-right" style="margin-left:8px;"></i></a>
+                </div>
+            </section>
+        }
+
+        <section class="ui-card">
+            <div class="ui-card-head">
+                <div>
+                    <div class="ui-card-title">Milestones</div>
+                    <p class="ui-card-sub">Deliverables agreed with @creator.FullName, each paid separately once approved.</p>
+                </div>
+                @if (Model.Status == CollaborationStatus.Active)
+                {
+                    <a href="/Milestones/Create?collaborationId=@Model.Id" class="btn btn-primary" style="height:40px;"><i class="bi bi-plus-lg" style="margin-right:6px;"></i>Add Milestone</a>
+                }
+            </div>
+
+            @if (milestones.Count > 0)
+            {
+                <div class="ms-list">
+                    @foreach (var milestone in milestones)
+                    {
+                        var st = Stage(milestone);
+                        <a href="/Milestones/Detail/@milestone.Id" class="ms-row">
+                            <span class="icon-chip @st.Chip"><i class="bi @st.Icon"></i></span>
+                            <div style="min-width:0;">
+                                <div class="ms-row-title">@milestone.Title</div>
+                                <div class="ms-row-meta">
+                                    <span class="ui-badge @st.Badge">@st.Label</span>
+                                    @if (!string.IsNullOrWhiteSpace(milestone.ContentType))
+                                    {
+                                        <span><i class="bi bi-camera-reels"></i>@milestone.ContentType</span>
+                                    }
+                                    <span><i class="bi bi-calendar4-week"></i>@(milestone.DueDate?.ToString("MMM d, yyyy") ?? "Flexible date")</span>
+                                </div>
+                            </div>
+                            <span class="ms-row-amount">৳@milestone.Amount.ToString("N0")</span>
+                            <span class="ms-row-action @(st.Primary ? "is-primary" : "")">@st.Action <i class="bi bi-arrow-right"></i></span>
+                        </a>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="ms-empty">
+                    <span class="icon-chip soft"><i class="bi bi-flag"></i></span>
+                    <strong>No milestones yet</strong>
+                    <span>Add a milestone to define what @creator.FullName will deliver, when, and for how much.</span>
+                    @if (Model.Status == CollaborationStatus.Active)
+                    {
+                        <a href="/Milestones/Create?collaborationId=@Model.Id" class="btn btn-primary" style="margin-top:10px;height:40px;">Add the first milestone</a>
+                    }
+                </div>
+            }
+        </section>
+
+        <section class="ui-card">
+            <div class="ui-card-head">
+                <div>
+                    <div class="ui-card-title">Agreement</div>
+                    <p class="ui-card-sub">What was agreed when the proposal was accepted.</p>
+                </div>
+                <a href="/Proposals/Detail/@Model.ProposalId" class="ui-card-link">View proposal <i class="bi bi-arrow-right"></i></a>
+            </div>
+            <dl class="detail-rows">
+                <div><dt><span class="icon-chip"><i class="bi bi-cash-coin"></i></span>Agreed Amount</dt><dd>৳@Model.Proposal.ProposedAmount.ToString("N0")</dd></div>
+                <div><dt><span class="icon-chip"><i class="bi bi-list-check"></i></span>Deliverables</dt><dd>@(string.IsNullOrWhiteSpace(Model.Proposal.Deliverables) ? "Not specified" : Model.Proposal.Deliverables)</dd></div>
+                <div><dt><span class="icon-chip"><i class="bi bi-calendar-range"></i></span>Timeline</dt><dd>@(string.IsNullOrWhiteSpace(Model.Proposal.Timeline) ? "Flexible" : Model.Proposal.Timeline)</dd></div>
+                <div><dt><span class="icon-chip"><i class="bi bi-megaphone"></i></span>Campaign</dt><dd><a href="/Campaigns/Detail/@campaign.Id" style="color:#1451ff;font-weight:600;">@campaign.Title</a><small>@(campaign.Platform ?? "Any platform") &middot; @(campaign.Niche ?? "General")</small></dd></div>
+            </dl>
+        </section>
+
+    </div>
+
+    <aside class="page-rail">
+
+        <section class="ui-card">
+            <div class="ui-card-head" style="margin-bottom:6px;">
+                <div class="ui-card-title" style="font-size:17px;">Payment Progress</div>
+                <span class="ui-badge is-violet">@progressPercent% paid</span>
+            </div>
+            <div class="collab-progress-figure">৳@paidAmount.ToString("N0") <small>of ৳@totalAgreed.ToString("N0")</small></div>
+            <div class="collab-progress-track"><div class="collab-progress-fill" style="width: @progressPercent%;"></div></div>
+            <dl class="fact-list" style="margin-top:12px;">
+                <div><dt>Milestones paid</dt><dd>@paidCount of @milestones.Count</dd></div>
+                <div><dt>Remaining value</dt><dd>৳@Math.Max(0, totalAgreed - paidAmount).ToString("N0")</dd></div>
+                <div><dt>Payment methods</dt><dd>bKash &middot; Nagad</dd></div>
+            </dl>
+        </section>
+
+        @if (Model.Status == CollaborationStatus.Active)
+        {
+            <section class="ui-card">
+                <div class="ui-card-head" style="margin-bottom:8px;">
+                    <div>
+                        <div class="ui-card-title" style="font-size:17px;">Manage Collaboration</div>
+                        <p class="ui-card-sub">Close it out once everything is delivered and paid.</p>
+                    </div>
+                </div>
+                <div class="collab-manage">
+                    @if (canComplete)
+                    {
+                        <form method="post" action="/Collaborations/UpdateStatus/@Model.Id">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="status" value="Completed" />
+                            <button type="submit" class="btn btn-primary"><i class="bi bi-check2-all" style="margin-right:8px;"></i>Mark Completed</button>
+                        </form>
+                    }
+                    else
+                    {
+                        <button type="button" class="btn btn-secondary" disabled title="Every milestone needs to be paid first" style="opacity:.6;cursor:not-allowed;">Mark Completed</button>
+                        <p class="collab-manage-note"><i class="bi bi-info-circle"></i> Available once every milestone is paid.</p>
+                    }
+                    <form method="post" action="/Collaborations/UpdateStatus/@Model.Id">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="status" value="Cancelled" />
+                        <button type="button" class="btn btn-outline-danger"
+                                onclick="brandoraConfirm(this, { title: 'Cancel this collaboration?', text: 'Paid milestones stay paid. The creator will be notified and no further payments can be made.', confirmLabel: 'Cancel collaboration', danger: true })">
+                            Cancel Collaboration
+                        </button>
+                    </form>
+                </div>
+            </section>
+        }
+
+        <section class="info-card">
+            <div class="info-card-head">
+                <span class="icon-chip soft"><i class="bi bi-signpost-2"></i></span>
+                <div class="info-card-title">How Each Milestone Gets Paid</div>
+            </div>
+            <ol class="next-steps">
+                <li class="is-done"><h4>Creator submits proof</h4><p>They upload proof of post for the milestone.</p></li>
+                <li class="is-done"><h4>You approve</h4><p>Check it matches your brief, or request changes.</p></li>
+                <li class="is-current"><h4>Brandora verifies</h4><p>Our team confirms the post is genuine and live.</p></li>
+                <li><h4>Release &amp; pay via bKash or Nagad</h4><p>Only provider-confirmed payments are marked paid.</p></li>
+            </ol>
+        </section>
+
+        <section class="ui-card">
+            <div class="ui-card-head" style="margin-bottom:2px;">
+                <div class="ui-card-title" style="font-size:17px;">Frequently Asked Questions</div>
+            </div>
+            <div class="faq-list">
+                @foreach (var faq in faqs)
+                {
+                    <details>
+                        <summary>@faq.Item1<i class="bi bi-chevron-right"></i></summary>
+                        <p>@faq.Item2</p>
+                    </details>
+                }
+            </div>
+        </section>
+
+        <section class="help-card">
+            <h3>Need Help?</h3>
+            <p>A disagreement over a deliverable or a stuck payment? Our support team can step in.</p>
+            <a href="/Home/Contact">Contact Support <i class="bi bi-arrow-right"></i></a>
+            <svg viewBox="0 0 400 170" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="collab-help-wave" x1="0" y1="1" x2="1" y2="0"><stop stop-color="#0955ca" stop-opacity="0"/><stop offset=".65" stop-color="#168cff" stop-opacity=".5"/><stop offset="1" stop-color="#783dff" stop-opacity=".15"/></linearGradient></defs><path d="M-20 160 C100 50 140 220 260 105 S350 85 420 20 L420 190 H-20Z" fill="url(#collab-help-wave)"/><path d="M-20 164 C110 90 140 230 270 120 S360 70 420 40" fill="none" stroke="#2799ff" stroke-opacity=".4"/></svg>
+        </section>
+
+    </aside>
 
 </div>

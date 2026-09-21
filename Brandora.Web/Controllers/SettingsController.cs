@@ -50,7 +50,10 @@ public class SettingsController(UserManager<ApplicationUser> userManager, Applic
             TotalFunded = payments.Sum(p => p.Amount),
             PendingPayments = payments.Where(p => p.Status == PaymentStatus.Pending).Sum(p => p.Amount),
             ReleasedPayments = payments.Where(p => p.Status == PaymentStatus.Completed).Sum(p => p.Amount),
-            CampaignSpend = await db.Campaigns.Where(c => c.BrandProfileId == brand.Id).SumAsync(c => c.SpentAmount)
+            CampaignSpend = await db.Campaigns.Where(c => c.BrandProfileId == brand.Id).SumAsync(c => c.SpentAmount),
+            VerificationStatus = brand.VerificationStatus,
+            VerifiedAt = brand.VerifiedAt,
+            MemberSince = brand.CreatedAt
         });
     }
 
