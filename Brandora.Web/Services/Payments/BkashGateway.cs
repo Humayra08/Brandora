@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Brandora.Web.Models.Domain;
 
 namespace Brandora.Web.Services.Payments;
 
@@ -25,6 +26,11 @@ public class BkashGateway : IPaymentGateway
     private static readonly JsonSerializerOptions JsonOpts = new() { PropertyNameCaseInsensitive = true };
 
     public string Name => "bKash";
+    public PaymentMethod Method => PaymentMethod.Bkash;
+
+    public bool IsConfigured =>
+        !string.IsNullOrEmpty(config["BKASH_APP_KEY"]) && !string.IsNullOrEmpty(config["BKASH_APP_SECRET"]) &&
+        !string.IsNullOrEmpty(config["BKASH_USERNAME"]) && !string.IsNullOrEmpty(config["BKASH_PASSWORD"]);
 
     public BkashGateway(HttpClient http, IConfiguration config, ILogger<BkashGateway> logger)
     {

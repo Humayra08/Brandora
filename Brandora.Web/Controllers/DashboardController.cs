@@ -132,7 +132,7 @@ public class DashboardController(UserManager<ApplicationUser> userManager, Appli
             attentionItems.Add(new AttentionItem
             {
                 Kind = "Payment",
-                Title = $"Pay {payment.Collaboration.InfluencerProfile.FullName} via bKash",
+                Title = $"Pay {payment.Collaboration.InfluencerProfile.FullName} via bKash or Nagad",
                 Detail = $"৳{payment.Amount:N0} · released, awaiting payment",
                 // The actual "Pay with bKash" action lives on the milestone detail page,
                 // not on /Payments (a read-only transaction ledger) — this must be the

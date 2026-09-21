@@ -39,7 +39,7 @@
     (string Label, string Badge, string Chip, string Icon, string Action, bool Primary) Stage(Milestone m)
     {
         if (m.Status == MilestoneStatus.Paid) return ("Paid", "is-success", "mint", "bi-check2-circle", "View", false);
-        if (m.Payment is { Status: PaymentStatus.Pending }) return ("Awaiting bKash Payment", "is-pending", "amber", "bi-wallet2", "Pay now", true);
+        if (m.Payment is { Status: PaymentStatus.Pending }) return ("Awaiting Payment", "is-pending", "amber", "bi-wallet2", "Pay now", true);
         if (m.Status == MilestoneStatus.Approved && m.BrandApprovedAt is not null) return ("Ready to Release", "is-violet", "violet", "bi-unlock", "Release", true);
         if (m.Status == MilestoneStatus.Approved) return ("Needs Your Approval", "is-info", "blue", "bi-patch-check", "Review", true);
         if (m.BrandApprovedAt is not null) return ("Brandora Verifying", "is-info", "cyan", "bi-shield-check", "View", false);
@@ -58,7 +58,7 @@
 
     var faqs = new[]
     {
-        ("How do milestone payments work?", "Each milestone is paid on its own. Once the creator submits proof of post, you approve it and Brandora verifies it; you then release the payment and complete it through bKash checkout."),
+        ("How do milestone payments work?", "Each milestone is paid on its own. Once the creator submits proof of post, you approve it and Brandora verifies it; you then release the payment and pay it through bKash or Nagad."),
         ("Can I add more milestones later?", "Yes. Add a milestone any time the collaboration is active — for example an extra story or a follow-up post — with its own amount and due date."),
         ("When can I mark the collaboration completed?", "Once every milestone is paid. This keeps creators from being left with unpaid, delivered work."),
         ("What if I need to cancel?", "You can cancel an active collaboration. Anything already paid stays paid, and nothing further is charged.")
@@ -134,7 +134,7 @@
                 }
             </div>
             <h1>@creator.FullName <span>&times; @campaign.Title</span></h1>
-            <p>Working together since @Model.CreatedAt.ToString("MMM d, yyyy") on <a href="/Campaigns/Detail/@campaign.Id">@campaign.Title</a>. Every milestone is approved by you and verified by Brandora before it's paid through bKash.</p>
+            <p>Working together since @Model.CreatedAt.ToString("MMM d, yyyy") on <a href="/Campaigns/Detail/@campaign.Id">@campaign.Title</a>. Every milestone is approved by you and verified by Brandora before it's paid through bKash or Nagad.</p>
         </div>
         <div class="detail-hero-side">
             <span class="ui-badge @statusBadge.Item2">@statusBadge.Item1</span>
@@ -198,7 +198,7 @@ else
                     <div>
                         <div class="decision-card-eyebrow">Needs your action@(needsYou.Count > 1 ? $" · 1 of {needsYou.Count}" : "")</div>
                         <div class="decision-card-title">@first.Title &mdash; @s.Label</div>
-                        <p class="decision-card-text">Open the milestone to @(s.Action == "Review" ? "review the proof of post and approve it or request changes" : s.Action == "Release" ? "release the payment to " + creator.FullName : "complete the bKash checkout") for ৳@first.Amount.ToString("N0").</p>
+                        <p class="decision-card-text">Open the milestone to @(s.Action == "Review" ? "review the proof of post and approve it or request changes" : s.Action == "Release" ? "release the payment to " + creator.FullName : "complete the bKash or Nagad checkout") for ৳@first.Amount.ToString("N0").</p>
                     </div>
                 </div>
                 <div class="decision-card-actions">
@@ -288,7 +288,7 @@ else
             <dl class="fact-list" style="margin-top:12px;">
                 <div><dt>Milestones paid</dt><dd>@paidCount of @milestones.Count</dd></div>
                 <div><dt>Remaining value</dt><dd>৳@Math.Max(0, totalAgreed - paidAmount).ToString("N0")</dd></div>
-                <div><dt>Payment method</dt><dd>bKash Checkout</dd></div>
+                <div><dt>Payment methods</dt><dd>bKash &middot; Nagad</dd></div>
             </dl>
         </section>
 
@@ -336,7 +336,7 @@ else
                 <li class="is-done"><h4>Creator submits proof</h4><p>They upload proof of post for the milestone.</p></li>
                 <li class="is-done"><h4>You approve</h4><p>Check it matches your brief, or request changes.</p></li>
                 <li class="is-current"><h4>Brandora verifies</h4><p>Our team confirms the post is genuine and live.</p></li>
-                <li><h4>Release &amp; pay via bKash</h4><p>Only confirmed bKash payments are marked paid.</p></li>
+                <li><h4>Release &amp; pay via bKash or Nagad</h4><p>Only provider-confirmed payments are marked paid.</p></li>
             </ol>
         </section>
 

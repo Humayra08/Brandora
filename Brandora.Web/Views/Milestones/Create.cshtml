@@ -63,11 +63,11 @@
     <div class="page-hero-intro">
         <p class="page-hero-eyebrow">New Milestone</p>
         <h1 class="page-hero-title">Define the Deliverable. <span>Pay When It's Done.</span></h1>
-        <p class="page-hero-sub">Add a milestone for @creatorName on @campaignTitle. It's paid through bKash only after you approve the proof of post and Brandora verifies it.</p>
+        <p class="page-hero-sub">Add a milestone for @creatorName on @campaignTitle. It's paid through bKash or Nagad only after you approve the proof of post and Brandora verifies it.</p>
         <ul class="hero-highlights">
             <li>Clear deliverables</li>
             <li>Two-step approval</li>
-            <li>Secure bKash payout</li>
+            <li>bKash &amp; Nagad payout</li>
         </ul>
     </div>
     <div class="page-hero-art" aria-hidden="true">
@@ -143,7 +143,7 @@
                 <div class="mc-field">
                     <label for="Amount">Amount</label>
                     <div class="mc-input"><span class="prefix">৳</span><input type="number" id="Amount" name="Amount" min="1" step="1" placeholder="15000" value="@(Model.Amount == 0 ? "" : Model.Amount.ToString("0"))" required /></div>
-                    <p class="mc-help">Paid via bKash once the milestone is approved.</p>
+                    <p class="mc-help">Paid via bKash or Nagad once the milestone is approved.</p>
                 </div>
                 <div class="mc-field">
                     <label for="DueDate">Due Date <small>(optional)</small></label>
@@ -178,7 +178,7 @@
             <dl class="fact-list" style="margin-top:10px;">
                 <div><dt>Format</dt><dd id="previewType">Not set</dd></div>
                 <div><dt>Due</dt><dd id="previewDue">Flexible</dd></div>
-                <div><dt>Paid via</dt><dd>bKash Checkout</dd></div>
+                <div><dt>Paid via</dt><dd>bKash or Nagad</dd></div>
             </dl>
         </section>
 
@@ -191,7 +191,7 @@
                 <li class="is-current"><h4>Creator is notified</h4><p>The milestone appears on their Upload Proof page.</p></li>
                 <li><h4>They submit proof of post</h4><p>A screenshot, video or link to the live post.</p></li>
                 <li><h4>You approve, Brandora verifies</h4><p>Or send it back with a revision note.</p></li>
-                <li><h4>Release &amp; pay via bKash</h4><p>Only confirmed payments are marked paid.</p></li>
+                <li><h4>Release &amp; pay via bKash or Nagad</h4><p>Only confirmed payments are marked paid.</p></li>
             </ol>
         </section>
 

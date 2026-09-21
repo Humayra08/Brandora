@@ -27,7 +27,7 @@
         (Done: true, Title: isInvite ? "Invite Sent" : "Application Received", Sub: proposal.CreatedAt.ToBangladeshTime().ToString("MMM d, yyyy")),
         (Done: !isPending, Title: isRejected ? "Not Selected" : "Your Decision", Sub: proposal.DecidedAt.HasValue ? proposal.DecidedAt.Value.ToBangladeshTime().ToString("MMM d, yyyy") : "Accept or decline"),
         (Done: isAccepted && collaboration is not null, Title: "Collaboration Active", Sub: "Milestones created"),
-        (Done: collaboration?.Status == CollaborationStatus.Completed, Title: "Completed", Sub: "Milestones paid via bKash")
+        (Done: collaboration?.Status == CollaborationStatus.Completed, Title: "Completed", Sub: "Paid via bKash or Nagad")
     };
     var currentIndex = isRejected ? -1 : Array.FindIndex(steps, s => !s.Done);
 
@@ -42,7 +42,7 @@
     var faqs = new[]
     {
         ("What happens when I accept?", $"A collaboration with {creator.FullName} starts immediately. The {planCount} milestone{(planCount == 1 ? "" : "s")} in your campaign plan are created for them, a chat is opened and they're notified."),
-        ("Is the proposed rate charged now?", "No. Nothing is charged when you accept. You pay per milestone, through a secure bKash checkout, only after the work is delivered and approved."),
+        ("Is the proposed rate charged now?", "No. Nothing is charged when you accept. You pay per milestone, through bKash or Nagad, only after the work is delivered and approved."),
         ("Why do both I and Brandora approve?", "You confirm the proof of post matches your brief; Brandora confirms the post is genuine and live. A milestone can only be paid once both sign-offs are in."),
         ("What does Not Selected do?", "It closes this application and records your decision. You can still message the creator or send them a new invite later.")
     };
@@ -188,7 +188,7 @@
                     <span>
                         @if (planCount > 0)
                         {
-                            <text>Accepting creates the collaboration with the @planCount milestone@(planCount == 1 ? "" : "s") from your campaign plan. Nothing is charged now &mdash; each milestone is paid via bKash after you and Brandora approve the proof of post.</text>
+                            <text>Accepting creates the collaboration with the @planCount milestone@(planCount == 1 ? "" : "s") from your campaign plan. Nothing is charged now &mdash; each milestone is paid via bKash or Nagad after you and Brandora approve the proof of post.</text>
                         }
                         else
                         {
@@ -255,7 +255,7 @@
                 <dl class="detail-rows">
                     <div><dt><span class="icon-chip"><i class="bi bi-list-check"></i></span>Proposed Deliverables</dt><dd>@proposal.Deliverables</dd></div>
                     <div><dt><span class="icon-chip"><i class="bi bi-calendar4-week"></i></span>Timeline</dt><dd>@(proposal.Timeline ?? "Not specified")</dd></div>
-                    <div><dt><span class="icon-chip"><i class="bi bi-cash-coin"></i></span>Proposed Rate</dt><dd>৳@proposal.ProposedAmount.ToString("N0")<small>Paid per milestone via bKash after approval</small></dd></div>
+                    <div><dt><span class="icon-chip"><i class="bi bi-cash-coin"></i></span>Proposed Rate</dt><dd>৳@proposal.ProposedAmount.ToString("N0")<small>Paid per milestone via bKash or Nagad after approval</small></dd></div>
                     <div><dt><span class="icon-chip"><i class="bi bi-person-up"></i></span>Initiated By</dt><dd>@proposal.InitiatedBy<small>@(isInvite ? "You sent this invite from the creator's profile" : "The creator applied to your campaign")</small></dd></div>
                 </dl>
                 @if (!string.IsNullOrEmpty(proposal.Message))
@@ -401,7 +401,7 @@
                 {
                     <li class="@(isAccepted ? "is-current" : "")"><h4>Creator delivers</h4><p>@firstName submits proof of post for each milestone.</p></li>
                     <li><h4>Two-stage approval</h4><p>You check the proof against your brief, then Brandora verifies the post is genuine and live.</p></li>
-                    <li><h4>Paid via bKash</h4><p>You release each approved milestone through a secure bKash checkout and the creator is credited.</p></li>
+                    <li><h4>Paid via bKash or Nagad</h4><p>You release each approved milestone and pay it through bKash or Nagad and the creator is credited.</p></li>
                 }
             </ol>
         </section>

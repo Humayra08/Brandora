@@ -69,10 +69,14 @@ builder.Services.AddScoped<MediaUploadService>();
 builder.Services.AddScoped<AdminAuthService>();
 builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
 
-// Real bKash Tokenized Checkout Sandbox integration — a typed HttpClient so the
-// gateway's base address/handler lifetime is managed by the factory rather than a
-// hand-rolled singleton HttpClient.
-builder.Services.AddHttpClient<IPaymentGateway, BkashGateway>();
+// Real checkout providers the Brand can choose between: bKash Tokenized Checkout and
+// Nagad Online Payment. Each is a typed HttpClient (base address/handler lifetime managed
+// by the factory), exposed as an IPaymentGateway so PaymentSettlementService receives
+// all of them and routes each payment to the one the Brand picked.
+builder.Services.AddHttpClient<BkashGateway>();
+builder.Services.AddHttpClient<NagadGateway>();
+builder.Services.AddTransient<IPaymentGateway>(sp => sp.GetRequiredService<BkashGateway>());
+builder.Services.AddTransient<IPaymentGateway>(sp => sp.GetRequiredService<NagadGateway>());
 builder.Services.AddScoped<WalletService>();
 builder.Services.AddScoped<PaymentSettlementService>();
 

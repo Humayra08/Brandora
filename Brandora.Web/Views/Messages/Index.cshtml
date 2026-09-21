@@ -26,14 +26,20 @@
         grid-template-columns: 340px 1fr;
         gap: 20px;
 
-        /* 346px of chrome + 37px for the hero stats row */
-        height: calc(100vh - 383px);
+        /* The inbox gets (almost) a full screen of its own below the hero:
+           viewport minus the sticky topbar, never cramped, never absurdly tall. */
+        height: clamp(640px, calc(100vh - 118px), 940px);
 
         animation: fade-up .4s ease both;
     }
 
+    .messages-shell > .list-panel,
+    .messages-shell > .thread-panel { min-height: 0; }
+
     @@media(max-width: 900px) {
         .messages-shell { grid-template-columns: 1fr; height: auto; }
+        .messages-shell > .list-panel { max-height: 420px; }
+        .messages-shell > .thread-panel { height: clamp(560px, calc(100vh - 110px), 820px); }
     }
 
     /* ---- List panel ---- */
@@ -1430,7 +1436,7 @@
     <div class="page-hero-motto">Real Creators.<br />Real Conversations.<span></span></div>
 </section>
 
-<div class="messages-shell">
+<div class="messages-shell" id="messagesShell">
 
     <div class="list-panel">
 
@@ -1885,6 +1891,18 @@
 
             if (threadBody) {
                 threadBody.scrollTop = threadBody.scrollHeight;
+            }
+
+            // Opening a specific conversation (row click, chat widget, "Open Chat")
+            // lands the page on the inbox itself rather than back on the hero.
+            var shell = document.getElementById('messagesShell');
+            if (shell && /[?&]open=/.test(window.location.search)) {
+                requestAnimationFrame(function () {
+                    var topbar = document.querySelector('.main-topbar');
+                    var offset = (topbar ? topbar.getBoundingClientRect().height : 0) + 16;
+                    var target = shell.getBoundingClientRect().top + window.pageYOffset - offset;
+                    window.scrollTo({ top: Math.max(0, target), behavior: 'smooth' });
+                });
             }
 
             // Message actions: 3-dot menu (Edit / Copy / Unsend)

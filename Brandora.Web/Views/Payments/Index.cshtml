@@ -1,5 +1,6 @@
 @model Brandora.Web.Models.Payments.PaymentListViewModel
 @using Brandora.Web.Models.Domain
+@inject IEnumerable<Brandora.Web.Services.Payments.IPaymentGateway> PaymentGateways
 @{
     ViewData["Title"] = "Finance";
     ViewData["ActiveNav"] = "Finance";
@@ -10,12 +11,12 @@
         : 0;
     var totalFees = Model.Payments.Where(p => p.Status == PaymentStatus.Completed).Sum(p => p.PlatformFeeAmount);
 
-    // Where a not-yet-paid milestone sits in the approve -> release -> bKash pipeline.
+    // Where a not-yet-paid milestone sits in the approve -> release -> checkout pipeline.
     // Colours stay inside the same soft chip palette the Influencer side uses.
     (string Label, string Badge, string Chip, string Icon, string Detail, string Action) Stage(Milestone m)
     {
         if (m.Payment is { Status: PaymentStatus.Pending })
-            return ("Awaiting bKash Payment", "is-pending", "amber", "bi-wallet2", "Released — complete checkout on bKash to pay the creator.", "Pay now");
+            return ("Awaiting Payment", "is-pending", "amber", "bi-wallet2", "Released — pay with bKash or Nagad to credit the creator.", "Pay now");
         if (m.Status == MilestoneStatus.Approved && m.BrandApprovedAt is not null)
             return ("Ready to Release", "is-violet", "violet", "bi-unlock", "Approved by you and Brandora — release the payment.", "Release");
         if (m.Status == MilestoneStatus.Approved)
@@ -29,6 +30,13 @@
         return ("Awaiting Content", "is-neutral", "soft", "bi-hourglass-split", "The creator hasn't submitted proof of post yet.", "View");
     }
 
+    // Checkout providers the Brand can choose between when paying a milestone.
+    var checkoutMethods = new[]
+    {
+        (Method: PaymentMethod.Bkash, Name: "bKash", Title: "bKash Checkout", Logo: "/images/payment-methods/bkash.svg"),
+        (Method: PaymentMethod.Nagad, Name: "Nagad", Title: "Nagad Online Payment", Logo: "/images/payment-methods/nagad.svg")
+    };
+
     string MethodName(PaymentMethod? method) => method switch
     {
         PaymentMethod.Bkash => "bKash",
@@ -40,8 +48,9 @@
     var faqs = new[]
     {
         ("When can I release a milestone payment?", "As soon as both you and Brandora's review team have approved the creator's proof of post. The milestone then shows as Ready to Release here and on its own page."),
-        ("How is the payment actually made?", "Releasing opens a secure bKash checkout. Nothing is charged until you confirm on bKash's own page, and a payment is only marked Paid after bKash confirms the transaction to our server."),
-        ("What if a bKash payment fails or I cancel it?", "Nothing is charged. The payment stays in Awaiting bKash Payment so you can retry Pay with bKash from the milestone whenever you're ready."),
+        ("How is the payment actually made?", "After releasing, you choose bKash or Nagad and pay on that provider's own secure page. A payment is only marked Paid after the provider confirms the transaction to our server, for the exact milestone amount."),
+        ("Can I choose between bKash and Nagad?", "Yes — you pick the method each time you pay a milestone. Both settle the same way: the creator is credited once the provider confirms the payment."),
+        ("What if a payment fails or I cancel it?", "Nothing is charged. The payment stays in Awaiting Payment so you can pay again from the milestone — with the same method or the other one — whenever you're ready."),
         ($"What is the {Model.PlatformFeePercent:0.#}% platform fee?", $"Brandora keeps {Model.PlatformFeePercent:0.#}% of each milestone payment. The rest is credited straight to the creator's wallet — you always pay the milestone amount you agreed."),
         ("Can I pay a creator before they deliver?", "No. Payments are tied to milestones, so money only moves once the agreed content has been delivered, checked and approved."),
     };
@@ -135,7 +144,7 @@
 
     .method-card { display: flex; align-items: center; gap: 12px; padding: 11px 0; border-top: 1px solid #eef4fd; }
     .method-card:first-of-type { border-top: 0; }
-    .method-logo { display: grid; place-items: center; flex-shrink: 0; width: 40px; height: 40px; padding: 5px; border-radius: 10px; border: 1px solid #eef1fa; background: #ffffff; }
+    .method-logo { display: grid; place-items: center; flex-shrink: 0; width: 58px; height: 40px; padding: 6px 8px; border-radius: 10px; border: 1px solid #eef1fa; background: #ffffff; box-shadow: 0 2px 6px #1c2f6a0d; }
     .method-logo img { max-width: 100%; max-height: 100%; object-fit: contain; }
     .method-card strong { display: block; font-family: 'DM Sans', sans-serif; font-size: 13px; color: #142652; }
     .method-card small { display: block; margin-top: 2px; font-family: 'Inter', sans-serif; font-size: 11px; color: #8095c4; }
@@ -160,11 +169,11 @@
     <div class="page-hero-intro">
         <p class="page-hero-eyebrow">Finance</p>
         <h1 class="page-hero-title">Invest in Creators. <span>Pay with Confidence.</span></h1>
-        <p class="page-hero-sub">Track every milestone from proof of post to payout, and release payments securely through bKash.</p>
+        <p class="page-hero-sub">Track every milestone from proof of post to payout, and release payments securely through bKash or Nagad.</p>
         <ul class="hero-highlights">
             <li>Milestone-based payouts</li>
             <li>Two-step proof approval</li>
-            <li>Secure bKash checkout</li>
+            <li>bKash &amp; Nagad checkout</li>
         </ul>
     </div>
 
@@ -209,7 +218,7 @@
         <div class="metric-main">
             <span class="metric-icon" aria-hidden="true"><i class="bi bi-hourglass-split" style="font-size:20px;"></i></span>
             <div>
-                <div class="metric-label">Awaiting bKash Payment</div>
+                <div class="metric-label">Awaiting Payment</div>
                 <strong class="metric-value">৳@Model.TotalPending.ToString("N0")</strong>
                 <p class="metric-context">@Model.PendingCount released payment@(Model.PendingCount == 1 ? "" : "s")</p>
             </div>
@@ -235,7 +244,7 @@
     <li class="is-done"><span class="flow-step-num">1</span><div><strong>Creator Submits Proof</strong><small>Proof of post for a milestone</small></div></li>
     <li class="is-done"><span class="flow-step-num">2</span><div><strong>You Approve</strong><small>Check it matches the brief</small></div></li>
     <li class="is-done"><span class="flow-step-num">3</span><div><strong>Brandora Verifies</strong><small>Independent final check</small></div></li>
-    <li class="is-current"><span class="flow-step-num">4</span><div><strong>Release &amp; Pay</strong><small>Secure bKash checkout</small></div></li>
+    <li class="is-current"><span class="flow-step-num">4</span><div><strong>Release &amp; Pay</strong><small>bKash or Nagad checkout</small></div></li>
 </ol>
 
 <div class="page-grid finance-body">
@@ -298,7 +307,7 @@
             <div class="ui-card-head">
                 <div>
                     <div class="ui-card-title">Payment History</div>
-                    <p class="ui-card-sub">Every payment you've released, with fees and bKash transaction references.</p>
+                    <p class="ui-card-sub">Every payment you've released, with fees and bKash / Nagad transaction references.</p>
                 </div>
             </div>
 
@@ -405,18 +414,30 @@
         <section class="ui-card">
             <div class="ui-card-head" style="margin-bottom:4px;">
                 <div>
-                    <div class="ui-card-title" style="font-size:17px;">Payment Method</div>
-                    <p class="ui-card-sub">How milestone payments are collected.</p>
+                    <div class="ui-card-title" style="font-size:17px;">Payment Methods</div>
+                    <p class="ui-card-sub">Pick either one each time you pay a milestone.</p>
                 </div>
             </div>
-            <div class="method-card">
-                <span class="method-logo"><img src="~/images/payment-methods/bkash.svg" alt="bKash" /></span>
-                <div>
-                    <strong>bKash Checkout</strong>
-                    <small>@(Model.MethodCounts.TryGetValue(PaymentMethod.Bkash, out var bkashCount) ? $"{bkashCount} payment{(bkashCount == 1 ? "" : "s")} completed" : "Used for every milestone payment")</small>
+            @foreach (var method in checkoutMethods)
+            {
+                var ready = PaymentGateways.Any(g => g.Method == method.Method && g.IsConfigured);
+                var used = Model.MethodCounts.TryGetValue(method.Method, out var usedCount) ? usedCount : 0;
+                <div class="method-card">
+                    <span class="method-logo"><img src="@method.Logo" alt="@method.Name" /></span>
+                    <div>
+                        <strong>@method.Title</strong>
+                        <small>@(used > 0 ? $"{used} payment{(used == 1 ? "" : "s")} completed" : ready ? "Available at checkout" : "Not set up on this server yet")</small>
+                    </div>
+                    @if (ready)
+                    {
+                        <span class="ui-badge is-success"><i class="bi bi-check-circle-fill"></i> Active</span>
+                    }
+                    else
+                    {
+                        <span class="ui-badge is-neutral">Unavailable</span>
+                    }
                 </div>
-                <span class="ui-badge is-success"><i class="bi bi-check-circle-fill"></i> Active</span>
-            </div>
+            }
             <p class="fee-note"><i class="bi bi-info-circle"></i> You pay the agreed milestone amount. The @Model.PlatformFeePercent.ToString("0.#")% fee is deducted before the creator is credited.</p>
         </section>
 
@@ -425,7 +446,7 @@
                 <span class="icon-chip soft"><i class="bi bi-shield-check"></i></span>
                 <div class="info-card-title">Your Payments Are Secure</div>
             </div>
-            <p>Checkout happens on bKash's own secure page. A payment is only marked paid once bKash confirms the transaction to our server &mdash; never from a browser redirect alone.</p>
+            <p>Checkout happens on bKash's or Nagad's own secure page. A payment is only marked paid once the provider confirms the transaction to our server &mdash; never from a browser redirect alone.</p>
         </section>
 
         <section class="ui-card">

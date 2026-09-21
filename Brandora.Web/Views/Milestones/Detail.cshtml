@@ -2,6 +2,7 @@
 @using Brandora.Web.Models.Domain
 @using Brandora.Web.Models.Influencers
 @inject Microsoft.Extensions.Configuration.IConfiguration Config
+@inject IEnumerable<Brandora.Web.Services.Payments.IPaymentGateway> PaymentGateways
 @{
     ViewData["Title"] = Model.Title;
     ViewData["ActiveNav"] = "Collaborations";
@@ -31,6 +32,25 @@
     var feeAmount = settled ? Model.Payment!.PlatformFeeAmount : Math.Round(Model.Amount * feePercent / 100m, 2);
     var netAmount = settled ? Model.Payment!.NetAmount : Model.Amount - feeAmount;
 
+    // Checkout providers the Brand can pick from. A provider without merchant credentials
+    // on this server is still listed, but disabled, so the choice is never a dead end.
+    bool GatewayReady(PaymentMethod method) => PaymentGateways.Any(g => g.Method == method && g.IsConfigured);
+    var payOptions = new[]
+    {
+        (Method: PaymentMethod.Bkash, Name: "bKash", Logo: "/images/payment-methods/bkash.svg", Tag: "Tokenized Checkout", Ready: GatewayReady(PaymentMethod.Bkash)),
+        (Method: PaymentMethod.Nagad, Name: "Nagad", Logo: "/images/payment-methods/nagad.svg", Tag: "Online Payment", Ready: GatewayReady(PaymentMethod.Nagad))
+    };
+    var anyPayReady = payOptions.Any(o => o.Ready);
+    var defaultPay = payOptions.FirstOrDefault(o => o.Ready);
+    if (!anyPayReady) { defaultPay = payOptions[0]; }
+    var paidVia = Model.Payment?.Method switch
+    {
+        PaymentMethod.Nagad => "Nagad",
+        PaymentMethod.Bkash => "bKash",
+        PaymentMethod.BankTransfer => "bank transfer",
+        _ => "checkout"
+    };
+
     // Five-step journey (mirrors the Influencer Upload Proof stepper).
     var s1 = Model.Status != MilestoneStatus.Pending;
     var s2 = Model.BrandApprovedAt is not null || isPaid;
@@ -42,7 +62,7 @@
         (Done: s1, Title: "Proof Submitted", Sub: "Creator delivers content"),
         (Done: s2, Title: "Your Approval", Sub: "You check the brief"),
         (Done: s3, Title: "Brandora Verifies", Sub: "Independent final check"),
-        (Done: s4, Title: "Payment Released", Sub: "bKash checkout opened"),
+        (Done: s4, Title: "Payment Released", Sub: "bKash or Nagad checkout"),
         (Done: s5, Title: "Paid", Sub: "Creator credited")
     };
     var currentIndex = Array.FindIndex(steps, s => !s.Done);
@@ -52,7 +72,7 @@
         MilestoneStatus.Pending => ("Awaiting Content", "is-neutral"),
         MilestoneStatus.Submitted => (Model.BrandApprovedAt is null ? "Needs Your Review" : "Brandora Verifying", "is-info"),
         MilestoneStatus.RevisionRequested => ("Revision Requested", "is-pending"),
-        MilestoneStatus.Approved => (paymentPending ? "Awaiting bKash Payment" : bothApproved ? "Ready to Release" : "Needs Your Approval", paymentPending ? "is-pending" : "is-violet"),
+        MilestoneStatus.Approved => (paymentPending ? "Awaiting Payment" : bothApproved ? "Ready to Release" : "Needs Your Approval", paymentPending ? "is-pending" : "is-violet"),
         MilestoneStatus.Paid => ("Paid", "is-success"),
         _ => (Model.Status.ToString(), "is-neutral")
     };
@@ -72,8 +92,9 @@
     var faqs = new[]
     {
         ("Why do both I and Brandora approve?", "Your approval confirms the content matches your brief. Brandora's check confirms the post is genuine and live. Money only moves once both sign-offs are in, whichever comes first."),
-        ("What happens when I release payment?", "Releasing opens a real bKash checkout for the milestone amount. Nothing is charged until you confirm on bKash's own page."),
-        ("When is it marked as paid?", "Only after bKash confirms the transaction to our server. A browser redirect alone never marks a payment as paid."),
+        ("What happens when I release payment?", "Releasing lets you pay the milestone amount through bKash or Nagad, whichever you prefer. Nothing is charged until you confirm on the provider's own secure page."),
+        ("When is it marked as paid?", "Only after bKash or Nagad confirms the transaction to our server, for the exact milestone amount. A browser redirect alone never marks a payment as paid."),
+        ("Can I switch between bKash and Nagad?", "Yes. If a checkout is cancelled or fails, nothing is charged and you can pay again with either method."),
         ("Can I ask for changes after approving?", "Yes. Until Brandora's final check is done you can still send the milestone back to the creator with a revision note.")
     };
 }
@@ -104,6 +125,43 @@
     .ms-fee-note { margin-top: 12px; padding: 10px 12px; border-radius: 9px; background: #eef4ffbd; border: 1px solid #dfe9ff; font-family: 'Inter', sans-serif; font-size: 11.5px; line-height: 1.5; color: #33477c; }
 
     .ms-total dd { font-size: 15px; color: #0b124e; }
+
+    /* ---- Payment method picker (bKash / Nagad) ---- */
+    .pay-form { margin-top: 18px; }
+    .pay-methods { margin: 0; padding: 0; border: 0; min-width: 0; }
+    .pay-methods-label { margin-bottom: 9px; padding: 0; font-family: 'Inter', sans-serif; font-size: 10.5px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: #5877ac; }
+    .pay-method-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+
+    .pay-method { position: relative; display: flex; align-items: center; gap: 13px; padding: 13px 44px 13px 13px; border-radius: 12px; border: 1px solid #d3e4ff; background: linear-gradient(135deg, #ffffffe6, #f5faffcc 55%, #fafdffe6); box-shadow: inset 0 1px 2px #ffffff, 0 3px 10px #6f9bce0d; cursor: pointer; transition: border-color .2s ease, box-shadow .25s ease, transform .2s ease, background .25s ease; }
+    .pay-method:hover { transform: translateY(-2px); border-color: #a9c8ff; box-shadow: inset 0 1px 2px #ffffff, 0 12px 26px -14px #3b5bdb55; }
+    .pay-method input { position: absolute; opacity: 0; pointer-events: none; }
+
+    .pay-method-logo { flex: none; display: grid; place-items: center; width: 70px; height: 42px; padding: 7px 9px; border-radius: 9px; background: #ffffff; border: 1px solid #e6eefb; box-shadow: 0 2px 6px #1c2f6a0d; }
+    .pay-method-logo img { max-width: 100%; max-height: 100%; object-fit: contain; }
+
+    .pay-method-text { display: flex; flex-direction: column; min-width: 0; }
+    .pay-method-text strong { font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 700; color: #101d48; }
+    .pay-method-text small { margin-top: 2px; font-family: 'Inter', sans-serif; font-size: 11.5px; color: #5877ac; }
+
+    .pay-method-check { position: absolute; top: 50%; right: 14px; display: grid; place-items: center; width: 22px; height: 22px; margin-top: -11px; border-radius: 50%; border: 1.5px solid #c3d6f5; background: #ffffff; color: transparent; font-size: 12px; transition: .2s ease; }
+
+    .pay-method:has(input:checked) { border-color: #7a64ff; background: radial-gradient(ellipse at 100% 0%, #e5ddff, transparent 60%), linear-gradient(135deg, #ffffff, #f4f1ff); box-shadow: 0 0 0 3px #7557ff1f, 0 14px 28px -16px #5b3dffaa; }
+    .pay-method:has(input:checked) .pay-method-check { border-color: transparent; background: linear-gradient(110deg, #7557ff, #009fff); color: #ffffff; transform: scale(1.06); }
+    .pay-method:has(input:focus-visible) { outline: 2px solid #1451ff; outline-offset: 2px; }
+
+    .pay-method.is-unavailable { cursor: not-allowed; opacity: .6; filter: grayscale(.4); }
+    .pay-method.is-unavailable:hover { transform: none; border-color: #d3e4ff; box-shadow: inset 0 1px 2px #ffffff, 0 3px 10px #6f9bce0d; }
+
+    .pay-submit { min-width: 250px; }
+    .pay-submit .bkash-logo { width: 48px; padding: 5px 6px; }
+    .pay-submit[disabled] { cursor: not-allowed; opacity: .6; transform: none; padding: 0 20px; }
+    .pay-submit-arrow { margin-left: auto; padding-left: 6px; transition: transform .2s ease; }
+    .pay-submit:hover .pay-submit-arrow { transform: translateX(3px); }
+
+    @@media(max-width: 560px) {
+        .pay-method-grid { grid-template-columns: 1fr; }
+        .pay-submit { width: 100%; min-width: 0; }
+    }
 
 }
 
@@ -185,7 +243,7 @@
                         <div class="decision-card-eyebrow">Completed</div>
                         <div class="decision-card-title">Milestone paid in full</div>
                         <p class="decision-card-text">
-                            ৳@Model.Amount.ToString("N0") was paid via bKash@(Model.Payment?.PaidAt is not null ? $" on {Model.Payment.PaidAt.Value.ToBangladeshTime():MMM d, yyyy 'at' h:mm tt}" : "").
+                            ৳@Model.Amount.ToString("N0") was paid via @paidVia@(Model.Payment?.PaidAt is not null ? $" on {Model.Payment.PaidAt.Value.ToBangladeshTime():MMM d, yyyy 'at' h:mm tt}" : "").
                             @creator.FullName has been credited ৳@netAmount.ToString("N0").
                         </p>
                     </div>
@@ -197,7 +255,7 @@
                 </dl>
                 @if (!string.IsNullOrEmpty(Model.Payment?.TransactionReference))
                 {
-                    <p class="decision-card-note"><i class="bi bi-receipt"></i> bKash transaction ID: <strong>@Model.Payment.TransactionReference</strong></p>
+                    <p class="decision-card-note"><i class="bi bi-receipt"></i> @(paidVia == "checkout" ? "Transaction ID" : paidVia + " transaction ID"): <strong>@Model.Payment.TransactionReference</strong></p>
                 }
                 <div class="decision-card-actions">
                     <a href="/Payments" class="btn btn-secondary"><i class="bi bi-wallet2" style="margin-right:8px;"></i>View in Finance</a>
@@ -212,8 +270,8 @@
                     <span class="icon-chip amber"><i class="bi bi-wallet2"></i></span>
                     <div>
                         <div class="decision-card-eyebrow">Action needed &middot; Step 5 of 5</div>
-                        <div class="decision-card-title">Complete the payment on bKash</div>
-                        <p class="decision-card-text">The payment is released and waiting for checkout. You'll be taken to bKash's secure page &mdash; the milestone is only marked paid once bKash confirms it.</p>
+                        <div class="decision-card-title">Choose how to pay</div>
+                        <p class="decision-card-text">The payment is released and waiting for checkout. Pick bKash or Nagad &mdash; you'll be taken to that provider's own secure page, and the milestone is only marked paid once they confirm it.</p>
                     </div>
                 </div>
                 <dl class="decision-breakdown">
@@ -221,13 +279,46 @@
                     <div><dt>Platform fee (@feePercent.ToString("0.#")%)</dt><dd>৳@feeAmount.ToString("N0")</dd></div>
                     <div><dt>Creator receives</dt><dd>৳@netAmount.ToString("N0")</dd></div>
                 </dl>
-                <div class="decision-card-actions">
-                    <form method="post" action="/Payments/InitiatePayment">
-                        @Html.AntiForgeryToken()
-                        <input type="hidden" name="paymentId" value="@Model.Payment!.Id" />
-                        <button type="submit" class="btn-bkash"><span class="bkash-logo"><img src="~/images/payment-methods/bkash.svg" alt="" /></span>Pay ৳@Model.Amount.ToString("N0") with bKash</button>
-                    </form>
-                </div>
+                <form method="post" action="/Payments/InitiatePayment" class="pay-form" id="payForm">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="paymentId" value="@Model.Payment!.Id" />
+
+                    <fieldset class="pay-methods">
+                        <legend class="pay-methods-label">Payment method</legend>
+                        <div class="pay-method-grid">
+                            @foreach (var option in payOptions)
+                            {
+                                <label class="pay-method @(option.Ready ? "" : "is-unavailable")">
+                                    <input type="radio" name="method" value="@option.Method"
+                                           checked="@(option.Ready && option.Method == defaultPay.Method)"
+                                           disabled="@(!option.Ready)"
+                                           data-pay-name="@option.Name" data-pay-logo="@option.Logo" />
+                                    <span class="pay-method-logo"><img src="@option.Logo" alt="" /></span>
+                                    <span class="pay-method-text">
+                                        <strong>@option.Name</strong>
+                                        <small>@(option.Ready ? option.Tag : "Not available yet")</small>
+                                    </span>
+                                    <span class="pay-method-check" aria-hidden="true"><i class="bi bi-check-lg"></i></span>
+                                </label>
+                            }
+                        </div>
+                    </fieldset>
+
+                    <div class="decision-card-actions">
+                        @if (anyPayReady)
+                        {
+                            <button type="submit" class="btn-bkash pay-submit">
+                                <span class="bkash-logo"><img src="@defaultPay.Logo" alt="" data-pay-btn-logo /></span>
+                                <span data-pay-btn-text>Pay ৳@Model.Amount.ToString("N0") with @defaultPay.Name</span>
+                                <i class="bi bi-arrow-right pay-submit-arrow"></i>
+                            </button>
+                        }
+                        else
+                        {
+                            <button type="button" class="btn-bkash pay-submit" disabled>Online payment isn't set up yet</button>
+                        }
+                    </div>
+                </form>
                 <p class="decision-card-note"><i class="bi bi-shield-lock"></i> Cancelled or failed checkouts never charge you &mdash; you can retry anytime.</p>
             </section>
         }
@@ -239,7 +330,7 @@
                     <div>
                         <div class="decision-card-eyebrow">Ready &middot; Step 4 of 5</div>
                         <div class="decision-card-title">Release payment to @creator.FullName</div>
-                        <p class="decision-card-text">You and Brandora have both approved this proof of post. Releasing opens a bKash checkout for the milestone amount &mdash; nothing is charged until you confirm there.</p>
+                        <p class="decision-card-text">You and Brandora have both approved this proof of post. Releasing lets you pay the milestone amount through bKash or Nagad &mdash; nothing is charged until you confirm there.</p>
                     </div>
                 </div>
                 <dl class="decision-breakdown">
@@ -253,7 +344,7 @@
                         <input type="hidden" name="milestoneId" value="@Model.Id" />
                         <button type="button" class="btn btn-primary" data-confirm
                                 data-confirm-title="Release ৳@Model.Amount.ToString("N0") to @creator.FullName?"
-                                data-confirm-text="This opens a secure bKash checkout for “@Model.Title”. Nothing is charged until you confirm on bKash."
+                                data-confirm-text="You'll then choose bKash or Nagad to pay for “@Model.Title”. Nothing is charged until you confirm on their secure page."
                                 data-confirm-label="Release payment">
                             <i class="bi bi-unlock" style="margin-right:8px;"></i>Release Payment
                         </button>
@@ -448,7 +539,7 @@
                 <div><dt>Milestone amount</dt><dd>৳@Model.Amount.ToString("N0")</dd></div>
                 <div><dt>Platform fee (@feePercent.ToString("0.#")%)</dt><dd>&minus; ৳@feeAmount.ToString("N0")</dd></div>
                 <div class="ms-total"><dt>Creator receives</dt><dd>৳@netAmount.ToString("N0")</dd></div>
-                <div><dt>Method</dt><dd>bKash Checkout</dd></div>
+                <div><dt>Method</dt><dd>@(settled ? paidVia : "bKash or Nagad")</dd></div>
             </dl>
             <p class="ms-fee-note"><i class="bi bi-info-circle"></i> You always pay the agreed amount; the fee is deducted before the creator is credited.</p>
         </section>
@@ -513,6 +604,26 @@
 </div>
 
 <script>
+    // Payment method picker: keep the pay button's logo and label in step with the choice.
+    (function () {
+        var form = document.getElementById('payForm');
+        if (!form) { return; }
+        var logo = form.querySelector('[data-pay-btn-logo]');
+        var text = form.querySelector('[data-pay-btn-text]');
+        var amount = '৳@Model.Amount.ToString("N0")';
+        form.querySelectorAll('input[name="method"]').forEach(function (radio) {
+            radio.addEventListener('change', function () {
+                if (!radio.checked) { return; }
+                if (logo) { logo.src = radio.getAttribute('data-pay-logo'); }
+                if (text) { text.textContent = 'Pay ' + amount + ' with ' + radio.getAttribute('data-pay-name'); }
+            });
+        });
+        form.addEventListener('submit', function () {
+            var btn = form.querySelector('.pay-submit');
+            if (btn) { btn.disabled = true; btn.style.opacity = '.75'; }
+        });
+    })();
+
     document.querySelectorAll('[data-confirm]').forEach(function (btn) {
         btn.addEventListener('click', function () {
             brandoraConfirm(btn, { title: btn.dataset.confirmTitle, text: btn.dataset.confirmText, confirmLabel: btn.dataset.confirmLabel });

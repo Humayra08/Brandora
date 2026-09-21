@@ -30,8 +30,8 @@
     var faqs = new[]
     {
         ("Where does a collaboration come from?", "When you accept a creator's application (or they accept your invite and you confirm it), Brandora opens a collaboration using the milestones planned for that campaign."),
-        ("How do I pay a creator?", "Open the collaboration, then the milestone. Once you've approved the proof of post and Brandora has verified it, release the payment and complete it through bKash."),
-        ("Why does a row say it needs my action?", "At least one milestone is waiting on you — a proof to review, a payment to release, or a bKash checkout to complete."),
+        ("How do I pay a creator?", "Open the collaboration, then the milestone. Once you've approved the proof of post and Brandora has verified it, release the payment and pay it through bKash or Nagad."),
+        ("Why does a row say it needs my action?", "At least one milestone is waiting on you — a proof to review, a payment to release, or a bKash / Nagad checkout to complete."),
         ("Can I work with the same creator again?", "Yes. Invite them to another campaign from their profile; each campaign gets its own collaboration.")
     };
 }
@@ -88,7 +88,7 @@
     <div class="page-hero-intro">
         <p class="page-hero-eyebrow">Manage Collaborations</p>
         <h1 class="page-hero-title">Every Creator Partnership. <span>One Clear View.</span></h1>
-        <p class="page-hero-sub">Review proof of post, approve milestones and release bKash payments for every creator you work with.</p>
+        <p class="page-hero-sub">Review proof of post, approve milestones and release bKash or Nagad payments for every creator you work with.</p>
         <ul class="hero-highlights">
             <li>@activeCount active partnership@(activeCount == 1 ? "" : "s")</li>
             <li>@actionCount milestone@(actionCount == 1 ? "" : "s") need@(actionCount == 1 ? "s" : "") you</li>
@@ -132,7 +132,7 @@
             <span class="metric-icon"><i class="bi bi-wallet2" style="font-size:19px;"></i></span>
             <div><div class="metric-label">Paid to Creators</div><strong class="metric-value">৳@paidTotal.ToString("N0")</strong><p class="metric-context">of ৳@committedTotal.ToString("N0") in milestones</p></div>
         </div>
-        <div class="metric-footer"><span class="metric-accent"></span><span class="metric-footer-link">Via bKash</span></div>
+        <div class="metric-footer"><span class="metric-accent"></span><span class="metric-footer-link">Via bKash &amp; Nagad</span></div>
     </div>
 </section>
 
@@ -221,7 +221,7 @@
                 <li class="is-done"><h4>Application accepted</h4><p>A collaboration opens with the campaign's milestones.</p></li>
                 <li class="is-done"><h4>Creator delivers</h4><p>They post and submit proof for each milestone.</p></li>
                 <li class="is-current"><h4>You approve, Brandora verifies</h4><p>Two independent sign-offs protect your budget.</p></li>
-                <li><h4>Release &amp; pay via bKash</h4><p>Mark it completed once every milestone is paid.</p></li>
+                <li><h4>Release &amp; pay via bKash or Nagad</h4><p>Mark it completed once every milestone is paid.</p></li>
             </ol>
         </section>
 

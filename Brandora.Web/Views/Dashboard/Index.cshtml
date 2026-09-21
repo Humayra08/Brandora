@@ -59,7 +59,7 @@
         ("Create your campaign", "Set the brief, budget, platform, niche and milestone plan in the campaign wizard.", Model.HasAnyCampaigns),
         ("Publish & find creators", "Publishing opens the campaign to creator applications. Invite creators or use Smart Match.", hasPublished),
         ("Confirm a proposal", "Accepting a creator's proposal starts a collaboration with its milestones.", hasCollaboration),
-        ("Review proof & pay", "Approve each milestone's proof of post, then release payment through bKash.", hasPaid)
+        ("Review proof & pay", "Approve each milestone's proof of post, then release payment through bKash or Nagad.", hasPaid)
     };
     var currentStep = journey.FindIndex(s => !s.Done);
 }
@@ -1437,7 +1437,7 @@
             <div class="ui-card-head">
                 <div>
                     <div class="ui-card-title">Finance Overview</div>
-                    <p class="ui-card-sub">Spend, budget and bKash payment activity across your campaigns.</p>
+                    <p class="ui-card-sub">Spend, budget and bKash / Nagad payment activity across your campaigns.</p>
                 </div>
                 <a href="/Payments" class="ui-card-link">Open finance <i class="bi bi-arrow-right"></i></a>
             </div>
@@ -1780,7 +1780,7 @@
                 </details>
                 <details>
                     <summary>When do I pay a creator?<i class="bi bi-chevron-right"></i></summary>
-                    <p>Only after a milestone's proof of post has been approved. You then release the payment and complete it through bKash checkout. Nothing is charged before you confirm.</p>
+                    <p>Only after a milestone's proof of post has been approved. You then release the payment and pay it through bKash or Nagad. Nothing is charged before you confirm.</p>
                 </details>
                 <details>
                     <summary>How does Smart Match score creators?<i class="bi bi-chevron-right"></i></summary>
