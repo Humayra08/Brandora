@@ -1,0 +1,420 @@
+@model Brandora.Web.Areas.Admin.Controllers.AdminWalletViewModel
+@using System.Globalization
+@using Brandora.Web.Areas.Admin.Services
+@{
+    var ledger = Model.Ledger;
+    var balance = ledger.FeesCollectedAllTime - ledger.CompensationPaidAllTime;
+
+    string Money(decimal amount) => (amount < 0 ? "-৳" : "৳") + Math.Abs(amount).ToString("N0", CultureInfo.InvariantCulture);
+
+    var feeMax = Math.Max(1m, ledger.FeesByMonth.Max(m => m.Amount));
+    var compMax = Math.Max(1m, ledger.CompensationByMonth.Max(m => m.Amount));
+    var noFeeData = ledger.FeesByMonth.All(m => m.Amount == 0);
+    var noCompData = ledger.CompensationByMonth.All(m => m.Amount == 0);
+
+    var distTotal = ledger.FeesCollectedAllTime + Model.FeesExpected;
+    var collectedPct = distTotal == 0 ? 0 : (int)Math.Round(ledger.FeesCollectedAllTime / distTotal * 100);
+    var expectedPct = distTotal == 0 ? 0 : 100 - collectedPct;
+    var donutStyle = distTotal == 0
+        ? "background:#eef1fb;"
+        : $"background:conic-gradient(#7a2fe0 0 {collectedPct}%, #236eff {collectedPct}% 100%);";
+
+    var feeRatePct = (PlatformFee.Rate * 100).ToString("0.##", CultureInfo.InvariantCulture);
+}
+
+<style>
+    .aw-hero { position: relative; isolation: isolate; overflow: hidden; display: flex; align-items: center; justify-content: space-between; gap: 24px; min-height: 150px; padding: 26px 36px; border-radius: 18px; margin-bottom: 18px; border: 1px solid #dce7ff; background: radial-gradient(ellipse at 61% 0%, rgba(163,38,255,.12), transparent 58%), linear-gradient(110deg, #f3f6ff88, #eaf1ffcc 55%, #f3f6ff88); }
+    .aw-hero h1 { margin: 0; font: 700 clamp(30px, 3vw, 42px)/1.1 'Playfair Display', Georgia, serif; color: #171d3d; }
+    .aw-hero p { margin: 8px 0 0; font-family: 'Inter', sans-serif; font-size: 13.5px; color: #6b7290; }
+    .aw-hero .aw-motto { font-family: 'Caveat', cursive; font-weight: 700; font-size: 26px; line-height: 1.2; color: #2a3157; text-align: center; transform: rotate(-3deg); }
+    .aw-hero .aw-art { width: 92px; height: 92px; border-radius: 26px; background: linear-gradient(135deg, #a326ff, #236eff 60%, #18a9ff); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 40px; box-shadow: 0 18px 36px rgba(90,60,255,.25); }
+
+    .aw-notice { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 18px; padding: 14px 18px; border-radius: 12px; border: 1px solid #cfe0ff; background: #f3f8ff; font-family: 'Inter', sans-serif; font-size: 12.5px; line-height: 1.55; color: #2a3157; }
+    .aw-notice i { color: #236eff; font-size: 16px; margin-top: 1px; }
+
+    .aw-balance { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1.4fr; gap: 16px; align-items: center; margin-bottom: 18px; padding: 20px 24px; border-radius: 15px; background: #fff; border: 1px solid #dce7ff; }
+    .aw-balance-main { display: flex; align-items: center; gap: 16px; }
+    .aw-balance-icon { width: 58px; height: 58px; border-radius: 16px; background: linear-gradient(135deg, #f1e6ff, #e3f0ff); color: #7a2fe0; display: flex; align-items: center; justify-content: center; font-size: 26px; }
+    .aw-label { font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; color: #8189a8; }
+    .aw-big { margin-top: 4px; font-family: 'DM Sans', sans-serif; font-weight: 800; font-size: 30px; color: #171d3d; }
+    .aw-mid { font-family: 'DM Sans', sans-serif; font-weight: 800; font-size: 22px; color: #171d3d; margin-top: 4px; }
+    .aw-note-inline { font-family: 'Inter', sans-serif; font-size: 12px; line-height: 1.55; color: #6b7290; }
+
+    .aw-kpis { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-bottom: 18px; }
+    .aw-kpi { display: flex; gap: 12px; align-items: flex-start; padding: 16px 18px; border-radius: 14px; background: #fff; border: 1px solid #dce7ff; min-width: 0; }
+    .aw-kpi-icon { flex: 0 0 40px; height: 40px; border-radius: 11px; display: flex; align-items: center; justify-content: center; font-size: 18px; background: #f1e6ff; color: #7a2fe0; }
+    .aw-kpi-icon.green { background: #e2f8ee; color: #0d9c6c; } .aw-kpi-icon.blue { background: #e3f0ff; color: #236eff; } .aw-kpi-icon.red { background: #fde8ea; color: #d92d3f; }
+    .aw-kpi-value { margin-top: 3px; font-family: 'DM Sans', sans-serif; font-weight: 800; font-size: 22px; color: #171d3d; }
+    .aw-kpi-sub { margin-top: 3px; font-family: 'Inter', sans-serif; font-size: 11.5px; color: #8189a8; }
+
+    .aw-charts { display: grid; grid-template-columns: 1fr 1fr 0.8fr; gap: 16px; margin-bottom: 18px; }
+    .aw-panel { padding: 22px 24px; border-radius: 15px; background: #fff; border: 1px solid #dce7ff; min-width: 0; }
+    .aw-title { font-family: 'Playfair Display', Georgia, serif; font-weight: 700; font-size: 18px; color: #171d3d; }
+    .aw-sub { margin-top: 3px; font-family: 'Inter', sans-serif; font-size: 12px; color: #8189a8; }
+    .aw-bars { position: relative; display: flex; align-items: flex-end; gap: 10px; height: 170px; margin-top: 18px; padding: 0 4px 22px; border-bottom: 1px solid #eef1fb; background: repeating-linear-gradient(to top, transparent 0 41px, #f1f3fb 41px 42px); }
+    .aw-bar { position: relative; flex: 1; min-height: 3px; border-radius: 6px 6px 0 0; background: linear-gradient(180deg, #a56bff, #6d8dff); }
+    .aw-bars.red .aw-bar { background: linear-gradient(180deg, #ff9db5, #ff7d9c); }
+    .aw-bar span { position: absolute; left: 50%; bottom: -20px; transform: translateX(-50%); font-family: 'Inter', sans-serif; font-size: 10.5px; color: #8189a8; }
+    .aw-bar em { display: none; position: absolute; left: 50%; bottom: calc(100% + 6px); transform: translateX(-50%); padding: 3px 8px; border-radius: 7px; background: #171d3d; color: #fff; font: normal 600 11px 'Inter', sans-serif; white-space: nowrap; }
+    .aw-bar:hover em { display: block; }
+    .aw-empty-chart { position: absolute; inset: 0 0 22px; display: flex; align-items: center; justify-content: center; text-align: center; padding: 0 20px; font-family: 'Inter', sans-serif; font-size: 12px; color: #8189a8; }
+
+    .aw-donut-wrap { display: flex; align-items: center; gap: 18px; margin-top: 18px; flex-wrap: wrap; }
+    .aw-donut { position: relative; width: 132px; height: 132px; border-radius: 50%; flex-shrink: 0; }
+    .aw-donut::after { content: ''; position: absolute; inset: 18px; border-radius: 50%; background: #fff; }
+    .aw-donut-center { position: absolute; inset: 0; z-index: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: 'DM Sans', sans-serif; font-weight: 800; font-size: 15px; color: #171d3d; }
+    .aw-donut-center small { font-family: 'Inter', sans-serif; font-weight: 500; font-size: 10.5px; color: #8189a8; }
+    .aw-legend { display: flex; flex-direction: column; gap: 12px; font-family: 'Inter', sans-serif; font-size: 12px; color: #2a3157; }
+    .aw-legend i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 7px; }
+    .aw-legend b { display: block; margin-top: 2px; font-family: 'DM Sans', sans-serif; font-size: 14px; }
+
+    .aw-cols { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 16px; align-items: start; }
+    .aw-stack { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+
+    .aw-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 16px 0 12px; }
+    .aw-toolbar form { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .aw-input { height: 38px; padding: 0 12px; border-radius: 10px; border: 1px solid #dde1f0; background: #fff; font-family: 'Inter', sans-serif; font-size: 12.5px; color: #2a3157; outline: none; }
+    .aw-btn { display: inline-flex; align-items: center; gap: 7px; height: 38px; padding: 0 14px; border-radius: 10px; border: 1px solid #cfe0ff; background: #f3f8ff; font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 600; color: #236eff; cursor: pointer; }
+    .aw-btn.primary { border: 0; color: #fff; background: linear-gradient(105deg, #a326ff, #236eff, #18a9ff); }
+
+    .aw-table { width: 100%; border-collapse: collapse; }
+    .aw-table th { padding: 11px 12px; text-align: left; font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: .3px; text-transform: uppercase; color: #8189a8; background: #f7f9ff; }
+    .aw-table td { padding: 12px; border-top: 1px solid #eef1fb; font-family: 'Inter', sans-serif; font-size: 12.5px; color: #2a3157; vertical-align: middle; }
+    .aw-table tr.aw-row:hover td { background: #fafbff; }
+    .aw-camp { display: flex; align-items: center; gap: 11px; min-width: 0; }
+    .aw-thumb { flex: 0 0 38px; height: 38px; border-radius: 10px; overflow: hidden; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #f1e6ff, #e3f0ff); color: #7a2fe0; font: 700 13px 'DM Sans', sans-serif; }
+    .aw-thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .aw-camp b { font-family: 'DM Sans', sans-serif; font-size: 13px; color: #171d3d; }
+    .aw-pill { display: inline-block; padding: 5px 11px; border-radius: 8px; font-size: 11.5px; font-weight: 600; }
+    .aw-pill.blue { background: #e3f0ff; color: #236eff; } .aw-pill.amber { background: #fff1de; color: #c47410; } .aw-pill.gray { background: #eef1fb; color: #6b7290; } .aw-pill.green { background: #e2f8ee; color: #0d9c6c; }
+    .aw-view { display: inline-flex; align-items: center; gap: 5px; padding: 6px 12px; border-radius: 9px; border: 1px solid #cfe0ff; background: #f3f8ff; color: #236eff; font: 600 12px 'Inter', sans-serif; cursor: pointer; }
+    .aw-muted { color: #8189a8; }
+    .aw-plus { color: #0d9c6c; font-weight: 700; } .aw-minus { color: #d92d3f; font-weight: 700; }
+
+    .aw-empty { padding: 26px 18px; margin-top: 8px; border-radius: 12px; border: 1px dashed #dde1f0; background: #fafbfe; text-align: center; font-family: 'Inter', sans-serif; font-size: 12.5px; color: #8189a8; }
+    .aw-empty b { display: block; margin-bottom: 4px; font-family: 'DM Sans', sans-serif; font-size: 14px; color: #2a3157; }
+
+    .aw-side-card { padding: 22px; border-radius: 15px; background: #fff; border: 1px solid #dce7ff; }
+    .aw-side-card .aw-side-icon { width: 44px; height: 44px; border-radius: 12px; background: #f1e6ff; color: #7a2fe0; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+    .aw-side-card h3 { margin: 12px 0 6px; font-family: 'Playfair Display', Georgia, serif; font-size: 18px; color: #171d3d; }
+    .aw-side-card p { margin: 0 0 14px; font-family: 'Inter', sans-serif; font-size: 12.5px; line-height: 1.6; color: #6b7290; }
+    .aw-side-card a.aw-btn { text-decoration: none; }
+    .aw-health { display: flex; gap: 12px; align-items: flex-start; padding: 16px 18px; border-radius: 14px; border: 1px solid rgba(13,156,108,.25); background: #ecfaf4; font-family: 'Inter', sans-serif; font-size: 12px; line-height: 1.5; color: #0b7a55; }
+    .aw-health.warn { border-color: rgba(217,45,63,.25); background: #fdeff1; color: #a71b34; }
+    .aw-health b { display: block; margin-bottom: 2px; font-size: 13px; }
+
+    /* Drawer */
+    .aw-overlay { position: fixed; inset: 0; z-index: 1900; background: rgba(15,20,50,.35); opacity: 0; pointer-events: none; transition: opacity .2s; }
+    .aw-overlay.is-open { opacity: 1; pointer-events: auto; }
+    .aw-drawer { position: fixed; top: 0; right: 0; bottom: 0; z-index: 2000; width: min(560px, 100vw); overflow-y: auto; background: #fff; border-left: 1px solid #dce7ff; box-shadow: -18px 0 40px rgba(20,25,60,.12); transform: translateX(100%); transition: transform .25s ease; }
+    .aw-drawer.is-open { transform: translateX(0); }
+    .aw-drawer-loading { padding: 40px; font-family: 'Inter', sans-serif; font-size: 13px; color: #8189a8; }
+
+    @@media(max-width: 1350px) { .aw-kpis { grid-template-columns: repeat(3, 1fr); } .aw-charts { grid-template-columns: 1fr 1fr; } .aw-cols { grid-template-columns: 1fr; } .aw-balance { grid-template-columns: 1fr 1fr; } }
+    @@media(max-width: 800px) { .aw-kpis, .aw-charts, .aw-balance { grid-template-columns: 1fr; } .aw-hero .aw-motto { display: none; } .aw-table { display: block; overflow-x: auto; } }
+</style>
+
+<section class="aw-hero">
+    <div>
+        <h1>Platform Wallet</h1>
+        <p>Manage platform earnings, fees and compensation payments.</p>
+    </div>
+    <div class="aw-motto">Small Fees<br />Bigger Opportunities</div>
+    <div class="aw-art"><i class="bi bi-wallet2"></i></div>
+</section>
+
+@if (!ledger.IsLive)
+{
+    <div class="aw-notice">
+        <i class="bi bi-info-circle"></i>
+        <div>
+            <b>Wallet payouts are not live yet.</b>
+            The fee rate is @feeRatePct% of every milestone payment, collected when an influencer withdraws.
+            Collected fees and compensation paid out stay at ৳0 until the payment gateway and wallet ledger are connected.
+            The <b>expected</b> fees below are already calculated from real completed payments.
+        </div>
+    </div>
+}
+
+<section class="aw-balance">
+    <div class="aw-balance-main">
+        <div class="aw-balance-icon"><i class="bi bi-wallet2"></i></div>
+        <div>
+            <div class="aw-label">Platform Balance</div>
+            <div class="aw-big">@Money(balance)</div>
+        </div>
+    </div>
+    <div>
+        <div class="aw-label">Available for compensation</div>
+        <div class="aw-mid">@Money(Math.Max(0m, balance))</div>
+    </div>
+    <div>
+        <div class="aw-label">Total collected (all time)</div>
+        <div class="aw-mid">@Money(ledger.FeesCollectedAllTime)</div>
+    </div>
+    <div class="aw-note-inline">
+        The @feeRatePct% fee is collected when an influencer withdraws from their wallet. It helps keep Brandora running and growing.
+    </div>
+</section>
+
+<section class="aw-kpis">
+    <div class="aw-kpi">
+        <div class="aw-kpi-icon green"><i class="bi bi-people"></i></div>
+        <div><div class="aw-label">Fees This Month</div><div class="aw-kpi-value">@Money(ledger.FeesCollectedThisMonth)</div><div class="aw-kpi-sub">@(ledger.IsLive ? "collected this month" : "awaiting payout data")</div></div>
+    </div>
+    <div class="aw-kpi">
+        <div class="aw-kpi-icon blue"><i class="bi bi-bar-chart"></i></div>
+        <div><div class="aw-label">Fees All Time</div><div class="aw-kpi-value">@Money(ledger.FeesCollectedAllTime)</div><div class="aw-kpi-sub">since inception</div></div>
+    </div>
+    <div class="aw-kpi">
+        <div class="aw-kpi-icon red"><i class="bi bi-arrow-repeat"></i></div>
+        <div><div class="aw-label">Compensation Paid Out</div><div class="aw-kpi-value">@Money(ledger.CompensationPaidAllTime)</div><div class="aw-kpi-sub">to brands &amp; influencers</div></div>
+    </div>
+    <div class="aw-kpi">
+        <div class="aw-kpi-icon blue"><i class="bi bi-people-fill"></i></div>
+        <div><div class="aw-label">Withdrawals Processed</div><div class="aw-kpi-value">@Model.WithdrawalsProcessed.ToString("N0", CultureInfo.InvariantCulture)</div><div class="aw-kpi-sub">approved or paid</div></div>
+    </div>
+    <div class="aw-kpi">
+        <div class="aw-kpi-icon"><i class="bi bi-hourglass-split"></i></div>
+        <div><div class="aw-label">Fees Expected</div><div class="aw-kpi-value">@Money(Model.FeesExpected)</div><div class="aw-kpi-sub">on paid, not yet withdrawn</div></div>
+    </div>
+</section>
+
+<section class="aw-charts">
+    <div class="aw-panel">
+        <div class="aw-title">Fee Income Trend</div>
+        <div class="aw-sub">Monthly platform fee (@feeRatePct%)</div>
+        <div class="aw-bars">
+            @foreach (var m in ledger.FeesByMonth)
+            {
+                var h = (int)Math.Round(m.Amount / feeMax * 100);
+                <div class="aw-bar" style="height:@(Math.Max(h, 2))%;"><em>@m.Label · @Money(m.Amount)</em><span>@m.Label</span></div>
+            }
+            @if (noFeeData) { <div class="aw-empty-chart">No fee income recorded yet</div> }
+        </div>
+    </div>
+
+    <div class="aw-panel">
+        <div class="aw-title">Compensation Paid Trend</div>
+        <div class="aw-sub">Monthly compensation to brands &amp; influencers</div>
+        <div class="aw-bars red">
+            @foreach (var m in ledger.CompensationByMonth)
+            {
+                var h = (int)Math.Round(m.Amount / compMax * 100);
+                <div class="aw-bar" style="height:@(Math.Max(h, 2))%;"><em>@m.Label · @Money(m.Amount)</em><span>@m.Label</span></div>
+            }
+            @if (noCompData) { <div class="aw-empty-chart">No compensation paid yet</div> }
+        </div>
+    </div>
+
+    <div class="aw-panel">
+        <div class="aw-title">Fee Distribution</div>
+        <div class="aw-sub">Collected vs expected</div>
+        <div class="aw-donut-wrap">
+            <div class="aw-donut" style="@donutStyle">
+                <div class="aw-donut-center">@Money(distTotal)<small>Total fees</small></div>
+            </div>
+            <div class="aw-legend">
+                <div><i style="background:#7a2fe0;"></i>Collected @(distTotal == 0 ? "" : collectedPct + "%")<b>@Money(ledger.FeesCollectedAllTime)</b></div>
+                <div><i style="background:#236eff;"></i>Expected @(distTotal == 0 ? "" : expectedPct + "%")<b>@Money(Model.FeesExpected)</b></div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="aw-cols">
+    <div class="aw-stack">
+
+        <div class="aw-panel">
+            <div class="aw-title">Campaign-wise Fee Income</div>
+            <div class="aw-sub">@feeRatePct% platform fees from influencer withdrawals</div>
+
+            <div class="aw-toolbar">
+                <form method="get">
+                    <input class="aw-input" type="search" name="search" value="@Model.Search" placeholder="Search campaigns or brands..." id="awCampaignSearch" />
+                    <input class="aw-input" type="date" name="from" value="@(Model.From?.ToString("yyyy-MM-dd"))" aria-label="From date" />
+                    <input class="aw-input" type="date" name="to" value="@(Model.To?.ToString("yyyy-MM-dd"))" aria-label="To date" />
+                    <button type="submit" class="aw-btn"><i class="bi bi-funnel"></i> Apply</button>
+                </form>
+                <button type="button" class="aw-btn" id="awExportCampaigns"><i class="bi bi-download"></i> Export CSV</button>
+            </div>
+
+            @if (Model.Campaigns.Count == 0)
+            {
+                <div class="aw-empty"><b>No campaign earnings yet</b>Fees appear here once campaigns have milestones and payments.</div>
+            }
+            else
+            {
+                <table class="aw-table" id="awCampaignTable">
+                    <thead>
+                        <tr>
+                            <th>Campaign</th><th>Brand</th><th>Milestones</th><th>Gross amount</th>
+                            <th>@feeRatePct% collected</th><th>@feeRatePct% expected</th><th>Status</th><th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var c in Model.Campaigns)
+                        {
+                            <tr class="aw-row" data-search="@((c.Title + " " + c.BrandName).ToLowerInvariant())">
+                                <td>
+                                    <div class="aw-camp"><div class="aw-thumb">@c.Title.Substring(0, 1).ToUpperInvariant()</div><b>@c.Title</b></div>
+                                </td>
+                                <td>
+                                    <div class="aw-camp">
+                                        <div class="aw-thumb">
+                                            @if (!string.IsNullOrWhiteSpace(c.BrandPicture)) { <img src="@c.BrandPicture" alt="" /> }
+                                            else { <text>@c.BrandName.Substring(0, Math.Min(2, c.BrandName.Length)).ToUpperInvariant()</text> }
+                                        </div>
+                                        @c.BrandName
+                                    </div>
+                                </td>
+                                <td>@c.MilestoneCount</td>
+                                <td>@Money(c.Gross)</td>
+                                <td>@(ledger.IsLive ? Money(c.FeeCollected) : "—")</td>
+                                <td>@Money(c.FeeExpected)</td>
+                                <td><span class="aw-pill @c.StatusTone">@c.StatusLabel</span></td>
+                                <td><button type="button" class="aw-view" data-campaign="@c.CampaignId">View <i class="bi bi-arrow-right"></i></button></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+
+        <div class="aw-panel">
+            <div class="aw-title">Recent Transactions</div>
+            <div class="aw-sub">Withdrawal fees and compensation payments</div>
+
+            @if (ledger.Transactions.Count == 0)
+            {
+                <div class="aw-empty">
+                    <b>No wallet transactions yet</b>
+                    Withdrawal fees and compensation payments will be listed here once the payment gateway and wallet ledger are live.
+                </div>
+            }
+            else
+            {
+                <table class="aw-table">
+                    <thead><tr><th>Date &amp; time</th><th>Type</th><th>User</th><th>Role</th><th>Dispute</th><th>Amount</th><th>Balance after</th><th>Note</th></tr></thead>
+                    <tbody>
+                        @foreach (var t in ledger.Transactions.OrderByDescending(t => t.At))
+                        {
+                            <tr class="aw-row">
+                                <td>@t.At.ToString("MMM d, yyyy h:mm tt", CultureInfo.InvariantCulture)</td>
+                                <td>@t.Type</td>
+                                <td>@t.UserName</td>
+                                <td>@t.Role</td>
+                                <td>@(t.DisputeRef ?? "—")</td>
+                                <td class="@(t.Amount >= 0 ? "aw-plus" : "aw-minus")">@(t.Amount >= 0 ? "+" : "-")@Money(Math.Abs(t.Amount))</td>
+                                <td>@Money(t.BalanceAfter)</td>
+                                <td class="aw-muted">@t.Note</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+    </div>
+
+    <div class="aw-stack">
+        <div class="aw-side-card">
+            <div class="aw-side-icon"><i class="bi bi-shield-check"></i></div>
+            <h3>Compensation</h3>
+            <p>
+                Compensation is decided case by case. When a brand or influencer asks for it for a milestone or campaign,
+                it is handled in <b>Dispute Resolution</b>, where the admin can review the proof and conversation first.
+                Payouts will show up in the transactions list here.
+            </p>
+            <a class="aw-btn primary" href="/Admin/AdminDisputes/Index">
+                Open Dispute Resolution
+                @if (Model.OpenDisputes > 0) { <span>(@Model.OpenDisputes open)</span> }
+                <i class="bi bi-arrow-right"></i>
+            </a>
+        </div>
+
+        @if (balance < 0)
+        {
+            <div class="aw-health warn"><i class="bi bi-exclamation-triangle"></i><div><b>Wallet is negative</b>Compensation paid out is higher than the fees collected so far.</div></div>
+        }
+        else
+        {
+            <div class="aw-health"><i class="bi bi-check-circle"></i><div><b>Platform wallet is healthy</b>@(balance > 0 ? "There is enough balance to process compensation." : "No balance yet. Fees are collected as influencers withdraw.")</div></div>
+        }
+    </div>
+</div>
+
+<div class="aw-overlay" id="awOverlay"></div>
+<aside class="aw-drawer" id="awDrawer" aria-hidden="true"></aside>
+
+<script>
+    (function () {
+        var drawer = document.getElementById('awDrawer');
+        var overlay = document.getElementById('awOverlay');
+
+        function closeDrawer() {
+            drawer.classList.remove('is-open');
+            overlay.classList.remove('is-open');
+            drawer.setAttribute('aria-hidden', 'true');
+        }
+
+        function bindDrawer() {
+            drawer.querySelectorAll('[data-close]').forEach(function (b) { b.addEventListener('click', closeDrawer); });
+            var tabs = drawer.querySelectorAll('[data-tab]');
+            tabs.forEach(function (tab) {
+                tab.addEventListener('click', function () {
+                    tabs.forEach(function (t) { t.classList.toggle('is-active', t === tab); });
+                    drawer.querySelectorAll('[data-pane]').forEach(function (p) {
+                        p.hidden = p.getAttribute('data-pane') !== tab.getAttribute('data-tab');
+                    });
+                });
+            });
+        }
+
+        document.querySelectorAll('.aw-view').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                drawer.innerHTML = '<div class="aw-drawer-loading">Loading campaign fees…</div>';
+                drawer.classList.add('is-open');
+                overlay.classList.add('is-open');
+                drawer.setAttribute('aria-hidden', 'false');
+                fetch('/Admin/AdminWallet/CampaignFees/' + btn.getAttribute('data-campaign'), { credentials: 'same-origin' })
+                    .then(function (r) { if (!r.ok) throw new Error(); return r.text(); })
+                    .then(function (html) { drawer.innerHTML = html; bindDrawer(); })
+                    .catch(function () { drawer.innerHTML = '<div class="aw-drawer-loading">Could not load this campaign. Close and try again.</div>'; });
+            });
+        });
+
+        overlay.addEventListener('click', closeDrawer);
+        document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeDrawer(); });
+
+        var search = document.getElementById('awCampaignSearch');
+        if (search) {
+            search.addEventListener('input', function () {
+                var q = search.value.trim().toLowerCase();
+                document.querySelectorAll('#awCampaignTable tbody tr').forEach(function (row) {
+                    row.style.display = row.getAttribute('data-search').indexOf(q) === -1 ? 'none' : '';
+                });
+            });
+        }
+
+        var exportBtn = document.getElementById('awExportCampaigns');
+        if (exportBtn) {
+            exportBtn.addEventListener('click', function () {
+                var table = document.getElementById('awCampaignTable');
+                if (!table) return;
+                var lines = [];
+                table.querySelectorAll('tr').forEach(function (tr) {
+                    if (tr.style.display === 'none') return;
+                    var cells = Array.prototype.slice.call(tr.children, 0, -1).map(function (c) {
+                        return '"' + c.innerText.replace(/\s+/g, ' ').trim().replace(/"/g, '""') + '"';
+                    });
+                    lines.push(cells.join(','));
+                });
+                var blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+                var a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = 'campaign-fee-income.csv';
+                a.click();
+            });
+        }
+    })();
+</script>
