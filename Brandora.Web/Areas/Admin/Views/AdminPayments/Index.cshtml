@@ -133,7 +133,7 @@
     .pm-bar-row { display: grid; grid-template-columns: 110px minmax(0, 1fr) 40px; gap: 10px; align-items: center; font: 12.5px 'Inter', sans-serif; }
     .pm-track { height: 7px; border-radius: 6px; background: #eef1fb; overflow: hidden; } .pm-track span { display: block; height: 100%; border-radius: 6px; background: linear-gradient(105deg, #a56bff, #6d8dff); }
 
-    .pm-bottom { display: grid; grid-template-columns: 1.15fr 1fr 1fr; gap: 16px; }
+    .pm-bottom { display: flex; flex-direction: column; gap: 16px; }
     .pm-mini { width: 100%; border-collapse: collapse; }
     .pm-mini th { padding: 8px 8px; text-align: left; font: 600 11.5px 'Inter', sans-serif; color: #6b7290; white-space: nowrap; }
     .pm-mini td { padding: 9px 8px; border-top: 1px solid #eef1fb; font: 12px 'Inter', sans-serif; color: #2a3157; vertical-align: middle; }
@@ -156,7 +156,7 @@
     .pm-loading { padding: 40px; font: 13px 'Inter', sans-serif; color: #8189a8; }
 
     @@media(max-width: 1700px) { .pm-kpis { grid-template-columns: repeat(3, 1fr); } }
-    @@media(max-width: 1500px) { .pm-grid { grid-template-columns: 1fr; } .pm-bottom { grid-template-columns: 1fr; } }
+    @@media(max-width: 1500px) { .pm-grid { grid-template-columns: 1fr; } }
     @@media(max-width: 800px) { .pm-kpis { grid-template-columns: 1fr 1fr; } .pm-tagline { display: none; } .pm-hero-title { max-width: 100%; } }
 </style>
 
@@ -293,6 +293,28 @@
                             <td><div class="pm-camp"><div class="pm-camp-img">@c.Title.Substring(0, 1).ToUpperInvariant()</div><div><b>@c.Title</b><small>@c.Code</small></div></div></td>
                             <td>@Money(c.Total)</td><td>@Money(c.Paid)</td><td style="color:#d9761a;">@Money(c.Pending)</td><td>@c.PaidMilestones/@c.Milestones</td>
                             <td><div class="pm-prog"><div class="pm-track"><span style="width:@pct%"></span></div><b>@pct%</b></div></td>
+                        </tr>
+                    }
+                </tbody>
+            </table></div>
+        }
+    </div>
+
+    <div class="pm-panel">
+        <h3 class="pm-title">Influencer Withdrawal Overview</h3>
+        @if (Model.WithdrawalOverview.Count == 0) { <div class="pm-empty">No withdrawals yet.</div> }
+        else
+        {
+            <div class="pm-scroll"><table class="pm-mini">
+                <thead><tr><th>Influencer</th><th>Total Requested</th><th>Paid</th><th>Pending</th><th>Withdrawals</th><th>Progress</th></tr></thead>
+                <tbody>
+                    @foreach (var w in Model.WithdrawalOverview)
+                    {
+                        var wpct = w.Total <= 0 ? 0 : (int)Math.Round(w.Paid / w.Total * 100);
+                        <tr>
+                            <td><div class="pm-camp"><div class="pm-camp-img">@Initials(w.Name)</div><div><b>@w.Name</b><small>@@@w.Handle.TrimStart('@')</small></div></div></td>
+                            <td>@Money(w.Total)</td><td>@Money(w.Paid)</td><td style="color:#d9761a;">@Money(w.Pending)</td><td>@w.PaidCount/@w.Count</td>
+                            <td><div class="pm-prog"><div class="pm-track"><span style="width:@wpct%"></span></div><b>@wpct%</b></div></td>
                         </tr>
                     }
                 </tbody>

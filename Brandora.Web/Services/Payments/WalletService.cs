@@ -83,18 +83,40 @@ public class WalletService(ApplicationDbContext db, IConfiguration config)
                 p.PaidAt,
                 p.Id
             })
+            .ToList();
+
+        // Positive Adjustment rows (e.g. dispute compensation credited by an admin — see
+        // AdminDisputesController.Resolve) are real earnings too, and are added at a 0%
+        // withdrawal rate: the platform doesn't charge its own fee twice on money it's
+        // handing back. Negative adjustments aren't turned into a tranche (nothing to make
+        // withdrawable), they only ever reduce Earned directly.
+        var adjustments = await db.WalletTransactions
+            .Where(w => w.InfluencerProfileId == influencerProfileId && w.Type == WalletTransactionType.Adjustment)
+            .Select(w => new { w.Amount, w.CreatedAt })
+            .ToListAsync();
+
+        var adjustmentTranches = adjustments
+            .Where(a => a.Amount > 0)
+            .Select(a => new { Tranche = new FeeTranche(a.Amount, 0m), PaidAt = (DateTime?)a.CreatedAt, Id = 0 });
+
+        var allTranches = tranches
+            .Select(x => new { x.Tranche, x.PaidAt, x.Id })
+            .Concat(adjustmentTranches)
             .OrderBy(x => x.Tranche.RatePercent)
             .ThenBy(x => x.PaidAt)
             .ThenBy(x => x.Id)
             .Select(x => x.Tranche)
             .ToList();
 
+        var negativeAdjustments = adjustments.Where(a => a.Amount < 0).Sum(a => a.Amount);
+
         var withdrawals = await db.WithdrawalRequests
             .Where(w => w.InfluencerProfileId == influencerProfileId && w.Status != WithdrawalStatus.Rejected)
             .Select(w => new { w.Amount, w.FeeAmount })
             .ToListAsync();
 
-        return new WithdrawalLedger(tranches.Sum(t => t.Amount), withdrawals.Sum(w => w.Amount), withdrawals.Sum(w => w.FeeAmount), tranches);
+        var earned = Math.Max(0m, allTranches.Sum(t => t.Amount) + negativeAdjustments);
+        return new WithdrawalLedger(earned, withdrawals.Sum(w => w.Amount), withdrawals.Sum(w => w.FeeAmount), allTranches);
     }
 
     // The creator's share of the commission, charged when they withdraw.

@@ -1,0 +1,242 @@
+@model Brandora.Web.Controllers.BrandDisputesViewModel
+@using System.Text.Json
+@{
+    ViewData["Title"] = "Report a Dispute";
+    ViewData["ActiveNav"] = "Disputes";
+    Layout = "_AppLayout";
+
+    var collabJson = JsonSerializer.Serialize(Model.Collaborations.Select(c => new {
+        id = c.CollaborationId, title = c.CampaignTitle, influencer = c.InfluencerName,
+        milestones = c.Milestones.Select(m => new { id = m.Id, title = m.Title })
+    }));
+
+    string StatusTone(string s) => s switch { "Resolved" => "is-success", "UnderReview" => "is-info", _ => "is-pending" };
+}
+
+@section Styles {
+
+    .bd-form-card { display: flex; flex-direction: column; gap: 18px; }
+    .bd-select-wrap { position: relative; }
+    .bd-select-wrap select { width: 100%; height: 48px; padding: 0 14px; border-radius: 12px; border: 1px solid #d3e4ff; background: #fff; font: 600 13.5px 'Inter', sans-serif; color: #101d48; appearance: none; }
+    .bd-select-wrap i { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); color: #8095c4; pointer-events: none; }
+    .bd-label { display: block; margin-bottom: 7px; font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 700; color: #33477c; }
+    .bd-input, .bd-textarea { width: 100%; padding: 12px 14px; border-radius: 12px; border: 1px solid #d3e4ff; font: 13.5px 'Inter', sans-serif; color: #101d48; outline: none; }
+    .bd-textarea { resize: vertical; min-height: 110px; }
+    .bd-dropzone { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 26px 16px; border-radius: 14px; border: 1.5px dashed #b9d3ff; background: #f7faffb3; text-align: center; cursor: pointer; }
+    .bd-dropzone i { font-size: 26px; color: #7a64ff; }
+    .bd-dropzone strong { font-family: 'DM Sans', sans-serif; font-size: 13.5px; color: #101d48; }
+    .bd-dropzone small { font-family: 'Inter', sans-serif; font-size: 11px; color: #8095c4; }
+    .bd-filelist { margin-top: 8px; display: flex; flex-direction: column; gap: 4px; font-family: 'Inter', sans-serif; font-size: 11.5px; color: #33477c; }
+
+    .bd-dispute-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid #eef4fd; }
+    .bd-dispute-row:first-child { border-top: 0; }
+    .bd-dispute-main { min-width: 0; flex: 1; }
+    .bd-dispute-main b { display: block; font-family: 'DM Sans', sans-serif; font-size: 13px; color: #101d48; }
+    .bd-dispute-main small { display: block; margin-top: 2px; font-family: 'Inter', sans-serif; font-size: 11px; color: #5877ac; }
+    .bd-dispute-note { margin-top: 6px; padding: 8px 10px; border-radius: 8px; background: #f6f9ff; font-family: 'Inter', sans-serif; font-size: 11px; color: #33477c; }
+
+}
+
+<a href="/Dashboard" class="back-to-dashboard">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    Back
+</a>
+
+<section class="page-hero">
+    @await Html.PartialAsync("_HeroWaves")
+    <div class="page-hero-intro">
+        <p class="page-hero-eyebrow">Support</p>
+        <h1 class="page-hero-title">Something Went Wrong? <span>Let's Resolve It.</span></h1>
+        <p class="page-hero-sub">Report an issue with a campaign or milestone. If the creator already reported it, your statement joins their case — Admin reviews both sides before resolving.</p>
+        <ul class="hero-highlights">
+            <li>Reviewed by Admin</li>
+            <li>Both sides heard</li>
+            <li>Fair resolution</li>
+        </ul>
+    </div>
+    <div class="page-hero-art" aria-hidden="true">
+        <div class="hero-glass hero-glass-back"></div>
+        <div class="hero-glass hero-glass-front"><span class="hero-glass-copy">Fair.<br />Transparent.<br />Resolved.<span></span></span></div>
+        <span class="hero-sparkle"></span>
+    </div>
+    <div class="page-hero-motto">We've Got<br />Your Back.<span></span></div>
+</section>
+
+@if (TempData["DisputeError"] is not null)
+{
+    <div class="notice is-error" role="alert"><i class="bi bi-exclamation-circle-fill"></i><span>@TempData["DisputeError"]</span></div>
+}
+@if (TempData["DisputeSubmitted"] is not null)
+{
+    <div class="notice is-success" role="status"><i class="bi bi-check-circle-fill"></i><span>Dispute submitted. Admin will review it and you'll be notified once it's resolved.</span></div>
+}
+
+<div class="page-grid">
+
+    <div class="page-main">
+        <section class="ui-card">
+            <div class="ui-card-head">
+                <div>
+                    <div class="ui-card-title">Report a Dispute</div>
+                    <p class="ui-card-sub">Tell us what happened, and attach any evidence that supports your case.</p>
+                </div>
+            </div>
+
+            @if (Model.Collaborations.Count == 0)
+            {
+                <div class="empty-block">
+                    <span class="icon-chip soft" style="margin:0 auto 10px;"><i class="bi bi-briefcase"></i></span>
+                    <div class="empty-title">No collaborations yet</div>
+                    <p class="empty-text">You don't have any collaborations to report a dispute on yet.</p>
+                </div>
+            }
+            else
+            {
+                <form class="bd-form-card" method="post" action="/BrandDisputes/Submit" enctype="multipart/form-data" id="bdForm" style="margin-top:16px;">
+                    @Html.AntiForgeryToken()
+
+                    <div>
+                        <label class="bd-label" for="bdCollab">Campaign</label>
+                        <div class="bd-select-wrap">
+                            <select id="bdCollab" name="collaborationId" class="bd-input" required>
+                                <option value="">Choose a campaign</option>
+                                @foreach (var c in Model.Collaborations)
+                                {
+                                    <option value="@c.CollaborationId">@c.CampaignTitle — @c.InfluencerName</option>
+                                }
+                            </select>
+                            <i class="bi bi-chevron-down"></i>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="bd-label" for="bdMilestone">Milestone (optional)</label>
+                        <div class="bd-select-wrap">
+                            <select id="bdMilestone" name="milestoneId" class="bd-input" disabled>
+                                <option value="">Whole campaign</option>
+                            </select>
+                            <i class="bi bi-chevron-down"></i>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="bd-label" for="bdReason">Reason</label>
+                        <input class="bd-input" type="text" id="bdReason" name="reason" maxlength="150" placeholder="e.g. Content not as agreed" required />
+                    </div>
+
+                    <div>
+                        <label class="bd-label" for="bdStatement">Describe what happened</label>
+                        <textarea class="bd-textarea" id="bdStatement" name="statement" maxlength="1000" placeholder="Explain the issue in detail..." required></textarea>
+                    </div>
+
+                    <div>
+                        <label class="bd-label">Evidence (optional)</label>
+                        <div class="bd-dropzone" id="bdDropzone">
+                            <i class="bi bi-cloud-arrow-up"></i>
+                            <strong>Drag &amp; drop files, or click to choose</strong>
+                            <small>Up to 5 files · Images up to 15MB, videos up to 80MB, PDFs up to 100MB</small>
+                            <input type="file" id="bdFile" name="evidenceFiles" multiple accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime,application/pdf" hidden />
+                        </div>
+                        <div class="bd-filelist" id="bdFileList"></div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary" id="bdSubmit" style="align-self:flex-start;">
+                        <i class="bi bi-send" style="margin-right:8px;"></i>Submit Dispute
+                    </button>
+                </form>
+            }
+        </section>
+    </div>
+
+    <aside class="page-rail">
+
+        <section class="ui-card">
+            <div class="ui-card-head" style="margin-bottom:6px;">
+                <div class="ui-card-title" style="font-size:17px;">Your Disputes</div>
+            </div>
+            @if (Model.MyDisputes.Count == 0)
+            {
+                <p class="panel-sub">No disputes reported yet.</p>
+            }
+            else
+            {
+                @foreach (var d in Model.MyDisputes)
+                {
+                    <div class="bd-dispute-row">
+                        <div class="bd-dispute-main">
+                            <b>DS-@(d.CreatedAt.Year)-@(d.Id.ToString("D3")) · @d.CampaignTitle</b>
+                            <small>@d.MilestoneTitle &middot; @d.CreatedAt.ToString("MMM d, yyyy")</small>
+                            <small>@d.Reason</small>
+                            @if (!string.IsNullOrWhiteSpace(d.ResolutionNotes))
+                            {
+                                <div class="bd-dispute-note">@d.ResolutionNotes</div>
+                            }
+                        </div>
+                        <span class="ui-badge @StatusTone(d.Status)">@d.Status</span>
+                    </div>
+                }
+            }
+        </section>
+
+        <section class="info-card">
+            <div class="info-card-head">
+                <span class="icon-chip soft"><i class="bi bi-lightbulb"></i></span>
+                <div class="info-card-title">Before You Report</div>
+            </div>
+            <p>Try messaging the creator first if it's a simple mix-up. Attach evidence — screenshots help Admin decide faster. Be specific about dates and amounts.</p>
+        </section>
+
+        <section class="help-card">
+            <h3>Need Help?</h3>
+            <p>Questions about a dispute you already raised? Our support team can help.</p>
+            <a href="/Home/Contact">Contact Support <i class="bi bi-arrow-right"></i></a>
+            <svg viewBox="0 0 400 170" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="bd-help-wave" x1="0" y1="1" x2="1" y2="0"><stop stop-color="#0955ca" stop-opacity="0"/><stop offset=".65" stop-color="#168cff" stop-opacity=".5"/><stop offset="1" stop-color="#783dff" stop-opacity=".15"/></linearGradient></defs><path d="M-20 160 C100 50 140 220 260 105 S350 85 420 20 L420 190 H-20Z" fill="url(#bd-help-wave)"/><path d="M-20 164 C110 90 140 230 270 120 S360 70 420 40" fill="none" stroke="#2799ff" stroke-opacity=".4"/></svg>
+        </section>
+
+    </aside>
+
+</div>
+
+<script type="application/json" id="bdCollabData">@Html.Raw(collabJson)</script>
+<script>
+    (function () {
+        var dataEl = document.getElementById('bdCollabData');
+        if (!dataEl) return;
+        var DATA = JSON.parse(dataEl.textContent);
+        var collab = document.getElementById('bdCollab'), milestone = document.getElementById('bdMilestone');
+
+        collab.addEventListener('change', function () {
+            var c = DATA.find(function (x) { return String(x.id) === collab.value; });
+            milestone.innerHTML = '<option value="">Whole campaign</option>';
+            if (c && c.milestones.length) {
+                c.milestones.forEach(function (m) {
+                    var o = document.createElement('option'); o.value = m.id; o.textContent = m.title; milestone.appendChild(o);
+                });
+                milestone.disabled = false;
+            } else {
+                milestone.disabled = true;
+            }
+        });
+
+        var dropzone = document.getElementById('bdDropzone'), fileInput = document.getElementById('bdFile'), fileList = document.getElementById('bdFileList');
+        dropzone.addEventListener('click', function () { fileInput.click(); });
+        dropzone.addEventListener('dragover', function (e) { e.preventDefault(); dropzone.style.borderColor = '#7a64ff'; });
+        dropzone.addEventListener('dragleave', function () { dropzone.style.borderColor = ''; });
+        dropzone.addEventListener('drop', function (e) {
+            e.preventDefault(); dropzone.style.borderColor = '';
+            if (e.dataTransfer.files.length) { fileInput.files = e.dataTransfer.files; renderFiles(); }
+        });
+        fileInput.addEventListener('change', renderFiles);
+        function renderFiles() {
+            fileList.innerHTML = '';
+            Array.prototype.forEach.call(fileInput.files, function (f) {
+                var el = document.createElement('div');
+                el.textContent = f.name + ' (' + Math.max(1, Math.round(f.size / 1024)) + ' KB)';
+                fileList.appendChild(el);
+            });
+        }
+
+        var form = document.getElementById('bdForm');
+        if (form) form.addEventListener('submit', function () { document.getElementById('bdSubmit').disabled = true; });
+    })();
+</script>

@@ -146,11 +146,15 @@
     <div class="cw-card">
         <h2 class="cw-title">Cash-out Amount</h2>
 
+        @if (maxAmount <= 0)
+        {
+            <div class="cw-notice" style="margin-top:0;"><i class="bi bi-info-circle"></i><div>There's nothing to cash out yet — the Platform Balance is ৳0. It fills up as brands pay milestones (5% on top) and influencers withdraw (5% kept).</div></div>
+        }
         <div class="cw-field-label" style="margin-top:0;">Amount (৳)</div>
         <div class="cw-amount-wrap">
             <span>৳</span>
-            <input type="number" id="cwAmount" min="0" max="@maxAmount.ToString("0.##", CultureInfo.InvariantCulture)" step="1" placeholder="0" />
-            <button type="button" class="cw-max" id="cwMax">Max</button>
+            <input type="number" id="cwAmount" min="0" max="@maxAmount.ToString("0.##", CultureInfo.InvariantCulture)" step="1" placeholder="0" disabled="@(maxAmount <= 0)" />
+            <button type="button" class="cw-max" id="cwMax" disabled="@(maxAmount <= 0)">Max</button>
         </div>
         <div class="cw-hint">Maximum: @Money(maxAmount)</div>
 
@@ -183,7 +187,7 @@
             </ul>
         </div>
 
-        <button type="button" class="cw-go" id="cwReview">Review Cash-out <i class="bi bi-arrow-right"></i></button>
+        <button type="button" class="cw-go" id="cwReview" disabled="@(maxAmount <= 0)">Review Cash-out <i class="bi bi-arrow-right"></i></button>
         <div class="cw-error" id="cwError" hidden></div>
     </div>
 

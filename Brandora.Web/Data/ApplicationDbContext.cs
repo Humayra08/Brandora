@@ -18,6 +18,8 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<ShortlistEntry> ShortlistEntries => Set<ShortlistEntry>();
     public DbSet<Dispute> Disputes => Set<Dispute>();
+    public DbSet<DisputeEvidence> DisputeEvidence => Set<DisputeEvidence>();
+    public DbSet<DisputeNote> DisputeNotes => Set<DisputeNote>();
     public DbSet<WithdrawalRequest> WithdrawalRequests => Set<WithdrawalRequest>();
     public DbSet<PayoutMethod> PayoutMethods => Set<PayoutMethod>();
     public DbSet<AdminAuditLog> AdminAuditLogs => Set<AdminAuditLog>();
@@ -239,6 +241,22 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
                 .WithMany()
                 .HasForeignKey(e => e.InfluencerProfileId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<DisputeEvidence>(entity =>
+        {
+            entity.HasOne(e => e.Dispute)
+                .WithMany(d => d.Evidence)
+                .HasForeignKey(e => e.DisputeId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<DisputeNote>(entity =>
+        {
+            entity.HasOne(e => e.Dispute)
+                .WithMany(d => d.Notes)
+                .HasForeignKey(e => e.DisputeId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         builder.Entity<WithdrawalRequest>(entity =>

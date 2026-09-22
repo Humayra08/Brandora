@@ -3,7 +3,6 @@
 @using Brandora.Web.Models.Domain
 @{
     var v = Model;
-    var preview = v.IsPreview;
     var raisedByBrand = v.RaisedBy == "Brand";
     var raisedKnown = v.RaisedBy != "";
 
@@ -16,11 +15,10 @@
     var pay = v.Payment;
     var payStatus = v.SamplePayment?.Status ?? (pay is null ? "Not paid yet" : pay.Status.ToString());
     var payTone = v.SamplePayment?.Tone ?? (pay is null ? "gray" : pay.Status == PaymentStatus.Completed ? "green" : pay.Status == PaymentStatus.Failed ? "red" : "amber");
-    var escrow = v.SamplePayment?.Escrow ?? pay?.EscrowStatus.ToString() ?? "—";
     var method = v.SamplePayment?.Method ?? (pay?.Method switch { PaymentMethod.Bkash => "bKash", PaymentMethod.Nagad => "Nagad", PaymentMethod.BankTransfer => "Bank Transfer", _ => "—" });
     var gatewayRef = v.SamplePayment?.Reference ?? (string.IsNullOrWhiteSpace(pay?.TransactionReference) ? "—" : pay!.TransactionReference);
 
-    var defaultOutcome = v.CanRelease ? "ReleasePayment" : "NoAction";
+    var defaultOutcome = "Compensation";
     var raiserStatement = raisedByBrand ? v.BrandStatement : v.InfluencerStatement;
     var missing = new List<string>();
     if (v.HasSchemaExtras)
@@ -35,7 +33,6 @@
         "Nagad" => $"<img src=\"/images/payment-methods/nagad.svg\" alt=\"Nagad\" style=\"height:{h}px;width:auto;\" />",
         _ => ""
     };
-    var soonText = "Available once the dispute report pages are added.";
 }
 
 <style>
@@ -184,22 +181,12 @@
 </style>
 
 <div class="dd">
-    @if (preview)
-    {
-        <div class="dd-flash info">
-            <i class="bi bi-eye"></i> Design preview with sample data. Nothing here is saved.
-            Try: <a href="/Admin/AdminDisputes/Details?preview=true&sides=both">both statements</a> ·
-            <a href="/Admin/AdminDisputes/Details?preview=true&sides=brand">only the brand reported</a> ·
-            <a href="/Admin/AdminDisputes/Details?preview=true&sides=influencer">only the influencer reported</a>
-        </div>
-    }
     @if (TempData["DisputeMessage"] is string ok) { <div class="dd-flash ok">@ok</div> }
     @if (TempData["DisputeError"] is string bad) { <div class="dd-flash bad">@bad</div> }
-    <div class="dd-flash bad" id="ddPreviewMsg" style="display:none;"></div>
 
     <div class="dd-head">
         <div>
-            <a class="dd-back" href="/Admin/AdminDisputes/Index@(preview ? "?preview=true" : "")"><i class="bi bi-arrow-left"></i> Dispute Resolution</a>
+            <a class="dd-back" href="/Admin/AdminDisputes/Index"><i class="bi bi-arrow-left"></i> Dispute Resolution</a>
             <div class="dd-title">
                 <h1>Dispute #@v.Code</h1>
                 <span class="dd-pill @v.StatusTone">@v.StatusLabel</span>
@@ -210,25 +197,16 @@
             <button type="button" class="dd-btn" id="ddEditNote"><i class="bi bi-pencil"></i> Edit Internal Note</button>
             <button type="button" class="dd-btn icon" id="ddMore" aria-label="More actions"><i class="bi bi-three-dots"></i></button>
             <div class="dd-menu" id="ddMenu">
-                @if (!preview && v.IsOpen)
+                @if (v.IsOpen)
                 {
                     <form method="post" action="/Admin/AdminDisputes/StartReview/@v.Id">@Html.AntiForgeryToken()<button type="submit">Start review</button></form>
                 }
-                @if (!preview)
-                {
-                    <a href="/Admin/AdminCampaigns/Details/@v.CampaignId">Open campaign</a>
-                    @if (v.MilestoneId is not null) { <a href="/Admin/AdminProofReview/Details/@v.MilestoneId">Open milestone proof</a> }
-                    <a href="/Admin/AdminUserVerification/Details?type=brand&id=@v.BrandProfileId">View brand profile</a>
-                    <a href="/Admin/AdminUserVerification/Details?type=influencer&id=@v.InfluencerProfileId">View influencer profile</a>
-                    <form method="post" action="/Admin/AdminDisputes/Suspend/@v.Id" data-confirm-title="Suspend the brand account?" data-confirm-text="@v.BrandName will be signed out and unable to log in until an admin restores access.">@Html.AntiForgeryToken()<input type="hidden" name="party" value="Brand" /><button type="submit" class="danger">Suspend brand account</button></form>
-                    <form method="post" action="/Admin/AdminDisputes/Suspend/@v.Id" data-confirm-title="Suspend the influencer account?" data-confirm-text="@v.InfluencerName will be signed out and unable to log in until an admin restores access.">@Html.AntiForgeryToken()<input type="hidden" name="party" value="Influencer" /><button type="submit" class="danger">Suspend influencer account</button></form>
-                }
-                else
-                {
-                    <button type="button" data-preview-only>Start review</button>
-                    <button type="button" data-preview-only class="danger">Suspend brand account</button>
-                    <button type="button" data-preview-only class="danger">Suspend influencer account</button>
-                }
+                <a href="/Admin/AdminCampaigns/Details/@v.CampaignId">Open campaign</a>
+                @if (v.MilestoneId is not null) { <a href="/Admin/AdminProofReview/Details/@v.MilestoneId">Open milestone proof</a> }
+                <a href="/Admin/AdminUserVerification/Details?type=brand&id=@v.BrandProfileId">View brand profile</a>
+                <a href="/Admin/AdminUserVerification/Details?type=influencer&id=@v.InfluencerProfileId">View influencer profile</a>
+                <form method="post" action="/Admin/AdminDisputes/Suspend/@v.Id" data-confirm-title="Suspend the brand account?" data-confirm-text="@v.BrandName will be signed out and unable to log in until an admin restores access.">@Html.AntiForgeryToken()<input type="hidden" name="party" value="Brand" /><button type="submit" class="danger">Suspend brand account</button></form>
+                <form method="post" action="/Admin/AdminDisputes/Suspend/@v.Id" data-confirm-title="Suspend the influencer account?" data-confirm-text="@v.InfluencerName will be signed out and unable to log in until an admin restores access.">@Html.AntiForgeryToken()<input type="hidden" name="party" value="Influencer" /><button type="submit" class="danger">Suspend influencer account</button></form>
             </div>
         </div>
     </div>
@@ -247,7 +225,7 @@
                             <div class="dd-meta">@v.BrandEmail</div>
                             <div class="dd-stats"><span><i class="bi bi-megaphone"></i> @v.BrandCampaigns campaign@(v.BrandCampaigns == 1 ? "" : "s")</span><span><i class="bi bi-star"></i> @v.BrandPastDisputes past dispute@(v.BrandPastDisputes == 1 ? "" : "s")</span></div>
                         </div>
-                        @if (!preview) { <a class="dd-link" href="/Admin/AdminUserVerification/Details?type=brand&id=@v.BrandProfileId">View Profile</a> }
+                        <a class="dd-link" href="/Admin/AdminUserVerification/Details?type=brand&id=@v.BrandProfileId">View Profile</a>
                     </div>
                 </div>
 
@@ -260,7 +238,7 @@
                             <div class="dd-meta">@@@v.InfluencerHandle.TrimStart('@') &nbsp;·&nbsp; @v.InfluencerEmail</div>
                             <div class="dd-stats"><span><i class="bi bi-people"></i> @v.InfluencerCollaborations collaboration@(v.InfluencerCollaborations == 1 ? "" : "s")</span><span><i class="bi bi-star"></i> @v.InfluencerPastDisputes past dispute@(v.InfluencerPastDisputes == 1 ? "" : "s")</span></div>
                         </div>
-                        @if (!preview) { <a class="dd-link" href="/Admin/AdminUserVerification/Details?type=influencer&id=@v.InfluencerProfileId">View Profile</a> }
+                        <a class="dd-link" href="/Admin/AdminUserVerification/Details?type=influencer&id=@v.InfluencerProfileId">View Profile</a>
                     </div>
                 </div>
 
@@ -273,13 +251,10 @@
                             <small>Campaign ID: @v.CampaignCode</small>
                             <small>Milestone: @(v.MilestoneTitle ?? "—")@(string.IsNullOrWhiteSpace(v.MilestoneType) ? "" : " · " + v.MilestoneType)</small>
                             <small>Agreed amount: <b style="display:inline;">@Money(v.Amount)</b></small>
-                            @if (!preview)
-                            {
-                                <div class="links">
-                                    <a href="/Admin/AdminCampaigns/Details/@v.CampaignId">View Campaign →</a>
-                                    @if (v.MilestoneId is not null) { <a href="/Admin/AdminProofReview/Details/@v.MilestoneId">View Milestone →</a> }
-                                </div>
-                            }
+                            <div class="links">
+                                <a href="/Admin/AdminCampaigns/Details/@v.CampaignId">View Campaign →</a>
+                                @if (v.MilestoneId is not null) { <a href="/Admin/AdminProofReview/Details/@v.MilestoneId">View Milestone →</a> }
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -404,11 +379,11 @@
                         }
                     </div>
                 }
-                <div class="dd-notebox">
-                    <textarea id="ddNoteBody" placeholder="Type a message (internal notes are only visible to admins)..." @(v.HasSchemaExtras ? "" : "disabled")></textarea>
-                    <button type="button" class="dd-btn primary" id="ddSendNote" style="height:auto;padding:0 26px;">Send</button>
-                </div>
-                @if (!v.HasSchemaExtras) { <div class="dd-sub" style="margin-top:8px;">Internal notes @soonText.ToLowerInvariant()</div> }
+                <form class="dd-notebox" method="post" action="/Admin/AdminDisputes/AddNote/@v.Id" id="ddNoteForm">
+                    @Html.AntiForgeryToken()
+                    <textarea name="body" id="ddNoteBody" placeholder="Type a message (internal notes are only visible to admins)..." required></textarea>
+                    <button type="submit" class="dd-btn primary" id="ddSendNote" style="height:auto;padding:0 26px;">Send</button>
+                </form>
             </div>
         </div>
 
@@ -419,7 +394,6 @@
                 <div class="dd-kv">
                     <div><span>Amount in Dispute</span><b>@Money(v.Amount)</b></div>
                     <div><span>Payment Status</span><span class="dd-tag @payTone">@payStatus</span></div>
-                    <div><span>Escrow State</span><span class="dd-tag @(escrow == "Held" ? "blue" : escrow == "Released" ? "green" : escrow == "Refunded" ? "amber" : "gray")">@escrow</span></div>
                     <div><span>Method</span><b style="display:flex;align-items:center;gap:8px;">@Html.Raw(Logo(method, 18))@method</b></div>
                     <div><span>Gateway Reference</span><b>@gatewayRef</b></div>
                 </div>
@@ -446,22 +420,36 @@
                     <form method="post" action="/Admin/AdminDisputes/Resolve/@v.Id" id="ddResolveForm">
                         @Html.AntiForgeryToken()
 
-                        <label class="dd-opt @(v.CanRelease ? "" : "disabled")">
-                            <span class="t"><input type="radio" name="outcome" value="ReleasePayment" @(defaultOutcome == "ReleasePayment" ? "checked" : "") @(v.CanRelease ? "" : "disabled") /> Release payment to influencer</span>
-                            <small>@(v.CanRelease ? $"{Money(v.Amount)} will be released to the influencer from escrow." : "No payment exists for this milestone yet, so there is nothing to release.")</small>
+                        <label class="dd-opt disabled">
+                            <span class="t"><input type="radio" disabled /> Release payment to influencer</span>
+                            <small>Not available — only the brand can start a real bKash/Nagad payment. There's no way for the admin to trigger one directly.</small>
                         </label>
 
-                        <label class="dd-opt @(v.CanRefund ? "" : "disabled")">
-                            <span class="t"><input type="radio" name="outcome" value="RefundBrand" @(v.CanRefund ? "" : "disabled") /> Refund brand</span>
-                            <small>@(v.CanRefund ? $"{Money(v.Amount)} will be refunded to the brand." : "The payment was already completed. Use compensation instead of a refund.")</small>
+                        <label class="dd-opt disabled">
+                            <span class="t"><input type="radio" disabled /> Refund brand</span>
+                            <small>Not available — neither bKash nor Nagad has a refund endpoint at this account tier, so a real refund can't be issued this way.</small>
                         </label>
 
                         <label class="dd-opt">
-                            <span class="t"><input type="radio" name="outcome" value="Compensation" /> Compensation (from Admin Wallet)</span>
-                            <div class="dd-comp">
-                                <div><label>Pay to</label><select name="compensationTo" id="ddCompTo" disabled><option value="">Select recipient</option><option value="Brand">Brand · @v.BrandName</option><option value="Influencer">Influencer · @v.InfluencerName</option></select></div>
-                                <div><label>Amount (৳)</label><input type="number" name="compensationAmount" id="ddCompAmt" min="1" step="1" placeholder="0" disabled /></div>
+                            <span class="t"><input type="radio" name="outcome" value="Compensation" checked="@(defaultOutcome == "Compensation")" /> Compensation (from Admin Wallet)</span>
+                            <div class="dd-comp" style="grid-template-columns:1fr 1fr;">
+                                <div><label>Pay to</label><select name="compensationTo" id="ddCompTo"><option value="">Select recipient</option><option value="Brand">Brand · @v.BrandName</option><option value="Influencer">Influencer · @v.InfluencerName</option></select></div>
+                                <div><label>Amount (৳)</label><input type="number" name="compensationAmount" id="ddCompAmt" min="1" step="1" placeholder="0" /></div>
                             </div>
+
+                            <div id="ddCompInfluencer" style="display:none;margin:10px 0 0 26px;padding:10px 12px;border-radius:9px;background:#eef4ff;font-size:11.5px;line-height:1.5;color:#3a4a7a;">
+                                <i class="bi bi-wallet2"></i> Credited instantly to @v.InfluencerName's own in-app wallet — no external send needed, this happens the moment you confirm.
+                            </div>
+
+                            <div id="ddCompBrand" class="dd-comp" style="display:none;grid-template-columns:1fr 1fr 1fr;margin-top:10px;">
+                                <div><label>Sent via</label><select name="compensationMethod" id="ddCompMethod"><option value="">Choose</option><option value="bKash">bKash</option><option value="Nagad">Nagad</option><option value="Bank Transfer">Bank Transfer</option></select></div>
+                                <div><label>@v.BrandName's account</label><input type="text" name="compensationAccount" id="ddCompAccount" placeholder="01XXXXXXXXX" /></div>
+                                <div><label>Real transaction reference</label><input type="text" name="compensationReference" id="ddCompReference" placeholder="e.g. 8N7K2P3Q9R" /></div>
+                            </div>
+                            <div id="ddCompBrandNote" style="display:none;margin:8px 0 0 26px;padding:10px 12px;border-radius:9px;background:#fff8ec;font-size:11.5px;line-height:1.5;color:#7a4b08;">
+                                <i class="bi bi-exclamation-triangle"></i> A brand has no in-app wallet — send this yourself in your own bKash/Nagad app <b>first</b>, then log the real reference here. This form only records it.
+                            </div>
+
                             <div class="dd-walletline">Current Admin Wallet Balance: <b>@Money(v.WalletBalance)</b></div>
                             <div class="dd-warn" id="ddCompWarn" style="display:none;">This is more than the wallet balance, so the platform wallet would go negative.</div>
                         </label>
@@ -477,7 +465,7 @@
                         <div class="dd-infobox"><i class="bi bi-info-circle"></i><div>Both parties will be notified about the resolution.<br />All actions are logged for audit purposes.</div></div>
 
                         <div class="dd-actions">
-                            <a class="dd-btn" href="/Admin/AdminDisputes/Index@(preview ? "?preview=true" : "")">Cancel</a>
+                            <a class="dd-btn" href="/Admin/AdminDisputes/Index">Cancel</a>
                             <button type="button" class="dd-btn primary" id="ddResolveBtn">Confirm &amp; Resolve</button>
                         </div>
                     </form>
@@ -504,31 +492,18 @@
 <script>
     (function () {
         function $(id) { return document.getElementById(id); }
-        var PREVIEW = @(preview ? "true" : "false");
         var AMOUNT = @v.Amount.ToString("0.##", CultureInfo.InvariantCulture);
         var WALLET = @v.WalletBalance.ToString("0.##", CultureInfo.InvariantCulture);
         var MISSING = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(missing));
         function money(n) { return '৳' + Number(n).toLocaleString('en-US', { maximumFractionDigits: 0 }); }
 
-        function previewNote(text) {
-            var el = $('ddPreviewMsg'); el.textContent = text; el.style.display = '';
-            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-
-        // "..." menu, edit note, send note
+        // "..." menu, edit note
         var menu = $('ddMenu');
         $('ddMore').addEventListener('click', function (e) { e.stopPropagation(); menu.classList.toggle('is-open'); });
         document.addEventListener('click', function (e) { if (!menu.contains(e.target)) menu.classList.remove('is-open'); });
         $('ddEditNote').addEventListener('click', function () { var t = $('ddNoteBody'); t.scrollIntoView({ behavior: 'smooth', block: 'center' }); t.focus(); });
-        $('ddSendNote').addEventListener('click', function () {
-            var t = $('ddNoteBody');
-            if (t.disabled) { previewNote('Internal notes @soonText.ToLowerInvariant()'); return; }
-            if (!t.value.trim()) { t.focus(); return; }
-            previewNote('Preview only: the note was not saved.');
-        });
-        document.querySelectorAll('[data-preview-only]').forEach(function (b) {
-            b.addEventListener('click', function () { menu.classList.remove('is-open'); previewNote('Preview only: this action is disabled on sample data.'); });
-        });
+        var noteForm = $('ddNoteForm');
+        if (noteForm) { noteForm.addEventListener('submit', function (e) { if (!$('ddNoteBody').value.trim()) { e.preventDefault(); } }); }
 
         // conversation filter
         var filter = $('ddFilter');
@@ -564,36 +539,50 @@
         var form = $('ddResolveForm');
         if (form) {
             var to = $('ddCompTo'), amt = $('ddCompAmt'), warnEl = $('ddCompWarn');
+            var infBox = $('ddCompInfluencer'), brandBox = $('ddCompBrand'), brandNote = $('ddCompBrandNote');
+            var cMethod = $('ddCompMethod'), cAccount = $('ddCompAccount'), cReference = $('ddCompReference');
             function outcome() { var r = form.querySelector('input[name="outcome"]:checked'); return r ? r.value : ''; }
             function sync() {
                 var comp = outcome() === 'Compensation';
                 to.disabled = !comp; amt.disabled = !comp;
+                var toInfluencer = comp && to.value === 'Influencer';
+                var toBrand = comp && to.value === 'Brand';
+                infBox.style.display = toInfluencer ? '' : 'none';
+                brandBox.style.display = toBrand ? 'grid' : 'none';
+                brandNote.style.display = toBrand ? '' : 'none';
+                [cMethod, cAccount, cReference].forEach(function (el) { el.disabled = !toBrand; });
                 warnEl.style.display = (comp && parseFloat(amt.value) > WALLET) ? '' : 'none';
             }
             form.querySelectorAll('input[name="outcome"]').forEach(function (r) { r.addEventListener('change', sync); });
-            amt.addEventListener('input', sync); sync();
+            [to, amt].forEach(function (el) { el.addEventListener('input', sync); el.addEventListener('change', sync); });
+            sync();
 
             $('ddResolveBtn').addEventListener('click', function () {
                 var o = outcome(), note = $('ddNotes').value.trim();
                 if (!o) { alert('Choose how to resolve this dispute.'); return; }
+                var what;
                 if (o === 'Compensation') {
                     if (!to.value) { alert('Choose who receives the compensation.'); to.focus(); return; }
                     if (!(parseFloat(amt.value) > 0)) { alert('Enter a compensation amount greater than ৳0.'); amt.focus(); return; }
+                    if (to.value === 'Brand') {
+                        if (!cMethod.value) { alert('Choose how you sent the compensation.'); cMethod.focus(); return; }
+                        if (!cAccount.value.trim()) { alert("Enter the brand's account."); cAccount.focus(); return; }
+                        if (!cReference.value.trim()) { alert('Enter the real transaction reference.'); cReference.focus(); return; }
+                        what = money(parseFloat(amt.value)) + ' will be sent to the brand via ' + cMethod.value + ' and logged with reference ' + cReference.value.trim() + '.';
+                    } else {
+                        what = money(parseFloat(amt.value)) + " will be credited instantly to the influencer's in-app wallet.";
+                    }
+                } else {
+                    what = 'No payment will be made and the dispute will be closed.';
                 }
                 if (!note) { alert('A resolution note is required.'); $('ddNotes').focus(); return; }
 
-                var what = {
-                    ReleasePayment: money(AMOUNT) + ' will be released to the influencer.',
-                    RefundBrand: money(AMOUNT) + ' will be refunded to the brand.',
-                    Compensation: money(parseFloat(amt.value)) + ' compensation will be awarded to the ' + to.value.toLowerCase() + ' from the Admin Wallet.',
-                    NoAction: 'No payment will be made and the dispute will be closed.'
-                }[o];
                 var missingText = MISSING.length ? 'The ' + MISSING.join(' and the ') + ' ' + (MISSING.length > 1 ? 'have' : 'has') + ' not submitted a statement yet.' : '';
                 ask({
                     title: 'Confirm resolution', text: 'This will resolve the dispute. Both parties will be notified.',
                     summary: '<b>Decision:</b> ' + what + '<br><b>Note:</b> ' + note.replace(/</g, '&lt;'),
                     warning: missingText, confirmLabel: 'Confirm & Resolve',
-                    onConfirm: function () { if (PREVIEW) { previewNote('Preview only: nothing was resolved or saved.'); } else { form.submit(); } }
+                    onConfirm: function () { form.submit(); }
                 });
             });
         }

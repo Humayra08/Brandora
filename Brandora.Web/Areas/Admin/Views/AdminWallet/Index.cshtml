@@ -165,7 +165,7 @@
     </div>
     @Html.Raw(Trend(Model.FeesTrendPct))
     <div class="aw-balance-note">
-        This balance comes from @feeRatePct% fees on influencer withdrawals. <span class="aw-muted">@(Model.FeesTrendPct is null ? "No earlier month to compare with yet." : "Compared with last month's fees.")</span>
+        This balance comes from @feeRatePct% fees on both sides — the brand pays it on top when they release a payment, the influencer pays it when they withdraw. <span class="aw-muted">@(Model.FeesTrendPct is null ? "No earlier month to compare with yet." : "Compared with last month's fees.")</span>
     </div>
     <a class="aw-btn primary" href="/Admin/AdminWallet/Withdraw">Withdraw from Wallet <i class="bi bi-arrow-right"></i></a>
 </section>
