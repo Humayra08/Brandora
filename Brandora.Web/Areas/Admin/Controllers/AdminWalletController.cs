@@ -10,10 +10,16 @@ namespace Brandora.Web.Areas.Admin.Controllers;
 public class AdminWalletController(
     ApplicationDbContext db,
     IEmailSender emailSender,
-    IConfiguration config,
-    IWebHostEnvironment env) : AdminControllerBase(db)
+    IConfiguration config) : AdminControllerBase(db)
 {
     private static readonly string[] PayoutMethods = { "bKash", "Nagad", "Bank Transfer" };
+
+    private static PayoutMethodKind MethodKind(string method) => method switch
+    {
+        "bKash" => PayoutMethodKind.Bkash,
+        "Nagad" => PayoutMethodKind.Nagad,
+        _ => PayoutMethodKind.BankAccount
+    };
 
     private static string MaskAccount(string method, string account)
     {
@@ -39,7 +45,7 @@ public class AdminWalletController(
 
         var snap = await PlatformWalletData.LoadAsync(db);
         var ledger = snap.Ledger;
-        var done = ledger.Cashouts.Where(c => c.Status == "Completed").OrderByDescending(c => c.At).ToList();
+        var done = ledger.Cashouts.OrderByDescending(c => c.At).ToList();
 
         return View(new CashoutPageViewModel
         {
@@ -47,29 +53,28 @@ public class AdminWalletController(
             Balance = Math.Max(0m, PlatformWalletData.Balance(snap)),
             TotalCashedOut = ledger.CashedOutTotal,
             LastCashout = done.FirstOrDefault(),
-            PendingCount = ledger.Cashouts.Count(c => c.Status == "Processing"),
-            Cashouts = ledger.Cashouts.OrderByDescending(c => c.At).ToList(),
-            GatewayCharge = PlatformPayoutGateway.GatewayCharge
+            PendingCount = 0, // every row here is only ever logged AFTER the real money already moved
+            Cashouts = done,
+            GatewayCharge = 0m
         });
     }
 
-    // Called by the confirmation dialog. Returns JSON so the page can show the processing,
-    // success and failed states without a reload.
+    // Called by the confirmation dialog once the admin has ALREADY sent the money in their own
+    // bKash/Nagad app — there is no payout API to call, so this just records the real reference
+    // they got. Returns JSON so the page can show success/failed without a reload.
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Withdraw(decimal amount, string? method, string? account)
+    public async Task<IActionResult> Withdraw(decimal amount, string? method, string? account, string? reference)
     {
         var snap = await PlatformWalletData.LoadAsync(db);
         var balance = Math.Max(0m, PlatformWalletData.Balance(snap));
         var acct = (account ?? "").Trim();
-
-        // PAYOUT_GATEWAY=simulate (Development only) lets the success flow and the admin email
-        // be tested before the real gateway exists; it skips the balance limit and moves no money.
-        var simulate = env.IsDevelopment() && string.Equals(config["PAYOUT_GATEWAY"], "simulate", StringComparison.OrdinalIgnoreCase);
+        var reff = (reference ?? "").Trim();
 
         if (amount <= 0) return BadRequest(new { ok = false, error = "Enter an amount greater than ৳0." });
-        if (!simulate && amount > balance) return BadRequest(new { ok = false, error = "The amount is more than the available balance." });
+        if (amount > balance) return BadRequest(new { ok = false, error = "The amount is more than the available balance." });
         if (method is null || !PayoutMethods.Contains(method)) return BadRequest(new { ok = false, error = "Choose a payout method." });
+        if (string.IsNullOrWhiteSpace(reff)) return BadRequest(new { ok = false, error = "Enter the real transaction reference from your bKash/Nagad app." });
 
         var isMobile = method != "Bank Transfer";
         var digits = new string(acct.Where(char.IsDigit).ToArray());
@@ -78,21 +83,29 @@ public class AdminWalletController(
         if (!isMobile && acct.Length < 6)
             return BadRequest(new { ok = false, error = "Enter a valid bank account number." });
 
-        var result = await PlatformPayoutGateway.SendAsync(amount, method, isMobile ? digits : acct, simulate);
+        var finalAccount = isMobile ? digits : acct;
 
-        if (!result.Success)
-            return Ok(new { ok = false, error = result.Error ?? "The cash-out could not be processed." });
+        db.PlatformWalletTransactions.Add(new PlatformWalletTransaction
+        {
+            Type = PlatformWalletTransactionType.CashOut,
+            Amount = amount,
+            Method = MethodKind(method),
+            AccountDetail = finalAccount,
+            GatewayReference = reff,
+            ProcessedByAdmin = AdminName
+        });
+        await db.SaveChangesAsync();
 
-        var masked = MaskAccount(method, isMobile ? digits : acct);
+        var masked = MaskAccount(method, finalAccount);
 
-        // The admin gets an email record of every successful cash-out.
+        // The admin gets an email record of every cash-out they log.
         if (!string.IsNullOrWhiteSpace(AdminEmail))
         {
-            var (subject, html) = EmailTemplates.CashoutNotice(AdminName, amount, method, masked, result.Reference ?? "—", DateTime.UtcNow);
+            var (subject, html) = EmailTemplates.CashoutNotice(AdminName, amount, method, masked, reff, DateTime.UtcNow);
             await emailSender.SendAsync(AdminEmail, AdminName, subject, html);
         }
 
-        return Ok(new { ok = true, reference = result.Reference, account = masked, amount });
+        return Ok(new { ok = true, reference = reff, account = masked, amount });
     }
 
     public async Task<IActionResult> CashoutDetails(int id)
@@ -122,21 +135,34 @@ public class AdminWalletController(
         static DateTime FeeDate(WithdrawalInfo w) => w.ProcessedAt ?? w.At;
         var completed = snap.Withdrawals.Where(w => w.IsCompleted).ToList();
 
-        var feesAll = completed.Sum(w => w.Fee);
-        var feesThis = completed.Where(w => FeeDate(w) >= monthStart).Sum(w => w.Fee);
-        var feesLast = completed.Where(w => FeeDate(w) >= lastMonthStart && FeeDate(w) < monthStart).Sum(w => w.Fee);
-        var countThis = completed.Count(w => FeeDate(w) >= monthStart);
-        var countLast = completed.Count(w => FeeDate(w) >= lastMonthStart && FeeDate(w) < monthStart);
+        // Two real income events, dated by when each was actually earned: the brand's 5% the
+        // moment a payment settles, and the influencer's 5% the moment a withdrawal is marked
+        // Paid. Combined here for the "5% to Admin Wallet" totals; kept separate as
+        // BrandFeesCollected/WithdrawalFeesCollected wherever the split itself matters.
+        var incomeEvents = snap.Earnings.Where(e => e.BrandFee > 0).Select(e => (At: e.PaidAt, Amount: e.BrandFee))
+            .Concat(completed.Select(w => (At: FeeDate(w), Amount: w.Fee)))
+            .ToList();
+
+        var feesAll = snap.TotalIncome;
+        var feesThis = incomeEvents.Where(x => x.At >= monthStart).Sum(x => x.Amount);
+        var feesLast = incomeEvents.Where(x => x.At >= lastMonthStart && x.At < monthStart).Sum(x => x.Amount);
+        var countThis = incomeEvents.Count(x => x.At >= monthStart);
+        var countLast = incomeEvents.Count(x => x.At >= lastMonthStart && x.At < monthStart);
+
+        // Commission rate right now — used only to ESTIMATE the withdrawal-side fee still to
+        // come on money already earned but not yet withdrawn (the brand-side fee is never an
+        // estimate; it's collected in full the moment the payment settles).
+        var currentRatePercent = decimal.TryParse(config["PLATFORM_COMMISSION_PERCENT"], out var pct) ? Math.Clamp(pct, 0m, 100m) : 10m;
 
         var totalPaid = snap.Earnings.Sum(e => e.Amount);
         var withdrawnCompleted = completed.Sum(w => w.Amount);
-        var feesExpected = PlatformFee.Of(Math.Max(0m, totalPaid - withdrawnCompleted));
+        var feesExpected = Math.Round(Math.Max(0m, totalPaid - withdrawnCompleted) * currentRatePercent / 100m, 2);
 
         var feesByMonth = Enumerable.Range(0, 9)
             .Select(i => monthStart.AddMonths(i - 8))
             .Select(m => new MonthAmount(
                 m.ToString("MMM"),
-                completed.Where(w => FeeDate(w).Year == m.Year && FeeDate(w).Month == m.Month).Sum(w => w.Fee)))
+                incomeEvents.Where(x => x.At.Year == m.Year && x.At.Month == m.Month).Sum(x => x.Amount)))
             .ToList();
 
         var methodColors = new (PayoutMethodKind Kind, string Label, string Color)[]
@@ -145,9 +171,11 @@ public class AdminWalletController(
             (PayoutMethodKind.Nagad, "Nagad", "#f36f21"),
             (PayoutMethodKind.BankAccount, "Bank", "#236eff")
         };
+        // Brand-fee events don't carry a PayoutMethodKind (Payment.Method is a different enum),
+        // so the method breakdown here covers the withdrawal-fee side only.
         var distribution = methodColors
             .Select(m => new { m.Label, m.Color, Amount = completed.Where(w => w.Method == m.Kind).Sum(w => w.Fee) })
-            .Select(x => new DistributionSlice(x.Label, x.Amount, feesAll <= 0 ? 0 : (int)Math.Round(x.Amount / feesAll * 100), x.Color))
+            .Select(x => new DistributionSlice(x.Label, x.Amount, snap.WithdrawalFeesCollected <= 0 ? 0 : (int)Math.Round(x.Amount / snap.WithdrawalFeesCollected * 100), x.Color))
             .ToList();
 
         bool InRange(DateTime at) => (from is null || at >= from) && (to is null || at < to.Value.AddDays(1));
@@ -164,9 +192,14 @@ public class AdminWalletController(
             .Select(g =>
             {
                 var campaign = g.Key;
-                var paid = snap.Earnings.Where(e => e.CampaignId == campaign.Id && InRange(e.PaidAt)).Sum(e => e.Amount);
-                var collected = rangedLines.Where(l => l.Earning.CampaignId == campaign.Id).Sum(l => l.Fee);
-                var expected = Math.Max(0m, PlatformFee.Of(paid) - collected);
+                var campaignEarnings = snap.Earnings.Where(e => e.CampaignId == campaign.Id).ToList();
+                var paid = campaignEarnings.Where(e => InRange(e.PaidAt)).Sum(e => e.Amount);
+                // Collected = the real brand fee (always collected in full at payment time) plus
+                // whatever real withdrawal fee has been allocated back to this campaign so far.
+                var brandFeeCollected = campaignEarnings.Where(e => InRange(e.PaidAt)).Sum(e => e.BrandFee);
+                var withdrawalFeeCollected = rangedLines.Where(l => l.Earning.CampaignId == campaign.Id).Sum(l => l.Fee);
+                var collected = brandFeeCollected + withdrawalFeeCollected;
+                var expected = Math.Round(Math.Max(0m, paid - withdrawalFeeCollected) * currentRatePercent / 100m, 2);
                 var anyPending = g.Any(m => m.Payment is { Status: PaymentStatus.Pending });
                 var allPaid = g.All(m => m.Status == MilestoneStatus.Paid);
 
@@ -240,8 +273,12 @@ public class AdminWalletController(
             .Where(x => x.L.Earning.CampaignId == id)
             .ToList();
 
-        var collected = lines.Sum(x => x.L.Fee);
+        var withdrawalFeeCollected = lines.Sum(x => x.L.Fee);
         var paid = milestones.Where(m => m.Payment is { Status: PaymentStatus.Completed }).Sum(m => m.Payment!.Amount);
+        var brandFeeCollected = milestones.Where(m => m.Payment is { Status: PaymentStatus.Completed }).Sum(m => m.Payment!.BrandFeeAmount);
+        var collected = brandFeeCollected + withdrawalFeeCollected;
+
+        var currentRatePercent = decimal.TryParse(config["PLATFORM_COMMISSION_PERCENT"], out var pct) ? Math.Clamp(pct, 0m, 100m) : 10m;
 
         var rows = milestones.Select((m, i) =>
         {
@@ -251,8 +288,11 @@ public class AdminWalletController(
                 : portion >= m.Amount ? "Collected"
                 : portion > 0 ? "Partly collected"
                 : "Expected";
+            // Real brand fee once paid (collected immediately at settlement); a
+            // reference-rate estimate beforehand, exactly like the campaign-level figure.
+            var fee = isPaid ? m.Payment!.BrandFeeAmount : Math.Round(m.Amount * currentRatePercent / 100m, 2);
 
-            return new FeeMilestoneRow(i + 1, m.Title, m.ContentType, m.Collaboration.InfluencerProfile.FullName, m.Amount, PlatformFee.Of(m.Amount), state);
+            return new FeeMilestoneRow(i + 1, m.Title, m.ContentType, m.Collaboration.InfluencerProfile.FullName, m.Amount, fee, state);
         }).ToList();
 
         var vm = new CampaignFeeDrawerViewModel
@@ -270,7 +310,7 @@ public class AdminWalletController(
             Gross = milestones.Sum(m => m.Amount),
             Paid = paid,
             FeeCollected = collected,
-            FeeExpected = Math.Max(0m, PlatformFee.Of(paid) - collected),
+            FeeExpected = Math.Round(Math.Max(0m, paid - withdrawalFeeCollected) * currentRatePercent / 100m, 2),
             Milestones = rows,
             Influencers = milestones.Select(m => m.Collaboration.InfluencerProfile).DistinctBy(i => i.Id).Select(i => i.FullName).ToList(),
             InfluencerRows = milestones
@@ -279,7 +319,7 @@ public class AdminWalletController(
                 {
                     var influencerPaid = g.Where(m => m.Payment is { Status: PaymentStatus.Completed }).Sum(m => m.Payment!.Amount);
                     var withdrawn = lines.Where(x => x.W.InfluencerId == g.Key.Id).Sum(x => x.L.Portion);
-                    var influencerCollected = PlatformFee.Of(withdrawn);
+                    var influencerCollected = lines.Where(x => x.W.InfluencerId == g.Key.Id).Sum(x => x.L.Fee);
                     return new InfluencerFeeRow(
                         g.Key.Id,
                         g.Key.FullName,
@@ -287,13 +327,13 @@ public class AdminWalletController(
                         influencerPaid,
                         withdrawn,
                         influencerCollected,
-                        Math.Max(0m, PlatformFee.Of(influencerPaid) - influencerCollected));
+                        Math.Round(Math.Max(0m, influencerPaid - withdrawn) * currentRatePercent / 100m, 2));
                 })
                 .OrderByDescending(r => r.Paid)
                 .ToList(),
             Transactions = lines
                 .OrderByDescending(x => x.W.At)
-                .Select(x => new FeeTxRow(x.W.ProcessedAt ?? x.W.At, "Withdrawal fee", x.W.InfluencerName, x.W.Code, x.L.Fee, $"5% of ৳{x.L.Portion:N0} from \"{x.L.Earning.MilestoneTitle}\""))
+                .Select(x => new FeeTxRow(x.W.ProcessedAt ?? x.W.At, "Withdrawal fee", x.W.InfluencerName, x.W.Code, x.L.Fee, $"From ৳{x.L.Portion:N0} withdrawn out of \"{x.L.Earning.MilestoneTitle}\""))
                 .ToList()
         };
 

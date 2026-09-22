@@ -1,13 +1,8 @@
 using Brandora.Web.Data;
+using Brandora.Web.Models.Domain;
+using Microsoft.EntityFrameworkCore;
 
 namespace Brandora.Web.Areas.Admin.Services;
-
-public static class PlatformFee
-{
-    public const decimal Rate = 0.05m;
-
-    public static decimal Of(decimal amount) => Math.Round(amount * Rate, 2);
-}
 
 public record MonthAmount(string Label, decimal Amount);
 
@@ -41,30 +36,54 @@ public record WalletLedger(
     public decimal CashedOutTotal => Cashouts.Where(c => c.Status == "Completed").Sum(c => c.Amount);
 }
 
-// PLACEHOLDER — the single place where the payment gateway work plugs in. Everything about
-// influencer withdrawals and the 5% fee is already real (see PlatformWalletData). What only the
-// gateway / dispute work can supply is: admin cash-outs from the platform wallet, compensation
-// payouts, and the gateway reference of each influencer withdrawal. Until then they are empty,
-// IsLive is false, and the page says so instead of showing made-up numbers. When that work is
-// merged, replace the body of LoadAsync with real queries; nothing else needs to change.
+// Real, on PlatformWalletTransaction (Phase 12). Both a cash-out and a dispute compensation
+// are a human admin sending real money in their own bKash/Nagad app and logging the real
+// reference afterwards — there is no payout API to call, so every row here is only ever
+// written AFTER the money already moved, which means every row is already "Completed"; there
+// is no separate pending/processing state to track.
 public static class PlatformWalletLedger
 {
-    public static Task<WalletLedger> LoadAsync(ApplicationDbContext db)
+    private static string MethodLabel(PayoutMethodKind m) => m switch
+    {
+        PayoutMethodKind.Bkash => "bKash",
+        PayoutMethodKind.Nagad => "Nagad",
+        _ => "Bank Transfer"
+    };
+
+    public static async Task<WalletLedger> LoadAsync(ApplicationDbContext db)
     {
         var now = DateTime.UtcNow;
-        var months = Enumerable.Range(0, 9)
-            .Select(i => now.AddMonths(i - 8))
-            .Select(d => new MonthAmount(d.ToString("MMM"), 0m))
+        var monthStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+        var lastStart = monthStart.AddMonths(-1);
+        var months = Enumerable.Range(0, 9).Select(i => now.AddMonths(i - 8)).ToList();
+
+        var transactions = await db.PlatformWalletTransactions.OrderByDescending(t => t.CreatedAt).ToListAsync();
+        var compensations = transactions.Where(t => t.Type == PlatformWalletTransactionType.Compensation).ToList();
+        var cashouts = transactions.Where(t => t.Type == PlatformWalletTransactionType.CashOut).ToList();
+
+        var compensationByMonth = months
+            .Select(m => new MonthAmount(m.ToString("MMM"), compensations.Where(c => c.CreatedAt.Year == m.Year && c.CreatedAt.Month == m.Month).Sum(c => c.Amount)))
             .ToList();
 
-        return Task.FromResult(new WalletLedger(
-            IsLive: false,
-            CompensationPaidAllTime: 0m,
-            CompensationThisMonth: 0m,
-            CompensationLastMonth: 0m,
-            CompensationByMonth: months,
-            Cashouts: new List<CashoutRow>(),
-            WithdrawalGatewayReferences: new Dictionary<int, string>(),
-            SavedAccounts: new List<SavedPayoutAccount>()));
+        var cashoutRows = cashouts
+            .Select(c => new CashoutRow(
+                c.Id, c.CreatedAt, MethodLabel(c.Method), c.AccountDetail, c.Amount, c.GatewayReference, "Completed",
+                string.IsNullOrWhiteSpace(c.Note) ? $"Processed by {c.ProcessedByAdmin}" : $"{c.Note} — processed by {c.ProcessedByAdmin}",
+                c.CreatedAt))
+            .ToList();
+
+        var withdrawalRefs = await db.WithdrawalRequests
+            .Where(w => w.TransactionReference != null)
+            .ToDictionaryAsync(w => w.Id, w => w.TransactionReference!);
+
+        return new WalletLedger(
+            IsLive: true,
+            CompensationPaidAllTime: compensations.Sum(c => c.Amount),
+            CompensationThisMonth: compensations.Where(c => c.CreatedAt >= monthStart).Sum(c => c.Amount),
+            CompensationLastMonth: compensations.Where(c => c.CreatedAt >= lastStart && c.CreatedAt < monthStart).Sum(c => c.Amount),
+            CompensationByMonth: compensationByMonth,
+            Cashouts: cashoutRows,
+            WithdrawalGatewayReferences: withdrawalRefs,
+            SavedAccounts: new List<SavedPayoutAccount>());
     }
 }
