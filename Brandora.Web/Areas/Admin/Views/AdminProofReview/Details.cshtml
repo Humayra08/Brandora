@@ -259,7 +259,7 @@ else
                         </div>
                         <div>
                             <div class="timeline-title @(Model.Status == MilestoneStatus.Submitted ? "current" : "")">
-                                @pill.Label
+                                Admin: @pill.Label
                                 @if (Model.Status == MilestoneStatus.Submitted)
                                 {
                                     <span class="status-pill blue" style="padding:2px 8px; font-size:10px; margin-left:6px;">Current</span>
@@ -271,6 +271,50 @@ else
                             }
                         </div>
                     </div>
+
+                    @* The Brand's own, independent sign-off — release only happens once BOTH this
+                       and Admin's approval above are done (PaymentsController.Release checks both). *@
+                    <div class="timeline-item">
+                        <div class="timeline-dot @(Model.BrandApprovedAt is not null ? "done" : Model.Status == MilestoneStatus.RevisionRequested ? "rejected" : "current")">
+                            @if (Model.BrandApprovedAt is not null)
+                            {
+                                <i class="bi bi-check-lg"></i>
+                            }
+                        </div>
+                        <div>
+                            <div class="timeline-title @(Model.BrandApprovedAt is null ? "current" : "")">
+                                Brand: @(Model.BrandApprovedAt is not null ? "Approved" : Model.Status == MilestoneStatus.RevisionRequested ? "Waiting on resubmission" : "Not yet approved")
+                            </div>
+                            <div class="timeline-time">
+                                @(Model.BrandApprovedAt is not null
+                                    ? Model.BrandApprovedAt.Value.ToString("MMM d, yyyy, h:mm tt")
+                                    : "The brand reviews and approves separately — independent of Admin's decision.")
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @{
+                var bothApproved = Model.Status == MilestoneStatus.Approved && Model.BrandApprovedAt is not null;
+            }
+            <div class="panel" style="margin-top:20px;">
+                <div class="panel-title">Payment Eligibility</div>
+                <div class="decision-record @(bothApproved ? "approved" : "rejected")" style="margin-top:10px;">
+                    @if (Model.Status == MilestoneStatus.Paid)
+                    {
+                        <text><i class="bi bi-credit-card-fill"></i> Already paid.</text>
+                    }
+                    else if (bothApproved)
+                    {
+                        <text><i class="bi bi-unlock-fill"></i> Both sides have approved — the brand can now release this ৳@Model.Amount.ToString("N0") payment from their Finance page.</text>
+                    }
+                    else
+                    {
+                        <text>
+                            <i class="bi bi-lock-fill"></i> Locked — needs @(Model.Status != MilestoneStatus.Approved && Model.BrandApprovedAt is null ? "both Admin and the Brand" : Model.Status != MilestoneStatus.Approved ? "Admin" : "the Brand") to approve before it's payment-eligible.
+                        </text>
+                    }
                 </div>
             </div>
 
@@ -287,8 +331,12 @@ else
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="id" value="@Model.Id" />
                             <button type="submit" class="btn-approve-solid">
-                                <span class="title"><i class="bi bi-check-circle-fill"></i> Approve &amp; Complete</span>
-                                <span class="sub">Mark milestone as complete and trigger payment (৳@Model.Amount.ToString("N0")).</span>
+                                <span class="title"><i class="bi bi-check-circle-fill"></i> Approve Proof of Post</span>
+                                <span class="sub">
+                                    @(Model.BrandApprovedAt is not null
+                                        ? $"The brand already approved this — your approval is the last step, and it becomes payment-eligible immediately."
+                                        : "This is only Admin's side of the review. It doesn't pay or release anything — the brand still needs to approve separately before this becomes payment-eligible.")
+                                </span>
                             </button>
                         </form>
                         <button type="button" class="btn-reject-solid" onclick="document.getElementById('rejectPanel').style.display='block'; this.style.display='none';">
@@ -318,7 +366,12 @@ else
                 }
                 else if (Model.Status == MilestoneStatus.Approved)
                 {
-                    <div class="decision-record approved"><i class="bi bi-check-circle-fill"></i> This proof was approved. Payment can now be released from Payment Oversight.</div>
+                    <div class="decision-record approved">
+                        <i class="bi bi-check-circle-fill"></i> Admin approved this proof.
+                        @(Model.BrandApprovedAt is not null
+                            ? " The brand has also approved — they can release payment now."
+                            : " Still waiting on the brand's own approval before it's payment-eligible (see Payment Eligibility below).")
+                    </div>
                 }
                 else
                 {
