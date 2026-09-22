@@ -180,15 +180,23 @@ public class AdminDashboardController(ApplicationDbContext db, IConfiguration co
         vm.Funnel.Add(new FunnelStage("Completed", await db.Collaborations.CountAsync(c => c.Status == CollaborationStatus.Completed)));
 
         // ---- Payment Status Flow ----
-        var paymentsByStatus = await db.Payments
-            .GroupBy(p => p.Status)
-            .Select(g => new { Status = g.Key, Amount = g.Sum(p => p.Amount), Count = g.Count() })
-            .ToListAsync();
-        foreach (var status in new[] { PaymentStatus.Completed, PaymentStatus.Pending, PaymentStatus.Failed })
-        {
-            var bucket = paymentsByStatus.FirstOrDefault(b => b.Status == status);
-            vm.PaymentStatusFlow.Add(new PaymentStatusBucket(status.ToString(), bucket?.Amount ?? 0m, bucket?.Count ?? 0));
-        }
+        // Payment.Status only ever moves Pending -> Completed (PaymentSettlementService never
+        // sets it to Failed — a failed checkout attempt just leaves the Payment Pending so the
+        // brand can retry). So "Failed" here means "still Pending, but its most recent gateway
+        // attempt failed" — the same real definition AdminPaymentsController uses, not a bucket
+        // that would otherwise sit at zero forever.
+        var allPaymentsForStatus = await db.Payments.Include(p => p.Attempts).ToListAsync();
+        bool LatestAttemptFailed(Payment p) =>
+            p.Status == PaymentStatus.Pending &&
+            p.Attempts.OrderByDescending(a => a.CreatedAt).FirstOrDefault() is { Status: PaymentAttemptStatus.Failed };
+
+        var completedP = allPaymentsForStatus.Where(p => p.Status == PaymentStatus.Completed).ToList();
+        var failedP = allPaymentsForStatus.Where(p => p.Status == PaymentStatus.Failed || LatestAttemptFailed(p)).ToList();
+        var pendingP = allPaymentsForStatus.Except(completedP).Except(failedP).ToList();
+
+        vm.PaymentStatusFlow.Add(new PaymentStatusBucket("Completed", completedP.Sum(p => p.Amount), completedP.Count));
+        vm.PaymentStatusFlow.Add(new PaymentStatusBucket("Pending", pendingP.Sum(p => p.Amount), pendingP.Count));
+        vm.PaymentStatusFlow.Add(new PaymentStatusBucket("Failed", failedP.Sum(p => p.Amount), failedP.Count));
 
         // ---- Creator x Brand Marketplace Balance ----
         vm.InfluencerCount = await db.InfluencerProfiles.CountAsync();

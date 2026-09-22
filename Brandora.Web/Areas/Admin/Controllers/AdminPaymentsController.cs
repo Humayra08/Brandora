@@ -268,6 +268,9 @@ public class AdminPaymentsController(ApplicationDbContext db, NotificationServic
                 .Select(a => new AttemptRow(a.Gateway, a.Status.ToString(), a.CreatedAt, a.CompletedAt, a.FailureReason, a.GatewayTransactionId))
                 .ToList();
 
+            var lastAttempt = p.Attempts.OrderByDescending(a => a.CreatedAt).FirstOrDefault();
+            var attemptFailed = LatestAttemptFailed(p);
+
             var history = new List<HistoryStep>
             {
                 new("Milestone released by the brand", p.CreatedAt, "done", "The brand released this milestone and started checkout.")
@@ -275,7 +278,9 @@ public class AdminPaymentsController(ApplicationDbContext db, NotificationServic
             if (p.Status == PaymentStatus.Completed)
                 history.Add(new("Payment completed", p.PaidAt ?? p.CreatedAt, "done", $"Confirmed by {MethodLabel(p.Method)} and credited to the influencer's wallet."));
             else if (p.Status == PaymentStatus.Failed)
-                history.Add(new("Payment failed", p.Attempts.OrderByDescending(a => a.CreatedAt).FirstOrDefault()?.CompletedAt, "bad", p.Attempts.OrderByDescending(a => a.CreatedAt).FirstOrDefault()?.FailureReason ?? "The payment did not go through."));
+                history.Add(new("Payment failed", lastAttempt?.CompletedAt, "bad", lastAttempt?.FailureReason ?? "The payment did not go through."));
+            else if (attemptFailed)
+                history.Add(new("Last attempt failed", lastAttempt?.CompletedAt, "bad", (lastAttempt?.FailureReason ?? "The payment did not go through.") + " The brand can try again."));
             else
                 history.Add(new("Waiting for confirmation", null, "pending", "Pending until the gateway confirms the brand's payment."));
 
@@ -290,7 +295,7 @@ public class AdminPaymentsController(ApplicationDbContext db, NotificationServic
                 Reference = string.IsNullOrWhiteSpace(p.TransactionReference) ? null : p.TransactionReference,
                 InitiatedBy = "Brand · " + camp.BrandProfile.CompanyName,
                 Remarks = p.Status == PaymentStatus.Completed ? "Payment confirmed for " + (ms?.Title ?? "the milestone") + "."
-                    : p.Status == PaymentStatus.Failed ? "The payment failed — see the gateway timeline below."
+                    : p.Status == PaymentStatus.Failed || attemptFailed ? "The last attempt failed — see the gateway timeline below. The brand can retry."
                     : "Waiting for the brand's payment to be confirmed.",
 
                 HasCampaign = true,
