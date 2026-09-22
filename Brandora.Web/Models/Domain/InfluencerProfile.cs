@@ -17,6 +17,7 @@ public class InfluencerProfile
     public string? Bio { get; set; }
     public string? Location { get; set; }
     public string? WebsiteUrl { get; set; }
+    public string? ProfilePictureUrl { get; set; }
     public int Followers { get; set; }
     public decimal EngagementRate { get; set; }
     public string? RateNote { get; set; }

@@ -7,6 +7,7 @@
     Layout = null;
 
     var bio = Model.Form.Bio ?? string.Empty;
+    var profileErrors = (TempData["ProfileErrors"] as string)?.Split('|', StringSplitOptions.RemoveEmptyEntries) ?? Array.Empty<string>();
 }
 
 <!DOCTYPE html>
@@ -568,9 +569,10 @@
         }
 
         .ps-change-photo-btn {
+            display: inline-block;
             border: 1px solid #dce7ff;
             background: #ffffff;
-            color: #6322d4;
+            color: #0759ff;
             padding: 7px 14px;
             border-radius: 8px;
             font-size: 12px;
@@ -579,7 +581,23 @@
         }
 
         .ps-change-photo-btn:hover {
-            border-color: #9b2cff;
+            border-color: #176cff;
+        }
+
+        .ps-change-photo-btn.is-remove {
+            border-color: #f1ccd3;
+            color: #c22540;
+        }
+
+        .ps-change-photo-btn.is-remove:hover {
+            border-color: #c22540;
+        }
+
+        #picturePreview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
         }
 
         .ps-form-grid {
@@ -975,7 +993,7 @@
                 </div>
             </details>
             <a class="dashboard-account" href="/InfluencerSettings">
-                <span class="dashboard-avatar">@FollowerFormat.InitialsOf(Model.Profile.FullName)</span>
+                <span class="dashboard-avatar">@if (!string.IsNullOrEmpty(Model.Profile.ProfilePictureUrl)) { <img src="@Model.Profile.ProfilePictureUrl" alt="" /> } else { @FollowerFormat.InitialsOf(Model.Profile.FullName) }</span>
                 <span><strong>@Model.Profile.FullName</strong><small>Influencer</small></span>
                 <i class="bi bi-chevron-down" aria-hidden="true"></i>
             </a>
@@ -1057,20 +1075,45 @@
                 {
                     <div class="ps-saved-note"><i class="bi bi-check-circle-fill"></i> Profile updated successfully.</div>
                 }
+                @if (profileErrors.Length > 0)
+                {
+                    <div class="ps-saved-note" style="background:#fdecef;color:#c22540;">
+                        <i class="bi bi-exclamation-circle-fill"></i>
+                        <span>@string.Join(" ", profileErrors)</span>
+                    </div>
+                }
 
-                <form method="post" action="/InfluencerSettings/Update">
+                <form method="post" action="/InfluencerSettings/Update" enctype="multipart/form-data">
                     @Html.AntiForgeryToken()
 
                     <div class="ps-photo-row">
                         <div class="ps-photo-avatar-wrap">
-                            <div class="avatar-circle large">@FollowerFormat.InitialsOf(Model.Profile.FullName)</div>
+                            <div class="avatar-circle large" id="picturePreview">
+                                @if (!string.IsNullOrEmpty(Model.Profile.ProfilePictureUrl))
+                                {
+                                    <img src="@Model.Profile.ProfilePictureUrl" alt="Profile picture" id="picturePreviewImg" />
+                                }
+                                else
+                                {
+                                    <span id="picturePreviewInitial">@FollowerFormat.InitialsOf(Model.Profile.FullName)</span>
+                                }
+                            </div>
                             <span class="ps-photo-camera"><i class="bi bi-camera-fill"></i></span>
                         </div>
 
                         <div>
                             <div class="ps-photo-name">@Model.Profile.FullName</div>
-                            <div class="ps-photo-hint">JPG, PNG or WebP. Max size of 2MB.</div>
-                            <button type="button" class="ps-change-photo-btn">Change Photo</button>
+                            <div class="ps-photo-hint">JPG, PNG or WebP &middot; up to 5MB</div>
+                            <div class="ps-photo-actions" style="display:flex;flex-wrap:wrap;gap:8px;">
+                                <label for="ProfilePictureFile" class="ps-change-photo-btn" tabindex="0">
+                                    @(string.IsNullOrEmpty(Model.Profile.ProfilePictureUrl) ? "Upload Photo" : "Change Photo")
+                                </label>
+                                <input type="file" id="ProfilePictureFile" name="ProfilePictureFile" accept="image/jpeg,image/png,image/webp" hidden />
+                                @if (!string.IsNullOrEmpty(Model.Profile.ProfilePictureUrl))
+                                {
+                                    <button type="submit" name="RemoveProfilePicture" value="true" class="ps-change-photo-btn is-remove">Remove Photo</button>
+                                }
+                            </div>
                         </div>
                     </div>
 
@@ -1213,6 +1256,49 @@
     <script src="~/js/brandora-influencer-dashboard.js" asp-append-version="true"></script>
 
     <script>
+
+        (function () {
+            var fileInput = document.getElementById('ProfilePictureFile');
+            var label = document.querySelector('label[for="ProfilePictureFile"]');
+            var preview = document.getElementById('picturePreview');
+
+            if (!fileInput || !preview) return;
+
+            var MAX_BYTES = 5 * 1024 * 1024;
+            var ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+
+            if (label) {
+                label.addEventListener('keydown', function (e) {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        fileInput.click();
+                    }
+                });
+            }
+
+            fileInput.addEventListener('change', function () {
+                var file = fileInput.files && fileInput.files[0];
+                if (!file) return;
+
+                if (ALLOWED_TYPES.indexOf(file.type) === -1) {
+                    alert('Please choose a JPG, PNG, or WEBP image.');
+                    fileInput.value = '';
+                    return;
+                }
+
+                if (file.size > MAX_BYTES) {
+                    alert('That image is larger than 5MB. Please choose a smaller file.');
+                    fileInput.value = '';
+                    return;
+                }
+
+                var reader = new FileReader();
+                reader.onload = function (e) {
+                    preview.innerHTML = '<img src="' + e.target.result + '" alt="Selected profile picture" />';
+                };
+                reader.readAsDataURL(file);
+            });
+        })();
 
         (function () {
             var links = document.querySelectorAll('[data-settings-nav]');

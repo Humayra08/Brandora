@@ -2,13 +2,14 @@ using Brandora.Web.Data;
 using Brandora.Web.Models.Dashboard;
 using Brandora.Web.Models.Domain;
 using Brandora.Web.Models.Settings;
+using Brandora.Web.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace Brandora.Web.Controllers;
 
-public class InfluencerSettingsController(UserManager<ApplicationUser> userManager, ApplicationDbContext db) : InfluencerControllerBase(userManager, db)
+public class InfluencerSettingsController(UserManager<ApplicationUser> userManager, ApplicationDbContext db, MediaUploadService mediaUploads) : InfluencerControllerBase(userManager, db)
 {
     public async Task<IActionResult> Index()
     {
@@ -49,12 +50,32 @@ public class InfluencerSettingsController(UserManager<ApplicationUser> userManag
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [RequestSizeLimit(10_000_000)]
     public async Task<IActionResult> Update(InfluencerProfileFormModel form)
     {
         var influencer = await GetCurrentInfluencerAsync();
         if (influencer is null)
         {
             return RedirectToAction("Index", "Home");
+        }
+
+        if (form.RemoveProfilePicture && influencer.ProfilePictureUrl is not null)
+        {
+            mediaUploads.DeleteMedia(influencer.ProfilePictureUrl);
+            influencer.ProfilePictureUrl = null;
+        }
+
+        if (form.ProfilePictureFile is { Length: > 0 })
+        {
+            var (url, error) = await mediaUploads.SaveProfilePictureAsync(form.ProfilePictureFile);
+            if (error is not null)
+            {
+                TempData["ProfileErrors"] = error;
+                return RedirectToAction("Index");
+            }
+
+            mediaUploads.DeleteMedia(influencer.ProfilePictureUrl);
+            influencer.ProfilePictureUrl = url;
         }
 
         influencer.FullName = form.FullName;
