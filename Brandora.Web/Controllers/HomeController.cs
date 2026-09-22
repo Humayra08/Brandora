@@ -137,6 +137,14 @@ public class HomeController(ApplicationDbContext db) : Controller
         return View();
     }
 
+    // No Terms route existed before this, so there is no legacy URL to preserve —
+    // "terms-and-conditions" alone matches the hyphenated convention above.
+    [HttpGet("terms-and-conditions")]
+    public IActionResult Terms()
+    {
+        return View();
+    }
+
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
     public IActionResult Error()
     {
