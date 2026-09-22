@@ -1,11 +1,14 @@
 @model Brandora.Web.Areas.Admin.Controllers.CampaignFeeDrawerViewModel
 @using System.Globalization
 @using Brandora.Web.Areas.Admin.Services
+@inject IConfiguration Config
 @{
     string Money(decimal amount) => "৳" + amount.ToString("N0", CultureInfo.InvariantCulture);
     string Initials(string name) => string.Concat(name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(p => char.ToUpperInvariant(p[0])));
 
-    var rate = (PlatformFee.Rate * 100).ToString("0.##", CultureInfo.InvariantCulture);
+    // Brand fees on real (paid) milestones are their own exact rate; this current-config
+    // rate only labels the estimate shown on not-yet-paid ones.
+    var rate = (decimal.TryParse(Config["PLATFORM_COMMISSION_PERCENT"], out var cfgPct) ? Math.Clamp(cfgPct, 0m, 100m) : 10m).ToString("0.##", CultureInfo.InvariantCulture);
     var feeTotal = Model.FeeCollected + Model.FeeExpected;
     var collectedPct = feeTotal == 0 ? 0 : (int)Math.Round(Model.FeeCollected / feeTotal * 100);
     var expectedPct = feeTotal == 0 ? 0 : 100 - collectedPct;

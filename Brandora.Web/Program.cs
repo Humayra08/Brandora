@@ -109,7 +109,22 @@ else
     app.UseHsts();
 }
 
-app.UseHttpsRedirection();
+// The default UseHttpsRedirection() can't pick an https port on its own when the app is
+// bound to more than one (e.g. running the Brand/Influencer ports 5130/7150 and the Admin
+// ports 5140/7160 together, via `dotnet run --urls "...;...;...;..."` for local testing) —
+// it throws InvalidOperationException. Redirect explicitly instead, keeping each http port
+// paired with its own https port so Admin and the public site both still redirect correctly.
+var httpToHttpsPort = new Dictionary<int, int> { [5130] = 7150, [5140] = 7160 };
+app.Use(async (context, next) =>
+{
+    if (!context.Request.IsHttps && httpToHttpsPort.TryGetValue(context.Connection.LocalPort, out var httpsPort))
+    {
+        var redirectUrl = $"https://{context.Request.Host.Host}:{httpsPort}{context.Request.Path}{context.Request.QueryString}";
+        context.Response.Redirect(redirectUrl, permanent: false);
+        return;
+    }
+    await next();
+});
 app.UseStaticFiles();
 app.UseRouting();
 

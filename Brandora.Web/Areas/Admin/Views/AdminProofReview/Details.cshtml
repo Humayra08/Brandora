@@ -21,7 +21,7 @@
     (string Label, string Color) StatusPill(MilestoneStatus s) => s switch
     {
         MilestoneStatus.Submitted => ("Submitted", "blue"),
-        MilestoneStatus.RevisionRequested => ("Needs Revision", "orange"),
+        MilestoneStatus.RevisionRequested => ("Needs Revision", "gray"),
         MilestoneStatus.Approved => ("Approved", "green"),
         MilestoneStatus.Paid => ("Paid", "gray"),
         _ => (s.ToString(), "gray")
@@ -29,29 +29,44 @@
 }
 
 <style>
-    .rp-hero {
-        position: relative; isolation: isolate; overflow: hidden;
-        display: flex; align-items: center; justify-content: space-between; gap: 20px;
-        min-height: 140px; padding: 26px 36px;
-        border-radius: 18px; margin-bottom: 20px;
-        border: 1px solid #dce7ff;
-        background: radial-gradient(ellipse at 61% 0%, rgba(163,38,255,.1), transparent 58%), linear-gradient(110deg, #f3f6ff55, #eaf1ff99 55%, #f3f6ff55);
-    }
+    /* ---- hero ---- */
+    .rp-hero { position: relative; isolation: isolate; overflow: hidden; padding: 26px 36px; border-radius: 18px; margin-bottom: 18px; border: 1px solid #dce7ff; background: radial-gradient(ellipse at 61% 0%, rgba(163,38,255,.1), transparent 58%), linear-gradient(110deg, #f3f6ff55, #eaf1ff99 55%, #f3f6ff55); }
     .rp-hero .dashboard-waves { position: absolute; inset: auto 0 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
-    .rp-hero-back { position: relative; z-index: 2; display: inline-flex; align-items: center; gap: 6px; font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 600; color: #6b52d8; }
+    .rp-hero-back { position: relative; z-index: 2; display: inline-flex; align-items: center; gap: 6px; margin-bottom: 14px; font-family: 'Inter', sans-serif; font-size: 12.5px; font-weight: 600; color: #6b52d8; }
     .rp-hero-back:hover { text-decoration: underline; }
-    .rp-hero-title h1 { margin: 4px 0 0; font-family: 'Playfair Display', Georgia, serif; font-weight: 700; font-size: clamp(30px, 3vw, 42px); line-height: 1.1; color: #171d3d; }
-    .rp-hero-title p { margin-top: 6px; font-family: 'Inter', sans-serif; font-size: 13.5px; color: #6b7290; }
-    .rp-hero-status { position: relative; z-index: 2; text-align: right; flex-shrink: 0; }
-    .rp-hero-status .t { margin-top: 6px; font-family: 'Inter', sans-serif; font-size: 12px; color: #6b7290; }
+    .rp-hero-top { position: relative; z-index: 2; display: flex; align-items: flex-start; gap: 18px; }
+    .rp-hero-avatar { flex: 0 0 60px; width: 60px; height: 60px; border-radius: 18px; display: flex; align-items: center; justify-content: center; background: linear-gradient(145deg, #f5a623, #e0821b); color: #fff; font-family: 'DM Sans', sans-serif; font-weight: 800; font-size: 20px; }
+    .rp-hero-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+    .rp-hero-tags span { display: inline-flex; align-items: center; gap: 6px; padding: 4px 11px; border-radius: 20px; background: #ffffffcc; border: 1px solid #dbe8ff; font-family: 'Inter', sans-serif; font-size: 11.5px; font-weight: 600; color: #33477c; }
+    .rp-hero-title { margin: 10px 0 0; font-family: 'Playfair Display', Georgia, serif; font-weight: 700; font-size: clamp(26px, 3vw, 36px); line-height: 1.1; color: #171d3d; }
+    .rp-hero-sub { margin-top: 6px; font-family: 'Inter', sans-serif; font-size: 13.5px; color: #6b7290; }
+    .rp-hero-sub a { color: #6b52d8; font-weight: 600; text-decoration: none; }
+    .rp-hero-side { flex-shrink: 0; text-align: right; }
+    .rp-hero-stats { position: relative; z-index: 2; display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 22px; padding-top: 18px; border-top: 1px solid #dfe9ff; }
+    .rp-hero-stats dt { font-family: 'Inter', sans-serif; font-size: 11px; color: #8189a8; }
+    .rp-hero-stats dd { margin: 3px 0 0; font-family: 'DM Sans', sans-serif; font-weight: 800; font-size: 18px; color: #171d3d; }
+    .rp-hero-stats dd small { font-family: 'Inter', sans-serif; font-weight: 500; font-size: 11px; color: #8189a8; }
+    @@media(max-width: 700px) { .rp-hero-stats { grid-template-columns: 1fr 1fr; } }
 
-    .rp-grid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, 0.9fr); gap: 20px; align-items: start; }
-    .rp-grid > * { min-width: 0; }
-    .detail-info-value { overflow-wrap: anywhere; word-break: break-word; min-width: 0; }
-    @@media(max-width: 1200px) { .rp-grid { grid-template-columns: 1fr; } }
+    /* ---- step tracker ---- */
+    .rp-tracker { display: flex; align-items: flex-start; gap: 0; margin-bottom: 20px; padding: 18px 10px; border-radius: 14px; background: #fff; border: 1px solid #dce7ff; overflow-x: auto; }
+    .rp-step { flex: 1; min-width: 118px; display: flex; flex-direction: column; align-items: center; text-align: center; position: relative; padding: 0 6px; }
+    .rp-step-line { position: absolute; top: 17px; left: -50%; width: 100%; height: 2px; background: #e3e7f5; z-index: 0; }
+    .rp-step:first-child .rp-step-line { display: none; }
+    .rp-step.is-done .rp-step-line, .rp-step.is-current .rp-step-line { background: linear-gradient(90deg, #7a4bff, #3d92ff); }
+    .rp-step-num { position: relative; z-index: 1; width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 14px; background: #eef1fb; color: #8189a8; border: 2px solid #eef1fb; }
+    .rp-step.is-done .rp-step-num { background: linear-gradient(135deg, #7a4bff, #3d92ff); color: #fff; border-color: transparent; }
+    .rp-step.is-current .rp-step-num { background: #fff; color: #3d63ff; border-color: #3d63ff; }
+    .rp-step-title { margin-top: 8px; font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 12px; color: #2a3157; }
+    .rp-step.is-current .rp-step-title { color: #3d63ff; }
+    .rp-step-sub { margin-top: 1px; font-family: 'Inter', sans-serif; font-size: 10.5px; color: #8189a8; }
+
+    /* ---- linear sections ---- */
+    .rp-stack { display: flex; flex-direction: column; gap: 20px; max-width: 900px; margin: 0 auto; }
+    .rp-section-eyebrow { font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; color: #8189a8; margin-bottom: 4px; }
 
     .rp-proof-media { margin-top: 14px; border-radius: 14px; overflow: hidden; border: 1px solid #eaecf5; }
-    .rp-proof-img { width: 100%; max-height: 420px; object-fit: cover; display: block; }
+    .rp-proof-img { width: 100%; max-height: 460px; object-fit: cover; display: block; }
     .rp-proof-link-box { padding: 30px 20px; text-align: center; background: linear-gradient(135deg, #f1e6ff, #e3f0ff); }
     .rp-proof-link-box i { font-size: 30px; color: #8b2ff2; }
     .rp-proof-link-box a { display: inline-flex; align-items: center; gap: 8px; margin-top: 10px; font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 700; color: #6b52d8; }
@@ -64,15 +79,14 @@
     .detail-info-row i { color: #9b2cff; margin-top: 2px; }
     .detail-info-row > div { min-width: 0; }
     .detail-info-label { font-family: 'Inter', sans-serif; font-size: 11.5px; color: #8189a8; }
-    .detail-info-value { margin-top: 2px; font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; color: #2a3157; }
+    .detail-info-value { margin-top: 2px; font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; color: #2a3157; overflow-wrap: anywhere; word-break: break-word; }
 
-    .rp-brand-row { display: flex; align-items: center; gap: 12px; }
+    .rp-brand-row, .rp-influencer-row { display: flex; align-items: center; gap: 12px; }
     .rp-brand-logo { width: 46px; height: 46px; border-radius: 12px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #f1e6ff, #e3f0ff); color: #7a2fe0; font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 15px; }
     .rp-brand-name { font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 14.5px; color: #171d3d; }
     .rp-brand-sub { margin-top: 1px; font-family: 'Inter', sans-serif; font-size: 11.5px; color: #8189a8; }
-    .rp-view-campaign { margin-left: auto; display: inline-flex; align-items: center; gap: 5px; height: 32px; padding: 0 12px; border-radius: 8px; background: #eef1fb; color: #6b52d8; font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 700; text-decoration: none; }
+    .rp-view-campaign { margin-left: auto; display: inline-flex; align-items: center; gap: 5px; height: 32px; padding: 0 12px; border-radius: 8px; background: #eef1fb; color: #6b52d8; font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 700; text-decoration: none; flex-shrink: 0; }
 
-    .rp-influencer-row { display: flex; align-items: center; gap: 12px; }
     .rp-influencer-avatar { width: 46px; height: 46px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: linear-gradient(145deg, #c93cff, #4e38ff 55%, #159cff); color: #fff; font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 15px; }
     .rp-influencer-name { font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 14.5px; color: #171d3d; }
     .rp-influencer-handle { margin-top: 1px; font-family: 'Inter', sans-serif; font-size: 11.5px; color: #8189a8; }
@@ -92,12 +106,15 @@
     .timeline-title.current { color: #236eff; }
     .timeline-time { margin-top: 2px; font-family: 'Inter', sans-serif; font-size: 11.5px; color: #8189a8; }
 
-    .action-required-box { padding: 16px; border-radius: 12px; background: linear-gradient(135deg, #f1e6ff, #e9effe); border: 1px solid #e2d3ff; }
-    .action-required-title { display: flex; align-items: center; gap: 8px; font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 14px; color: #171d3d; }
-    .action-required-title i { color: #7a1fd6; }
-    .action-required-text { margin-top: 6px; font-family: 'Inter', sans-serif; font-size: 12.5px; color: #6b7290; line-height: 1.5; }
+    /* ---- final decision panel, bottom of the scroll ---- */
+    .rp-decision { border-radius: 15px; border: 1px solid #dce7ff; background: linear-gradient(135deg, #f8f4ff, #eef4ff); padding: 26px 28px; }
+    .rp-decision-head { display: flex; align-items: center; gap: 10px; }
+    .rp-decision-head i { font-size: 20px; color: #7a1fd6; }
+    .rp-decision-eyebrow { font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; color: #7a1fd6; }
+    .rp-decision-title { margin-top: 2px; font-family: 'Playfair Display', Georgia, serif; font-weight: 700; font-size: 22px; color: #171d3d; }
+    .rp-decision-text { margin-top: 8px; font-family: 'Inter', sans-serif; font-size: 13px; line-height: 1.6; color: #4a5170; }
 
-    .decision-btn-col { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
+    .decision-btn-col { display: flex; flex-direction: column; gap: 10px; margin-top: 18px; }
     .btn-approve-solid, .btn-reject-solid {
         display: block; width: 100%; box-sizing: border-box;
         border-radius: 10px; border: none; padding: 12px 16px;
@@ -133,198 +150,285 @@ else
     var brand = campaign.BrandProfile;
     var influencer = Model.Collaboration.InfluencerProfile;
     var pill = StatusPill(Model.Status);
+    var bothApproved = Model.Status == MilestoneStatus.Approved && Model.BrandApprovedAt is not null;
+    var isPaid = Model.Status == MilestoneStatus.Paid;
+
+    // Same 5-step journey the Brand sees on their Milestone page, from the Admin's own
+    // vantage point: step 2 is THIS reviewer's decision, step 3 is the Brand's.
+    var s1 = true; // this page only ever opens for a milestone that has proof submitted
+    var s2 = Model.Status == MilestoneStatus.Approved || isPaid;
+    var s3 = Model.BrandApprovedAt is not null || isPaid;
+    var s4 = Model.Payment is not null;
+    var s5 = isPaid;
+    var steps = new[]
+    {
+        (Done: s1, Title: "Proof Submitted", Sub: "Creator delivers content"),
+        (Done: s2, Title: "Admin Review", Sub: "You check it here"),
+        (Done: s3, Title: "Brand Approval", Sub: "Brand signs off separately"),
+        (Done: s4, Title: "Payment Released", Sub: "bKash or Nagad checkout"),
+        (Done: s5, Title: "Paid", Sub: "Creator credited")
+    };
+    var currentIndex = Array.FindIndex(steps, x => !x.Done);
+    if (currentIndex < 0) currentIndex = steps.Length - 1;
+
+    <a href="/Admin/AdminProofReview/Index" class="rp-hero-back"><i class="bi bi-arrow-left"></i> Back to Proof-of-Post Review</a>
 
     <section class="rp-hero">
         @await Html.PartialAsync("~/Views/InfluencerDashboard/_Waves.cshtml", "hero")
-        <div>
-            <a href="/Admin/AdminProofReview/Index" class="rp-hero-back"><i class="bi bi-arrow-left"></i> Back to Proof-of-Post Review</a>
-            <div class="rp-hero-title">
-                <h1>Review Proof of Post</h1>
-                <p>Check the content, verify it matches the campaign requirements, and take action.</p>
+        <div class="rp-hero-top">
+            <div class="rp-hero-avatar">@Initials(influencer.FullName)</div>
+            <div style="flex:1;min-width:0;">
+                <div class="rp-hero-tags">
+                    <span><i class="bi bi-flag-fill"></i> Milestone @milestoneIndex of @milestoneTotal</span>
+                    @if (!string.IsNullOrWhiteSpace(Model.ContentType))
+                    {
+                        <span><i class="bi bi-camera-reels"></i> @Model.ContentType</span>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(campaign.Platform))
+                    {
+                        <span><i class="bi bi-broadcast"></i> @campaign.Platform</span>
+                    }
+                </div>
+                <div class="rp-hero-title">@Model.Title</div>
+                <div class="rp-hero-sub">Submitted by <a href="/Admin/AdminUserVerification/Details?type=influencer&id=@influencer.Id">@influencer.FullName</a> for <a href="/Admin/AdminCampaigns/Index?search=@Uri.EscapeDataString(campaign.Title)">@campaign.Title</a></div>
+            </div>
+            <div class="rp-hero-side">
+                <span class="status-pill @pill.Color">@pill.Label</span>
             </div>
         </div>
-        <div class="rp-hero-status">
-            <span class="status-pill @pill.Color">@pill.Label</span>
-            <div class="t">Submitted on @Model.CreatedAt.ToString("MMM d, yyyy, h:mm tt")</div>
-        </div>
+        <dl class="rp-hero-stats">
+            <div><dt>Milestone Amount</dt><dd>৳@Model.Amount.ToString("N0")</dd></div>
+            <div><dt>Payout to Creator</dt><dd>৳@Model.Amount.ToString("N0") <small>full amount</small></dd></div>
+            <div><dt>Due Date</dt><dd>@(Model.DueDate.HasValue ? Model.DueDate.Value.ToString("MMM d, yyyy") : "Not set")</dd></div>
+            <div><dt>Submitted</dt><dd>@Model.CreatedAt.ToString("MMM d, yyyy")</dd></div>
+        </dl>
     </section>
 
-    <div class="rp-grid">
+    <div class="rp-tracker" aria-label="Milestone progress">
+        @for (var i = 0; i < steps.Length; i++)
+        {
+            var step = steps[i];
+            var cls = step.Done ? "is-done" : i == currentIndex ? "is-current" : "";
+            <div class="rp-step @cls">
+                <span class="rp-step-line"></span>
+                <span class="rp-step-num">@if (step.Done) { <i class="bi bi-check-lg"></i> } else { @(i + 1) }</span>
+                <div class="rp-step-title">@step.Title</div>
+                <div class="rp-step-sub">@step.Sub</div>
+            </div>
+        }
+    </div>
 
-        <div>
-            <div class="panel">
-                <div class="panel-title">Submitted Post</div>
+    <div class="rp-stack">
 
-                <div class="rp-proof-media">
-                    @if (IsImageUrl(Model.ProofUrl))
-                    {
-                        <img src="@Model.ProofUrl" alt="Submitted proof for @Model.Title" class="rp-proof-img" />
-                    }
-                    else if (!string.IsNullOrWhiteSpace(Model.ProofUrl))
-                    {
-                        <div class="rp-proof-link-box">
-                            <i class="bi bi-box-arrow-up-right"></i>
-                            <div class="panel-sub" style="margin-top:6px;">This proof was submitted as a link, not an uploaded image.</div>
-                            <a href="@Model.ProofUrl" target="_blank" rel="noopener">Open Submitted Link <i class="bi bi-arrow-up-right"></i></a>
-                        </div>
-                    }
-                    else
-                    {
-                        <div class="rp-proof-link-box"><div class="panel-sub">No proof file or link was recorded on this milestone.</div></div>
-                    }
-                </div>
+        @* ---------- 1. Submitted Post ---------- *@
+        <div class="panel">
+            <div class="rp-section-eyebrow">Step 1</div>
+            <div class="panel-title">Submitted Post</div>
+            <p class="panel-sub">What @influencer.FullName submitted for this milestone.</p>
 
-                <div class="rp-caption-box">
-                    <strong>@Model.Title</strong>
-                    @if (!string.IsNullOrWhiteSpace(Model.Description))
-                    {
-                        <div style="margin-top:6px;">@Model.Description</div>
-                    }
-                </div>
-
-                @if (!string.IsNullOrWhiteSpace(Model.ProofNotes))
+            <div class="rp-proof-media">
+                @if (IsImageUrl(Model.ProofUrl))
                 {
-                    <div class="rp-note-box">
-                        <i class="bi bi-chat-quote"></i>
-                        "@Model.ProofNotes"
-                    </div>
+                    <img src="@Model.ProofUrl" alt="Submitted proof for @Model.Title" class="rp-proof-img" />
                 }
-            </div>
-        </div>
-
-        <div>
-            <div class="panel">
-                <div class="panel-title">Post Details</div>
-                <div style="margin-top:8px;">
-                    <div class="detail-info-row"><i class="bi bi-share-fill"></i><div><div class="detail-info-label">Platform</div><div class="detail-info-value">@(campaign.Platform ?? "Not specified")</div></div></div>
-                    @if (!string.IsNullOrWhiteSpace(Model.ProofUrl))
-                    {
-                        <div class="detail-info-row"><i class="bi bi-link-45deg"></i><div><div class="detail-info-label">Post URL</div><div class="detail-info-value"><a href="@Model.ProofUrl" target="_blank" rel="noopener">@Model.ProofUrl</a></div></div></div>
-                    }
-                    <div class="detail-info-row"><i class="bi bi-file-text"></i><div><div class="detail-info-label">Milestone Description</div><div class="detail-info-value">@(Model.Description ?? "No description provided.")</div></div></div>
-                </div>
-            </div>
-
-            <div class="panel" style="margin-top:20px;">
-                <div class="panel-title">Brand &amp; Campaign</div>
-                <div class="rp-brand-row" style="margin-top:10px;">
-                    <div class="rp-brand-logo">@Initials(brand.CompanyName)</div>
-                    <div>
-                        <div class="rp-brand-name">@brand.CompanyName</div>
-                        <div class="rp-brand-sub">@campaign.Title</div>
-                    </div>
-                    <a href="/Admin/AdminCampaigns/Index?search=@Uri.EscapeDataString(campaign.Title)" class="rp-view-campaign">View Campaign <i class="bi bi-box-arrow-up-right"></i></a>
-                </div>
-                <div style="margin-top:8px;">
-                    <div class="detail-info-row"><i class="bi bi-tags"></i><div><div class="detail-info-label">Niche</div><div class="detail-info-value">@(campaign.Niche ?? "Not set")</div></div></div>
-                    <div class="detail-info-row"><i class="bi bi-flag"></i><div><div class="detail-info-label">Milestone</div><div class="detail-info-value">@Model.Title <span class="status-pill blue" style="padding:2px 8px; font-size:10px;">@milestoneIndex of @milestoneTotal</span></div></div></div>
-                    <div class="detail-info-row"><i class="bi bi-cash-coin"></i><div><div class="detail-info-label">Payout Amount</div><div class="detail-info-value">৳@Model.Amount.ToString("N0")</div></div></div>
-                    <div class="detail-info-row"><i class="bi bi-calendar-event"></i><div><div class="detail-info-label">Due Date</div><div class="detail-info-value">@(Model.DueDate.HasValue ? Model.DueDate.Value.ToString("MMM d, yyyy") : "Not set")</div></div></div>
-                </div>
-            </div>
-
-            <div class="panel" style="margin-top:20px;">
-                <div class="panel-title">Influencer Information</div>
-                <div class="rp-influencer-row" style="margin-top:10px;">
-                    <div class="rp-influencer-avatar">@Initials(influencer.FullName)</div>
-                    <div>
-                        <div class="rp-influencer-name">@influencer.FullName</div>
-                        <div class="rp-influencer-handle">@@@influencer.PlatformUsername</div>
-                    </div>
-                    <a href="/Admin/AdminUserVerification/Details?type=influencer&id=@influencer.Id" class="rp-view-campaign">View Profile <i class="bi bi-box-arrow-up-right"></i></a>
-                </div>
-                <div class="rp-influencer-stats">
-                    <div><div class="n">@FormatFollowers(influencer.Followers)</div><div class="l">Followers</div></div>
-                    <div><div class="n">@influencer.EngagementRate.ToString("0.##")%</div><div class="l">Engagement</div></div>
-                    <div><div class="n">@influencer.ContentNiche</div><div class="l">Niche</div></div>
-                    <div><div class="n">@influencerMilestoneCount</div><div class="l">Milestones</div></div>
-                </div>
-            </div>
-        </div>
-
-        <div>
-            <div class="panel">
-                <div class="panel-title">Review History</div>
-                <div style="margin-top:16px;">
-                    <div class="timeline-item">
-                        <div class="timeline-dot done"><i class="bi bi-check-lg"></i></div>
-                        <div><div class="timeline-title">Submitted by influencer</div><div class="timeline-time">@Model.CreatedAt.ToString("MMM d, yyyy, h:mm tt")</div></div>
-                    </div>
-                    <div class="timeline-item">
-                        <div class="timeline-dot @(Model.Status == MilestoneStatus.Submitted ? "current" : Model.Status == MilestoneStatus.RevisionRequested ? "rejected" : "done")">
-                            @if (Model.Status != MilestoneStatus.Submitted)
-                            {
-                                <i class="bi @(Model.Status == MilestoneStatus.RevisionRequested ? "bi-arrow-repeat" : "bi-check-lg")"></i>
-                            }
-                        </div>
-                        <div>
-                            <div class="timeline-title @(Model.Status == MilestoneStatus.Submitted ? "current" : "")">
-                                @pill.Label
-                                @if (Model.Status == MilestoneStatus.Submitted)
-                                {
-                                    <span class="status-pill blue" style="padding:2px 8px; font-size:10px; margin-left:6px;">Current</span>
-                                }
-                            </div>
-                            @if (Model.Status == MilestoneStatus.RevisionRequested && !string.IsNullOrWhiteSpace(Model.ProofNotes))
-                            {
-                                <div class="timeline-time">Feedback: @Model.ProofNotes</div>
-                            }
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="panel" style="margin-top:20px;">
-                @if (Model.Status == MilestoneStatus.Submitted)
+                else if (!string.IsNullOrWhiteSpace(Model.ProofUrl))
                 {
-                    <div class="action-required-box">
-                        <div class="action-required-title"><i class="bi bi-exclamation-circle-fill"></i> Action Required</div>
-                        <div class="action-required-text">Review the submitted content and take an action to proceed.</div>
+                    <div class="rp-proof-link-box">
+                        <i class="bi bi-box-arrow-up-right"></i>
+                        <div class="panel-sub" style="margin-top:6px;">This proof was submitted as a link, not an uploaded image.</div>
+                        <a href="@Model.ProofUrl" target="_blank" rel="noopener">Open Submitted Link <i class="bi bi-arrow-up-right"></i></a>
                     </div>
-
-                    <div class="decision-btn-col">
-                        <form method="post" action="/Admin/AdminProofReview/Approve">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="id" value="@Model.Id" />
-                            <button type="submit" class="btn-approve-solid">
-                                <span class="title"><i class="bi bi-check-circle-fill"></i> Approve &amp; Complete</span>
-                                <span class="sub">Mark milestone as complete and trigger payment (৳@Model.Amount.ToString("N0")).</span>
-                            </button>
-                        </form>
-                        <button type="button" class="btn-reject-solid" onclick="document.getElementById('rejectPanel').style.display='block'; this.style.display='none';">
-                            <span class="title"><i class="bi bi-pencil-fill"></i> Request Revision</span>
-                            <span class="sub">Send feedback to influencer for changes.</span>
-                        </button>
-                    </div>
-
-                    <div class="reject-reason-panel" id="rejectPanel" style="display:none;">
-                        <div class="panel-sub" style="font-weight:700; color:#d92d2d;">Revision Feedback (required)</div>
-                        <form method="post" action="/Admin/AdminProofReview/Reject">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="id" value="@Model.Id" />
-                            <textarea class="reason-textarea" name="comment" maxlength="500" required placeholder="Explain what needs to change..."></textarea>
-                            <button type="submit" class="btn-reject-solid" style="margin-top:10px;"><i class="bi bi-pencil-fill"></i> Send Revision Request</button>
-                        </form>
-                    </div>
-                }
-                else if (Model.Status == MilestoneStatus.RevisionRequested)
-                {
-                    <div class="decision-record rejected"><i class="bi bi-arrow-repeat"></i> Revision requested@(string.IsNullOrWhiteSpace(Model.ProofNotes) ? "." : $": {Model.ProofNotes}")</div>
-                    <form method="post" action="/Admin/AdminProofReview/Approve" style="margin-top:10px;">
-                        @Html.AntiForgeryToken()
-                        <input type="hidden" name="id" value="@Model.Id" />
-                        <button type="submit" class="btn-approve-solid"><i class="bi bi-check-circle-fill"></i> Approve Anyway</button>
-                    </form>
-                }
-                else if (Model.Status == MilestoneStatus.Approved)
-                {
-                    <div class="decision-record approved"><i class="bi bi-check-circle-fill"></i> This proof was approved. Payment can now be released from Payment Oversight.</div>
                 }
                 else
                 {
-                    <div class="decision-record approved"><i class="bi bi-credit-card-fill"></i> This milestone has been paid.</div>
+                    <div class="rp-proof-link-box"><div class="panel-sub">No proof file or link was recorded on this milestone.</div></div>
                 }
             </div>
+
+            @if (!string.IsNullOrWhiteSpace(Model.ProofNotes))
+            {
+                <div class="rp-note-box">
+                    <i class="bi bi-chat-quote"></i>
+                    "@Model.ProofNotes"
+                </div>
+            }
+        </div>
+
+        @* ---------- 2. Milestone Brief ---------- *@
+        <div class="panel">
+            <div class="rp-section-eyebrow">Step 2</div>
+            <div class="panel-title">Milestone Brief &amp; Post Details</div>
+            <p class="panel-sub">What was agreed, and where it was posted.</p>
+            <div style="margin-top:8px;">
+                <div class="detail-info-row"><i class="bi bi-card-text"></i><div><div class="detail-info-label">Description</div><div class="detail-info-value">@(string.IsNullOrWhiteSpace(Model.Description) ? "No description added." : Model.Description)</div></div></div>
+                <div class="detail-info-row"><i class="bi bi-share-fill"></i><div><div class="detail-info-label">Platform</div><div class="detail-info-value">@(campaign.Platform ?? "Not specified")</div></div></div>
+                @if (!string.IsNullOrWhiteSpace(Model.ProofUrl))
+                {
+                    <div class="detail-info-row"><i class="bi bi-link-45deg"></i><div><div class="detail-info-label">Post URL</div><div class="detail-info-value"><a href="@Model.ProofUrl" target="_blank" rel="noopener">@Model.ProofUrl</a></div></div></div>
+                }
+                <div class="detail-info-row"><i class="bi bi-calendar4-week"></i><div><div class="detail-info-label">Due Date</div><div class="detail-info-value">@(Model.DueDate.HasValue ? Model.DueDate.Value.ToString("MMM d, yyyy") : "Not set")</div></div></div>
+            </div>
+        </div>
+
+        @* ---------- 3. Brand & Campaign ---------- *@
+        <div class="panel">
+            <div class="rp-section-eyebrow">Step 3</div>
+            <div class="panel-title">Brand &amp; Campaign</div>
+            <div class="rp-brand-row" style="margin-top:12px;">
+                <div class="rp-brand-logo">@Initials(brand.CompanyName)</div>
+                <div style="min-width:0;">
+                    <div class="rp-brand-name">@brand.CompanyName</div>
+                    <div class="rp-brand-sub">@campaign.Title</div>
+                </div>
+                <a href="/Admin/AdminCampaigns/Index?search=@Uri.EscapeDataString(campaign.Title)" class="rp-view-campaign">View Campaign <i class="bi bi-box-arrow-up-right"></i></a>
+            </div>
+            <div style="margin-top:8px;">
+                <div class="detail-info-row"><i class="bi bi-tags"></i><div><div class="detail-info-label">Niche</div><div class="detail-info-value">@(campaign.Niche ?? "Not set")</div></div></div>
+                <div class="detail-info-row"><i class="bi bi-cash-coin"></i><div><div class="detail-info-label">Payout Amount</div><div class="detail-info-value">৳@Model.Amount.ToString("N0")</div></div></div>
+            </div>
+        </div>
+
+        @* ---------- 4. Influencer Information ---------- *@
+        <div class="panel">
+            <div class="rp-section-eyebrow">Step 4</div>
+            <div class="panel-title">Influencer Information</div>
+            <div class="rp-influencer-row" style="margin-top:12px;">
+                <div class="rp-influencer-avatar">@Initials(influencer.FullName)</div>
+                <div style="min-width:0;">
+                    <div class="rp-influencer-name">@influencer.FullName</div>
+                    <div class="rp-influencer-handle">@@@influencer.PlatformUsername</div>
+                </div>
+                <a href="/Admin/AdminUserVerification/Details?type=influencer&id=@influencer.Id" class="rp-view-campaign">View Profile <i class="bi bi-box-arrow-up-right"></i></a>
+            </div>
+            <div class="rp-influencer-stats">
+                <div><div class="n">@FormatFollowers(influencer.Followers)</div><div class="l">Followers</div></div>
+                <div><div class="n">@influencer.EngagementRate.ToString("0.##")%</div><div class="l">Engagement</div></div>
+                <div><div class="n">@influencer.ContentNiche</div><div class="l">Niche</div></div>
+                <div><div class="n">@influencerMilestoneCount</div><div class="l">Milestones</div></div>
+            </div>
+        </div>
+
+        @* ---------- 5. Review History (both sides) ---------- *@
+        <div class="panel">
+            <div class="rp-section-eyebrow">Step 5</div>
+            <div class="panel-title">Review History</div>
+            <p class="panel-sub">Admin and Brand approve independently — release needs both.</p>
+            <div style="margin-top:16px;">
+                <div class="timeline-item">
+                    <div class="timeline-dot done"><i class="bi bi-check-lg"></i></div>
+                    <div><div class="timeline-title">Submitted by influencer</div><div class="timeline-time">@Model.CreatedAt.ToString("MMM d, yyyy, h:mm tt")</div></div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-dot @(Model.Status == MilestoneStatus.Submitted ? "current" : Model.Status == MilestoneStatus.RevisionRequested ? "rejected" : "done")">
+                        @if (Model.Status != MilestoneStatus.Submitted)
+                        {
+                            <i class="bi @(Model.Status == MilestoneStatus.RevisionRequested ? "bi-arrow-repeat" : "bi-check-lg")"></i>
+                        }
+                    </div>
+                    <div>
+                        <div class="timeline-title @(Model.Status == MilestoneStatus.Submitted ? "current" : "")">
+                            Admin: @pill.Label
+                            @if (Model.Status == MilestoneStatus.Submitted)
+                            {
+                                <span class="status-pill blue" style="padding:2px 8px; font-size:10px; margin-left:6px;">Current</span>
+                            }
+                        </div>
+                        @if (Model.Status == MilestoneStatus.RevisionRequested && !string.IsNullOrWhiteSpace(Model.ProofNotes))
+                        {
+                            <div class="timeline-time">Feedback: @Model.ProofNotes</div>
+                        }
+                    </div>
+                </div>
+
+                @* The Brand's own, independent sign-off — release only happens once BOTH this
+                   and Admin's approval above are done (PaymentsController.Release checks both). *@
+                <div class="timeline-item">
+                    <div class="timeline-dot @(Model.BrandApprovedAt is not null ? "done" : Model.Status == MilestoneStatus.RevisionRequested ? "rejected" : "current")">
+                        @if (Model.BrandApprovedAt is not null)
+                        {
+                            <i class="bi bi-check-lg"></i>
+                        }
+                    </div>
+                    <div>
+                        <div class="timeline-title @(Model.BrandApprovedAt is null ? "current" : "")">
+                            Brand: @(Model.BrandApprovedAt is not null ? "Approved" : Model.Status == MilestoneStatus.RevisionRequested ? "Waiting on resubmission" : "Not yet approved")
+                        </div>
+                        <div class="timeline-time">
+                            @(Model.BrandApprovedAt is not null
+                                ? Model.BrandApprovedAt.Value.ToString("MMM d, yyyy, h:mm tt")
+                                : "The brand reviews and approves separately — independent of Admin's decision.")
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @* ---------- 6. Decision — after seeing everything above ---------- *@
+        <div class="rp-decision">
+            @if (Model.Status == MilestoneStatus.Submitted)
+            {
+                <div class="rp-decision-head"><i class="bi bi-clipboard2-check"></i><div><div class="rp-decision-eyebrow">Step 6 &middot; Your Decision</div><div class="rp-decision-title">Does this proof match the brief?</div></div></div>
+                <p class="rp-decision-text">
+                    You've now seen the submitted post, the milestone brief, the brand, and the influencer.
+                    @(Model.BrandApprovedAt is not null
+                        ? "The brand already approved this — your approval is the last step, and it becomes payment-eligible immediately."
+                        : "This is only Admin's side of the review. It doesn't pay or release anything — the brand still needs to approve separately before this becomes payment-eligible.")
+                </p>
+
+                <div class="decision-btn-col">
+                    <form method="post" action="/Admin/AdminProofReview/Approve">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@Model.Id" />
+                        <button type="submit" class="btn-approve-solid">
+                            <span class="title"><i class="bi bi-check-circle-fill"></i> Approve Proof of Post</span>
+                            <span class="sub">Marks Admin's side as done.</span>
+                        </button>
+                    </form>
+                    <button type="button" class="btn-reject-solid" onclick="document.getElementById('rejectPanel').style.display='block'; this.style.display='none';">
+                        <span class="title"><i class="bi bi-pencil-fill"></i> Request Revision</span>
+                        <span class="sub">Send feedback to influencer for changes.</span>
+                    </button>
+                </div>
+
+                <div class="reject-reason-panel" id="rejectPanel" style="display:none;">
+                    <div class="panel-sub" style="font-weight:700; color:#d92d2d;">Revision Feedback (required)</div>
+                    <form method="post" action="/Admin/AdminProofReview/Reject">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@Model.Id" />
+                        <textarea class="reason-textarea" name="comment" maxlength="500" required placeholder="Explain what needs to change..."></textarea>
+                        <button type="submit" class="btn-reject-solid" style="margin-top:10px;"><i class="bi bi-pencil-fill"></i> Send Revision Request</button>
+                    </form>
+                </div>
+            }
+            else if (Model.Status == MilestoneStatus.RevisionRequested)
+            {
+                <div class="rp-decision-head"><i class="bi bi-arrow-repeat"></i><div><div class="rp-decision-eyebrow">Step 6 &middot; Your Decision</div><div class="rp-decision-title">Revision requested</div></div></div>
+                <p class="rp-decision-text">@(string.IsNullOrWhiteSpace(Model.ProofNotes) ? "Waiting for the influencer to resubmit." : $"Feedback sent: \"{Model.ProofNotes}\"")</p>
+                <form method="post" action="/Admin/AdminProofReview/Approve" style="margin-top:10px;">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="@Model.Id" />
+                    <button type="submit" class="btn-approve-solid"><i class="bi bi-check-circle-fill"></i> Approve Anyway</button>
+                </form>
+            }
+            else if (Model.Status == MilestoneStatus.Approved)
+            {
+                <div class="rp-decision-head"><i class="bi bi-check-circle-fill"></i><div><div class="rp-decision-eyebrow">Step 6 &middot; Your Decision</div><div class="rp-decision-title">You've approved this proof</div></div></div>
+                <div class="decision-record @(bothApproved ? "approved" : "rejected")" style="margin-top:6px;">
+                    @if (bothApproved)
+                    {
+                        <text><i class="bi bi-unlock-fill"></i> Both sides have approved — the brand can now release this ৳@Model.Amount.ToString("N0") payment from their Finance page.</text>
+                    }
+                    else
+                    {
+                        <text><i class="bi bi-lock-fill"></i> Locked — still waiting on the Brand to approve before it's payment-eligible.</text>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="rp-decision-head"><i class="bi bi-credit-card-fill"></i><div><div class="rp-decision-eyebrow">Step 6 &middot; Your Decision</div><div class="rp-decision-title">This milestone has been paid</div></div></div>
+                <p class="rp-decision-text">Both sides approved, the brand released payment, and it was confirmed through the gateway. Nothing left to review here.</p>
+            }
         </div>
 
     </div>

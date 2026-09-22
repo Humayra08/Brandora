@@ -6,7 +6,6 @@
     string Money(decimal amount) => "৳" + amount.ToString("N0", CultureInfo.InvariantCulture);
     string Stamp(DateTime d) => d.ToString("MMM d, yyyy, h:mm tt", CultureInfo.InvariantCulture);
     var tone = c.Status == "Completed" ? "green" : c.Status == "Failed" ? "red" : "blue";
-    var charge = PlatformPayoutGateway.GatewayCharge;
     string Logo(string method, int height) => method switch
     {
         "bKash" => $"<img src=\"/images/payment-methods/bkash.svg\" alt=\"bKash\" style=\"height:{height}px;width:auto;display:block;\" />",
@@ -63,7 +62,7 @@
             <small>@Stamp(c.At)</small>
         </div>
         <div style="text-align:right;">
-            <small>Gateway Reference</small>
+            <small>Transaction Reference</small>
             <b style="font:700 14px 'DM Sans',sans-serif;color:#171d3d;">@(c.GatewayReference ?? "—")</b>
         </div>
     </div>
@@ -71,8 +70,7 @@
     <div class="cd-card">
         <h4>Amount Details</h4>
         <div class="cd-row"><span>Amount Requested</span><b>@Money(c.Amount)</b></div>
-        <div class="cd-row"><span>Gateway Charge</span><b>@Money(charge)</b></div>
-        <div class="cd-row total"><span>Amount Transferred</span><b>@(failed ? "—" : Money(Math.Max(0m, c.Amount - charge)))</b></div>
+        <div class="cd-row total"><span>Amount Transferred</span><b>@(failed ? "—" : Money(c.Amount))</b></div>
     </div>
 
     <div class="cd-card">
@@ -97,7 +95,7 @@
         <h4>Timeline</h4>
         <ul class="cd-time">
             <li><b>Request submitted</b><small>@Stamp(c.At)</small></li>
-            <li class="@(failed ? "bad" : transferred || c.Status == "Processing" ? "" : "pending")"><b>@(failed ? "Rejected by payment gateway" : "Processed by payment gateway")</b></li>
+            <li class="@(failed ? "bad" : transferred || c.Status == "Processing" ? "" : "pending")"><b>@(failed ? "Failed" : "Logged with a real transaction reference")</b></li>
             <li class="@(transferred ? "" : failed ? "bad" : "pending")"><b>@(failed ? "Funds not transferred" : "Funds transferred")</b>@if (c.CompletedAt.HasValue) { <small>@Stamp(c.CompletedAt.Value)</small> }</li>
         </ul>
     </div>

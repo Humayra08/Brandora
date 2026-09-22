@@ -28,6 +28,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<NotificationPreference> NotificationPreferences => Set<NotificationPreference>();
     public DbSet<PaymentAttempt> PaymentAttempts => Set<PaymentAttempt>();
     public DbSet<WalletTransaction> WalletTransactions => Set<WalletTransaction>();
+    public DbSet<PlatformWalletTransaction> PlatformWalletTransactions => Set<PlatformWalletTransaction>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -285,6 +286,26 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
                 .WithMany()
                 .HasForeignKey(e => e.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<PlatformWalletTransaction>(entity =>
+        {
+            entity.Property(e => e.Amount).HasPrecision(12, 2);
+
+            entity.HasOne(e => e.RecipientBrandProfile)
+                .WithMany()
+                .HasForeignKey(e => e.RecipientBrandProfileId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(e => e.RecipientInfluencerProfile)
+                .WithMany()
+                .HasForeignKey(e => e.RecipientInfluencerProfileId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(e => e.Dispute)
+                .WithMany()
+                .HasForeignKey(e => e.DisputeId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
     }
 }

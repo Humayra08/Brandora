@@ -122,10 +122,7 @@
     <div class="cw-art"><i class="bi bi-wallet2"></i></div>
 </section>
 
-@if (!ledger.IsLive)
-{
-    <div class="cw-notice"><i class="bi bi-exclamation-triangle"></i><div>The payment gateway is not connected yet. You can prepare and review a cash-out here, but no money moves until the gateway is live.</div></div>
-}
+<div class="cw-notice"><i class="bi bi-exclamation-triangle"></i><div>There's no payout API for bKash/Nagad merchant accounts — send this money yourself in your own bKash/Nagad app <b>first</b>, then log the real transaction reference below. This just records it; it doesn't move any money.</div></div>
 
 <section class="cw-strip">
     <div class="cw-bal">
@@ -174,11 +171,15 @@
             <div class="cw-hint" id="cwAccountHint">Enter the 11-digit bKash number that will receive the money.</div>
         </div>
 
+        <div class="cw-field-label">Real Transaction Reference</div>
+        <input class="cw-input" style="width:100%;" type="text" id="cwReference" autocomplete="off" placeholder="e.g. 8N7K2P3Q9R" />
+        <div class="cw-hint">The reference your own bKash/Nagad app gave you once you actually sent this money.</div>
+
         <div class="cw-info">
             <ul>
-                <li>Cash-outs are processed through our secure payment gateway.</li>
-                <li>Processing time: 5–30 minutes.</li>
-                <li>A small gateway charge may apply (if any).</li>
+                <li>Send the money yourself in your own bKash/Nagad app first — this form only logs it.</li>
+                <li>There's no payout API for a merchant-tier bKash/Nagad account, so nothing here moves money automatically.</li>
+                <li>Every cash-out is permanent and audited.</li>
             </ul>
         </div>
 
@@ -190,11 +191,10 @@
         <div class="cw-card">
             <button type="button" class="cw-edit" id="cwEdit"><i class="bi bi-pencil"></i> Edit</button>
             <h2 class="cw-title">Cash-out Preview</h2>
-            <div class="cw-row"><span>Amount</span><b id="pvAmount">৳0</b></div>
-            <div class="cw-row"><span>Gateway Charge</span><b id="pvCharge">@Money(Model.GatewayCharge)</b></div>
-            <div class="cw-row total"><span>You Will Receive</span><b id="pvReceive">৳0</b></div>
+            <div class="cw-row total"><span>Amount</span><b id="pvAmount">৳0</b></div>
             <div class="cw-row"><span>Payout Method</span><b id="pvMethod">bKash</b></div>
             <div class="cw-row"><span>Account</span><b id="pvAccount">—</b></div>
+            <div class="cw-row"><span>Reference</span><b id="pvReference">—</b></div>
         </div>
 
         <div class="cw-card">
@@ -266,13 +266,12 @@
             <h3>Confirm Cash-out</h3>
             <p id="cfSentence"></p>
             <div class="cw-box">
-                <div class="cw-row"><span>Amount</span><b id="cfAmount"></b></div>
-                <div class="cw-row"><span>Gateway Charge</span><b id="cfCharge"></b></div>
-                <div class="cw-row total"><span>You Will Receive</span><b id="cfReceive"></b></div>
+                <div class="cw-row total"><span>Amount</span><b id="cfAmount"></b></div>
                 <div class="cw-row"><span>Method</span><b id="cfMethod"></b></div>
                 <div class="cw-row"><span>Account</span><b id="cfAccount"></b></div>
+                <div class="cw-row"><span>Reference</span><b id="cfReference"></b></div>
             </div>
-            <div class="cw-warn"><i class="bi bi-exclamation-circle"></i> Please make sure the account information is correct. This action cannot be undone.</div>
+            <div class="cw-warn"><i class="bi bi-exclamation-circle"></i> This only logs the cash-out — make sure you've <b>already</b> sent the money yourself and the reference above is correct. This cannot be undone.</div>
             <div class="cw-actions">
                 <button type="button" data-modal-close>Cancel</button>
                 <button type="button" class="primary" id="cfConfirm">Confirm &amp; Withdraw</button>
@@ -287,9 +286,9 @@
 
         <div class="cw-stage" data-stage="success" hidden>
             <div class="cw-badge ok"><i class="bi bi-check-lg"></i></div>
-            <h3>Cash-out Successful!</h3>
+            <h3>Cash-out Logged</h3>
             <p id="okSentence"></p>
-            <div class="cw-box"><div class="cw-row"><span>Gateway Reference</span><b id="okRef"></b></div></div>
+            <div class="cw-box"><div class="cw-row"><span>Transaction Reference</span><b id="okRef"></b></div></div>
             <p style="font-size:12.5px;">A confirmation email has been sent to your admin email.</p>
             <div class="cw-actions">
                 <button type="button" class="primary" id="okHistory">View in History</button>
@@ -314,7 +313,6 @@
 <script>
     (function () {
         var MAX = @maxAmount.ToString("0.##", CultureInfo.InvariantCulture);
-        var CHARGE = @PlatformPayoutGateway.GatewayCharge.ToString("0.##", CultureInfo.InvariantCulture);
         var SAVED = @Html.Raw(savedJson);
 
         function money(n) { return '৳' + Number(n).toLocaleString('en-US', { maximumFractionDigits: 0 }); }
@@ -327,7 +325,7 @@
         }
 
         // ----- form + live preview -----
-        var amount = $('cwAmount'), account = $('cwAccount'), saved = $('cwSaved'), err = $('cwError');
+        var amount = $('cwAmount'), account = $('cwAccount'), saved = $('cwSaved'), err = $('cwError'), reference = $('cwReference');
         function currentAccount() {
             if (saved.value && saved.value !== 'new') return saved.value;
             return account.value.trim();
@@ -349,13 +347,12 @@
         function preview() {
             var a = parseFloat(amount.value) || 0, m = method();
             $('pvAmount').textContent = money(a);
-            $('pvCharge').textContent = money(CHARGE);
-            $('pvReceive').textContent = money(Math.max(0, a - CHARGE));
             $('pvMethod').textContent = m;
             $('pvAccount').textContent = mask(m, currentAccount());
+            $('pvReference').textContent = reference.value.trim() || '—';
         }
         document.querySelectorAll('input[name="cwMethod"]').forEach(function (r) { r.addEventListener('change', function () { refreshSaved(); preview(); }); });
-        [amount, account].forEach(function (el) { el.addEventListener('input', preview); });
+        [amount, account, reference].forEach(function (el) { el.addEventListener('input', preview); });
         saved.addEventListener('change', function () { $('cwNewWrap').style.display = saved.value === 'new' ? '' : 'none'; preview(); });
         $('cwAddNew').addEventListener('click', function () { saved.value = 'new'; $('cwNewWrap').style.display = ''; account.focus(); preview(); });
         $('cwMax').addEventListener('click', function () { amount.value = MAX; preview(); });
@@ -369,6 +366,7 @@
             var digits = acct.replace(/\D/g, '');
             if (m !== 'Bank Transfer' && !(digits.length === 11 && digits.indexOf('01') === 0)) return 'Enter a valid 11-digit mobile number that starts with 01.';
             if (m === 'Bank Transfer' && acct.length < 6) return 'Enter a valid bank account number.';
+            if (!reference.value.trim()) return "Enter the real transaction reference from your bKash/Nagad app — you should have already sent the money.";
             return '';
         }
 
@@ -385,23 +383,24 @@
             err.hidden = !msg; err.textContent = msg;
             if (msg) return;
             var a = parseFloat(amount.value), m = method(), acct = currentAccount();
-            $('cfSentence').textContent = 'This will transfer ' + money(a) + ' to your ' + m + ' account ' + mask(m, acct) + ' via our secure payment gateway.';
-            $('cfAmount').textContent = money(a); $('cfCharge').textContent = money(CHARGE); $('cfReceive').textContent = money(Math.max(0, a - CHARGE));
+            $('cfSentence').textContent = 'This logs a cash-out of ' + money(a) + ' to ' + m + ' account ' + mask(m, acct) + ' — only if you\'ve already sent it yourself.';
+            $('cfAmount').textContent = money(a);
             $('cfMethod').textContent = m; $('cfAccount').textContent = mask(m, acct);
+            $('cfReference').textContent = reference.value.trim();
             openModal();
         });
 
         $('cfConfirm').addEventListener('click', function () {
-            var a = parseFloat(amount.value), m = method(), acct = currentAccount();
+            var a = parseFloat(amount.value), m = method(), acct = currentAccount(), ref = reference.value.trim();
             stage('processing');
             var body = new URLSearchParams();
-            body.set('amount', a); body.set('method', m); body.set('account', acct);
+            body.set('amount', a); body.set('method', m); body.set('account', acct); body.set('reference', ref);
             body.set('__RequestVerificationToken', document.querySelector('#cwTokenForm input[name="__RequestVerificationToken"]').value);
             fetch('/Admin/AdminWallet/Withdraw', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body.toString() })
                 .then(function (r) { return r.json().catch(function () { return { ok: false, error: 'Something went wrong. Please try again.' }; }); })
                 .then(function (j) {
                     if (j.ok) {
-                        $('okSentence').textContent = money(a) + ' has been transferred to your ' + m + ' account ' + mask(m, acct) + '.';
+                        $('okSentence').textContent = money(a) + ' logged as sent to ' + m + ' account ' + mask(m, acct) + '.';
                         $('okRef').textContent = j.reference || '—';
                         stage('success');
                     } else {

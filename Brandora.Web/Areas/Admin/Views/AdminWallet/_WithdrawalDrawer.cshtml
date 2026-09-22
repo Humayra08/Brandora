@@ -5,7 +5,10 @@
     var w = Model.Withdrawal;
     string Money(decimal amount) => "৳" + amount.ToString("N0", CultureInfo.InvariantCulture);
     string Initials(string name) => string.Concat(name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(p => char.ToUpperInvariant(p[0])));
-    var rate = (PlatformFee.Rate * 100).ToString("0.##", CultureInfo.InvariantCulture);
+    // Real effective rate for THIS withdrawal — not a fixed 5%, since the real fee is
+    // tranche/rate-based (see WalletService.QuoteWithdrawal) and can vary withdrawal to
+    // withdrawal depending on which earnings it drew from.
+    var rate = (w.Amount > 0 ? Math.Round(w.Fee / w.Amount * 100, 2) : 0m).ToString("0.##", CultureInfo.InvariantCulture);
     var tone = w.Status == "Completed" ? "green" : w.Status == "Failed" ? "red" : "blue";
     var feeTaken = w.Status != "Failed";
     var totalPortion = w.Lines.Sum(l => l.Portion);
@@ -67,10 +70,15 @@
             <small style="margin-top:4px;">@w.At.ToString("MMM d, yyyy, h:mm tt", CultureInfo.InvariantCulture)</small>
         </div>
         <div style="text-align:right;">
-            <small>Gateway Reference</small>
-            <b style="font:700 13px 'DM Sans',sans-serif;color:#171d3d;" title="@(Model.GatewayReference is null ? "Shown once the payment gateway is connected" : "")">@(Model.GatewayReference ?? "—")</b>
+            <small>Transaction Reference</small>
+            <b style="font:700 13px 'DM Sans',sans-serif;color:#171d3d;" title="@(Model.GatewayReference is null ? "Set once an admin marks this Paid with a real reference" : "")">@(Model.GatewayReference ?? "—")</b>
         </div>
     </div>
+
+    @if (!string.IsNullOrWhiteSpace(w.ProcessedByAdmin))
+    {
+        <div class="wd-note">Processed by @w.ProcessedByAdmin@(w.ProcessedAt is null ? "" : " on " + w.ProcessedAt.Value.ToString("MMM d, yyyy", CultureInfo.InvariantCulture))</div>
+    }
 
     <h4>Influencer</h4>
     <div class="wd-card">
@@ -125,9 +133,9 @@
                 }
                 @if (w.Unallocated > 0)
                 {
-                    <tr><td colspan="3"><small>Not linked to a paid milestone</small></td><td>@Money(w.Unallocated)</td><td>@Money(PlatformFee.Of(w.Unallocated))</td><td></td><td></td></tr>
+                    <tr><td colspan="3"><small>Not linked to a paid milestone</small></td><td>@Money(w.Unallocated)</td><td>@Money(w.Fee - totalFee)</td><td></td><td></td></tr>
                 }
-                <tr class="total"><td colspan="3">Total</td><td>@Money(totalPortion + w.Unallocated)</td><td>@Money(totalFee + PlatformFee.Of(w.Unallocated))</td><td></td><td></td></tr>
+                <tr class="total"><td colspan="3">Total</td><td>@Money(totalPortion + w.Unallocated)</td><td>@Money(w.Fee)</td><td></td><td></td></tr>
             </tbody>
         </table>
     }

@@ -2,6 +2,7 @@
 @using System.Globalization
 @using Brandora.Web.Areas.Admin.Services
 @using Brandora.Web.Models.Domain
+@inject IConfiguration Config
 @{
     var ledger = Model.Ledger;
 
@@ -36,7 +37,7 @@
     }
     var donutStyle = donutParts.Count == 0 ? "background:#eef1fb;" : "background:conic-gradient(" + string.Join(",", donutParts) + ");";
 
-    var feeRatePct = (PlatformFee.Rate * 100).ToString("0.##", CultureInfo.InvariantCulture);
+    var feeRatePct = (decimal.TryParse(Config["PLATFORM_COMMISSION_PERCENT"], out var cfgPct) ? Math.Clamp(cfgPct, 0m, 100m) : 10m).ToString("0.##", CultureInfo.InvariantCulture);
     var monthWithdrawals = Model.Withdrawals.Count(w => w.IsCompleted && (w.ProcessedAt ?? w.At) >= new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1));
 }
 
@@ -156,17 +157,6 @@
     <div class="aw-art"><i class="bi bi-wallet2"></i></div>
 </section>
 
-@if (!ledger.IsLive)
-{
-    <div class="aw-notice">
-        <i class="bi bi-info-circle"></i>
-        <div>
-            Fees are calculated at <b>@feeRatePct%</b> of every influencer withdrawal, using real withdrawals and paid milestones.
-            Admin cash-outs, compensation payouts and gateway references appear once the payment gateway is connected.
-        </div>
-    </div>
-}
-
 <section class="aw-balance">
     <div class="aw-balance-icon"><i class="bi bi-wallet2"></i></div>
     <div>
@@ -273,69 +263,58 @@
 
 <div class="aw-panel">
     <div class="aw-tabs" id="awTabs">
-        <button type="button" class="is-active" data-tab="campaigns">Campaign-wise Fee Income</button>
+        <button type="button" class="is-active" data-tab="brandincome">Income by Brand</button>
         <button type="button" data-tab="withdrawals">Income by Withdrawal</button>
         <button type="button" data-tab="cashouts">Cash-out History</button>
     </div>
 
-    <!-- ===== Campaign-wise Fee Income ===== -->
-    <div class="aw-pane" data-pane="campaigns">
+    <!-- ===== Income by Brand ===== -->
+    <div class="aw-pane" data-pane="brandincome">
         <div class="aw-toolbar">
-            <form method="get">
-                <input class="aw-input" type="search" name="search" value="@Model.Search" placeholder="Search campaigns or brands..." id="awCampaignSearch" />
-                <input class="aw-input" type="date" name="from" value="@(Model.From?.ToString("yyyy-MM-dd"))" aria-label="From date" />
-                <input class="aw-input" type="date" name="to" value="@(Model.To?.ToString("yyyy-MM-dd"))" aria-label="To date" />
-                <button type="submit" class="aw-btn"><i class="bi bi-funnel"></i> Apply</button>
-            </form>
-            <button type="button" class="aw-btn" data-export="awCampaignTable"><i class="bi bi-download"></i> Export CSV</button>
+            <div class="aw-filters">
+                <input class="aw-input" type="search" id="biSearch" placeholder="Search by brand or campaign..." />
+                <select class="aw-input" id="biMethod"><option value="">All Methods</option><option>bKash</option><option>Nagad</option><option>Bank Transfer</option></select>
+                <select class="aw-input" id="biStatus"><option value="">All Statuses</option><option>Completed</option><option>Pending</option><option>Failed</option></select>
+                <input class="aw-input" type="date" id="biFrom" aria-label="From date" />
+                <input class="aw-input" type="date" id="biTo" aria-label="To date" />
+            </div>
+            <button type="button" class="aw-btn" data-export="awBrandIncomeTable"><i class="bi bi-download"></i> Export CSV</button>
         </div>
 
-        @if (Model.Campaigns.Count == 0)
+        @if (Model.BrandIncome.Count == 0)
         {
-            <div class="aw-empty"><b>No campaign earnings yet</b>Fees appear here once campaigns have milestones and payments.</div>
+            <div class="aw-empty"><b>No brand payments yet</b>Every brand payment is reported here with the campaign and milestone it's for, and the real 5% it earned once completed.</div>
         }
         else
         {
             <div class="aw-scroll">
-                <table class="aw-table" id="awCampaignTable" data-paged>
+                <table class="aw-table" id="awBrandIncomeTable" data-paged>
                     <thead>
-                        <tr><th>#</th><th>Campaign</th><th>Brand</th><th>Milestones</th><th>Gross amount</th><th>Paid to influencers</th><th>@feeRatePct% potential</th><th title="Estimated: influencers withdraw from their whole wallet, so each withdrawal is assigned to their oldest paid milestones.">@feeRatePct% collected (estimated)</th><th>Status</th><th>Action</th></tr>
+                        <tr><th>#</th><th>Transaction ID</th><th>Date &amp; time</th><th>Brand</th><th>Campaign / Milestone</th><th>Amount</th><th>5% Fee</th><th>Method</th><th>Status</th><th>Action</th></tr>
                     </thead>
                     <tbody>
-                        @{ var n = 0; }
-                        @foreach (var c in Model.Campaigns)
+                        @{ var bi = 0; }
+                        @foreach (var b in Model.BrandIncome)
                         {
-                            n++;
-                            <tr class="aw-row" data-search="@((c.Title + " " + c.BrandName).ToLowerInvariant())">
-                                <td>@n</td>
-                                <td><div class="aw-camp"><div class="aw-thumb">@c.Title.Substring(0, 1).ToUpperInvariant()</div><b>@c.Title</b></div></td>
-                                <td>
-                                    <div class="aw-camp">
-                                        <div class="aw-thumb">
-                                            @if (!string.IsNullOrWhiteSpace(c.BrandPicture)) { <img src="@c.BrandPicture" alt="" /> }
-                                            else { <text>@c.BrandName.Substring(0, Math.Min(2, c.BrandName.Length)).ToUpperInvariant()</text> }
-                                        </div>
-                                        @c.BrandName
-                                    </div>
-                                </td>
-                                <td>@c.MilestoneCount</td>
-                                <td>@Money(c.Gross)</td>
-                                <td>@Money(c.Paid)</td>
-                                <td>@Money(PlatformFee.Of(c.Paid))</td>
-                                <td>@Money(c.FeeCollected)</td>
-                                <td><span class="aw-pill @c.StatusTone">@c.StatusLabel</span></td>
-                                <td><button type="button" class="aw-view" data-campaign="@c.CampaignId">View <i class="bi bi-arrow-right"></i></button></td>
+                            bi++;
+                            var biTone = b.Status == "Completed" ? "green" : b.Status == "Failed" ? "red" : "amber";
+                            <tr class="aw-row" data-search="@((b.BrandName + " " + b.CampaignTitle).ToLowerInvariant())" data-method="@b.Method" data-status="@b.Status" data-date="@b.At.ToString("yyyy-MM-dd")">
+                                <td>@bi</td>
+                                <td><b>@b.Code</b></td>
+                                <td>@b.At.ToString("MMM d, yyyy h:mm tt", CultureInfo.InvariantCulture)</td>
+                                <td><div class="aw-camp"><div class="aw-thumb round">@if (!string.IsNullOrWhiteSpace(b.BrandPicture)) { <img src="@b.BrandPicture" alt="" /> } else { <text>@Initials(b.BrandName)</text> }</div><b>@b.BrandName</b></div></td>
+                                <td><div class="aw-camp"><b>@b.CampaignTitle</b><small>@b.MilestoneTitle</small></div></td>
+                                <td>@Money(b.Amount)</td>
+                                <td>@(b.Fee > 0 ? "+" + Money(b.Fee) : "—")</td>
+                                <td><div class="aw-method">@Html.Raw(Logo(b.Method, 18))<span>@b.Method</span></div></td>
+                                <td><span class="aw-pill @biTone">@b.Status</span></td>
+                                <td><button type="button" class="aw-view" data-brandincome="@b.PaymentId">View</button></td>
                             </tr>
                         }
                     </tbody>
                 </table>
             </div>
-            <div class="aw-pager" data-pager-for="awCampaignTable"></div>
-            <div class="aw-sub" style="margin-top:14px;line-height:1.6;">
-                <b>Paid to influencers</b> and <b>@feeRatePct% potential</b> are exact: what brands have paid out for the campaign, and the most the platform could earn from it.
-                <b>@feeRatePct% collected</b> is an estimate. Influencers withdraw from their whole wallet, not per campaign, so each withdrawal is assigned to their oldest paid milestones.
-                The exact fee records are in <b>Income by Withdrawal</b>.
-            </div>
+            <div class="aw-pager" data-pager-for="awBrandIncomeTable"></div>
         }
     </div>
 
@@ -464,6 +443,9 @@
         document.querySelectorAll('[data-withdrawal]').forEach(function (b) {
             b.addEventListener('click', function () { loadDrawer('/Admin/AdminWallet/WithdrawalDetails/' + b.getAttribute('data-withdrawal')); });
         });
+        document.querySelectorAll('[data-brandincome]').forEach(function (b) {
+            b.addEventListener('click', function () { loadDrawer('/Admin/AdminWallet/BrandIncomeDetails/' + b.getAttribute('data-brandincome')); });
+        });
 
         overlay.addEventListener('click', closeDrawer);
         document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeDrawer(); });
@@ -513,10 +495,6 @@
             render();
         }
 
-        var cs = document.getElementById('awCampaignSearch');
-        setup('awCampaignTable', function (r) { return !cs || r.getAttribute('data-search').indexOf(cs.value.trim().toLowerCase()) !== -1; });
-        if (cs) cs.addEventListener('input', function () { tables['awCampaignTable'].reset(); });
-
         var q = document.getElementById('wdSearch'), m = document.getElementById('wdMethod'), s = document.getElementById('wdStatus'),
             f = document.getElementById('wdFrom'), t = document.getElementById('wdTo');
         setup('awWithdrawalTable', function (r) {
@@ -527,6 +505,17 @@
                 && (!f.value || d >= f.value) && (!t.value || d <= t.value);
         });
         [q, m, s, f, t].forEach(function (el) { if (el) el.addEventListener('input', function () { tables['awWithdrawalTable'].reset(); }); });
+
+        var biq = document.getElementById('biSearch'), bim = document.getElementById('biMethod'), bis = document.getElementById('biStatus'),
+            bif = document.getElementById('biFrom'), bit = document.getElementById('biTo');
+        setup('awBrandIncomeTable', function (r) {
+            var d = r.getAttribute('data-date');
+            return r.getAttribute('data-search').indexOf(biq.value.trim().toLowerCase()) !== -1
+                && (!bim.value || r.getAttribute('data-method') === bim.value)
+                && (!bis.value || r.getAttribute('data-status') === bis.value)
+                && (!bif.value || d >= bif.value) && (!bit.value || d <= bit.value);
+        });
+        [biq, bim, bis, bif, bit].forEach(function (el) { if (el) el.addEventListener('input', function () { tables['awBrandIncomeTable'].reset(); }); });
 
         // CSV export of the filtered rows (all pages), without the action column
         document.querySelectorAll('[data-export]').forEach(function (btn) {

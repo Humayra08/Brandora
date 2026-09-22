@@ -14,7 +14,8 @@
         "Bank Transfer" => $"<i class=\"bi bi-bank\" style=\"font-size:{h}px;color:#236eff;line-height:1;\"></i>",
         _ => ""
     };
-    var icon = v.Type == "Withdrawal" ? "bi-send" : v.Type == "Refund" ? "bi-arrow-counterclockwise" : "bi-credit-card-2-front";
+    var icon = v.Type == "Withdrawal" ? "bi-send" : "bi-credit-card-2-front";
+    string AttemptTone(string s) => s == "Completed" ? "done" : s == "Failed" || s == "Cancelled" ? "bad" : "pending";
 }
 
 <style>
@@ -61,6 +62,21 @@
     .td-actions { display: flex; gap: 12px; margin-top: 8px; }
     .td-btn { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 44px; border-radius: 9px; border: 1px solid #cfe0ff; background: #fff; font: 600 13px 'Inter', sans-serif; color: #236eff; cursor: pointer; text-decoration: none; }
     .td-btn.primary { border: 0; color: #fff; background: linear-gradient(105deg, #a326ff, #236eff, #18a9ff); }
+    .td-btn.danger { color: #d92d3f; border-color: #f6c7cf; }
+    .td-fee { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; margin-bottom: 14px; border-radius: 12px; background: #e2f8ee; color: #0d9c6c; font: 600 12.5px 'Inter', sans-serif; }
+    .td-fee small { display: block; margin-top: 2px; color: #0d9c6c; opacity: .75; font-weight: 500; }
+    .td-process { padding: 16px 18px; margin-bottom: 14px; border-radius: 14px; border: 1px dashed #cfe0ff; background: #f6f9ff; }
+    .td-process h4 { margin: 0 0 10px; font: 700 14px 'DM Sans', sans-serif; color: #171d3d; }
+    .td-process input, .td-process textarea { width: 100%; margin-top: 6px; padding: 9px 11px; border-radius: 9px; border: 1px solid #dde1f0; font: 12.5px 'Inter', sans-serif; }
+    .td-process label { display: block; font: 600 12px 'Inter', sans-serif; color: #6b7290; }
+    .td-process .td-actions { margin-top: 12px; }
+    .td-att { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 14px; }
+    .td-att li { position: relative; padding-left: 40px; }
+    .td-att li::before { content: '\2713'; position: absolute; left: 0; top: 0; width: 24px; height: 24px; border-radius: 50%; background: #1fb872; color: #fff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+    .td-att li.pending::before { content: '\25F7'; background: #f0a53a; }
+    .td-att li.bad::before { content: '\2715'; background: #e5484d; }
+    .td-att li:not(:last-child)::after { content: ''; position: absolute; left: 11px; top: 26px; bottom: -14px; width: 2px; background: #e3e7f5; }
+    .td-att b { display: block; font: 700 12.5px 'DM Sans', sans-serif; color: #171d3d; } .td-att small { display: block; margin-top: 1px; font-size: 11px; color: #8189a8; line-height: 1.45; }
 </style>
 
 <div class="td">
@@ -78,6 +94,38 @@
     @if (v.DisputeId is not null)
     {
         <div class="td-dispute"><span><i class="bi bi-exclamation-triangle"></i> A dispute exists for this milestone (@v.DisputeCode, @v.DisputeStatus)</span><a href="/Admin/AdminDisputes/Details/@v.DisputeId">Open →</a></div>
+    }
+
+    @if (v.Fee > 0)
+    {
+        <div class="td-fee">
+            <span><i class="bi bi-piggy-bank"></i> @(v.Type == "Withdrawal" ? "5% kept for the Admin Wallet" : "+5% to Admin Wallet on top")<small>@(v.Type == "Withdrawal" ? $"Influencer receives {Money(v.NetAmount)}" : $"Influencer credited the full {Money(v.NetAmount)}")</small></span>
+            <b>@Money(v.Fee)</b>
+        </div>
+    }
+
+    @if (v.IsPendingWithdrawal)
+    {
+        <div class="td-process">
+            <h4><i class="bi bi-send"></i> Send this payout manually</h4>
+            <p style="margin:0 0 10px;font-size:12px;color:#6b7290;line-height:1.5;">There's no payout API for @v.Method — open your own @v.Method app, send @Money(v.NetAmount) to the influencer's account, then log the real reference below.</p>
+            <form method="post" action="/Admin/AdminPayments/MarkWithdrawalPaid">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@v.WithdrawalId" />
+                <label>Real transaction reference<input type="text" name="reference" placeholder="e.g. 8N7K2P3Q9R" required /></label>
+                <div class="td-actions">
+                    <button type="submit" class="td-btn primary"><i class="bi bi-check-circle"></i> Mark Paid</button>
+                </div>
+            </form>
+            <form method="post" action="/Admin/AdminPayments/RejectWithdrawal" style="margin-top:10px;">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@v.WithdrawalId" />
+                <label>Or reject with a reason<input type="text" name="reason" placeholder="e.g. Account details don't match" required /></label>
+                <div class="td-actions">
+                    <button type="submit" class="td-btn danger"><i class="bi bi-x-circle"></i> Reject</button>
+                </div>
+            </form>
+        </div>
     }
 
     <div class="td-card">
@@ -142,7 +190,26 @@
         </ul>
     </div>
 
-    <div class="td-note"><i class="bi bi-info-circle" style="color:#236eff;"></i> Payment Oversight is read-only. The admin approves the proof of post; the brand then releases the payment, and the influencer withdraws from their wallet.</div>
+    @if (v.Attempts.Count > 0)
+    {
+        <div class="td-card">
+            <h4>Gateway Call Timeline</h4>
+            <ul class="td-att">
+                @foreach (var a in v.Attempts)
+                {
+                    <li class="@AttemptTone(a.Status)">
+                        <b>@a.Gateway · @a.Status</b>
+                        <small>Created @Stamp(a.CreatedAt)</small>
+                        @if (a.CompletedAt.HasValue) { <small>Completed @Stamp(a.CompletedAt.Value)</small> }
+                        @if (!string.IsNullOrWhiteSpace(a.GatewayTransactionId)) { <small>Transaction ID: @a.GatewayTransactionId</small> }
+                        @if (!string.IsNullOrWhiteSpace(a.FailureReason)) { <small style="color:#d92d3f;">@a.FailureReason</small> }
+                    </li>
+                }
+            </ul>
+        </div>
+    }
+
+    <div class="td-note"><i class="bi bi-info-circle" style="color:#236eff;"></i> @(v.Type == "Withdrawal" ? "Withdrawals are the one manual step: there's no payout API, so an admin sends the money and logs the real reference here." : "Brand payments are fully automatic — the admin approves the proof of post, the brand pays via a real bKash/Nagad checkout, and the influencer is credited the moment the gateway confirms it.")</div>
 
     <div class="td-actions">
         <button type="button" class="td-btn" data-close>Close</button>

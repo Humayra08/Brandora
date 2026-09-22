@@ -1,0 +1,98 @@
+@model Brandora.Web.Areas.Admin.Controllers.BrandIncomeDrawerViewModel
+@using System.Globalization
+@{
+    var v = Model;
+    string Money(decimal amount) => "৳" + amount.ToString("N0", CultureInfo.InvariantCulture);
+    string Initials(string name) => string.Concat(name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(p => char.ToUpperInvariant(p[0])));
+    var rate = (v.MilestoneAmount > 0 ? Math.Round(v.Fee / v.MilestoneAmount * 100, 2) : 0m).ToString("0.##", CultureInfo.InvariantCulture);
+    var tone = v.Status == "Completed" ? "green" : v.Status == "Failed" ? "red" : "blue";
+    string Logo(string method, int height) => method switch
+    {
+        "bKash" => $"<img src=\"/images/payment-methods/bkash.svg\" alt=\"bKash\" style=\"height:{height}px;width:auto;display:block;\" />",
+        "Nagad" => $"<img src=\"/images/payment-methods/nagad.svg\" alt=\"Nagad\" style=\"height:{height}px;width:auto;display:block;\" />",
+        _ => $"<i class=\"bi bi-bank\" style=\"font-size:{height}px;color:#236eff;line-height:1;\"></i>"
+    };
+}
+
+<style>
+    .wd { padding: 22px 26px 30px; font-family: 'Inter', sans-serif; color: #2a3157; }
+    .wd-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+    .wd-x { border: 0; background: transparent; font-size: 20px; color: #2a3157; cursor: pointer; }
+    .wd h2 { margin: 0 0 16px; font: 700 26px 'Playfair Display', Georgia, serif; color: #171d3d; }
+    .wd h4 { margin: 0 0 12px; font: 700 17px 'Playfair Display', Georgia, serif; color: #171d3d; }
+    .wd-card { padding: 16px 18px; margin-bottom: 16px; border-radius: 14px; border: 1px solid #eef1fb; background: #fff; }
+    .wd-summary { display: flex; justify-content: space-between; gap: 16px; align-items: center; background: #f6f9ff; }
+    .wd-code { font: 800 19px 'DM Sans', sans-serif; color: #171d3d; }
+    .wd-pill { display: inline-block; margin-left: 8px; padding: 4px 10px; border-radius: 8px; font: 600 11.5px 'Inter', sans-serif; vertical-align: middle; }
+    .wd-pill.green { background: #e2f8ee; color: #0d9c6c; } .wd-pill.blue { background: #e3f0ff; color: #236eff; } .wd-pill.red { background: #fde8ea; color: #d92d3f; }
+    .wd small { display: block; font-size: 11px; color: #8189a8; }
+    .wd-person { display: flex; align-items: center; gap: 14px; }
+    .wd-avatar { flex: 0 0 56px; width: 56px; height: 56px; border-radius: 50%; overflow: hidden; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #a326ff, #236eff); color: #fff; font: 700 18px 'DM Sans', sans-serif; }
+    .wd-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .wd-person b { font: 700 16px 'DM Sans', sans-serif; color: #171d3d; }
+    .wd-link { margin-left: auto; font: 600 12.5px 'Inter', sans-serif; color: #236eff; text-decoration: none; white-space: nowrap; }
+    .wd-method { display: flex; align-items: center; gap: 12px; }
+    .wd-logo { display: flex; align-items: center; justify-content: center; min-width: 64px; }
+    .wd-calc { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 12px; padding: 14px; border-radius: 12px; border: 1px solid #eef1fb; background: #fafbff; }
+    .wd-calc b { display: block; margin-top: 4px; font: 800 20px 'DM Sans', sans-serif; color: #171d3d; }
+    .wd-calc b.net { color: #236eff; }
+    .wd-note { margin: 10px 0 18px; font-size: 12px; line-height: 1.55; color: #6b7290; }
+    .wd-actions { display: flex; gap: 12px; margin-top: 18px; }
+    .wd-btn { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 44px; border-radius: 9px; border: 1px solid #cfe0ff; background: #fff; font: 600 13px 'Inter', sans-serif; color: #236eff; cursor: pointer; text-decoration: none; }
+    .wd-btn.primary { border: 0; color: #fff; background: linear-gradient(105deg, #a326ff, #236eff, #18a9ff); }
+</style>
+
+<div class="wd">
+    <div class="wd-top">
+        <button type="button" class="wd-x" data-close aria-label="Back"><i class="bi bi-chevron-left"></i></button>
+        <button type="button" class="wd-x" data-close aria-label="Close"><i class="bi bi-x-lg"></i></button>
+    </div>
+
+    <h2>Brand Payment Details</h2>
+
+    <div class="wd-card wd-summary">
+        <div>
+            <span class="wd-code">@v.Code</span><span class="wd-pill @tone">@v.Status</span>
+            <small style="margin-top:4px;">@v.At.ToString("MMM d, yyyy, h:mm tt", CultureInfo.InvariantCulture)</small>
+        </div>
+        <div style="text-align:right;">
+            <small>@(v.Status == "Completed" ? $"{rate}% to Admin Wallet" : "Fee not yet collected")</small>
+            <b style="font:800 20px 'DM Sans',sans-serif;color:#0d9c6c;">@(v.Fee > 0 ? "+" + Money(v.Fee) : "—")</b>
+        </div>
+    </div>
+
+    <h4>Brand</h4>
+    <div class="wd-card wd-person">
+        <div class="wd-avatar">@if (!string.IsNullOrWhiteSpace(v.BrandPicture)) { <img src="@v.BrandPicture" alt="" /> } else { <text>@Initials(v.BrandName)</text> }</div>
+        <div><b>@v.BrandName</b><small>@v.CampaignTitle</small></div>
+        <a class="wd-link" href="/Admin/AdminUserVerification/Details?type=brand&id=@v.BrandProfileId">View Profile</a>
+    </div>
+
+    <h4>Campaign &amp; Milestone</h4>
+    <div class="wd-card">
+        <div class="wd-summary" style="background:transparent;">
+            <div><b style="font:700 14px 'DM Sans',sans-serif;color:#171d3d;">@v.CampaignTitle</b><small>@v.MilestoneTitle</small></div>
+            <a class="wd-link" href="/Admin/AdminCampaigns/Details/@v.CampaignId">View Campaign</a>
+        </div>
+        <div style="margin-top:8px;"><small>Influencer</small><b style="font:700 13px 'DM Sans',sans-serif;color:#171d3d;">@v.InfluencerName</b></div>
+    </div>
+
+    <h4>Payment Method</h4>
+    <div class="wd-card wd-method">
+        <span class="wd-logo">@Html.Raw(Logo(v.Method, 26))</span>
+        <div><b style="font:700 14px 'DM Sans',sans-serif;color:#171d3d;">@v.Method</b><small>@(string.IsNullOrWhiteSpace(v.Reference) ? "No reference yet" : v.Reference)</small></div>
+    </div>
+
+    <div class="wd-calc">
+        <div><small>Milestone</small><b>@Money(v.MilestoneAmount)</b></div>
+        <div><small>Platform fee</small><b>@(v.Fee > 0 ? "+" + Money(v.Fee) : "—")</b></div>
+        <div><small>Brand paid</small><b class="net">@Money(v.TotalCharged)</b></div>
+    </div>
+
+    <p class="wd-note"><i class="bi bi-info-circle"></i> The brand pays the milestone plus this fee on top; the influencer is credited the full milestone amount. This fee is collected in full the moment the payment completes — not an estimate.</p>
+
+    <div class="wd-actions">
+        <button type="button" class="wd-btn" data-close>Close</button>
+        <a class="wd-btn primary" href="/Admin/AdminPayments/Index?open=P@(v.PaymentId)">Open Full Transaction <i class="bi bi-arrow-right"></i></a>
+    </div>
+</div>
