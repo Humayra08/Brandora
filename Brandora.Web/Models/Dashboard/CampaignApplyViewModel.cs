@@ -9,12 +9,16 @@ public class CampaignApplyViewModel : CampaignApplyInputModel
     public InfluencerProfile Profile { get; set; } = null!;
 
     public string Title { get; set; } = string.Empty;
+    public string? Description { get; set; }
     public string BrandName { get; set; } = string.Empty;
+    public string? BrandLogoUrl { get; set; }
+    public bool BrandVerified { get; set; }
     public string? Platform { get; set; }
     public string? Niche { get; set; }
     public decimal Budget { get; set; }
     public DateTime? Deadline { get; set; }
     public int ApplicantCount { get; set; }
+    public int MilestoneCount { get; set; }
 
     public int Step { get; set; } = 2;
 }
@@ -47,5 +51,4 @@ public class CampaignApplicationSubmittedViewModel : CampaignApplyViewModel
     public int ProposalId { get; set; }
     public DateTime SubmittedAt { get; set; }
     public ProposalStatus Status { get; set; }
-    public string? BrandLogoUrl { get; set; }
 }

@@ -6,6 +6,8 @@ public class InboxViewModel
 {
     public List<Conversation> Conversations { get; set; } = new();
     public Dictionary<int, int> UnreadCounts { get; set; } = new();
+    public List<Notification> Notifications { get; set; } = new();
+    public string InfluencerName { get; set; } = "";
 
     public string? Search { get; set; }
     public int TotalCount { get; set; }

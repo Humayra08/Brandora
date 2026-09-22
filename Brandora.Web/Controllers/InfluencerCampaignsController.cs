@@ -259,12 +259,16 @@ public class InfluencerCampaignsController(UserManager<ApplicationUser> userMana
             Notifications = await db.Notifications.AsNoTracking().Where(n => n.UserId == influencer.UserId).OrderByDescending(n => n.CreatedAt).Take(5).ToListAsync(),
             CampaignId = campaign.Id,
             Title = campaign.Title,
+            Description = campaign.Description,
             BrandName = campaign.BrandProfile.CompanyName,
+            BrandLogoUrl = campaign.BrandProfile.ProfilePictureUrl,
+            BrandVerified = campaign.BrandProfile.VerificationStatus == VerificationStatus.Verified,
             Platform = campaign.Platform,
             Niche = campaign.Niche,
             Budget = campaign.Budget,
             Deadline = campaign.Deadline,
-            ApplicantCount = await db.Proposals.CountAsync(p => p.CampaignId == campaign.Id)
+            ApplicantCount = await db.Proposals.CountAsync(p => p.CampaignId == campaign.Id),
+            MilestoneCount = await db.CampaignMilestonePlans.CountAsync(p => p.CampaignId == campaign.Id)
         };
     }
 
@@ -486,10 +490,12 @@ public class InfluencerCampaignsController(UserManager<ApplicationUser> userMana
             Profile = influencer,
             Notifications = await db.Notifications.AsNoTracking().Where(n => n.UserId == influencer.UserId)
                 .OrderByDescending(n => n.CreatedAt).Take(5).ToListAsync(),
-            CampaignId = campaign.Id, Title = campaign.Title,
+            CampaignId = campaign.Id, Title = campaign.Title, Description = campaign.Description,
             BrandName = campaign.BrandProfile.CompanyName, BrandLogoUrl = campaign.BrandProfile.ProfilePictureUrl,
+            BrandVerified = campaign.BrandProfile.VerificationStatus == VerificationStatus.Verified,
             Niche = campaign.Niche, Platform = campaign.Platform, Budget = campaign.Budget, Deadline = campaign.Deadline,
             ApplicantCount = await db.Proposals.CountAsync(p => p.CampaignId == campaign.Id),
+            MilestoneCount = await db.CampaignMilestonePlans.CountAsync(p => p.CampaignId == campaign.Id),
             ProposalId = proposal.Id, SubmittedAt = proposal.CreatedAt, Status = proposal.Status
         });
     }
