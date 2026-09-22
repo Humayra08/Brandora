@@ -126,6 +126,12 @@ public class HomeController(ApplicationDbContext db) : Controller
         return RedirectToAction(nameof(Contact));
     }
 
+    // "privacy-policy" matches the hyphenated attribute routes the other public
+    // pages use. The second route keeps the original /Home/Privacy URL working,
+    // since adding an attribute route would otherwise take it out of conventional
+    // routing and break any existing link to it.
+    [HttpGet("privacy-policy")]
+    [HttpGet("Home/Privacy")]
     public IActionResult Privacy()
     {
         return View();

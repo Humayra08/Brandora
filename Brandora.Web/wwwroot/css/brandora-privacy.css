@@ -1,0 +1,519 @@
+/* =========================================================
+   BRANDORA PRIVACY POLICY PAGE
+   Public "Privacy Policy" page reached from the footer's
+   Resources link.
+
+   Follows the Contact page's structure and rhythm: dark
+   gradient hero, then light cards on a soft grey field, so
+   the page reads as part of the same site.
+
+   The reset selectors below are intentionally unscoped so they keep
+   the same (zero) specificity the other public pages' resets have —
+   scoping them would outrank the shared navbar and footer rules and
+   break them.
+========================================================= */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+a {
+    text-decoration: none;
+    color: inherit;
+}
+
+.privacy-page {
+    font-family: 'DM Sans', sans-serif;
+    background: #ffffff;
+    color: #08123d;
+
+    overflow-x: hidden;
+
+    /* 1344 = 1280 of content + the 32px gutters either side, so the
+       content column lands on the same 1280 the other pages use. */
+    --pp-max: 1344px;
+
+    --pp-ink: #101a42;
+    --pp-body: #4d5a7d;
+    --pp-soft: #6b7899;
+    --pp-muted: #8a94ad;
+    --pp-border: #e6e9f4;
+
+    --pp-purple: #8b3dff;
+    --pp-blue: #2f6bff;
+    --pp-lavender: #eef0fe;
+}
+
+
+/* =========================================================
+   HERO
+========================================================= */
+
+.pp-hero {
+    padding-top: 82px;
+
+    background:
+        radial-gradient(
+            circle at 50% 30%,
+            rgba(73, 45, 185, 0.30),
+            transparent 35%
+        ),
+        linear-gradient(
+            120deg,
+            #030622 0%,
+            #06072d 45%,
+            #0a0631 100%
+        );
+
+    color: #ffffff;
+}
+
+.pp-hero-inner {
+    max-width: var(--pp-max);
+    margin: 0 auto;
+    padding: 46px 32px 58px;
+}
+
+.pp-hero-copy {
+    max-width: 760px;
+}
+
+/* --- badge --- */
+
+.pp-badge {
+    display: inline-flex;
+    align-items: center;
+
+    padding: 8px 18px;
+
+    border-radius: 30px;
+
+    border: 1px solid transparent;
+
+    background:
+        linear-gradient(#09082f, #09082f) padding-box,
+        linear-gradient(90deg, #9b2cff, #00a9ff) border-box;
+
+    font-size: 13px;
+
+    color: #ffffff;
+}
+
+/* --- title --- */
+
+.pp-hero-title {
+    margin-top: 26px;
+
+    font-family: 'Playfair Display', serif;
+
+    font-size: clamp(38px, 4.4vw, 58px);
+    line-height: 1.14;
+
+    font-weight: 500;
+
+    letter-spacing: -1.2px;
+}
+
+.pp-hero-title .purple {
+    display: inline-block;
+
+    background: linear-gradient(90deg, #c000ff 0%, #8000ff 35%, #164bff 65%, #00c8f5 100%);
+
+    -webkit-text-fill-color: transparent;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+/* --- lede --- */
+
+.pp-hero-text {
+    margin-top: 22px;
+
+    font-size: 18.5px;
+    line-height: 1.85;
+
+    color: rgba(255, 255, 255, .78);
+}
+
+/* --- last updated --- */
+
+.pp-meta {
+    margin-top: 30px;
+
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+
+    padding: 9px 16px;
+
+    border-radius: 30px;
+
+    background: rgba(255, 255, 255, .07);
+    border: 1px solid rgba(255, 255, 255, .14);
+
+    font-size: 13px;
+
+    color: rgba(255, 255, 255, .72);
+}
+
+.pp-meta svg {
+    color: #c9b4ff;
+    flex-shrink: 0;
+}
+
+
+/* =========================================================
+   MAIN — soft grey field holding the cards
+========================================================= */
+
+.pp-main {
+    background: #f6f7fb;
+
+    padding: 34px 32px 44px;
+}
+
+.pp-grid {
+    /* .pp-main already supplies the 32px gutters, so the grid caps at the
+       1280 content column itself rather than at the gutter box. */
+    max-width: 1280px;
+    margin: 0 auto;
+
+    display: grid;
+    grid-template-columns: minmax(0, 300px) minmax(0, 1fr);
+    align-items: start;
+    gap: 26px;
+}
+
+
+/* =========================================================
+   TABLE OF CONTENTS
+========================================================= */
+
+.pp-toc {
+    position: sticky;
+    top: 102px;
+
+    background: #ffffff;
+
+    border: 1px solid var(--pp-border);
+    border-radius: 14px;
+
+    box-shadow: 0 4px 18px rgba(16, 26, 66, .04);
+
+    padding: 24px 22px;
+}
+
+.pp-toc h2 {
+    font-family: 'Playfair Display', serif;
+
+    font-size: 19px;
+    font-weight: 700;
+
+    color: var(--pp-ink);
+}
+
+.pp-toc ol {
+    margin-top: 14px;
+
+    list-style: none;
+    counter-reset: pp-toc;
+}
+
+.pp-toc li {
+    counter-increment: pp-toc;
+}
+
+.pp-toc li + li {
+    margin-top: 2px;
+}
+
+.pp-toc a {
+    display: flex;
+    gap: 10px;
+
+    padding: 7px 9px;
+
+    border-radius: 8px;
+
+    font-size: 13.5px;
+    line-height: 1.45;
+
+    color: var(--pp-body);
+
+    transition: .2s;
+}
+
+.pp-toc a::before {
+    content: counter(pp-toc) ".";
+
+    flex-shrink: 0;
+
+    font-size: 12.5px;
+    font-weight: 600;
+
+    color: var(--pp-muted);
+}
+
+.pp-toc a:hover {
+    background: var(--pp-lavender);
+    color: var(--pp-ink);
+}
+
+.pp-toc a:hover::before {
+    color: var(--pp-purple);
+}
+
+
+/* =========================================================
+   CONTENT
+========================================================= */
+
+.pp-content {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+
+    min-width: 0;
+}
+
+.pp-card {
+    background: #ffffff;
+
+    border: 1px solid var(--pp-border);
+    border-radius: 14px;
+
+    box-shadow: 0 4px 18px rgba(16, 26, 66, .04);
+
+    padding: 30px;
+
+    /* Anchor links land clear of the fixed navbar. */
+    scroll-margin-top: 102px;
+}
+
+.pp-card h2 {
+    font-family: 'Playfair Display', serif;
+
+    font-size: 25px;
+    font-weight: 700;
+
+    color: var(--pp-ink);
+}
+
+.pp-card h3 {
+    margin-top: 22px;
+
+    font-size: 15px;
+    font-weight: 700;
+
+    color: var(--pp-ink);
+}
+
+.pp-card p {
+    margin-top: 14px;
+
+    font-size: 15px;
+    line-height: 1.8;
+
+    color: var(--pp-body);
+}
+
+.pp-card h3 + p {
+    margin-top: 8px;
+}
+
+.pp-card ul {
+    margin-top: 12px;
+
+    list-style: none;
+
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+}
+
+.pp-card li {
+    position: relative;
+
+    padding-left: 20px;
+
+    font-size: 15px;
+    line-height: 1.75;
+
+    color: var(--pp-body);
+}
+
+.pp-card li::before {
+    content: "";
+
+    position: absolute;
+    left: 2px;
+    top: 10px;
+
+    width: 6px;
+    height: 6px;
+
+    border-radius: 50%;
+
+    background: linear-gradient(90deg, var(--pp-purple), var(--pp-blue));
+}
+
+.pp-card li strong {
+    color: var(--pp-ink);
+    font-weight: 600;
+}
+
+.pp-card a {
+    color: var(--pp-blue);
+    font-weight: 500;
+
+    /* Long addresses wrap instead of pushing the card wider. */
+    overflow-wrap: anywhere;
+}
+
+.pp-card a:hover {
+    text-decoration: underline;
+}
+
+
+/* =========================================================
+   CONTACT CARD (last section)
+========================================================= */
+
+.pp-contact-rows {
+    margin-top: 18px;
+
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.pp-contact-row {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+
+    padding: 14px 16px;
+
+    border: 1px solid var(--pp-border);
+    border-radius: 12px;
+
+    background: #fbfbfe;
+
+    min-width: 0;
+}
+
+.pp-contact-icon {
+    flex-shrink: 0;
+
+    width: 40px;
+    height: 40px;
+
+    border-radius: 50%;
+
+    background: var(--pp-lavender);
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    color: var(--pp-purple);
+}
+
+.pp-contact-row div {
+    min-width: 0;
+}
+
+.pp-contact-row span {
+    display: block;
+
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .3px;
+    text-transform: uppercase;
+
+    color: var(--pp-muted);
+}
+
+.pp-contact-row a,
+.pp-contact-row p {
+    margin-top: 2px;
+
+    font-size: 14.5px;
+
+    color: var(--pp-ink);
+
+    overflow-wrap: anywhere;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 1000px) {
+
+    .pp-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .pp-toc {
+        position: static;
+        top: auto;
+    }
+
+    .pp-toc ol {
+        /* Two readable columns instead of one very wide list. */
+        columns: 2;
+        column-gap: 18px;
+    }
+
+    .pp-toc li {
+        break-inside: avoid;
+    }
+
+    .pp-hero-copy {
+        max-width: none;
+    }
+}
+
+@media (max-width: 800px) {
+
+    .pp-hero-inner {
+        padding: 40px 20px 50px;
+    }
+
+    .pp-main {
+        padding-left: 20px;
+        padding-right: 20px;
+    }
+}
+
+@media (max-width: 560px) {
+
+    .pp-card {
+        padding: 22px 18px;
+    }
+
+    .pp-card h2 {
+        font-size: 20px;
+    }
+
+    .pp-toc {
+        padding: 20px 18px;
+    }
+
+    .pp-toc ol {
+        columns: 1;
+    }
+
+    .pp-hero-text {
+        font-size: 16.5px;
+    }
+
+    .pp-contact-row {
+        padding: 12px 13px;
+    }
+}
