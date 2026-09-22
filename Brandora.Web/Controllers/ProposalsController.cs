@@ -216,11 +216,14 @@ public class ProposalsController(UserManager<ApplicationUser> userManager, Appli
             .OrderByDescending(c => c.CreatedAt)
             .ToListAsync();
 
+        var agreement = await db.Agreements.AsNoTracking().FirstOrDefaultAsync(a => a.ProposalId == proposal.Id);
+
         return View(new ProposalDetailViewModel
         {
             Proposal = proposal,
             CampaignMilestonePlanCount = milestonePlanCount,
-            PastCollaborations = pastCollaborations
+            PastCollaborations = pastCollaborations,
+            Agreement = agreement
         });
     }
 
@@ -249,65 +252,15 @@ public class ProposalsController(UserManager<ApplicationUser> userManager, Appli
             return RedirectToAction("Detail", new { id });
         }
 
+        // Accepting no longer activates the collaboration directly — a signed Campaign
+        // Collaboration Agreement is now required first (see AgreementsController).
+        // The influencer isn't notified yet either; that happens once the brand has
+        // signed and it's genuinely their turn (AgreementsController.Sign).
         proposal.Status = ProposalStatus.Accepted;
         proposal.DecidedAt = DateTime.UtcNow;
-
-        var collaboration = new Collaboration
-        {
-            ProposalId = proposal.Id,
-            CampaignId = proposal.CampaignId,
-            InfluencerProfileId = proposal.InfluencerProfileId,
-            Status = CollaborationStatus.Active
-        };
-        db.Collaborations.Add(collaboration);
-
-        var existingConversation = await db.Conversations.FirstOrDefaultAsync(c =>
-            c.BrandProfileId == brand.Id && c.InfluencerProfileId == proposal.InfluencerProfileId && c.CampaignId == proposal.CampaignId);
-
-        if (existingConversation is null)
-        {
-            db.Conversations.Add(new Conversation
-            {
-                BrandProfileId = brand.Id,
-                InfluencerProfileId = proposal.InfluencerProfileId,
-                CampaignId = proposal.CampaignId
-            });
-        }
-
-        // Turn the campaign's milestone plan (drafted in the campaign wizard,
-        // Step 2) into this creator's real, trackable milestones. The plan
-        // itself stays untouched so it can be reused if other creators join
-        // the same campaign.
-        var milestonePlans = await db.CampaignMilestonePlans
-            .Where(p => p.CampaignId == proposal.CampaignId)
-            .OrderBy(p => p.SortOrder).ThenBy(p => p.Id)
-            .ToListAsync();
-
-        foreach (var plan in milestonePlans)
-        {
-            db.Milestones.Add(new Milestone
-            {
-                Collaboration = collaboration,
-                Title = plan.Title,
-                ContentType = plan.ContentType,
-                Description = plan.Description,
-                Amount = plan.Amount,
-                DueDate = plan.DueDate,
-                Status = MilestoneStatus.Pending
-            });
-        }
-
         await db.SaveChangesAsync();
 
-        await notifications.NotifyAsync(
-            proposal.InfluencerProfile.UserId,
-            "Collaboration",
-            "Collaboration started",
-            $"Your proposal for \"{proposal.Campaign.Title}\" was accepted — the collaboration is now active.",
-            $"/InfluencerCampaigns/Details/{proposal.CampaignId}");
-        await db.SaveChangesAsync();
-
-        return RedirectToAction("Detail", "Collaborations", new { id = collaboration.Id });
+        return RedirectToAction("Detail", new { id });
     }
 
     [HttpPost]

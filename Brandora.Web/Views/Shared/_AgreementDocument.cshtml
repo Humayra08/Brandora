@@ -1,0 +1,83 @@
+@model Brandora.Web.Models.Domain.Agreement
+@using Brandora.Web.Models.Domain
+@{
+    var brandSig = Model.Signatures.FirstOrDefault(s => s.Party == AgreementParty.Brand);
+    var influencerSig = Model.Signatures.FirstOrDefault(s => s.Party == AgreementParty.Influencer);
+}
+<style>
+    .agreement-paper { max-width: 860px; margin: 0 auto; padding: 48px 56px; background: #fff; border: 1px solid #e3e7f2; border-radius: 6px; box-shadow: 0 10px 40px rgba(20,24,60,.08); color: #1c2340; font-family: 'DM Sans', 'Inter', sans-serif; }
+    .agreement-paper-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid #e6e9f4; font-size: 12px; color: #6b7290; }
+    .agreement-doc h1 { font-family: 'Playfair Display', Georgia, serif; font-size: 26px; text-align: center; margin: 0 0 28px; letter-spacing: .5px; text-transform: uppercase; }
+    .agreement-doc h2 { font-size: 14px; font-weight: 700; margin: 26px 0 10px; color: #101d48; }
+    .agreement-doc p { font-size: 13.5px; line-height: 1.7; color: #333a5c; margin: 0 0 8px; }
+    .agreement-kv, .agreement-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 13px; }
+    .agreement-kv th { text-align: left; width: 220px; padding: 6px 10px 6px 0; color: #55608a; font-weight: 600; vertical-align: top; }
+    .agreement-kv td { padding: 6px 0; }
+    .agreement-table th, .agreement-table td { border: 1px solid #e3e7f2; padding: 8px 10px; text-align: left; vertical-align: top; }
+    .agreement-table thead th { background: #f5f7fd; font-weight: 700; }
+    .agreement-total-row td { font-weight: 700; background: #fafbff; }
+    .agreement-sign-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 40px; }
+    .agreement-sign-block h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .6px; color: #6b7290; margin: 0 0 14px; }
+    .agreement-sign-image { height: 70px; display: flex; align-items: flex-end; margin-bottom: 6px; }
+    .agreement-sign-image img { max-height: 64px; max-width: 100%; object-fit: contain; }
+    .agreement-sign-line { border-top: 1.5px solid #1c2340; padding-top: 6px; font-size: 12.5px; }
+    .agreement-sign-line strong { display: block; font-size: 13px; }
+    .agreement-sign-pending { color: #9aa1bd; font-size: 12px; font-style: italic; }
+    @@media print {
+        .agreement-no-print { display: none !important; }
+        .agreement-paper { box-shadow: none; border: 0; padding: 0; max-width: 100%; }
+        body { background: #fff; }
+    }
+</style>
+<div class="agreement-paper">
+    <div class="agreement-paper-head agreement-no-print">
+        <span>Agreement <strong>@Model.Code</strong> &middot; Version @Model.Version.ToString("0.0")</span>
+        <span>@(Model.Status == AgreementStatus.FullySigned ? "Fully Signed" : Model.Status == AgreementStatus.AwaitingBrandSignature ? "Awaiting Brand Signature" : "Awaiting Influencer Signature")</span>
+    </div>
+
+    @Html.Raw(Model.ContentHtml)
+
+    <div class="agreement-sign-grid">
+        <div class="agreement-sign-block">
+            <h3>For the Brand</h3>
+            <div class="agreement-sign-image">
+                @if (brandSig is not null)
+                {
+                    <img src="@brandSig.SignatureImageUrl" alt="Brand signature" />
+                }
+            </div>
+            <div class="agreement-sign-line">
+                @if (brandSig is not null)
+                {
+                    <strong>@brandSig.SignerName</strong>
+                    <span>Title: Authorized Representative</span><br />
+                    <span>Date: @brandSig.SignedAt.ToString("d MMMM yyyy")</span>
+                }
+                else
+                {
+                    <span class="agreement-sign-pending">Not yet signed</span>
+                }
+            </div>
+        </div>
+        <div class="agreement-sign-block">
+            <h3>For the Influencer</h3>
+            <div class="agreement-sign-image">
+                @if (influencerSig is not null)
+                {
+                    <img src="@influencerSig.SignatureImageUrl" alt="Influencer signature" />
+                }
+            </div>
+            <div class="agreement-sign-line">
+                @if (influencerSig is not null)
+                {
+                    <strong>@influencerSig.SignerName</strong><br />
+                    <span>Date: @influencerSig.SignedAt.ToString("d MMMM yyyy")</span>
+                }
+                else
+                {
+                    <span class="agreement-sign-pending">Not yet signed</span>
+                }
+            </div>
+        </div>
+    </div>
+</div>

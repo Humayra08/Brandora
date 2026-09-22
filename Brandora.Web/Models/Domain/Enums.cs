@@ -100,3 +100,23 @@ public enum PayoutMethodKind
     Nagad,
     BankAccount
 }
+
+public enum AgreementStatus
+{
+    AwaitingBrandSignature,
+    AwaitingInfluencerSignature,
+    FullySigned
+}
+
+public enum AgreementParty
+{
+    Brand,
+    Influencer
+}
+
+public enum SignatureMethod
+{
+    Drawn,
+    Uploaded,
+    Typed
+}

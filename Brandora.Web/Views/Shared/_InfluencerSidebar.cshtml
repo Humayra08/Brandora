@@ -9,6 +9,7 @@
 
     var activeNav = ViewData["ActiveNav"] as string ?? "";
     var influencerName = ViewData["CompanyName"] as string ?? "";
+    var profilePictureUrl = ViewData["ProfilePictureUrl"] as string;
     var unreadMessages = ViewData["UnreadMessages"] as int? ?? 0;
 
     var navItems = new (string Key, string Label, string Url)[]
@@ -16,6 +17,7 @@
         ("Dashboard",      "Dashboard",        "/InfluencerDashboard"),
         ("Campaigns",      "Campaigns",        "/InfluencerCampaigns"),
         ("Proposals",      "My Proposals",     "/InfluencerProposals"),
+        ("Agreements",     "Agreements",       "/InfluencerAgreements"),
         ("Chat",           "Chat",             "/InfluencerMessages"),
         ("Earnings",       "Earnings",         "/InfluencerEarnings"),
         ("UploadProof",    "Upload Proof",     "/UploadProof"),
@@ -92,7 +94,16 @@
     <div class="sidebar-bottom">
 
         <div class="sidebar-user">
-            <div class="avatar-circle small">@FollowerFormat.InitialsOf(influencerName)</div>
+            <div class="avatar-circle small">
+                @if (!string.IsNullOrEmpty(profilePictureUrl))
+                {
+                    <img src="@profilePictureUrl" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />
+                }
+                else
+                {
+                    @FollowerFormat.InitialsOf(influencerName)
+                }
+            </div>
 
             <div>
                 <h6>@influencerName</h6>

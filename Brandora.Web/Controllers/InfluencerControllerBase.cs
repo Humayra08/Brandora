@@ -19,6 +19,7 @@ public abstract class InfluencerControllerBase(UserManager<ApplicationUser> user
         {
             ViewData["AppSection"] = "Influencer";
             ViewData["CompanyName"] = influencer.FullName;
+            ViewData["ProfilePictureUrl"] = influencer.ProfilePictureUrl;
             ViewData["UnreadNotifications"] = await db.Notifications.CountAsync(n => n.UserId == userId && !n.IsRead);
             ViewData["UnreadMessages"] = await db.Messages.CountAsync(m =>
                 m.Conversation.InfluencerProfileId == influencer.Id && m.SenderUserId != userId && m.ReadAt == null &&

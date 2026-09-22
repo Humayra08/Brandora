@@ -3,6 +3,7 @@ using System;
 using Brandora.Web.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Brandora.Web.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260922172551_AddAgreements")]
+    partial class AddAgreements
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -567,12 +570,6 @@ namespace Brandora.Web.Migrations
                     b.Property<int>("BrandProfileId")
                         .HasColumnType("integer");
 
-                    b.Property<string>("BrandStatement")
-                        .HasColumnType("text");
-
-                    b.Property<DateTime?>("BrandStatementAt")
-                        .HasColumnType("timestamp with time zone");
-
                     b.Property<int>("CollaborationId")
                         .HasColumnType("integer");
 
@@ -582,16 +579,7 @@ namespace Brandora.Web.Migrations
                     b.Property<int>("InfluencerProfileId")
                         .HasColumnType("integer");
 
-                    b.Property<string>("InfluencerStatement")
-                        .HasColumnType("text");
-
-                    b.Property<DateTime?>("InfluencerStatementAt")
-                        .HasColumnType("timestamp with time zone");
-
                     b.Property<int?>("MilestoneId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("RaisedBy")
                         .HasColumnType("integer");
 
                     b.Property<string>("Reason")
@@ -618,70 +606,6 @@ namespace Brandora.Web.Migrations
                     b.HasIndex("MilestoneId");
 
                     b.ToTable("Disputes");
-                });
-
-            modelBuilder.Entity("Brandora.Web.Models.Domain.DisputeEvidence", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("DisputeId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("FileName")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<long>("FileSizeBytes")
-                        .HasColumnType("bigint");
-
-                    b.Property<string>("FileUrl")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("UploadedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("UploadedBy")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("DisputeId");
-
-                    b.ToTable("DisputeEvidence");
-                });
-
-            modelBuilder.Entity("Brandora.Web.Models.Domain.DisputeNote", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("AdminName")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Body")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("DisputeId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("DisputeId");
-
-                    b.ToTable("DisputeNotes");
                 });
 
             modelBuilder.Entity("Brandora.Web.Models.Domain.EmailVerificationCode", b =>
@@ -1684,28 +1608,6 @@ namespace Brandora.Web.Migrations
                     b.Navigation("Milestone");
                 });
 
-            modelBuilder.Entity("Brandora.Web.Models.Domain.DisputeEvidence", b =>
-                {
-                    b.HasOne("Brandora.Web.Models.Domain.Dispute", "Dispute")
-                        .WithMany("Evidence")
-                        .HasForeignKey("DisputeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Dispute");
-                });
-
-            modelBuilder.Entity("Brandora.Web.Models.Domain.DisputeNote", b =>
-                {
-                    b.HasOne("Brandora.Web.Models.Domain.Dispute", "Dispute")
-                        .WithMany("Notes")
-                        .HasForeignKey("DisputeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Dispute");
-                });
-
             modelBuilder.Entity("Brandora.Web.Models.Domain.EmailVerificationCode", b =>
                 {
                     b.HasOne("Brandora.Web.Models.Domain.ApplicationUser", "User")
@@ -2015,13 +1917,6 @@ namespace Brandora.Web.Migrations
             modelBuilder.Entity("Brandora.Web.Models.Domain.Conversation", b =>
                 {
                     b.Navigation("Messages");
-                });
-
-            modelBuilder.Entity("Brandora.Web.Models.Domain.Dispute", b =>
-                {
-                    b.Navigation("Evidence");
-
-                    b.Navigation("Notes");
                 });
 
             modelBuilder.Entity("Brandora.Web.Models.Domain.InfluencerProfile", b =>

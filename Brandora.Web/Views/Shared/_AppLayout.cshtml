@@ -2548,6 +2548,7 @@
         @RenderSection("Styles", required: false)
 
     </style>
+    @RenderSection("Head", required: false)
 </head>
 <body>
 
@@ -2601,6 +2602,11 @@
                             <span class="unread-badge">@(pendingApplicants > 9 ? "9+" : pendingApplicants.ToString())</span>
                         }
                     </span>
+                    @navChevron
+                </a>
+
+                <a href="/Agreements" data-nav-key="Agreements" class="side-nav-item @(activeNav == "Agreements" ? "is-active" : "")">
+                    <span class="nav-label side-toggle-hide">Agreements</span>
                     @navChevron
                 </a>
 

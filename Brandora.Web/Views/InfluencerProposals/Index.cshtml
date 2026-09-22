@@ -61,7 +61,7 @@
             </div>
         </details>
         <a class="dashboard-account" href="/InfluencerSettings" aria-label="Your profile settings">
-            <span class="dashboard-avatar">@initial</span>
+            <span class="dashboard-avatar">@if (!string.IsNullOrEmpty(ViewData["ProfilePictureUrl"] as string)) { <img src="@ViewData["ProfilePictureUrl"]" alt="" /> } else { @initial }</span>
             <span><strong>@Model.InfluencerName</strong><small>Influencer</small></span>
             <i class="bi bi-chevron-down" aria-hidden="true"></i>
         </a>

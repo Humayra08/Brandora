@@ -1,0 +1,66 @@
+@model List<Brandora.Web.Models.Domain.Agreement>
+@using Brandora.Web.Models.Domain
+@{
+    ViewData["Title"] = "Agreements";
+    ViewData["ActiveNav"] = "Agreements";
+    Layout = "_AppLayout";
+    var tab = ViewData["Tab"] as string ?? "all";
+    var tabs = new[] { ("all", "All"), ("mine", "Awaiting Your Signature"), ("them", "Awaiting Influencer"), ("completed", "Completed") };
+    string StatusLabel(AgreementStatus status) => status switch
+    {
+        AgreementStatus.FullySigned => "Fully Signed",
+        AgreementStatus.AwaitingBrandSignature => "Awaiting Your Signature",
+        _ => "Awaiting Influencer"
+    };
+    string StatusClass(AgreementStatus status) => status switch
+    {
+        AgreementStatus.FullySigned => "is-success",
+        AgreementStatus.AwaitingBrandSignature => "is-pending",
+        _ => "is-neutral"
+    };
+}
+
+@section Styles {
+    <style>
+        .agr-tabs { display: flex; gap: 8px; margin-bottom: 18px; flex-wrap: wrap; }
+        .agr-tabs a { padding: 8px 14px; border-radius: 999px; border: 1px solid #d6dcf0; font-size: 12.5px; font-weight: 600; color: #40467a; text-decoration: none; }
+        .agr-tabs a.is-active { background: #0759ff; border-color: #0759ff; color: #fff; }
+        .agr-list { display: flex; flex-direction: column; gap: 10px; }
+        .agr-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 18px; border: 1px solid #e6e9f4; border-radius: 12px; background: #fff; text-decoration: none; color: inherit; }
+        .agr-row:hover { border-color: #b9c8ff; }
+        .agr-row-title { font-weight: 700; font-size: 14px; color: #171d3d; }
+        .agr-row-sub { font-size: 12px; color: #6b7290; margin-top: 2px; }
+        .agr-badge { padding: 5px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+        .agr-badge.is-success { background: #e3f7ec; color: #1b7a4a; }
+        .agr-badge.is-pending { background: #fff3e0; color: #b3690a; }
+        .agr-badge.is-neutral { background: #eef0fa; color: #55608a; }
+        .agr-empty { text-align: center; padding: 60px 20px; color: #6b7290; }
+    </style>
+}
+
+<div class="agr-tabs">
+    @foreach (var (key, label) in tabs)
+    {
+        <a href="/Agreements?tab=@key" class="@(tab == key ? "is-active" : "")">@label</a>
+    }
+</div>
+
+@if (Model.Count == 0)
+{
+    <div class="agr-empty">No agreements here yet.</div>
+}
+else
+{
+    <div class="agr-list">
+        @foreach (var agreement in Model)
+        {
+            <a class="agr-row" href="/Agreements/Detail/@agreement.Id">
+                <div>
+                    <div class="agr-row-title">@agreement.Campaign.Title</div>
+                    <div class="agr-row-sub">@agreement.Code &middot; @agreement.InfluencerProfile.FullName &middot; @agreement.CreatedAt.ToString("MMM d, yyyy")</div>
+                </div>
+                <span class="agr-badge @StatusClass(agreement.Status)">@StatusLabel(agreement.Status)</span>
+            </a>
+        }
+    </div>
+}

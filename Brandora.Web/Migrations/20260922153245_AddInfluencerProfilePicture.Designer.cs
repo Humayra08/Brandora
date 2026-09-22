@@ -3,6 +3,7 @@ using System;
 using Brandora.Web.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Brandora.Web.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260922153245_AddInfluencerProfilePicture")]
+    partial class AddInfluencerProfilePicture
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -47,137 +50,6 @@ namespace Brandora.Web.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("AdminAuditLogs");
-                });
-
-            modelBuilder.Entity("Brandora.Web.Models.Domain.Agreement", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("BrandProfileId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("CampaignId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Code")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("ContentHash")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("ContentHtml")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("InfluencerProfileId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("ProposalId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("integer");
-
-                    b.Property<decimal>("Version")
-                        .HasColumnType("numeric");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("BrandProfileId");
-
-                    b.HasIndex("CampaignId");
-
-                    b.HasIndex("Code")
-                        .IsUnique();
-
-                    b.HasIndex("InfluencerProfileId");
-
-                    b.HasIndex("ProposalId")
-                        .IsUnique();
-
-                    b.ToTable("Agreements");
-                });
-
-            modelBuilder.Entity("Brandora.Web.Models.Domain.AgreementEvent", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("AgreementId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Detail")
-                        .HasColumnType("text");
-
-                    b.Property<string>("EventType")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("OccurredAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("UserId")
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AgreementId");
-
-                    b.ToTable("AgreementEvents");
-                });
-
-            modelBuilder.Entity("Brandora.Web.Models.Domain.AgreementSignature", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("AgreementId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("IpAddress")
-                        .HasColumnType("text");
-
-                    b.Property<int>("Method")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("Party")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("SignatureImageUrl")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("SignedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("SignerName")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("SignerUserId")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AgreementId");
-
-                    b.ToTable("AgreementSignatures");
                 });
 
             modelBuilder.Entity("Brandora.Web.Models.Domain.ApplicationUser", b =>
@@ -567,12 +439,6 @@ namespace Brandora.Web.Migrations
                     b.Property<int>("BrandProfileId")
                         .HasColumnType("integer");
 
-                    b.Property<string>("BrandStatement")
-                        .HasColumnType("text");
-
-                    b.Property<DateTime?>("BrandStatementAt")
-                        .HasColumnType("timestamp with time zone");
-
                     b.Property<int>("CollaborationId")
                         .HasColumnType("integer");
 
@@ -582,16 +448,7 @@ namespace Brandora.Web.Migrations
                     b.Property<int>("InfluencerProfileId")
                         .HasColumnType("integer");
 
-                    b.Property<string>("InfluencerStatement")
-                        .HasColumnType("text");
-
-                    b.Property<DateTime?>("InfluencerStatementAt")
-                        .HasColumnType("timestamp with time zone");
-
                     b.Property<int?>("MilestoneId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("RaisedBy")
                         .HasColumnType("integer");
 
                     b.Property<string>("Reason")
@@ -618,70 +475,6 @@ namespace Brandora.Web.Migrations
                     b.HasIndex("MilestoneId");
 
                     b.ToTable("Disputes");
-                });
-
-            modelBuilder.Entity("Brandora.Web.Models.Domain.DisputeEvidence", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("DisputeId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("FileName")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<long>("FileSizeBytes")
-                        .HasColumnType("bigint");
-
-                    b.Property<string>("FileUrl")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("UploadedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("UploadedBy")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("DisputeId");
-
-                    b.ToTable("DisputeEvidence");
-                });
-
-            modelBuilder.Entity("Brandora.Web.Models.Domain.DisputeNote", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("AdminName")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Body")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("DisputeId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("DisputeId");
-
-                    b.ToTable("DisputeNotes");
                 });
 
             modelBuilder.Entity("Brandora.Web.Models.Domain.EmailVerificationCode", b =>
@@ -1507,63 +1300,6 @@ namespace Brandora.Web.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
-            modelBuilder.Entity("Brandora.Web.Models.Domain.Agreement", b =>
-                {
-                    b.HasOne("Brandora.Web.Models.Domain.BrandProfile", "BrandProfile")
-                        .WithMany()
-                        .HasForeignKey("BrandProfileId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Brandora.Web.Models.Domain.Campaign", "Campaign")
-                        .WithMany()
-                        .HasForeignKey("CampaignId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Brandora.Web.Models.Domain.InfluencerProfile", "InfluencerProfile")
-                        .WithMany()
-                        .HasForeignKey("InfluencerProfileId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Brandora.Web.Models.Domain.Proposal", "Proposal")
-                        .WithMany()
-                        .HasForeignKey("ProposalId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("BrandProfile");
-
-                    b.Navigation("Campaign");
-
-                    b.Navigation("InfluencerProfile");
-
-                    b.Navigation("Proposal");
-                });
-
-            modelBuilder.Entity("Brandora.Web.Models.Domain.AgreementEvent", b =>
-                {
-                    b.HasOne("Brandora.Web.Models.Domain.Agreement", "Agreement")
-                        .WithMany("Events")
-                        .HasForeignKey("AgreementId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Agreement");
-                });
-
-            modelBuilder.Entity("Brandora.Web.Models.Domain.AgreementSignature", b =>
-                {
-                    b.HasOne("Brandora.Web.Models.Domain.Agreement", "Agreement")
-                        .WithMany("Signatures")
-                        .HasForeignKey("AgreementId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Agreement");
-                });
-
             modelBuilder.Entity("Brandora.Web.Models.Domain.BrandProfile", b =>
                 {
                     b.HasOne("Brandora.Web.Models.Domain.ApplicationUser", "User")
@@ -1682,28 +1418,6 @@ namespace Brandora.Web.Migrations
                     b.Navigation("InfluencerProfile");
 
                     b.Navigation("Milestone");
-                });
-
-            modelBuilder.Entity("Brandora.Web.Models.Domain.DisputeEvidence", b =>
-                {
-                    b.HasOne("Brandora.Web.Models.Domain.Dispute", "Dispute")
-                        .WithMany("Evidence")
-                        .HasForeignKey("DisputeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Dispute");
-                });
-
-            modelBuilder.Entity("Brandora.Web.Models.Domain.DisputeNote", b =>
-                {
-                    b.HasOne("Brandora.Web.Models.Domain.Dispute", "Dispute")
-                        .WithMany("Notes")
-                        .HasForeignKey("DisputeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Dispute");
                 });
 
             modelBuilder.Entity("Brandora.Web.Models.Domain.EmailVerificationCode", b =>
@@ -1973,13 +1687,6 @@ namespace Brandora.Web.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Brandora.Web.Models.Domain.Agreement", b =>
-                {
-                    b.Navigation("Events");
-
-                    b.Navigation("Signatures");
-                });
-
             modelBuilder.Entity("Brandora.Web.Models.Domain.ApplicationUser", b =>
                 {
                     b.Navigation("BrandProfile");
@@ -2015,13 +1722,6 @@ namespace Brandora.Web.Migrations
             modelBuilder.Entity("Brandora.Web.Models.Domain.Conversation", b =>
                 {
                     b.Navigation("Messages");
-                });
-
-            modelBuilder.Entity("Brandora.Web.Models.Domain.Dispute", b =>
-                {
-                    b.Navigation("Evidence");
-
-                    b.Navigation("Notes");
                 });
 
             modelBuilder.Entity("Brandora.Web.Models.Domain.InfluencerProfile", b =>

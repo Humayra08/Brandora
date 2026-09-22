@@ -1,0 +1,198 @@
+/* Brand agreement review and signing workspace. */
+body:has(.brand-agreement) .main { padding: 22px 24px 32px; }
+body:has(.brand-agreement) .main-topbar { margin: -22px -24px 20px; }
+.brand-agreement { color: #101d48; font-family: 'DM Sans', sans-serif; }
+.brand-agreement button, .brand-agreement input { font: inherit; }
+.brand-agreement button { cursor: pointer; }
+.brand-agreement button:disabled { opacity: .4; cursor: default; }
+.brand-agreement :is(button, a, input, [tabindex]):focus-visible { outline: 2px solid #5945ff; outline-offset: 3px; }
+.brand-agreement [hidden] { display: none !important; }
+.agreement-review-header { display: grid; grid-template-columns: minmax(0,1.6fr) minmax(330px,1fr); gap: 24px; align-items: center; margin-bottom: 22px; }
+.agreement-breadcrumb { display: flex; flex-wrap: wrap; align-items: center; gap: 11px; font-size: 12px; margin-bottom: 14px; }
+.agreement-breadcrumb a { color: #334eaa; text-decoration: none; }
+.agreement-breadcrumb i { font-size: 10px; color: #2243ad; }
+.agreement-breadcrumb > span { color: #08166b; font-weight: 600; }
+.agreement-review-intro h1 { margin: 0 0 4px; color: #080e68; font: 700 clamp(24px,2.3vw,34px)/1.2 'Playfair Display',Georgia,serif; letter-spacing: -.6px; }
+.agreement-review-intro > p { color: #273da0; font-size: 13px; line-height: 1.5; }
+.agreement-progress { display: flex; list-style: none; padding: 0; margin: 22px 0 0; }
+.agreement-progress li { position: relative; flex: 1; text-align: center; }
+.agreement-progress li:not(:last-child)::after { content: ''; height: 1px; background: #c4d8fd; position: absolute; top: 15px; left: calc(50% + 15px); width: calc(100% - 30px); }
+.agreement-progress li.is-done::after { background: #1765ff; }
+.agreement-progress li > span { display: grid; place-items: center; width: 30px; height: 30px; margin: 0 auto 7px; border-radius: 50%; background: #d5e4ff; color: #102990; font-size: 14px; font-weight: 700; }
+.agreement-progress .is-done > span, .agreement-progress .is-current > span { color: white; background: linear-gradient(130deg,#087fff,#102aff); box-shadow: 0 0 0 3px #e6f0ff; }
+.agreement-progress small { font-size: 11px; color: #4056a9; }
+.agreement-progress .is-current small { color: #123aff; font-weight: 700; }
+.agreement-review-grid { display: grid; grid-template-columns: minmax(0,1.73fr) minmax(330px,1fr); gap: 18px; align-items: start; }
+.agreement-viewer { min-width: 0; background: linear-gradient(115deg,#e8f0f5,#edf5fa); border: 1px solid #e1effc; border-radius: 8px; padding: 10px 6px 12px 0; box-shadow: 0 2px 16px #537fc609; }
+.agreement-viewer-toolbar { display: flex; align-items: center; gap: 12px; padding: 0 8px 9px 100px; }
+.agreement-viewer-toolbar button { border: 0; border-radius: 4px; padding: 8px 10px; color: #132167; background: #ffffffdc; white-space: nowrap; font-size: 11px; font-weight: 600; }
+.agreement-page-controls, .agreement-zoom-controls, .agreement-export-controls { display: flex; align-items: center; gap: 2px; }
+.agreement-page-controls output { font-size: 12px; font-weight: 600; padding: 7px 9px; background: #ffffffbb; white-space: nowrap; }
+.agreement-zoom-controls { margin-left: auto; }
+.agreement-export-controls { margin-left: auto; gap: 10px; }
+.agreement-export-controls i { font-size: 14px; margin-right: 4px; }
+.agreement-viewer-body { display: grid; grid-template-columns: 100px minmax(0,1fr); }
+.agreement-thumbnails { display: flex; flex-direction: column; gap: 15px; align-items: center; border-right: 1px solid #dce8f1; padding: 4px 10px 18px; }
+.agreement-thumbnail { border: 0; background: none; padding: 0; width: 74px; color: #101d48; font-size: 12px; font-weight: 700; }
+.agreement-thumbnail-preview { position: relative; display: block; height: 91px; width: 74px; overflow: hidden; border: 1px solid #cfe2ff; border-radius: 4px; box-shadow: 0 3px 12px #6082ad0a; background: #fff; pointer-events: none; }
+.agreement-thumbnail[aria-current="page"] .agreement-thumbnail-preview { border: 1.5px solid #2254ff; box-shadow: 0 0 0 2px #dae7ff; }
+.agreement-thumbnail[aria-current="page"] { color: #154bff; }
+.agreement-thumbnail > span:last-child { display: block; margin-top: 6px; }
+.agreement-document-viewport { min-width: 0; overflow: auto; padding: 0 0 0 15px; }
+.agreement-sheet-frame { position: relative; margin: 0 auto; }
+.brand-agreement .agreement-sheet { position: absolute; top: 0; left: 0; width: 700px; min-height: 800px; padding: 20px 20px 38px; transform-origin: top left; background: white; border: 1px solid #e1e9f5; box-shadow: 0 4px 14px #315b8714; font: 13px/1.45 'DM Sans',sans-serif; color: #18203f; }
+.brand-agreement .agreement-sheet h1 { font: 700 22px/1.2 Georgia,serif; text-align: center; text-transform: uppercase; margin: 18px 0 6px; color: #111631; }
+.agreement-brand-letterhead { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; padding: 4px 14px 10px; margin-bottom: 0; border-bottom: 2px solid #5b4a9f; }
+.agreement-brandora-wordmark { display: inline-flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.agreement-brandora-wordmark img { display: block; width: 44px; height: 55px; object-fit: contain; }
+.agreement-brandora-wordmark strong { font: 700 36px/1 Georgia,serif; letter-spacing: -1.8px; color: #191525; }
+.agreement-brandora-wordmark strong > span { color: #6624e8; }
+.agreement-letterhead-tagline { padding-bottom: 5px; font-size: 13px; line-height: 1.3; color: #62618b; white-space: nowrap; text-align: right; }
+.brand-agreement .agreement-document-meta { font-size: 11px; text-align: center; margin: 0 0 12px; }
+.agreement-document-meta > span { margin: 0 8px; }
+.brand-agreement .agreement-doc h2 { font: 700 17px/1.3 Georgia,serif; margin: 15px 0 6px; color: #111631; }
+.brand-agreement .agreement-doc p { font-size: 13px; line-height: 1.5; margin: 0 0 8px; overflow-wrap: anywhere; }
+.brand-agreement .agreement-kv, .brand-agreement .agreement-table { font-size: 12px; width: 100%; border-collapse: collapse; margin: 0 0 10px; }
+.brand-agreement .agreement-kv th { width: 44%; font-weight: 500; color: #39466c; text-align: left; padding: 2px 16px; }
+.brand-agreement .agreement-kv td { padding: 2px 5px; color: #39466c; }
+.brand-agreement .agreement-kv tr { border-bottom: 1px solid #edf1f8; }
+.brand-agreement .agreement-table th, .brand-agreement .agreement-table td { padding: 6px 9px; border: 1px solid #e0e6f1; overflow-wrap: anywhere; }
+.brand-agreement .agreement-table th { text-align: center; background: #f7f8fb; }
+.brand-agreement .agreement-table td:last-child { text-align: right; white-space: nowrap; }
+.agreement-parties { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.brand-agreement .agreement-parties p { padding: 12px 16px; background: #f7f8fbc0; border: 1px solid #e0e6f1; min-height: 90px; }
+.brand-agreement .agreement-parties strong { display: block; }
+.agreement-page-footer { position: absolute; bottom: 12px; right: 20px; color: #6071aa; font-size: 11px; }
+.brand-agreement .agreement-sign-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 30px; }
+.brand-agreement .agreement-sign-block h3 { font-size: 12px; margin-bottom: 14px; }
+.brand-agreement .agreement-sign-image { min-height: 75px; }
+.brand-agreement .agreement-sign-image img { max-width: 100%; max-height: 70px; object-fit: contain; }
+.brand-agreement .agreement-sign-line { border-top: 1px solid #273150; padding-top: 8px; font-size: 12px; }
+.brand-agreement .agreement-sign-line strong { display: block; }
+.agreement-review-rail { display: grid; gap: 14px; min-width: 0; }
+.agreement-info-card, .agreement-brand-signature, .agreement-signed-card { border: 1px solid #dfedff; border-radius: 8px; background: #ffffffb8; padding: 16px; box-shadow: 0 3px 14px #277bcc05; }
+.agreement-review-rail h2 { font: 700 17px/1.25 Georgia,serif; color: #080e68; margin: 0 0 12px; }
+.agreement-campaign-identity { display: flex; gap: 16px; align-items: center; padding-bottom: 6px; }
+.agreement-brand-logo { width: 64px; height: 64px; border: 1px solid #d2e1ff; border-radius: 5px; background: linear-gradient(120deg,white,#f8fbff); display: grid; place-items: center; flex-shrink: 0; color: #141c42; font: 25px Georgia,serif; overflow: hidden; }
+.agreement-brand-logo img { width: 100%; height: 100%; object-fit: contain; }
+.agreement-campaign-identity h3 { color: #080e68; font: 700 15px/1.3 Georgia,serif; margin: 0 0 5px; overflow-wrap: anywhere; }
+.agreement-campaign-identity p { font-size: 12px; color: #4560ac; line-height: 1.5; }
+.agreement-campaign-identity p > span { padding: 0 5px; }
+.agreement-information { margin: 0; }
+.agreement-information > div { display: flex; align-items: center; justify-content: space-between; gap: 10px; border-top: 1px solid #edf2fb; min-height: 31px; padding: 6px 3px; font-size: 12px; }
+.agreement-information dt { color: #223b89; font-weight: 400; flex-shrink: 0; }
+.agreement-information dd { margin: 0; text-align: right; font-weight: 600; overflow-wrap: anywhere; }
+.agreement-information > div:last-child { padding-bottom: 0; }
+.agreement-status { display: inline-block; padding: 6px 14px; color: #e86d00; background: #fff2df; border-radius: 5px; font-weight: 500; font-size: 11px; }
+.agreement-status.is-complete { color: #16734e; background: #e3f7ed; }
+.agreement-brand-signature .agreement-sign-tabs { display: flex; border-radius: 5px; background: #f1f6ff; margin-bottom: 12px; }
+.agreement-brand-signature .agreement-sign-tabs button { flex: 1; padding: 7px 3px; font-size: 11px; color: #254192; border: 0; border-bottom: 2px solid transparent; background: transparent; }
+.agreement-brand-signature .agreement-sign-tabs button.is-active { background: white; color: #173bff; border-bottom-color: #4424ff; font-weight: 600; }
+.agreement-brand-signature .agreement-sign-canvas-wrap { position: relative; height: 88px; }
+.agreement-brand-signature canvas { width: 100%; height: 88px; display: block; border: 1px dashed #c9d9ff; border-radius: 5px; background: #ffffffb0; touch-action: none; cursor: crosshair; }
+.agreement-sign-hint { position: absolute; inset: 12px 0; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 7px; pointer-events: none; color: #8b98c1; font-size: 12px; }
+.agreement-sign-hint i { font-size: 28px; line-height: 1; }
+.agreement-brand-signature .agreement-sign-clear { position: absolute; bottom: 8px; right: 10px; border: 0; background: #fff; color: #153cff; font-size: 11px; }
+.agreement-brand-signature .agreement-sign-clear i { margin-right: 3px; font-size: 15px; }
+.agreement-brand-signature .agreement-sign-field { margin-top: 10px; }
+.agreement-brand-signature label { font-size: 12px; color: #20357d; }
+.agreement-brand-signature .agreement-sign-field label { display: block; margin-bottom: 3px; }
+.agreement-brand-signature input[type="text"] { width: 100%; padding: 7px 10px; border: 1px solid #d3e2ff; border-radius: 5px; background: #ffffffb5; color: #1c306b; font-size: 12px; line-height: 1.3; }
+.agreement-sign-date { position: relative; }
+.agreement-sign-date > i { position: absolute; left: 12px; top: 6px; color: #122b96; }
+.agreement-brand-signature .agreement-sign-date input { padding-left: 44px; }
+.agreement-brand-signature .agreement-sign-consent { display: flex; align-items: flex-start; gap: 9px; font-size: 11px; line-height: 1.5; margin-top: 13px; color: #3f54a4; cursor: pointer; }
+.agreement-sign-consent input { width: 18px; height: 18px; accent-color: #2934ff; flex-shrink: 0; margin: 1px 0 0; }
+.agreement-brand-signature .agreement-sign-submit { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 10px 12px; margin-top: 12px; border: 0; border-radius: 5px; background: linear-gradient(110deg,#7010ff,#2534ff 55%,#009fff); color: white; font-size: 14px; font-weight: 600; }
+.agreement-sign-submit i { font-size: 19px; }
+.agreement-sign-security { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 12px 0 4px; font-size: 10px; color: #4760aa; }
+.agreement-sign-security i { color: #051b73; font-size: 14px; }
+.agreement-brand-signature .agreement-sign-error, .agreement-export-message { color: #b32945; font-size: 12px; padding: 8px 0; }
+.agreement-export-message { padding: 8px 15px; }
+.agreement-typed-preview { font: italic 28px/1.5 Georgia,serif; min-height: 48px; overflow-wrap: anywhere; padding: 4px 10px; color: #182453; }
+.agreement-sign-upload input { max-width: 100%; font-size: 11px; margin: 8px 0; }
+.agreement-sign-upload small { display: block; color: #6a79a4; font-size: 10px; }
+.agreement-sign-upload img { max-width: 100%; max-height: 80px; object-fit: contain; margin-top: 8px; }
+.agreement-signed-card > img { display: block; max-width: 100%; max-height: 100px; margin-bottom: 14px; }
+.agreement-signed-card > strong { display: block; }
+.agreement-signed-card > p { font-size: 12px; line-height: 1.6; }
+.agreement-signed-note { margin-top: 15px; color: #16734e; }
+.agreement-visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.agreement-pdf-export { width: 700px; background: white; }
+.brand-agreement.agreement-pdf-export .agreement-sheet { position: relative; transform: none !important; box-shadow: none; border: 0; min-height: 800px; break-after: page; }
+@media (max-width: 1350px) {
+    .agreement-review-header { grid-template-columns: minmax(0,1.5fr) minmax(300px,1fr); }
+    .agreement-review-grid { grid-template-columns: minmax(0,1.5fr) minmax(310px,1fr); gap: 14px; }
+    .agreement-viewer-toolbar { padding-left: 12px; gap: 6px; flex-wrap: wrap; }
+    .agreement-viewer-body { grid-template-columns: 82px minmax(0,1fr); }
+    .agreement-thumbnails { padding-left: 5px; padding-right: 5px; }
+    .agreement-thumbnail { width: 62px; }
+    .agreement-thumbnail-preview { width: 62px; height: 77px; }
+    .agreement-document-viewport { padding-left: 10px; }
+}
+@media (max-width: 1050px) {
+    .agreement-review-header { grid-template-columns: 1fr; gap: 12px; }
+    .agreement-progress { max-width: 460px; margin: 0; width: 100%; }
+    .agreement-review-grid { grid-template-columns: minmax(0,1fr); }
+    .agreement-review-rail { grid-template-columns: minmax(0,1fr) minmax(0,1fr); }
+}
+@media (max-width: 650px) {
+    body:has(.brand-agreement) .main { padding: 16px 12px 24px; }
+    body:has(.brand-agreement) .main-topbar { margin: -16px -12px 16px; }
+    .agreement-review-rail { grid-template-columns: 1fr; }
+    .agreement-review-header { margin-bottom: 16px; }
+    .agreement-viewer-body { grid-template-columns: minmax(0,1fr); }
+    .agreement-thumbnails { flex-direction: row; overflow-x: auto; order: 2; justify-content: flex-start; padding: 12px; border: 0; }
+    .agreement-thumbnail { flex-shrink: 0; }
+    .agreement-document-viewport { padding: 0 8px; }
+    .agreement-export-controls { gap: 4px; }
+    .agreement-viewer-toolbar button { padding: 7px; font-size: 10px; }
+    .agreement-breadcrumb { font-size: 11px; gap: 7px; }
+}
+@media print {
+    @page { size: A4; margin: 10mm; }
+    body:has(.brand-agreement) :is(.sidebar,.main-topbar,.chat-widget-backdrop,.chat-fab,.agreement-no-print) { display: none !important; }
+    body:has(.brand-agreement) .app-shell, body:has(.brand-agreement) .main { display: block !important; margin: 0 !important; padding: 0 !important; width: 100% !important; min-height: 0; background: white; }
+    .agreement-review-grid,.agreement-viewer-body { display: block; }
+    .agreement-viewer { border: 0; padding: 0; background: white; box-shadow: none; }
+    .agreement-document-viewport { overflow: visible; padding: 0; }
+    .brand-agreement .agreement-sheet-frame, .brand-agreement .agreement-sheet-frame[hidden] { display: block !important; width: 100% !important; height: auto !important; break-after: page; }
+    .brand-agreement .agreement-sheet-frame:last-child { break-after: auto; }
+    .brand-agreement .agreement-sheet { position: relative; width: 100%; transform: none !important; border: 0; box-shadow: none; }
+}
+
+/* Influencer signing layout; the document viewer shares the brand page styles. */
+.agreement-page { padding: 12px 24px 32px; }
+.influencer-agreement { padding-top: 8px; }
+.influencer-agreement .agreement-review-grid { grid-template-columns: minmax(0,1.65fr) minmax(320px,1fr); grid-template-rows: auto; grid-template-areas: "document rail"; column-gap: 26px; row-gap: 16px; align-items: start; }
+.influencer-agreement .agreement-review-header { grid-template-columns: minmax(0,1.65fr) minmax(320px,1fr); column-gap: 26px; }
+.influencer-agreement .agreement-review-intro h1 { font-size: clamp(24px,2.3cqi,32px); }
+.influencer-agreement .agreement-review-intro > p { margin-top: 5px; font-size: 12px; }
+.influencer-agreement .agreement-breadcrumb { margin-bottom: 15px; }
+.influencer-agreement .agreement-viewer { grid-area: document; }
+.influencer-agreement .agreement-review-rail { grid-area: rail; grid-template-columns: minmax(0,1fr); gap: 13px; padding-top: 0; }
+.influencer-agreement .agreement-brand-signature .agreement-sign-canvas-wrap,
+.influencer-agreement .agreement-brand-signature canvas { height: 120px; }
+.influencer-agreement .agreement-brand-signature .agreement-sign-field { margin-top: 12px; }
+.influencer-agreement .agreement-sign-consent { margin-top: 14px; }
+.influencer-agreement .agreement-sign-submit { margin-top: 17px; }
+.influencer-agreement .agreement-review-rail h2 { margin-bottom: 12px; }
+.influencer-agreement .agreement-campaign-identity { margin-bottom: 5px; }
+.agreement-page .dashboard-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
+@container (max-width: 850px) {
+    .influencer-agreement .agreement-review-header { grid-template-columns: minmax(0,1fr); gap: 12px; }
+    .influencer-agreement .agreement-review-header .agreement-progress { margin-top: 0; }
+    .influencer-agreement .agreement-review-grid { grid-template-columns: minmax(0,1fr); grid-template-rows: auto; grid-template-areas: "document" "rail"; gap: 16px; }
+    .influencer-agreement .agreement-review-rail { padding-top: 0; }
+}
+@media (max-width: 650px) {
+    .agreement-page { padding: 12px 14px 24px; }
+}
+@media print {
+    body:has(.influencer-agreement) :is(.dashboard-topbar,.sidebar-backdrop) { display: none !important; }
+    body:has(.influencer-agreement) .dashboard-page { margin: 0 !important; padding: 0 !important; width: 100%; background: white; container-type: normal; }
+    .influencer-agreement { padding: 0; }
+    .influencer-agreement .agreement-review-grid { display: block; }
+    .influencer-agreement .agreement-viewer { overflow: visible; }
+    .influencer-agreement .agreement-viewer-toolbar { display: none; }
+}

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http;
 using Brandora.Web.Models.Domain;
 
 namespace Brandora.Web.Models.Dashboard;
@@ -12,6 +13,8 @@ public class InfluencerProfileFormModel
     public string? ContentNiche { get; set; }
     public string? Bio { get; set; }
     public string? WebsiteUrl { get; set; }
+    public IFormFile? ProfilePictureFile { get; set; }
+    public bool RemoveProfilePicture { get; set; }
 }
 
 public class InfluencerSettingsViewModel

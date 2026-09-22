@@ -1,0 +1,108 @@
+@model List<Brandora.Web.Models.Domain.Agreement>
+@using Brandora.Web.Models.Domain
+@using Brandora.Web.Models.Influencers
+@{
+    ViewData["Title"] = "Agreements";
+    ViewData["ActiveNav"] = "Agreements";
+    Layout = null;
+    var tab = ViewData["Tab"] as string ?? "all";
+    var tabs = new[] { ("all", "All"), ("mine", "Awaiting Your Signature"), ("them", "Awaiting Brand"), ("completed", "Completed") };
+    var name = ViewData["CompanyName"] as string ?? "";
+    var initial = string.IsNullOrWhiteSpace(name) ? "I" : name[..1].ToUpperInvariant();
+    string StatusLabel(AgreementStatus status) => status switch
+    {
+        AgreementStatus.FullySigned => "Fully Signed",
+        AgreementStatus.AwaitingInfluencerSignature => "Awaiting Your Signature",
+        _ => "Awaiting Brand"
+    };
+    string StatusClass(AgreementStatus status) => status switch
+    {
+        AgreementStatus.FullySigned => "is-success",
+        AgreementStatus.AwaitingInfluencerSignature => "is-pending",
+        _ => "is-neutral"
+    };
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Agreements - Brandora</title>
+    <link rel="icon" href="~/images/brandora-icon.png" />
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/lib/dashboard-assets/bootstrap-icons.css" />
+    <link rel="stylesheet" href="~/lib/dashboard-assets/dashboard-fonts.css" />
+    <link rel="stylesheet" href="~/css/brandora-influencer-shell.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/brandora-influencer-dashboard.css" asp-append-version="true" />
+    <style>
+        .agreements-page { padding: 20px 26px; }
+        .agr-title { font: 600 24px/1.3 'Playfair Display', Georgia, serif; margin: 18px 0 16px; color: #171d3d; }
+        .agr-tabs { display: flex; gap: 8px; margin-bottom: 18px; flex-wrap: wrap; }
+        .agr-tabs a { padding: 8px 14px; border-radius: 999px; border: 1px solid #d6dcf0; font-size: 12.5px; font-weight: 600; color: #40467a; text-decoration: none; }
+        .agr-tabs a.is-active { background: #0759ff; border-color: #0759ff; color: #fff; }
+        .agr-list { display: flex; flex-direction: column; gap: 10px; }
+        .agr-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 18px; border: 1px solid #e6e9f4; border-radius: 12px; background: #fff; text-decoration: none; color: inherit; }
+        .agr-row:hover { border-color: #b9c8ff; }
+        .agr-row-title { font-weight: 700; font-size: 14px; color: #171d3d; }
+        .agr-row-sub { font-size: 12px; color: #6b7290; margin-top: 2px; }
+        .agr-badge { padding: 5px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+        .agr-badge.is-success { background: #e3f7ec; color: #1b7a4a; }
+        .agr-badge.is-pending { background: #fff3e0; color: #b3690a; }
+        .agr-badge.is-neutral { background: #eef0fa; color: #55608a; }
+        .agr-empty { text-align: center; padding: 60px 20px; color: #6b7290; }
+    </style>
+</head>
+<body>
+<div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+@await Html.PartialAsync("_InfluencerSidebar")
+<main class="dashboard-page agreements-page" id="dashboardMain">
+    <header class="dashboard-topbar">
+        <button class="dashboard-menu" id="menuToggleBtn" type="button" aria-label="Toggle sidebar" aria-controls="dashboardSidebar"><i class="bi bi-list" aria-hidden="true"></i></button>
+        <form class="dashboard-search" method="get" asp-controller="InfluencerCampaigns" asp-action="Index" role="search">
+            <i class="bi bi-search" aria-hidden="true"></i>
+            <input type="search" name="search" placeholder="Search campaigns, brands..." aria-label="Search campaigns and brands" />
+            <button type="submit" aria-label="Search"><i class="bi bi-search" aria-hidden="true"></i></button>
+        </form>
+        <details class="dashboard-notifications">
+            <summary aria-label="Notifications"><i class="bi bi-bell" aria-hidden="true"></i>@if ((ViewData["UnreadNotifications"] as int? ?? 0) > 0) { <span class="dashboard-unread"></span> }</summary>
+            <div class="dashboard-notification-panel"><div class="dashboard-notification-panel-head"><h2>Notifications</h2></div><p>Open Dashboard to view notifications.</p></div>
+        </details>
+        <a class="dashboard-account" href="/InfluencerSettings">
+            <span class="dashboard-avatar">@if (!string.IsNullOrEmpty(ViewData["ProfilePictureUrl"] as string)) { <img src="@ViewData["ProfilePictureUrl"]" alt="" /> } else { @initial }</span>
+            <span><strong>@name</strong><small>Influencer</small></span>
+            <i class="bi bi-chevron-down" aria-hidden="true"></i>
+        </a>
+    </header>
+
+    <h1 class="agr-title">Agreements</h1>
+
+    <div class="agr-tabs">
+        @foreach (var (key, label) in tabs)
+        {
+            <a href="/InfluencerAgreements?tab=@key" class="@(tab == key ? "is-active" : "")">@label</a>
+        }
+    </div>
+
+    @if (Model.Count == 0)
+    {
+        <div class="agr-empty">No agreements here yet.</div>
+    }
+    else
+    {
+        <div class="agr-list">
+            @foreach (var agreement in Model)
+            {
+                <a class="agr-row" href="/InfluencerAgreements/Detail/@agreement.Id">
+                    <div>
+                        <div class="agr-row-title">@agreement.Campaign.Title</div>
+                        <div class="agr-row-sub">@agreement.Code &middot; @agreement.BrandProfile.CompanyName &middot; @agreement.CreatedAt.ToString("MMM d, yyyy")</div>
+                    </div>
+                    <span class="agr-badge @StatusClass(agreement.Status)">@StatusLabel(agreement.Status)</span>
+                </a>
+            }
+        </div>
+    }
+</main>
+<script src="~/js/brandora-influencer-dashboard.js" asp-append-version="true"></script>
+</body>
+</html>
