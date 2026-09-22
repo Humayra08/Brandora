@@ -192,6 +192,20 @@ public class AdminPaymentsController(ApplicationDbContext db, NotificationServic
             .Take(5)
             .ToList();
 
+        // influencer withdrawal overview
+        var withdrawalOverview = ctx.Withdrawals
+            .GroupBy(w => w.InfluencerProfile)
+            .Select(g =>
+            {
+                var total = g.Sum(w => w.Amount);
+                var paid = g.Where(w => w.Status is WithdrawalStatus.Approved or WithdrawalStatus.Paid).Sum(w => w.Amount);
+                var paidCount = g.Count(w => w.Status is WithdrawalStatus.Approved or WithdrawalStatus.Paid);
+                return new WithdrawalOverviewRow(g.Key.Id, g.Key.FullName, g.Key.PlatformUsername, total, paid, Math.Max(0m, total - paid), paidCount, g.Count());
+            })
+            .OrderByDescending(w => w.Total)
+            .Take(5)
+            .ToList();
+
         // payout timeline: brand payments vs influencer withdrawals, last 6 months
         var timeline = Enumerable.Range(0, 6)
             .Select(i => monthStart.AddMonths(i - 5))
@@ -232,6 +246,7 @@ public class AdminPaymentsController(ApplicationDbContext db, NotificationServic
             Status = status,
             Methods = methods,
             Campaigns = campaigns,
+            WithdrawalOverview = withdrawalOverview,
             Timeline = timeline,
             Failed = failedRows,
             CampaignNames = rows.Select(r => r.Campaign).Distinct().OrderBy(c => c).ToList(),
@@ -472,6 +487,7 @@ public record TxnRow(
 public record StatusSlice(string Label, int Count, string Color);
 public record MethodShare(string Method, int Count);
 public record CampaignPayRow(int Id, string Title, string Code, string? Media, decimal Total, decimal Paid, decimal Pending, int PaidMilestones, int Milestones);
+public record WithdrawalOverviewRow(int InfluencerId, string Name, string Handle, decimal Total, decimal Paid, decimal Pending, int PaidCount, int Count);
 public record TimelinePoint(string Label, decimal BrandPayments, decimal Payouts);
 public record FailedRow(string Key, DateTime At, string User, string Campaign, decimal Amount, string Reason);
 public record HistoryStep(string Title, DateTime? At, string State, string Note);
@@ -496,6 +512,7 @@ public class PaymentIndexViewModel
     public List<StatusSlice> Status { get; set; } = new();
     public List<MethodShare> Methods { get; set; } = new();
     public List<CampaignPayRow> Campaigns { get; set; } = new();
+    public List<WithdrawalOverviewRow> WithdrawalOverview { get; set; } = new();
     public List<TimelinePoint> Timeline { get; set; } = new();
     public List<FailedRow> Failed { get; set; } = new();
     public List<string> CampaignNames { get; set; } = new();
