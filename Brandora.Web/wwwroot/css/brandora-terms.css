@@ -1,0 +1,583 @@
+/* =========================================================
+   BRANDORA TERMS & CONDITIONS PAGE
+   Public "Terms & Conditions" page reached from the footer's
+   Resources link.
+
+   Deliberately the Privacy Policy page's companion: same dark
+   gradient hero, same sticky table of contents, same white
+   cards on a soft grey field, same breakpoints. Keeping the
+   two stylesheets separate (rather than sharing one) follows
+   the existing per-page CSS convention and means a change to
+   one legal page cannot disturb the other.
+
+   The reset selectors below are intentionally unscoped so they keep
+   the same (zero) specificity the other public pages' resets have —
+   scoping them would outrank the shared navbar and footer rules and
+   break them.
+========================================================= */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+a {
+    text-decoration: none;
+    color: inherit;
+}
+
+.terms-page {
+    font-family: 'DM Sans', sans-serif;
+    background: #ffffff;
+    color: #08123d;
+
+    overflow-x: hidden;
+
+    /* 1344 = 1280 of content + the 32px gutters either side, so the
+       content column lands on the same 1280 the other pages use. */
+    --tc-max: 1344px;
+
+    --tc-ink: #101a42;
+    --tc-body: #4d5a7d;
+    --tc-soft: #6b7899;
+    --tc-muted: #8a94ad;
+    --tc-border: #e6e9f4;
+
+    --tc-purple: #8b3dff;
+    --tc-blue: #2f6bff;
+    --tc-lavender: #eef0fe;
+}
+
+
+/* =========================================================
+   FOCUS — visible keyboard focus everywhere on the page
+========================================================= */
+
+.terms-page a:focus-visible,
+.terms-page button:focus-visible {
+    outline: 2px solid var(--tc-purple);
+    outline-offset: 3px;
+    border-radius: 4px;
+}
+
+.terms-page .tc-hero a:focus-visible {
+    outline-color: #c9b4ff;
+}
+
+
+/* =========================================================
+   HERO
+========================================================= */
+
+.tc-hero {
+    padding-top: 82px;
+
+    background:
+        radial-gradient(
+            circle at 50% 30%,
+            rgba(73, 45, 185, 0.30),
+            transparent 35%
+        ),
+        linear-gradient(
+            120deg,
+            #030622 0%,
+            #06072d 45%,
+            #0a0631 100%
+        );
+
+    color: #ffffff;
+}
+
+.tc-hero-inner {
+    max-width: var(--tc-max);
+    margin: 0 auto;
+    padding: 46px 32px 58px;
+}
+
+.tc-hero-copy {
+    max-width: 760px;
+}
+
+/* --- badge --- */
+
+.tc-badge {
+    display: inline-flex;
+    align-items: center;
+
+    padding: 8px 18px;
+
+    border-radius: 30px;
+
+    border: 1px solid transparent;
+
+    background:
+        linear-gradient(#09082f, #09082f) padding-box,
+        linear-gradient(90deg, #9b2cff, #00a9ff) border-box;
+
+    font-size: 13px;
+    letter-spacing: .4px;
+
+    color: #ffffff;
+}
+
+/* --- title --- */
+
+.tc-hero-title {
+    margin-top: 26px;
+
+    font-family: 'Playfair Display', serif;
+
+    font-size: clamp(38px, 4.4vw, 58px);
+    line-height: 1.14;
+
+    font-weight: 500;
+
+    letter-spacing: -1.2px;
+}
+
+.tc-hero-title .purple {
+    display: inline-block;
+
+    background: linear-gradient(90deg, #c000ff 0%, #8000ff 35%, #164bff 65%, #00c8f5 100%);
+
+    -webkit-text-fill-color: transparent;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+/* --- lede --- */
+
+.tc-hero-text {
+    margin-top: 22px;
+
+    font-size: 18.5px;
+    line-height: 1.85;
+
+    color: rgba(255, 255, 255, .78);
+}
+
+/* --- last updated --- */
+
+.tc-meta {
+    margin-top: 30px;
+
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+
+    padding: 9px 16px;
+
+    border-radius: 30px;
+
+    background: rgba(255, 255, 255, .07);
+    border: 1px solid rgba(255, 255, 255, .14);
+
+    font-size: 13px;
+
+    color: rgba(255, 255, 255, .78);
+}
+
+.tc-meta svg {
+    color: #c9b4ff;
+    flex-shrink: 0;
+}
+
+
+/* =========================================================
+   MAIN — soft grey field holding the cards
+========================================================= */
+
+.tc-main {
+    background: #f6f7fb;
+
+    padding: 34px 32px 44px;
+}
+
+.tc-grid {
+    /* .tc-main already supplies the 32px gutters, so the grid caps at the
+       1280 content column itself rather than at the gutter box. */
+    max-width: 1280px;
+    margin: 0 auto;
+
+    display: grid;
+    grid-template-columns: minmax(0, 300px) minmax(0, 1fr);
+    align-items: start;
+    gap: 26px;
+}
+
+
+/* =========================================================
+   TABLE OF CONTENTS
+========================================================= */
+
+.tc-toc {
+    position: sticky;
+    top: 102px;
+
+    /* 18 sections is a tall list — let it scroll inside itself rather
+       than run past the bottom of the viewport on short screens. */
+    max-height: calc(100vh - 124px);
+    overflow-y: auto;
+
+    background: #ffffff;
+
+    border: 1px solid var(--tc-border);
+    border-radius: 14px;
+
+    box-shadow: 0 4px 18px rgba(16, 26, 66, .04);
+
+    padding: 24px 22px;
+}
+
+.tc-toc h2 {
+    font-family: 'Playfair Display', serif;
+
+    font-size: 19px;
+    font-weight: 700;
+
+    color: var(--tc-ink);
+}
+
+.tc-toc ol {
+    margin-top: 14px;
+
+    list-style: none;
+    counter-reset: tc-toc;
+}
+
+.tc-toc li {
+    counter-increment: tc-toc;
+}
+
+.tc-toc li + li {
+    margin-top: 2px;
+}
+
+.tc-toc a {
+    display: flex;
+    gap: 10px;
+
+    padding: 7px 9px;
+
+    border-radius: 8px;
+
+    font-size: 13.5px;
+    line-height: 1.45;
+
+    color: var(--tc-body);
+
+    transition: .2s;
+}
+
+.tc-toc a::before {
+    content: counter(tc-toc) ".";
+
+    flex-shrink: 0;
+
+    min-width: 17px;
+
+    font-size: 12.5px;
+    font-weight: 600;
+
+    color: var(--tc-muted);
+}
+
+.tc-toc a:hover {
+    background: var(--tc-lavender);
+    color: var(--tc-ink);
+}
+
+.tc-toc a:hover::before {
+    color: var(--tc-purple);
+}
+
+
+/* =========================================================
+   CONTENT
+========================================================= */
+
+.tc-content {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+
+    min-width: 0;
+}
+
+.tc-card {
+    background: #ffffff;
+
+    border: 1px solid var(--tc-border);
+    border-radius: 14px;
+
+    box-shadow: 0 4px 18px rgba(16, 26, 66, .04);
+
+    padding: 30px;
+
+    /* Anchor links land clear of the fixed navbar. */
+    scroll-margin-top: 102px;
+}
+
+.tc-card h2 {
+    font-family: 'Playfair Display', serif;
+
+    font-size: 25px;
+    font-weight: 700;
+
+    color: var(--tc-ink);
+}
+
+.tc-card h3 {
+    margin-top: 22px;
+
+    font-size: 15px;
+    font-weight: 700;
+
+    color: var(--tc-ink);
+}
+
+.tc-card p {
+    margin-top: 14px;
+
+    font-size: 15px;
+    line-height: 1.8;
+
+    color: var(--tc-body);
+}
+
+.tc-card h3 + p {
+    margin-top: 8px;
+}
+
+.tc-card ul {
+    margin-top: 12px;
+
+    list-style: none;
+
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+}
+
+.tc-card li {
+    position: relative;
+
+    padding-left: 20px;
+
+    font-size: 15px;
+    line-height: 1.75;
+
+    color: var(--tc-body);
+}
+
+.tc-card li::before {
+    content: "";
+
+    position: absolute;
+    left: 2px;
+    top: 10px;
+
+    width: 6px;
+    height: 6px;
+
+    border-radius: 50%;
+
+    background: linear-gradient(90deg, var(--tc-purple), var(--tc-blue));
+}
+
+.tc-card li strong {
+    color: var(--tc-ink);
+    font-weight: 600;
+}
+
+.tc-card a {
+    color: var(--tc-blue);
+    font-weight: 500;
+
+    /* Long addresses wrap instead of pushing the card wider. */
+    overflow-wrap: anywhere;
+}
+
+.tc-card a:hover {
+    text-decoration: underline;
+}
+
+
+/* =========================================================
+   CALLOUT — used for the "not a party" / "no guarantee" notes
+========================================================= */
+
+.tc-note {
+    margin-top: 18px;
+
+    padding: 16px 18px;
+
+    border: 1px solid var(--tc-border);
+    border-left: 3px solid var(--tc-purple);
+    border-radius: 10px;
+
+    background: #fbfbfe;
+}
+
+.tc-note p {
+    margin-top: 0;
+
+    font-size: 14.5px;
+    line-height: 1.75;
+
+    color: var(--tc-body);
+}
+
+.tc-note p + p {
+    margin-top: 10px;
+}
+
+
+/* =========================================================
+   CONTACT CARD (last section)
+========================================================= */
+
+.tc-contact-rows {
+    margin-top: 18px;
+
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.tc-contact-row {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+
+    padding: 14px 16px;
+
+    border: 1px solid var(--tc-border);
+    border-radius: 12px;
+
+    background: #fbfbfe;
+
+    min-width: 0;
+}
+
+.tc-contact-icon {
+    flex-shrink: 0;
+
+    width: 40px;
+    height: 40px;
+
+    border-radius: 50%;
+
+    background: var(--tc-lavender);
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    color: var(--tc-purple);
+}
+
+.tc-contact-row div {
+    min-width: 0;
+}
+
+.tc-contact-row span {
+    display: block;
+
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .3px;
+    text-transform: uppercase;
+
+    color: var(--tc-muted);
+}
+
+.tc-contact-row a,
+.tc-contact-row p {
+    margin-top: 2px;
+
+    font-size: 14.5px;
+
+    color: var(--tc-ink);
+
+    overflow-wrap: anywhere;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 1000px) {
+
+    .tc-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .tc-toc {
+        position: static;
+        top: auto;
+
+        max-height: none;
+        overflow-y: visible;
+    }
+
+    .tc-toc ol {
+        /* Two readable columns instead of one very tall list. */
+        columns: 2;
+        column-gap: 18px;
+    }
+
+    .tc-toc li {
+        break-inside: avoid;
+    }
+
+    .tc-hero-copy {
+        max-width: none;
+    }
+}
+
+@media (max-width: 800px) {
+
+    .tc-hero-inner {
+        padding: 40px 20px 50px;
+    }
+
+    .tc-main {
+        padding-left: 20px;
+        padding-right: 20px;
+    }
+}
+
+@media (max-width: 560px) {
+
+    .tc-card {
+        padding: 22px 18px;
+    }
+
+    .tc-card h2 {
+        font-size: 20px;
+    }
+
+    .tc-toc {
+        padding: 20px 18px;
+    }
+
+    .tc-toc ol {
+        columns: 1;
+    }
+
+    .tc-hero-text {
+        font-size: 16.5px;
+    }
+
+    .tc-note {
+        padding: 14px 15px;
+    }
+
+    .tc-contact-row {
+        padding: 12px 13px;
+    }
+}

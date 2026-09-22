@@ -1,0 +1,971 @@
+@{
+    ViewData["Title"] = "Terms & Conditions";
+    Layout = null;
+}
+
+@*
+    LEGAL/BUSINESS ASSUMPTIONS IN THIS PAGE — REVIEW BEFORE PUBLISHING.
+
+    The wording below is drawn from how the application actually behaves
+    (models under Models/Domain and the services under Services/). Where a
+    rule is NOT represented anywhere in the codebase, the safest available
+    wording was used and the assumption is marked inline with an
+    "ASSUMPTION:" comment next to the section it affects.
+
+    Assumptions used on this page:
+      1.  Minimum age of 18.
+      2.  Governing law / jurisdiction: Bangladesh.
+      3.  Ownership of campaign deliverables passes per the brand-influencer
+          agreement; the platform does not set it.
+      4.  Refunds, cancellations and settlement timing are not stated as
+          fixed rules.
+      5.  Liability cap is expressed relationally (fees paid), not as a figure.
+      6.  What happens to held funds and open collaborations when an account
+          is terminated.
+      7.  The platform fee is described as "the rate in effect", never as a
+          number, because PLATFORM_COMMISSION_PERCENT is configurable.
+
+    None of this is legal advice. A qualified adviser should review the page
+    before it is relied on.
+*@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>Terms &amp; Conditions - Brandora</title>
+
+    <meta name="description" content="The terms that govern use of the Brandora platform — accounts and verification, campaigns and collaborations, milestone payments and fees, disputes, and the limits of what Brandora guarantees." />
+
+    <link rel="icon" type="image/png" href="~/images/brandora-icon.png" />
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap"
+          rel="stylesheet">
+
+    <link rel="stylesheet" href="~/css/brandora-shared.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/brandora-terms.css" asp-append-version="true" />
+
+</head>
+<body class="terms-page">
+
+
+    <partial name="_BrandoraNavbar" />
+
+
+    <main>
+
+
+        <!-- =========================================================
+             HERO
+        ========================================================== -->
+
+        <section class="tc-hero">
+
+            <div class="tc-hero-inner">
+
+                <div class="tc-hero-copy">
+
+                    <div class="tc-badge">
+                        LEGAL
+                    </div>
+
+                    <h1 class="tc-hero-title">
+                        Terms &amp; <span class="purple">Conditions</span>
+                    </h1>
+
+                    <p class="tc-hero-text">
+                        These terms govern your use of the Brandora platform &mdash; how accounts
+                        and profiles work, how campaigns and collaborations are formed, how
+                        milestone payments are handled, and what Brandora does and does not
+                        take responsibility for.
+                    </p>
+
+                    <p class="tc-meta">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+                            <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6" />
+                            <path d="M12 7.5V12l3 1.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                        Last updated: 22 September 2026
+                    </p>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =========================================================
+             BODY
+        ========================================================== -->
+
+        <section class="tc-main">
+
+            <div class="tc-grid">
+
+
+                <!-- TABLE OF CONTENTS -->
+
+                <nav class="tc-toc" aria-labelledby="toc-heading">
+
+                    <h2 id="toc-heading">On this page</h2>
+
+                    <ol>
+                        <li><a href="#acceptance">Acceptance of Terms</a></li>
+                        <li><a href="#about-brandora">About Brandora</a></li>
+                        <li><a href="#eligibility">Eligibility and Accounts</a></li>
+                        <li><a href="#profiles-verification">User Profiles and Verification</a></li>
+                        <li><a href="#using-the-platform">Using the Brandora Platform</a></li>
+                        <li><a href="#brands-influencers">Brands, Influencers and Collaborations</a></li>
+                        <li><a href="#campaigns-proposals">Campaigns, Proposals and Agreements</a></li>
+                        <li><a href="#payments">Payments, Fees and Wallets</a></li>
+                        <li><a href="#messaging">Messaging and Communication</a></li>
+                        <li><a href="#content-ip">Content and Intellectual Property</a></li>
+                        <li><a href="#prohibited">Prohibited Activities</a></li>
+                        <li><a href="#disputes">Disputes and Resolution</a></li>
+                        <li><a href="#termination">Account Suspension and Termination</a></li>
+                        <li><a href="#availability">Platform Availability and Third-Party Services</a></li>
+                        <li><a href="#disclaimers">Disclaimers and Limitation of Liability</a></li>
+                        <li><a href="#indemnification">Indemnification</a></li>
+                        <li><a href="#changes">Changes to These Terms</a></li>
+                        <li><a href="#governing-law">Governing Law</a></li>
+                        <li><a href="#contact">Contact Us</a></li>
+                    </ol>
+
+                </nav>
+
+
+                <!-- CONTENT -->
+
+                <div class="tc-content">
+
+
+                    <!-- 1 -->
+
+                    <article class="tc-card" id="acceptance">
+
+                        <h2>1. Acceptance of Terms</h2>
+
+                        <p>
+                            These Terms &amp; Conditions form an agreement between you and Brandora.
+                            They apply when you create an account, browse the platform, or use any
+                            part of the service.
+                        </p>
+
+                        <p>
+                            By registering an account or continuing to use Brandora, you confirm
+                            that you have read these terms, that you accept them, and that you have
+                            the authority to do so &mdash; including on behalf of a company, if you
+                            are signing up as a brand. If you do not accept these terms, please do
+                            not use the platform.
+                        </p>
+
+                        <p>
+                            These terms should be read together with our
+                            <a href="/privacy-policy">Privacy Policy</a>, which explains how we
+                            handle information about you.
+                        </p>
+
+                    </article>
+
+
+                    <!-- 2 -->
+
+                    <article class="tc-card" id="about-brandora">
+
+                        <h2>2. About Brandora</h2>
+
+                        <p>
+                            Brandora is an influencer marketing platform. It gives brands a place to
+                            publish campaigns and find creators, gives influencers a place to present
+                            their work and receive offers, and provides the tools both sides use to
+                            agree deliverables, submit work for approval, and move money in tracked
+                            milestones.
+                        </p>
+
+                        <div class="tc-note">
+                            <p>
+                                <strong>What Brandora is:</strong> the platform on which brands and
+                                influencers find one another and run the mechanics of a
+                                collaboration, together with the payment facility that holds
+                                milestone funds until work is approved.
+                            </p>
+                            <p>
+                                <strong>What Brandora is not:</strong> a party to the commercial
+                                agreement between a brand and an influencer. The deliverables,
+                                schedule, and price of a collaboration are agreed between those two
+                                parties. Brandora is not an employer, an advertising agency, or a
+                                guarantor of either side's performance.
+                            </p>
+                        </div>
+
+                        <p>
+                            Brandora does administer the payment and dispute mechanisms described in
+                            sections 8 and 12, and holds milestone funds until a milestone is
+                            approved or a dispute is resolved. That administrative role does not make
+                            Brandora responsible for the underlying agreement.
+                        </p>
+
+                    </article>
+
+
+                    <!-- 3 -->
+
+                    @* ASSUMPTION: the codebase does not enforce or record a minimum age
+                       anywhere. 18 is used because the platform involves commercial
+                       agreements and payments. Confirm the intended minimum. *@
+
+                    <article class="tc-card" id="eligibility">
+
+                        <h2>3. Eligibility and Accounts</h2>
+
+                        <p>
+                            You must be at least 18 years old to create a Brandora account. By
+                            registering, you confirm that you meet that requirement and that the
+                            information you provide is accurate and kept up to date.
+                        </p>
+
+                        <h3>Account types</h3>
+                        <p>
+                            Accounts are created in one of two roles &mdash; brand or influencer
+                            &mdash; and the role determines which features are available to you.
+                            Brandora also operates separate administrator accounts used by our own
+                            team to review profiles, process withdrawals, and handle disputes.
+                        </p>
+
+                        <h3>Registration and access</h3>
+                        <ul>
+                            <li>You must provide a valid email address, which is confirmed by a verification code before your account becomes usable.</li>
+                            <li>New accounts are additionally subject to review before they gain full access to the platform.</li>
+                            <li>Passwords must meet the minimum strength requirements shown at registration.</li>
+                            <li>Repeated failed sign-in attempts will temporarily lock an account as a security measure.</li>
+                        </ul>
+
+                        <h3>Your responsibility</h3>
+                        <p>
+                            You are responsible for keeping your password confidential and for all
+                            activity that takes place under your account. Tell us promptly at
+                            <a href="mailto:care.brandora@gmail.com">care.brandora@gmail.com</a> if
+                            you believe your account has been accessed without your permission. You
+                            may not share an account, sell it, or transfer it to someone else.
+                        </p>
+
+                    </article>
+
+
+                    <!-- 4 -->
+
+                    <article class="tc-card" id="profiles-verification">
+
+                        <h2>4. User Profiles and Verification</h2>
+
+                        <p>
+                            Your profile is what other users see. You are responsible for making sure
+                            it is truthful and current.
+                        </p>
+
+                        <h3>Brand profiles</h3>
+                        <p>
+                            Brand profiles include your company name, the name of a contact person,
+                            your industry, an optional website, an indicative monthly budget range,
+                            and an optional logo or image. You confirm that you are authorised to
+                            represent the company you register.
+                        </p>
+
+                        <h3>Influencer profiles</h3>
+                        <p>
+                            Influencer profiles include your name, your primary social platform and
+                            username on it, your content niche, your audience size and follower
+                            count, your engagement rate, and optional biography, location, website,
+                            and rate notes. You confirm that the audience and engagement figures you
+                            provide are genuine and not inflated by artificial means.
+                        </p>
+
+                        <h3>What verification means</h3>
+                        <p>
+                            Profiles carry a verification status and are reviewed by our team before
+                            they appear in the public directories. A profile may be marked verified,
+                            or rejected with a reason.
+                        </p>
+
+                        <div class="tc-note">
+                            <p>
+                                Verification means only that a member of our team has reviewed the
+                                information submitted with a profile and considered it acceptable for
+                                listing. It is <strong>not</strong> a guarantee of a user's identity,
+                                honesty, audience authenticity, content quality, commercial
+                                reliability, legal status, or results. It is not a background check,
+                                an endorsement, or a warranty of any kind.
+                            </p>
+                            <p>
+                                You remain responsible for your own due diligence before entering a
+                                collaboration with another user.
+                            </p>
+                        </div>
+
+                        <p>
+                            We may change, suspend, or withdraw a verification status at any time
+                            &mdash; for example if information turns out to be inaccurate or
+                            circumstances change.
+                        </p>
+
+                    </article>
+
+
+                    <!-- 5 -->
+
+                    <article class="tc-card" id="using-the-platform">
+
+                        <h2>5. Using the Brandora Platform</h2>
+
+                        <p>
+                            Subject to these terms, Brandora grants you a personal, non-exclusive,
+                            non-transferable, revocable permission to access and use the platform for
+                            its intended purpose.
+                        </p>
+
+                        <ul>
+                            <li>Use the platform only for lawful purposes and in line with these terms.</li>
+                            <li>Provide accurate information, and correct it when it changes.</li>
+                            <li>Do not attempt to access data, accounts, or areas of the platform that are not yours.</li>
+                            <li>Do not copy, scrape, or systematically extract content or user data from the platform.</li>
+                            <li>Do not interfere with the operation or security of the service, or attempt to bypass any access control.</li>
+                        </ul>
+
+                        <p>
+                            We may add, change, or remove features as the platform develops. Where a
+                            change materially affects how you use Brandora, we will make a reasonable
+                            effort to tell you.
+                        </p>
+
+                    </article>
+
+
+                    <!-- 6 -->
+
+                    <article class="tc-card" id="brands-influencers">
+
+                        <h2>6. Brands, Influencers and Collaborations</h2>
+
+                        <p>
+                            Brands and influencers use the platform differently, and each carries its
+                            own responsibilities.
+                        </p>
+
+                        <h3>If you are a brand</h3>
+                        <ul>
+                            <li>Describe campaigns honestly, including deliverables, budget, and deadlines.</li>
+                            <li>Review submitted work within a reasonable time and either approve it or explain what needs changing.</li>
+                            <li>Fund agreed milestones through the platform.</li>
+                            <li>Do not ask influencers for work outside what has been agreed without agreeing it first.</li>
+                        </ul>
+
+                        <h3>If you are an influencer</h3>
+                        <ul>
+                            <li>Only accept work you can realistically deliver.</li>
+                            <li>Deliver what was agreed, by the agreed date, and submit it through the platform for review.</li>
+                            <li>Make sure your content complies with the law and with the rules of the social platform you publish on, including any requirement to disclose paid partnerships.</li>
+                            <li>Do not misrepresent your audience, reach, or engagement.</li>
+                        </ul>
+
+                        <p>
+                            Brands may shortlist influencers they are interested in. Only profiles that
+                            have been approved appear in the public directories. Appearing in a
+                            directory or a shortlist does not create any obligation on either side
+                            until a proposal is accepted.
+                        </p>
+
+                    </article>
+
+
+                    <!-- 7 -->
+
+                    <article class="tc-card" id="campaigns-proposals">
+
+                        <h2>7. Campaigns, Proposals and Agreements</h2>
+
+                        <h3>Campaigns</h3>
+                        <p>
+                            A brand creates a campaign with a title, description, budget, and
+                            optionally a platform, niche, target audience criteria, content
+                            guidelines, start date, and deadline. A campaign may also be given a
+                            milestone plan setting out the pieces of work it will be broken into.
+                        </p>
+
+                        <h3>Proposals</h3>
+                        <p>
+                            A proposal can be initiated by either side. It records a proposed amount,
+                            the deliverables, an optional timeline, and an optional message, and it
+                            remains pending until the receiving party accepts or declines it.
+                        </p>
+
+                        <h3>Collaborations and milestones</h3>
+                        <p>
+                            When a proposal is accepted, it becomes a collaboration. Work under a
+                            collaboration is organised into milestones, each with its own title,
+                            description, amount, and optional due date. For each milestone:
+                        </p>
+                        <ul>
+                            <li>The influencer submits the work, with proof and any notes.</li>
+                            <li>The brand reviews it and either approves it or requests a revision with a reason.</li>
+                            <li>Payment for that milestone is released once it has been approved.</li>
+                        </ul>
+
+                        <div class="tc-note">
+                            <p>
+                                The agreement created when a proposal is accepted is between the
+                                brand and the influencer. Brandora records it, provides the tools to
+                                run it, and holds milestone funds &mdash; but is not a contracting
+                                party to it and does not guarantee that either side will perform.
+                            </p>
+                        </div>
+
+                        @* ASSUMPTION: cancellation of an accepted collaboration is not modelled
+                           as a distinct workflow in the codebase, so no cancellation rule is
+                           stated here beyond pointing at the dispute process. *@
+
+                        <p>
+                            If a collaboration cannot be completed as agreed, the parties should first
+                            try to resolve it between themselves through the platform. Where that is
+                            not possible, the dispute process in section 12 is available.
+                        </p>
+
+                    </article>
+
+
+                    <!-- 8 -->
+
+                    @* ASSUMPTION: the platform fee rate is configurable
+                       (PLATFORM_COMMISSION_PERCENT) and therefore deliberately never stated
+                       as a number here. Refund rules, settlement/payout timing and
+                       transaction limits are NOT represented in the codebase and are not
+                       asserted. Confirm all four before publishing. *@
+
+                    <article class="tc-card" id="payments">
+
+                        <h2>8. Payments, Fees and Wallets</h2>
+
+                        <h3>How milestone payments work</h3>
+                        <p>
+                            Milestone payments are made through the platform using the supported
+                            mobile financial service providers. Funds for a milestone are held once
+                            paid and are released to the influencer's earnings when the milestone is
+                            approved. A payment is only treated as successful once it has been
+                            verified directly with the payment provider &mdash; returning to the site
+                            after a checkout does not by itself confirm that a payment succeeded.
+                        </p>
+
+                        <h3>Platform fees</h3>
+                        <p>
+                            Brandora charges a platform fee on collaborations. The fee applies on both
+                            sides: a brand pays the fee in addition to the milestone amount, and a fee
+                            is applied to an influencer's earnings when they are withdrawn. The rate
+                            in effect is shown to you before you confirm a payment or a withdrawal.
+                        </p>
+                        <p>
+                            The fee rate that applies to a given payment is fixed at the time that
+                            payment is released, so a later change to our rates does not alter
+                            earnings you have already accrued. We may change our fee rates for future
+                            transactions.
+                        </p>
+
+                        <h3>Earnings and withdrawals</h3>
+                        <ul>
+                            <li>Approved milestone payments are credited to the influencer's earnings balance on the platform.</li>
+                            <li>Influencers nominate a payout method and account to receive withdrawals, and are responsible for the accuracy of those details.</li>
+                            <li>A withdrawal is a request. It is reviewed and processed by Brandora, and may be approved or rejected.</li>
+                            <li>The withdrawal fee and the net payout amount are shown before a request is submitted.</li>
+                        </ul>
+
+                        <div class="tc-note">
+                            <p>
+                                Brandora does not guarantee that any individual transaction will
+                                succeed, that a payment provider will be available, or that a
+                                withdrawal will be processed within a particular time. Payments
+                                depend on third-party providers and on the accuracy of the details
+                                you supply.
+                            </p>
+                        </div>
+
+                        <h3>Your responsibilities</h3>
+                        <ul>
+                            <li>Keep your payout details accurate. We are not responsible for funds sent to an account you entered incorrectly.</li>
+                            <li>You are responsible for any taxes that apply to your earnings or expenditure. Brandora does not provide tax advice.</li>
+                            <li>Do not arrange payment outside the platform in order to avoid platform fees (see section 11).</li>
+                        </ul>
+
+                    </article>
+
+
+                    <!-- 9 -->
+
+                    <article class="tc-card" id="messaging">
+
+                        <h2>9. Messaging and Communication</h2>
+
+                        <p>
+                            Brands and influencers can message each other through the platform, either
+                            generally or in the context of a particular campaign. Messages may include
+                            text and attached media.
+                        </p>
+
+                        <ul>
+                            <li>Keep communication professional and relevant to the collaboration.</li>
+                            <li>Do not use messaging to harass, threaten, abuse, or spam another user.</li>
+                            <li>Do not send unlawful, deceptive, or infringing material.</li>
+                            <li>Do not use messaging to solicit users onto other platforms in order to bypass Brandora's payment and dispute mechanisms.</li>
+                        </ul>
+
+                        <p>
+                            Messages exchanged in a collaboration may be reviewed by our team where it
+                            is necessary to investigate a dispute or a report of misuse. Please treat
+                            messaging as a business channel rather than a private one.
+                        </p>
+
+                    </article>
+
+
+                    <!-- 10 -->
+
+                    @* ASSUMPTION: ownership of campaign deliverables is not modelled anywhere
+                       in the codebase. The wording leaves ownership to the brand-influencer
+                       agreement rather than assigning it. Confirm the intended default. *@
+
+                    <article class="tc-card" id="content-ip">
+
+                        <h2>10. Content and Intellectual Property</h2>
+
+                        <h3>Your content</h3>
+                        <p>
+                            You keep ownership of the content you upload &mdash; profile images,
+                            campaign material, submitted deliverables, message attachments, and
+                            anything else you provide. By uploading it, you grant Brandora a
+                            non-exclusive licence to host, store, reproduce, and display that content
+                            to the extent needed to operate the platform and provide the service to
+                            you and to the users you are working with.
+                        </p>
+
+                        <p>
+                            You confirm that you own the content you upload or have the rights needed
+                            to upload it, and that it does not infringe anyone else's rights.
+                        </p>
+
+                        <h3>Deliverables</h3>
+                        <p>
+                            Ownership of, and rights to use, the content an influencer produces for a
+                            campaign are a matter for the agreement between the brand and the
+                            influencer. Brandora does not assign those rights and takes no position on
+                            them. We recommend that both sides agree in writing what the brand may do
+                            with the content before work begins.
+                        </p>
+
+                        <h3>Uploads</h3>
+                        <p>
+                            Uploaded files are stored with our third-party media provider. The
+                            platform accepts a defined set of image, video, and document formats and
+                            enforces a maximum file size for each; files outside those limits will be
+                            rejected. Do not attempt to upload executable content or disguise a file's
+                            type.
+                        </p>
+
+                        <h3>Brandora's own material</h3>
+                        <p>
+                            The Brandora name, logo, interface, and the software behind the platform
+                            belong to Brandora and may not be copied, reproduced, or used without our
+                            written permission.
+                        </p>
+
+                    </article>
+
+
+                    <!-- 11 -->
+
+                    <article class="tc-card" id="prohibited">
+
+                        <h2>11. Prohibited Activities</h2>
+
+                        <p>
+                            The following are not permitted on Brandora. This list is not exhaustive.
+                        </p>
+
+                        <ul>
+                            <li><strong>Misrepresentation:</strong> providing false identity, company, audience, or engagement information.</li>
+                            <li><strong>Artificial engagement:</strong> using bought followers, bots, or any artificial means to inflate reach or engagement figures.</li>
+                            <li><strong>Fee circumvention:</strong> moving an introduction made on Brandora off-platform in order to avoid platform fees or the milestone and dispute mechanisms.</li>
+                            <li><strong>Abuse of other users:</strong> harassment, threats, discriminatory abuse, or spam.</li>
+                            <li><strong>Unlawful or infringing content:</strong> uploading or commissioning content that is illegal, defamatory, obscene, or infringes someone else's rights.</li>
+                            <li><strong>Deceptive advertising:</strong> publishing paid content without the disclosure required by law or by the relevant social platform.</li>
+                            <li><strong>Platform abuse:</strong> scraping, automated data extraction, probing or testing the security of the service, or interfering with its normal operation.</li>
+                            <li><strong>Account abuse:</strong> creating multiple or duplicate accounts to evade a restriction, manipulate verification, or misuse the dispute process.</li>
+                            <li><strong>Fraud:</strong> chargeback abuse, fraudulent payment instruments, or any attempt to obtain funds you are not entitled to.</li>
+                        </ul>
+
+                        <p>
+                            If you encounter any of the above, please report it to
+                            <a href="mailto:care.brandora@gmail.com">care.brandora@gmail.com</a> or
+                            through our <a href="/contact">contact form</a>.
+                        </p>
+
+                    </article>
+
+
+                    <!-- 12 -->
+
+                    @* ASSUMPTION: the Dispute model records a reason, a status, resolution
+                       notes and a resolving admin, and held funds can be moved by an admin —
+                       but no binding-arbitration or appeal process exists in the codebase.
+                       The wording therefore describes an administrative process only. *@
+
+                    <article class="tc-card" id="disputes">
+
+                        <h2>12. Disputes and Resolution</h2>
+
+                        <h3>Between users</h3>
+                        <p>
+                            Most disagreements are best settled directly. If a milestone is not what
+                            was expected, the brand should request a revision and explain what is
+                            wrong, and the influencer should have a fair opportunity to put it right.
+                        </p>
+
+                        <h3>Raising a dispute with Brandora</h3>
+                        <p>
+                            If that does not resolve matters, either party may raise a dispute against
+                            a collaboration or a specific milestone, giving a reason. A dispute is
+                            recorded, moves through review by our team, and is closed with resolution
+                            notes.
+                        </p>
+
+                        <p>
+                            While a dispute is open, funds held for the affected milestone may remain
+                            held until the dispute is closed. Where a resolution requires it, an
+                            administrator may direct held funds to one party or the other, and that
+                            action is recorded.
+                        </p>
+
+                        <div class="tc-note">
+                            <p>
+                                Our dispute process is an administrative service we provide to help
+                                users reach a practical outcome. It is not arbitration, mediation, or
+                                a legal determination of either party's rights, and we do not
+                                guarantee any particular outcome, a refund, or a release of funds in
+                                your favour.
+                            </p>
+                            <p>
+                                Nothing in this section prevents either party from pursuing its legal
+                                rights independently of the platform.
+                            </p>
+                        </div>
+
+                        <p>
+                            Both parties are expected to engage with the process honestly and to
+                            provide the information reasonably requested of them.
+                        </p>
+
+                    </article>
+
+
+                    <!-- 13 -->
+
+                    @* ASSUMPTION: the codebase has no defined handling for open collaborations
+                       or held funds at the point an account is terminated. The wording
+                       commits only to resolving them "in accordance with these terms". *@
+
+                    <article class="tc-card" id="termination">
+
+                        <h2>13. Account Suspension and Termination</h2>
+
+                        <h3>By you</h3>
+                        <p>
+                            You may stop using Brandora at any time and ask us to close your account by
+                            contacting support. Closing an account does not cancel obligations you have
+                            already taken on, such as delivering work you have been paid for.
+                        </p>
+
+                        <h3>By Brandora</h3>
+                        <p>
+                            We may suspend or terminate an account, or restrict access to parts of the
+                            platform, where we reasonably believe that:
+                        </p>
+                        <ul>
+                            <li>these terms have been breached;</li>
+                            <li>the information provided is false or misleading;</li>
+                            <li>the account is being used fraudulently or unlawfully;</li>
+                            <li>the account presents a risk to other users or to the platform; or</li>
+                            <li>we are required to do so by law.</li>
+                        </ul>
+
+                        <p>
+                            Where it is reasonable and lawful to do so, we will tell you why. Serious
+                            cases &mdash; such as suspected fraud &mdash; may result in immediate
+                            suspension without prior notice.
+                        </p>
+
+                        <p>
+                            Open collaborations, milestones in progress, and any funds held at the time
+                            of a suspension or termination will be dealt with in accordance with these
+                            terms, including the dispute process in section 12. Termination does not
+                            affect rights or liabilities that arose before it.
+                        </p>
+
+                    </article>
+
+
+                    <!-- 14 -->
+
+                    <article class="tc-card" id="availability">
+
+                        <h2>14. Platform Availability and Third-Party Services</h2>
+
+                        <p>
+                            We work to keep Brandora available and working correctly, but we do not
+                            promise uninterrupted or error-free service. Access may be interrupted by
+                            maintenance, updates, technical faults, or events outside our control.
+                        </p>
+
+                        <p>
+                            Parts of the platform depend on third parties, including:
+                        </p>
+                        <ul>
+                            <li>a cloud media provider, which stores and delivers uploaded files;</li>
+                            <li>mobile financial service providers, which process payments and payouts;</li>
+                            <li>an email delivery service, which sends verification codes and notifications.</li>
+                        </ul>
+
+                        <p>
+                            Your use of those services is also subject to their own terms. We are not
+                            responsible for their availability, performance, or decisions, and an
+                            interruption at a third party may affect features of the platform that
+                            depend on it.
+                        </p>
+
+                        <p>
+                            Brandora may contain links to external sites and social platforms. We do
+                            not control them and are not responsible for their content or practices.
+                        </p>
+
+                    </article>
+
+
+                    <!-- 15 -->
+
+                    @* ASSUMPTION: no liability cap figure exists anywhere in the project.
+                       The cap is expressed relationally (fees paid in the preceding period)
+                       rather than as an amount, and the whole section needs legal review
+                       against Bangladeshi law. *@
+
+                    <article class="tc-card" id="disclaimers">
+
+                        <h2>15. Disclaimers and Limitation of Liability</h2>
+
+                        <h3>Provided as is</h3>
+                        <p>
+                            The platform is provided on an &ldquo;as is&rdquo; and &ldquo;as
+                            available&rdquo; basis. To the fullest extent permitted by law, we exclude
+                            implied warranties of merchantability, fitness for a particular purpose,
+                            and non-infringement.
+                        </p>
+
+                        <h3>What we do not guarantee</h3>
+                        <ul>
+                            <li>That a brand will find a suitable influencer, or an influencer will receive offers.</li>
+                            <li>That any campaign will achieve any particular reach, engagement, sales, or other result.</li>
+                            <li>The accuracy of information users publish about themselves, including audience figures.</li>
+                            <li>The quality, legality, timeliness, or completion of work agreed between users.</li>
+                            <li>That verification establishes a user's identity or trustworthiness.</li>
+                            <li>Uninterrupted availability of the platform or of any third-party service it relies on.</li>
+                            <li>Any particular outcome of a dispute.</li>
+                        </ul>
+
+                        <h3>Limitation</h3>
+                        <p>
+                            To the fullest extent permitted by law, Brandora is not liable for indirect
+                            or consequential loss, or for loss of profits, revenue, business,
+                            goodwill, or data, arising from your use of the platform or from any
+                            dealing between users.
+                        </p>
+
+                        <p>
+                            Where liability cannot be excluded, our total liability to you in
+                            connection with the platform is limited to the total platform fees you
+                            paid to Brandora in the twelve months before the event giving rise to the
+                            claim.
+                        </p>
+
+                        <p>
+                            Nothing in these terms excludes or limits liability that cannot lawfully
+                            be excluded or limited.
+                        </p>
+
+                    </article>
+
+
+                    <!-- 16 -->
+
+                    <article class="tc-card" id="indemnification">
+
+                        <h2>16. Indemnification</h2>
+
+                        <p>
+                            You agree to indemnify and hold harmless Brandora, its team, and its
+                            service providers against claims, losses, liabilities, and reasonable
+                            costs arising from:
+                        </p>
+
+                        <ul>
+                            <li>your use of the platform;</li>
+                            <li>content you upload or publish;</li>
+                            <li>your breach of these terms or of any applicable law; or</li>
+                            <li>a dispute between you and another user, including any claim relating to work agreed or delivered through the platform.</li>
+                        </ul>
+
+                        <p>
+                            We will tell you about any claim we seek to be indemnified for and will not
+                            settle it without giving you a reasonable opportunity to be involved.
+                        </p>
+
+                    </article>
+
+
+                    <!-- 17 -->
+
+                    <article class="tc-card" id="changes">
+
+                        <h2>17. Changes to These Terms</h2>
+
+                        <p>
+                            We may update these Terms &amp; Conditions &mdash; for example when we add
+                            features, change how the platform works, or need to reflect a change in
+                            the law. When we do, we will post the revised terms on this page and
+                            update the &ldquo;last updated&rdquo; date at the top.
+                        </p>
+
+                        <p>
+                            If a change materially affects your rights or obligations, we will make a
+                            reasonable effort to notify you directly, such as by email or a notice on
+                            the platform. Continuing to use Brandora after a change takes effect means
+                            you accept the updated terms. If you do not accept them, you should stop
+                            using the platform and may close your account.
+                        </p>
+
+                    </article>
+
+
+                    <!-- 18 -->
+
+                    @* ASSUMPTION: jurisdiction is inferred from the business being based in
+                       Dhaka, Bangladesh (the address used across the site). Confirm the
+                       intended governing law and forum. *@
+
+                    <article class="tc-card" id="governing-law">
+
+                        <h2>18. Governing Law</h2>
+
+                        <p>
+                            These terms are governed by the laws of Bangladesh, and the courts of
+                            Bangladesh have jurisdiction over any dispute arising from them or from
+                            your use of the platform.
+                        </p>
+
+                        <p>
+                            If any provision of these terms is found to be unenforceable, the rest
+                            continues to apply. If we do not enforce a right immediately, that is not
+                            a waiver of it.
+                        </p>
+
+                    </article>
+
+
+                    <!-- 19 -->
+
+                    <article class="tc-card" id="contact">
+
+                        <h2>19. Contact Us</h2>
+
+                        <p>
+                            If you have a question about these terms, or need to raise something with
+                            us, please get in touch. We aim to respond within 24 hours.
+                        </p>
+
+                        <div class="tc-contact-rows">
+
+                            <div class="tc-contact-row">
+
+                                <div class="tc-contact-icon">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+                                        <rect x="3" y="5.5" width="18" height="13" rx="2.5" stroke="currentColor" stroke-width="1.6" />
+                                        <path d="M4 7.5l8 5.2 8-5.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                                    </svg>
+                                </div>
+
+                                <div>
+                                    <span>Email</span>
+                                    <a href="mailto:care.brandora@gmail.com">care.brandora@gmail.com</a>
+                                </div>
+
+                            </div>
+
+                            <div class="tc-contact-row">
+
+                                <div class="tc-contact-icon">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+                                        <path d="M6.5 4h3l1.5 3.7-2 1.4a12 12 0 005.9 5.9l1.4-2L20 14.5v3a2 2 0 01-2.2 2A15.6 15.6 0 014.5 6.2 2 2 0 016.5 4z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
+                                    </svg>
+                                </div>
+
+                                <div>
+                                    <span>Phone</span>
+                                    <a href="tel:+8801791890711">01791890711</a>
+                                </div>
+
+                            </div>
+
+                            <div class="tc-contact-row">
+
+                                <div class="tc-contact-icon">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+                                        <path d="M12 21s6.5-5.4 6.5-10a6.5 6.5 0 10-13 0c0 4.6 6.5 10 6.5 10z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
+                                        <circle cx="12" cy="11" r="2.4" stroke="currentColor" stroke-width="1.6" />
+                                    </svg>
+                                </div>
+
+                                <div>
+                                    <span>Address</span>
+                                    <p>Dhaka, Bangladesh</p>
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                        <p>
+                            You can also reach us through our
+                            <a href="/contact">contact form</a>, or read our
+                            <a href="/privacy-policy">Privacy Policy</a> to understand how we handle
+                            your information.
+                        </p>
+
+                    </article>
+
+
+                </div>
+
+
+            </div>
+
+        </section>
+
+
+    </main>
+
+
+    <partial name="_BrandoraFooter" />
+
+
+</body>
+</html>
