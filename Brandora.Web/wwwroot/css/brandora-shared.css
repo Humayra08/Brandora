@@ -298,7 +298,7 @@
     display: grid;
 
     grid-template-columns:
-        1.7fr 1fr 1fr 1fr 1fr;
+        1.7fr 1fr 1fr 1fr;
 
     gap: 24px;
 }
@@ -411,7 +411,7 @@
 
     .footer-grid {
         grid-template-columns:
-            repeat(3, 1fr);
+            repeat(2, 1fr);
     }
 }
 
