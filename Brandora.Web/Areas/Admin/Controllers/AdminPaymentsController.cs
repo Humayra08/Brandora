@@ -1,18 +1,24 @@
 using Brandora.Web.Areas.Admin.Services;
 using Brandora.Web.Data;
 using Brandora.Web.Models.Domain;
+using Brandora.Web.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace Brandora.Web.Areas.Admin.Controllers;
 
-// Payment Oversight is read-only: the admin does not hold, approve or release payments. The admin
-// approves the PROOF; the brand then pays, the money lands in the influencer's wallet, and the
-// influencer withdraws freely. So there are only two real states, Pending and Completed, plus
-// Failed for a payment that failed or was refunded after a dispute. Fields that will come from the
-// payment gateway (gateway references for withdrawals, failure reasons) are placeholders until
-// that work is merged.
-public class AdminPaymentsController(ApplicationDbContext db) : AdminControllerBase(db)
+// Payment Oversight, on real data (rebuilt 2026-09-22 — see the Phase 11-18 plan).
+//
+// Brand payments are fully automatic: the admin approves the PROOF, the brand pays via a
+// real bKash/Nagad checkout, and the money lands in the influencer's wallet the moment the
+// gateway confirms it. There is no refund/escrow flip here anymore — neither gateway has a
+// refund endpoint, so a payment stays exactly Completed/Pending/Failed forever, and dispute
+// compensation is its own, separate ledger entry (see AdminDisputesController).
+//
+// Influencer withdrawals are the one genuinely manual step: there is no payout/disbursement
+// API on either gateway, so an admin sends the money in their own real bKash/Nagad app and
+// logs the real transaction reference here via MarkWithdrawalPaid.
+public class AdminPaymentsController(ApplicationDbContext db, NotificationService notifications) : AdminControllerBase(db)
 {
     private static string MethodLabel(PaymentMethod? m) => m switch
     {
@@ -48,6 +54,7 @@ public class AdminPaymentsController(ApplicationDbContext db) : AdminControllerB
             .Include(p => p.Milestone)
             .Include(p => p.Collaboration).ThenInclude(c => c.Campaign).ThenInclude(c => c.BrandProfile)
             .Include(p => p.Collaboration).ThenInclude(c => c.InfluencerProfile)
+            .Include(p => p.Attempts)
             .ToListAsync();
 
         var withdrawals = await db.WithdrawalRequests
@@ -74,11 +81,14 @@ public class AdminPaymentsController(ApplicationDbContext db) : AdminControllerB
         return new Context(payments, withdrawals, rank, open, byMilestone);
     }
 
-    private static string PayType(Payment p) => p.EscrowStatus == EscrowStatus.Refunded ? "Refund" : "Brand Payment";
+    private const string PayType = "Brand Payment";
 
-    private static string PayStatus(Payment p) => p.EscrowStatus == EscrowStatus.Refunded
-        ? "Completed"
-        : p.Status switch { PaymentStatus.Completed => "Completed", PaymentStatus.Failed => "Failed", _ => "Pending" };
+    private static string PayStatus(Payment p) => p.Status switch
+    {
+        PaymentStatus.Completed => "Completed",
+        PaymentStatus.Failed => "Failed",
+        _ => "Pending"
+    };
 
     private static string WdStatus(WithdrawalRequest w) => w.Status switch
     {
@@ -107,21 +117,23 @@ public class AdminPaymentsController(ApplicationDbContext db) : AdminControllerB
         foreach (var p in ctx.Payments)
         {
             var camp = p.Collaboration.Campaign;
-            var type = PayType(p);
             rows.Add(new TxnRow(
                 "P" + p.Id, PayCode(p), p.PaidAt ?? p.CreatedAt,
                 camp.BrandProfile.CompanyName, camp.BrandProfile.ProfilePictureUrl, "Brand",
                 camp.Title, $"CAM-{camp.CreatedAt.Year}-{camp.Id:D3}", camp.Id,
-                MilestoneText(ctx, p), type, p.Amount, PayStatus(p), MethodLabel(p.Method),
-                p.MilestoneId is int mid && ctx.DisputedMilestones.Contains(mid)));
+                MilestoneText(ctx, p), PayType, p.Amount, PayStatus(p), MethodLabel(p.Method),
+                p.MilestoneId is int mid && ctx.DisputedMilestones.Contains(mid),
+                p.Status == PaymentStatus.Completed ? p.BrandFeeAmount : 0m));
         }
 
         foreach (var w in ctx.Withdrawals)
         {
+            var completed = w.Status is WithdrawalStatus.Approved or WithdrawalStatus.Paid;
             rows.Add(new TxnRow(
                 "W" + w.Id, WdCode(w), w.ProcessedAt ?? w.RequestedAt,
                 "@" + w.InfluencerProfile.PlatformUsername.TrimStart('@'), null, "Influencer",
-                "Platform Wallet", "", null, "—", "Withdrawal", w.Amount, WdStatus(w), MethodLabel(w.Method), false));
+                "Platform Wallet", "", null, "—", "Withdrawal", w.Amount, WdStatus(w), MethodLabel(w.Method), false,
+                completed ? w.FeeAmount : 0m));
         }
 
         rows = rows.OrderByDescending(r => r.At).ToList();
@@ -135,15 +147,15 @@ public class AdminPaymentsController(ApplicationDbContext db) : AdminControllerB
         var brandPayments = rows.Where(r => r.Type == "Brand Payment" && r.Status == "Completed").ToList();
         var payouts = rows.Where(r => r.Type == "Withdrawal" && r.Status == "Completed").ToList();
         var pending = rows.Where(r => r.Status == "Pending").ToList();
-        var refunds = rows.Where(r => r.Type == "Refund").ToList();
+        var feeEarning = rows.Where(r => r.Fee > 0).ToList();
 
-        // status donut: Completed / Pending / Failed / Refunded
+        // status donut: Completed / Pending / Failed — no fake "Refunded" bucket, real
+        // settlement code never sets a payment to anything but these three.
         var status = new List<StatusSlice>
         {
-            new("Completed", rows.Count(r => r.Status == "Completed" && r.Type != "Refund"), "#10b981"),
+            new("Completed", rows.Count(r => r.Status == "Completed"), "#10b981"),
             new("Pending", rows.Count(r => r.Status == "Pending"), "#f5b921"),
-            new("Failed", rows.Count(r => r.Status == "Failed"), "#ef4d7a"),
-            new("Refunded", rows.Count(r => r.Type == "Refund"), "#a56bff")
+            new("Failed", rows.Count(r => r.Status == "Failed"), "#ef4d7a")
         };
 
         var methods = rows.GroupBy(r => r.Method)
@@ -162,8 +174,8 @@ public class AdminPaymentsController(ApplicationDbContext db) : AdminControllerB
             .Select(g =>
             {
                 var total = g.Sum(m => m.Amount);
-                var paid = g.Where(m => m.Payment is { Status: PaymentStatus.Completed } && m.Payment.EscrowStatus != EscrowStatus.Refunded).Sum(m => m.Payment!.Amount);
-                var paidCount = g.Count(m => m.Payment is { Status: PaymentStatus.Completed } && m.Payment.EscrowStatus != EscrowStatus.Refunded);
+                var paid = g.Where(m => m.Payment is { Status: PaymentStatus.Completed }).Sum(m => m.Payment!.Amount);
+                var paidCount = g.Count(m => m.Payment is { Status: PaymentStatus.Completed });
                 return new CampaignPayRow(g.Key.Id, g.Key.Title, $"CAM-{g.Key.CreatedAt.Year}-{g.Key.Id:D3}", g.Key.MediaUrl, total, paid, Math.Max(0m, total - paid), paidCount, g.Count());
             })
             .OrderByDescending(c => c.Total)
@@ -179,17 +191,18 @@ public class AdminPaymentsController(ApplicationDbContext db) : AdminControllerB
                 payouts.Where(r => r.At.Year == m.Year && r.At.Month == m.Month).Sum(r => r.Amount)))
             .ToList();
 
-        // recent failed / refunded
+        // recent failed payments/withdrawals, with the real reason where we have one
         var failedRows = new List<FailedRow>();
-        foreach (var r in rows.Where(r => r.Type == "Refund" || r.Status == "Failed").Take(5))
+        foreach (var r in rows.Where(r => r.Status == "Failed").Take(5))
         {
             string reason = "Not recorded";
             if (r.Key.StartsWith('P') && int.TryParse(r.Key[1..], out var pid))
             {
                 var pay = ctx.Payments.First(p => p.Id == pid);
-                if (pay.EscrowStatus == EscrowStatus.Refunded) reason = "Refunded after a dispute";
+                var lastAttempt = pay.Attempts.OrderByDescending(a => a.CreatedAt).FirstOrDefault();
+                if (lastAttempt?.FailureReason is { } fr && !string.IsNullOrWhiteSpace(fr)) reason = fr;
             }
-            else if (r.Key.StartsWith('W')) reason = "Withdrawal failed";
+            else if (r.Key.StartsWith('W')) reason = "Withdrawal rejected by admin";
             failedRows.Add(new FailedRow(r.Key, r.At, r.UserName, r.Campaign, r.Amount, reason));
         }
 
@@ -204,8 +217,8 @@ public class AdminPaymentsController(ApplicationDbContext db) : AdminControllerB
             BrandTrend = Trend(brandPayments.Where(ThisMonth).Sum(r => r.Amount), brandPayments.Where(LastMonth).Sum(r => r.Amount)),
             PendingTotal = pending.Sum(r => r.Amount),
             PendingTrend = Trend(pending.Where(ThisMonth).Sum(r => r.Amount), pending.Where(LastMonth).Sum(r => r.Amount)),
-            RefundTotal = refunds.Sum(r => r.Amount),
-            RefundTrend = Trend(refunds.Where(ThisMonth).Sum(r => r.Amount), refunds.Where(LastMonth).Sum(r => r.Amount)),
+            AdminWalletIncomeTotal = feeEarning.Sum(r => r.Fee),
+            AdminWalletIncomeTrend = Trend(feeEarning.Where(ThisMonth).Sum(r => r.Fee), feeEarning.Where(LastMonth).Sum(r => r.Fee)),
             Status = status,
             Methods = methods,
             Campaigns = campaigns,
@@ -228,7 +241,6 @@ public class AdminPaymentsController(ApplicationDbContext db) : AdminControllerB
         if (string.IsNullOrWhiteSpace(id) || id.Length < 2 || !int.TryParse(id[1..], out var n)) return NotFound();
 
         var ctx = await LoadContextAsync();
-        var ledger = await PlatformWalletLedger.LoadAsync(db);
 
         if (id[0] == 'P')
         {
@@ -237,37 +249,38 @@ public class AdminPaymentsController(ApplicationDbContext db) : AdminControllerB
 
             var camp = p.Collaboration.Campaign;
             var ms = p.Milestone;
-            var refunded = p.EscrowStatus == EscrowStatus.Refunded;
             var status = PayStatus(p);
             var at = p.PaidAt ?? p.CreatedAt;
             ctx.DisputeByMilestone.TryGetValue(p.MilestoneId ?? 0, out var dispute);
 
+            var attempts = p.Attempts
+                .OrderBy(a => a.CreatedAt)
+                .Select(a => new AttemptRow(a.Gateway, a.Status.ToString(), a.CreatedAt, a.CompletedAt, a.FailureReason, a.GatewayTransactionId))
+                .ToList();
+
             var history = new List<HistoryStep>
             {
-                new("Payment released by the brand", p.CreatedAt, "done", "The brand released this milestone payment after the proof was approved.")
+                new("Milestone released by the brand", p.CreatedAt, "done", "The brand released this milestone and started checkout.")
             };
-            if (refunded)
-                history.Add(new("Refunded to the brand", p.PaidAt ?? p.CreatedAt, "done", "Refunded after a dispute was resolved."));
-            else if (p.Status == PaymentStatus.Completed)
-                history.Add(new("Payment completed", p.PaidAt ?? p.CreatedAt, "done", $"Transferred to the influencer's wallet{(p.Method is null ? "" : " via " + MethodLabel(p.Method))}."));
+            if (p.Status == PaymentStatus.Completed)
+                history.Add(new("Payment completed", p.PaidAt ?? p.CreatedAt, "done", $"Confirmed by {MethodLabel(p.Method)} and credited to the influencer's wallet."));
             else if (p.Status == PaymentStatus.Failed)
-                history.Add(new("Payment failed", null, "bad", "The payment did not go through."));
+                history.Add(new("Payment failed", p.Attempts.OrderByDescending(a => a.CreatedAt).FirstOrDefault()?.CompletedAt, "bad", p.Attempts.OrderByDescending(a => a.CreatedAt).FirstOrDefault()?.FailureReason ?? "The payment did not go through."));
             else
-                history.Add(new("Waiting for confirmation", null, "pending", "The payment is pending until the brand's payment is confirmed."));
+                history.Add(new("Waiting for confirmation", null, "pending", "Pending until the gateway confirms the brand's payment."));
 
             return PartialView("_TransactionDrawer", new TxnDetailVm
             {
                 Code = PayCode(p),
-                Type = PayType(p),
+                Type = PayType,
                 Status = status,
                 At = at,
-                Amount = p.Amount,
+                Amount = p.TotalCharged,
                 Method = MethodLabel(p.Method),
                 Reference = string.IsNullOrWhiteSpace(p.TransactionReference) ? null : p.TransactionReference,
                 InitiatedBy = "Brand · " + camp.BrandProfile.CompanyName,
-                Remarks = refunded ? "Refunded to the brand after a dispute."
-                    : p.Status == PaymentStatus.Completed ? "Payment confirmed for " + (ms?.Title ?? "the milestone") + "."
-                    : p.Status == PaymentStatus.Failed ? "The payment failed."
+                Remarks = p.Status == PaymentStatus.Completed ? "Payment confirmed for " + (ms?.Title ?? "the milestone") + "."
+                    : p.Status == PaymentStatus.Failed ? "The payment failed — see the gateway timeline below."
                     : "Waiting for the brand's payment to be confirmed.",
 
                 HasCampaign = true,
@@ -288,9 +301,12 @@ public class AdminPaymentsController(ApplicationDbContext db) : AdminControllerB
                 InfluencerHandle = p.Collaboration.InfluencerProfile.PlatformUsername,
                 InfluencerProfileId = p.Collaboration.InfluencerProfileId,
                 InfluencerLabel = "Influencer (Recipient)",
-                BrandLabel = refunded ? "Brand (Refunded)" : "Brand",
+                BrandLabel = "Brand",
 
                 History = history,
+                Attempts = attempts,
+                Fee = p.Status == PaymentStatus.Completed ? p.BrandFeeAmount : 0m,
+                NetAmount = p.Amount,
                 DisputeId = dispute?.Id,
                 DisputeCode = dispute is null ? null : $"DS-{dispute.CreatedAt.Year}-{dispute.Id:D3}",
                 DisputeStatus = dispute?.Status.ToString()
@@ -303,18 +319,16 @@ public class AdminPaymentsController(ApplicationDbContext db) : AdminControllerB
             if (w is null) return NotFound();
 
             var status = WdStatus(w);
-            var gatewayRef = ledger.WithdrawalGatewayReferences.GetValueOrDefault(w.Id);
-            var fee = PlatformFee.Of(w.Amount);
 
             var history = new List<HistoryStep>
             {
-                new("Withdrawal requested", w.RequestedAt, "done", "The influencer withdrew from their wallet. No admin approval is needed.")
+                new("Withdrawal requested", w.RequestedAt, "done", "The influencer requested this from their wallet balance.")
             };
             history.Add(status switch
             {
-                "Completed" => new HistoryStep("Funds transferred", w.ProcessedAt, "done", $"Sent to the influencer's {MethodLabel(w.Method)} account."),
-                "Failed" => new HistoryStep("Withdrawal failed", w.ProcessedAt, "bad", "The withdrawal did not go through."),
-                _ => new HistoryStep("Waiting for the payment gateway", null, "pending", "The transfer is being sent to the influencer's account.")
+                "Completed" => new HistoryStep("Funds sent", w.ProcessedAt, "done", $"{w.ProcessedByAdmin} sent this to the influencer's {MethodLabel(w.Method)} account and logged reference {w.TransactionReference}."),
+                "Failed" => new HistoryStep("Withdrawal rejected", w.ProcessedAt, "bad", $"Rejected by {w.ProcessedByAdmin}. The balance was restored automatically."),
+                _ => new HistoryStep("Waiting for an admin to send it", null, "pending", "An admin needs to manually send this in their bKash/Nagad app and log the reference — there is no automatic payout API.")
             });
 
             return PartialView("_TransactionDrawer", new TxnDetailVm
@@ -325,20 +339,100 @@ public class AdminPaymentsController(ApplicationDbContext db) : AdminControllerB
                 At = w.ProcessedAt ?? w.RequestedAt,
                 Amount = w.Amount,
                 Method = MethodLabel(w.Method),
-                Reference = gatewayRef,
+                Reference = w.TransactionReference,
                 InitiatedBy = "Influencer · " + w.InfluencerProfile.FullName,
-                Remarks = $"Platform fee of ৳{fee:N0} (5%) is kept; the influencer receives ৳{w.Amount - fee:N0}.",
+                Remarks = status == "Pending"
+                    ? $"Sent to {w.AccountDetail} once an admin processes it."
+                    : $"Sent to {w.AccountDetail}.",
 
                 HasCampaign = false,
                 InfluencerName = w.InfluencerProfile.FullName,
                 InfluencerHandle = w.InfluencerProfile.PlatformUsername,
                 InfluencerProfileId = w.InfluencerProfileId,
                 InfluencerLabel = "Influencer (Sender)",
-                History = history
+                History = history,
+                Fee = w.FeeAmount,
+                NetAmount = w.PayoutAmount,
+                IsPendingWithdrawal = w.Status == WithdrawalStatus.Pending,
+                WithdrawalId = w.Id
             });
         }
 
         return NotFound();
+    }
+
+    // ------------------------------------------------------------ processing
+
+    // The one genuinely manual step in the whole payment system: neither bKash nor Nagad
+    // exposes a payout/disbursement endpoint, only Checkout (customer pays merchant). So an
+    // admin opens their own real bKash/Nagad app, sends the money to the influencer's real
+    // account, and logs the real transaction reference here.
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> MarkWithdrawalPaid(int id, string reference)
+    {
+        if (string.IsNullOrWhiteSpace(reference))
+        {
+            TempData["PaymentsError"] = "Enter the real transaction reference from the bKash/Nagad app before marking this paid.";
+            return RedirectToAction(nameof(Index), new { open = "W" + id });
+        }
+
+        var w = await db.WithdrawalRequests.Include(x => x.InfluencerProfile).FirstOrDefaultAsync(x => x.Id == id);
+        if (w is null) return NotFound();
+
+        if (w.Status == WithdrawalStatus.Pending)
+        {
+            w.Status = WithdrawalStatus.Paid;
+            w.ProcessedAt = DateTime.UtcNow;
+            w.TransactionReference = reference.Trim();
+            w.ProcessedByAdmin = AdminName;
+
+            await notifications.NotifyAsync(
+                w.InfluencerProfile.UserId,
+                "Payment",
+                "Withdrawal paid",
+                $"Your withdrawal of ৳{w.PayoutAmount:N0} was sent to {w.AccountDetail} (ref: {w.TransactionReference}).",
+                "/InfluencerEarnings");
+
+            await db.SaveChangesAsync();
+        }
+
+        return RedirectToAction(nameof(Index), new { open = "W" + id });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> RejectWithdrawal(int id, string reason)
+    {
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            TempData["PaymentsError"] = "Add a reason so the influencer knows why this was rejected.";
+            return RedirectToAction(nameof(Index), new { open = "W" + id });
+        }
+
+        var w = await db.WithdrawalRequests.Include(x => x.InfluencerProfile).FirstOrDefaultAsync(x => x.Id == id);
+        if (w is null) return NotFound();
+
+        if (w.Status == WithdrawalStatus.Pending)
+        {
+            w.Status = WithdrawalStatus.Rejected;
+            w.ProcessedAt = DateTime.UtcNow;
+            w.ProcessedByAdmin = AdminName;
+            // WalletService.GetWithdrawalLedgerAsync excludes Rejected from the "withdrawn"
+            // sum, so the influencer's available balance is restored automatically —
+            // nothing else to undo here.
+
+            await notifications.NotifyAsync(
+                w.InfluencerProfile.UserId,
+                "Payment",
+                "Withdrawal rejected",
+                $"Your withdrawal request of ৳{w.Amount:N0} was rejected: {reason.Trim()}. The amount is back in your available balance.",
+                "/InfluencerEarnings");
+
+            await db.SaveChangesAsync();
+        }
+
+        return RedirectToAction(nameof(Index), new { open = "W" + id });
     }
 }
 
@@ -357,7 +451,8 @@ public record TxnRow(
     decimal Amount,
     string Status,
     string Method,
-    bool Disputed);
+    bool Disputed,
+    decimal Fee);
 
 public record StatusSlice(string Label, int Count, string Color);
 public record MethodShare(string Method, int Count);
@@ -365,6 +460,7 @@ public record CampaignPayRow(int Id, string Title, string Code, string? Media, d
 public record TimelinePoint(string Label, decimal BrandPayments, decimal Payouts);
 public record FailedRow(string Key, DateTime At, string User, string Campaign, decimal Amount, string Reason);
 public record HistoryStep(string Title, DateTime? At, string State, string Note);
+public record AttemptRow(string Gateway, string Status, DateTime CreatedAt, DateTime? CompletedAt, string? FailureReason, string? GatewayTransactionId);
 
 public class PaymentIndexViewModel
 {
@@ -377,8 +473,11 @@ public class PaymentIndexViewModel
     public decimal? BrandTrend { get; set; }
     public decimal PendingTotal { get; set; }
     public decimal? PendingTrend { get; set; }
-    public decimal RefundTotal { get; set; }
-    public decimal? RefundTrend { get; set; }
+    // "5% to Admin Wallet" — real BrandFeeAmount on completed brand payments plus real
+    // FeeAmount on completed withdrawals, the same two real sources AdminDashboardController
+    // reads for PlatformWalletBalance.
+    public decimal AdminWalletIncomeTotal { get; set; }
+    public decimal? AdminWalletIncomeTrend { get; set; }
     public List<StatusSlice> Status { get; set; } = new();
     public List<MethodShare> Methods { get; set; } = new();
     public List<CampaignPayRow> Campaigns { get; set; } = new();
@@ -424,4 +523,16 @@ public class TxnDetailVm
     public int? DisputeId { get; set; }
     public string? DisputeCode { get; set; }
     public string? DisputeStatus { get; set; }
+
+    // Brand payments only — the real gateway call-by-call audit trail.
+    public List<AttemptRow> Attempts { get; set; } = new();
+
+    // Fee breakdown, shown for both a brand payment ("+5% to Admin Wallet" on top) and a
+    // withdrawal ("5% kept from this withdrawal").
+    public decimal Fee { get; set; }
+    public decimal NetAmount { get; set; }
+
+    // Withdrawals only — lets the drawer show Mark Paid / Reject for a still-Pending one.
+    public bool IsPendingWithdrawal { get; set; }
+    public int WithdrawalId { get; set; }
 }

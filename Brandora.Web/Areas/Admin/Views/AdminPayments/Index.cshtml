@@ -155,7 +155,7 @@
     <div class="pm-kpi"><div class="pm-kpi-icon green"><i class="bi bi-send"></i></div><div><div class="pm-kpi-label">Total Payouts to Influencers</div><div class="pm-kpi-value">@Money(Model.PayoutsTotal)</div>@Html.Raw(Trend(Model.PayoutsTrend))</div></div>
     <div class="pm-kpi"><div class="pm-kpi-icon orange"><i class="bi bi-credit-card-2-front"></i></div><div><div class="pm-kpi-label">Total Brand Payments</div><div class="pm-kpi-value">@Money(Model.BrandTotal)</div>@Html.Raw(Trend(Model.BrandTrend))</div></div>
     <div class="pm-kpi"><div class="pm-kpi-icon amber"><i class="bi bi-clock"></i></div><div><div class="pm-kpi-label">Pending Payments</div><div class="pm-kpi-value">@Money(Model.PendingTotal)</div>@Html.Raw(Trend(Model.PendingTrend, true))</div></div>
-    <div class="pm-kpi"><div class="pm-kpi-icon mint"><i class="bi bi-shield-check"></i></div><div><div class="pm-kpi-label">Refunds / Chargebacks</div><div class="pm-kpi-value">@Money(Model.RefundTotal)</div>@Html.Raw(Trend(Model.RefundTrend, true))</div></div>
+    <div class="pm-kpi"><div class="pm-kpi-icon mint"><i class="bi bi-piggy-bank"></i></div><div><div class="pm-kpi-label">5% to Admin Wallet</div><div class="pm-kpi-value">@Money(Model.AdminWalletIncomeTotal)</div>@Html.Raw(Trend(Model.AdminWalletIncomeTrend))</div></div>
 </section>
 
 <div class="pm-grid">
@@ -164,14 +164,13 @@
             <button type="button" class="is-active" data-tab="">All Transactions</button>
             <button type="button" data-tab="Brand Payment">Brand Payments</button>
             <button type="button" data-tab="Withdrawal">Influencer Withdrawals</button>
-            <button type="button" data-tab="Refund">Refunds</button>
             <button type="button" data-tab="__disputed">Disputes &amp; Holds</button>
         </div>
 
         <div class="pm-filters">
             <input class="pm-input grow" type="search" id="pmSearch" placeholder="Search by transaction ID, user name, campaign..." />
             <select class="pm-input" id="pmCampaign"><option value="">Campaign: All</option>@foreach (var c in Model.CampaignNames) { <option>@c</option> }</select>
-            <select class="pm-input" id="pmType"><option value="">Type: All</option><option>Brand Payment</option><option>Withdrawal</option><option>Refund</option></select>
+            <select class="pm-input" id="pmType"><option value="">Type: All</option><option>Brand Payment</option><option>Withdrawal</option></select>
             <select class="pm-input" id="pmStatus"><option value="">Status: All</option><option>Completed</option><option>Pending</option><option>Failed</option></select>
             <input class="pm-input" type="date" id="pmFrom" aria-label="Start date" />
             <input class="pm-input" type="date" id="pmTo" aria-label="End date" />
@@ -205,7 +204,7 @@
                                 <td><div class="pm-two"><b>@r.Campaign</b>@if (!string.IsNullOrWhiteSpace(r.CampaignCode)) { <small>@r.CampaignCode</small> }</div></td>
                                 <td>@r.Milestone</td>
                                 <td><span class="pm-pill @TypeTone(r.Type)">@r.Type</span>@if (r.Disputed) { <span class="pm-flag">Disputed</span> }</td>
-                                <td><b>@Money(r.Amount)</b></td>
+                                <td><b>@Money(r.Amount)</b>@if (r.Fee > 0) { <br /><small style="color:#0d9c6c;font-weight:600;">+@Money(r.Fee) to Admin Wallet</small> }</td>
                                 <td><span class="pm-pill @StatusTone(r.Status)">@r.Status</span></td>
                                 <td><div class="pm-meth">@Html.Raw(Logo(r.Method, 18))<span>@r.Method</span></div></td>
                                 <td>
@@ -298,8 +297,8 @@
     </div>
 
     <div class="pm-panel">
-        <h3 class="pm-title">Recent Failed / Refunded Payments</h3>
-        @if (Model.Failed.Count == 0) { <div class="pm-empty"><b>Nothing failed or refunded</b>Great, all payments went through.</div> }
+        <h3 class="pm-title">Recent Failed Payments</h3>
+        @if (Model.Failed.Count == 0) { <div class="pm-empty"><b>Nothing has failed</b>Great, all payments went through.</div> }
         else
         {
             <div class="pm-scroll"><table class="pm-mini">
