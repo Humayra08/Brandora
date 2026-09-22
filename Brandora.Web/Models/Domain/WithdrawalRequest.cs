@@ -21,4 +21,10 @@ public class WithdrawalRequest
 
     public DateTime RequestedAt { get; set; } = DateTime.UtcNow;
     public DateTime? ProcessedAt { get; set; }
+
+    // Set when an admin manually sends the payout in their own bKash/Nagad app and logs
+    // the real transaction ID here (there is no payout/disbursement API to call instead —
+    // see PlatformWalletTransaction for why). ProcessedByAdmin records who did it.
+    public string? TransactionReference { get; set; }
+    public string? ProcessedByAdmin { get; set; }
 }
