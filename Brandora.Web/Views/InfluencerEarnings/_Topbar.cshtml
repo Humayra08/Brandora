@@ -1,33 +1,41 @@
 @model Brandora.Web.Models.Dashboard.InfluencerEarningsViewModel
+@using Brandora.Web.Models.Influencers
 @{
-    var initial = string.IsNullOrWhiteSpace(Model.InfluencerName) ? "I" : Model.InfluencerName[..1].ToUpperInvariant();
+    var name = Model.InfluencerName.Trim();
 }
-    <header class="earnings-topbar">
-        <button type="button" class="earnings-icon-button" id="menuToggleBtn" aria-label="Toggle sidebar" aria-controls="dashboardSidebar">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-        </button>
-        <form method="get" asp-action="Index" class="earnings-search" role="search">
-            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" stroke="currentColor" stroke-width="1.8"/><path d="m16 16 5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-            <input type="search" name="search" value="@Model.Search" placeholder="Search campaigns, brands..." aria-label="Search campaigns and brands" />
-            <input type="hidden" name="campaignId" value="@Model.CampaignId" />
-            <input type="hidden" name="tab" value="@Model.Tab" />
-        </form>
-        <details class="earnings-notifications dashboard-notifications">
-            <summary aria-label="Notifications"><i class="bi bi-bell" aria-hidden="true"></i>
-                @if ((ViewData["UnreadNotifications"] as int? ?? 0) > 0) { <span class="dashboard-unread"></span> }
-            </summary>
-            <div class="earnings-notification-panel">
-                <h2>Recent notifications</h2>
-                @foreach (var notification in Model.Notifications)
+<header class="dashboard-topbar">
+    <button class="dashboard-menu" id="menuToggleBtn" type="button" aria-label="Toggle sidebar" aria-controls="dashboardSidebar"><i class="bi bi-list" aria-hidden="true"></i></button>
+    <form method="get" asp-action="Index" class="dashboard-search" role="search">
+        <i class="bi bi-search" aria-hidden="true"></i>
+        <input type="search" name="search" value="@Model.Search" placeholder="Search campaigns, brands..." aria-label="Search campaigns and brands" />
+        <input type="hidden" name="campaignId" value="@Model.CampaignId" />
+        <input type="hidden" name="tab" value="@Model.Tab" />
+        <button type="submit" aria-label="Search"><i class="bi bi-search" aria-hidden="true"></i></button>
+    </form>
+    <details class="dashboard-notifications">
+        <summary aria-label="Notifications"><i class="bi bi-bell" aria-hidden="true"></i>@if ((ViewData["UnreadNotifications"] as int? ?? 0) > 0) { <span class="dashboard-unread"></span> }</summary>
+        <div class="dashboard-notification-panel">
+            <div class="dashboard-notification-panel-head">
+                <h2>Notifications</h2>
+                @if (Model.Notifications.Count > 0)
                 {
-                    <div><strong>@notification.Title</strong><p>@notification.Body</p></div>
+                    <form method="post" asp-controller="Notifications" asp-action="ClearAll">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="returnUrl" value="@(Context.Request.Path + Context.Request.QueryString)" />
+                        <button type="submit" class="dashboard-notification-clear">Clear</button>
+                    </form>
                 }
-                @if (Model.Notifications.Count == 0) { <p>You're all caught up.</p> }
             </div>
-        </details>
-        <a href="/InfluencerSettings" class="dashboard-account" aria-label="Your profile settings">
-            <span class="earnings-avatar">@initial</span>
-            <span><strong>@Model.InfluencerName</strong><small>Influencer</small></span>
-            <i class="bi bi-chevron-down" aria-hidden="true"></i>
-        </a>
-    </header>
+            @foreach (var notification in Model.Notifications)
+            {
+                <article><strong>@notification.Title</strong><p>@notification.Body</p></article>
+            }
+            @if (Model.Notifications.Count == 0) { <p>No notifications yet.</p> }
+        </div>
+    </details>
+    <a class="dashboard-account" href="/InfluencerSettings" aria-label="Your profile settings">
+        <span class="dashboard-avatar">@FollowerFormat.InitialsOf(name)</span>
+        <span><strong>@name</strong><small>Influencer</small></span>
+        <i class="bi bi-chevron-down" aria-hidden="true"></i>
+    </a>
+</header>

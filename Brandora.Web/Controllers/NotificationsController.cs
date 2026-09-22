@@ -72,4 +72,20 @@ public class NotificationsController(UserManager<ApplicationUser> userManager, A
 
         return RedirectToAction("Index");
     }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ClearAll(string? returnUrl)
+    {
+        var userId = userManager.GetUserId(User);
+
+        var all = await db.Notifications.Where(n => n.UserId == userId).ToListAsync();
+        if (all.Count > 0)
+        {
+            db.Notifications.RemoveRange(all);
+            await db.SaveChangesAsync();
+        }
+
+        return Url.IsLocalUrl(returnUrl) ? LocalRedirect(returnUrl!) : RedirectToAction("Index");
+    }
 }

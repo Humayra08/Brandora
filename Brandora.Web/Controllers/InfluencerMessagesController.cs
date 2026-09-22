@@ -54,7 +54,11 @@ public class InfluencerMessagesController(UserManager<ApplicationUser> userManag
             UnreadCounts = unreadCounts,
             Search = search,
             TotalCount = ordered.Count,
-            TotalUnread = unreadCounts.Values.Sum()
+            TotalUnread = unreadCounts.Values.Sum(),
+            InfluencerName = influencer.FullName,
+            Notifications = await db.Notifications.AsNoTracking()
+                .Where(n => n.UserId == userId)
+                .OrderByDescending(n => n.CreatedAt).Take(5).ToListAsync()
         };
 
         var targetId = open ?? ordered.FirstOrDefault()?.Id;

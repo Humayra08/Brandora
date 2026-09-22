@@ -45,7 +45,17 @@
             <details class="dashboard-notifications">
                 <summary aria-label="Notifications"><i class="bi bi-bell" aria-hidden="true"></i>@if ((ViewData["UnreadNotifications"] as int? ?? 0) > 0) { <span class="dashboard-unread"></span> }</summary>
                 <div class="dashboard-notification-panel">
-                    <h2>Notifications</h2>
+                    <div class="dashboard-notification-panel-head">
+                        <h2>Notifications</h2>
+                        @if (Model.Notifications.Count > 0)
+                        {
+                            <form method="post" asp-controller="Notifications" asp-action="ClearAll">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="returnUrl" value="@(Context.Request.Path + Context.Request.QueryString)" />
+                                <button type="submit" class="dashboard-notification-clear">Clear</button>
+                            </form>
+                        }
+                    </div>
                     @foreach (var notification in Model.Notifications)
                     {
                         <article><strong>@notification.Title</strong><p>@notification.Body</p></article>

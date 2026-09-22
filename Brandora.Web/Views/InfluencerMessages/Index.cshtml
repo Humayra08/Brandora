@@ -34,6 +34,9 @@
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Playfair+Display:wght@500;600;700&display=swap"
           rel="stylesheet">
 
+    <link rel="stylesheet" href="~/css/brandora-influencer-shell.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/brandora-influencer-dashboard.css" asp-append-version="true" />
+
     <style>
         * {
             box-sizing: border-box;
@@ -87,298 +90,9 @@
             overflow-x: hidden;
         }
 
-        /* ==============================
-           SIDEBAR (shared with dashboard)
-        ============================== */
-
-        .sidebar {
-            position: fixed;
-            width: 230px;
-            height: 100vh;
-            left: 0;
-            top: 0;
-            padding: 16px 12px;
-            background:
-                radial-gradient(circle at 0% 30%, rgba(139, 34, 255, .18), transparent 30%),
-                linear-gradient(180deg, #070c22 0%, #0a1028 100%);
-            color: white;
-            display: flex;
-            flex-direction: column;
-            border-right: 1px solid rgba(255,255,255,.06);
-            z-index: 1000;
-
-            overflow-y: auto;
-            overflow-x: hidden;
-            scrollbar-width: thin;
-            scrollbar-color: rgba(255,255,255,.15) transparent;
-
-            transition: transform .25s ease;
-        }
-
-        .sidebar.is-hidden {
-            transform: translateX(-100%);
-        }
-
-        .brand {
-            display: flex;
-            align-items: center;
-            padding: 0 12px 6px;
-        }
-
-        .sidebar-wave-img {
-            position: absolute;
-            left: 0;
-            bottom: 60px;
-            width: 100%;
-            height: auto;
-            pointer-events: none;
-            z-index: -1;
-            opacity: .9;
-        }
-
-        .brand-logo-img {
-            height: 44px;
-            width: auto;
-            display: block;
-        }
-
-        .sidebar-nav-wrap {
-            position: relative;
-            flex: 1;
-            min-height: 0;
-            margin-top: 14px;
-        }
-
-        .sidebar-nav-wrap::before {
-            content: "";
-            position: absolute;
-            top: -34px;
-            left: -34px;
-            right: -34px;
-            bottom: 0;
-            z-index: -1;
-            pointer-events: none;
-
-            background:
-                radial-gradient(circle at 12% 5%, rgba(35,110,234,.2), transparent 30%),
-                radial-gradient(circle at 88% 14%, rgba(163,38,255,.18), transparent 32%),
-                radial-gradient(circle at 18% 50%, rgba(24,169,255,.16), transparent 30%),
-                radial-gradient(circle at 85% 62%, rgba(163,38,255,.14), transparent 32%),
-                radial-gradient(circle at 30% 90%, rgba(35,110,234,.16), transparent 34%);
-
-            filter: blur(14px);
-        }
-
-        .sidebar-nav-glass {
-            position: relative;
-
-            padding: 0;
-
-            border-radius: 12px;
-            overflow: hidden;
-            border: 1px solid rgba(255,255,255,.12);
-
-            background: rgba(255,255,255,.03);
-            backdrop-filter: blur(6px);
-            -webkit-backdrop-filter: blur(6px);
-
-            box-shadow: 0 8px 30px rgba(0,0,0,.18);
-        }
-
-        .sidebar-menu {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-
-        .sidebar-menu li {
-            margin-bottom: 2px;
-        }
-
-        .sidebar-menu a {
-            color: #d9dce8;
-            text-decoration: none;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            padding: 10px 14px;
-            border-radius: 12px;
-            font-size: 14px;
-            font-weight: 400;
-            transition: background .2s ease, color .2s ease, transform .1s ease;
-        }
-
-        .sidebar-menu a:hover {
-            background: rgba(255,255,255,.06);
-            color: white;
-        }
-
-        .sidebar-menu a:active {
-            transform: scale(.98);
-            background: rgba(255,255,255,.1);
-        }
-
-        .sidebar-menu .active:hover,
-        .sidebar-menu .active:active {
-            background: linear-gradient(105deg, #a326ff, #236eff, #18a9ff);
-        }
-
-        .nav-chevron {
-            font-size: 15px;
-            opacity: 0;
-            transition: .2s ease;
-        }
-
-        .sidebar-menu .active {
-            color: white;
-            background: linear-gradient(105deg, #a326ff, #236eff, #18a9ff);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            box-shadow:
-                inset 0 1px 0 rgba(255,255,255,.35),
-                inset 0 0 0 1px rgba(255,255,255,.18),
-                0 8px 25px rgba(106, 37, 213, .25);
-        }
-
-        .sidebar-menu .active .nav-chevron {
-            opacity: 1;
-        }
-
-        .sidebar-bottom {
-            margin-top: auto;
-            padding: 12px 8px 0;
-        }
-
-        .sidebar-user {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding-bottom: 10px;
-            min-width: 0;
-        }
-
-        .sidebar-user > div {
-            min-width: 0;
-        }
-
-        .avatar-circle {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 50%;
-            flex-shrink: 0;
-            background: linear-gradient(145deg, #c93cff, #4e38ff 55%, #159cff);
-            color: #ffffff;
-            font-family: 'DM Sans', sans-serif;
-            font-weight: 700;
-        }
-
-        .avatar-circle.small {
-            width: 36px;
-            height: 36px;
-            font-size: 12px;
-            border: 2px solid rgba(255,255,255,.12);
-        }
-
-        .sidebar-user h6 {
-            margin: 0 0 4px;
-            font-size: 14px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .sidebar-user span {
-            color: #afb4c6;
-            font-size: 13px;
-        }
-
-        .logout-btn {
-            width: 100%;
-            padding: 10px;
-            border: 0;
-            border-top: 1px solid rgba(255,255,255,.08);
-            background: transparent;
-            color: #dce0ea;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 14px;
-            cursor: pointer;
-        }
-
-        .logout-btn i {
-            margin-right: 10px;
-            font-size: 16px;
-        }
-
-        .logout-btn:hover {
-            color: white;
-        }
-
-        /* ==============================
-           MAIN CONTENT
-        ============================== */
-
-        .main-content {
-            margin-left: 230px;
-            min-height: 100vh;
-            padding: 24px 26px;
-            background: #ffffff;
-
-            transition: margin-left .25s ease;
-        }
-
-        .main-content.sidebar-hidden {
-            margin-left: 0;
-        }
-
-        .topbar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-
-        .menu-btn {
-            border: 0;
-            background: transparent;
-            font-size: 26px;
-            color: #20283a;
-        }
-
-        .top-actions {
-            display: flex;
-            align-items: center;
-            gap: 22px;
-        }
-
-        .bell {
-            position: relative;
-            font-size: 23px;
-            color: #20283a;
-        }
-
-        .browse-btn {
-            border: 0;
-            color: white;
-            padding: 9px 16px;
-            border-radius: 9px;
-            font-size: 13px;
-            font-weight: 600;
-            background: linear-gradient(105deg, #a326ff, #236eff, #18a9ff);
-            transition: .25s;
-        }
-
-        .browse-btn:hover {
-            transform: translateY(-2px);
-        }
-
-        .browse-btn i {
-            margin-left: 10px;
-        }
+        /* Sidebar and topbar now come from the shared brandora-influencer-shell.css
+           and brandora-influencer-dashboard.css stylesheets (see the page head), matching
+           every other influencer page instead of a bespoke duplicate. */
 
         /* ==============================
            SHARED PRIMITIVES
@@ -414,9 +128,9 @@
 
         .btn-outline:hover {
             border-color: transparent;
-            color: #7a1fd6;
+            color: #0759ff;
             transform: translateY(-2px);
-            box-shadow: 0 0 0 1.5px #9b2cff, 0 10px 22px rgba(140,60,255,.18);
+            box-shadow: 0 0 0 1.5px #176cff, 0 10px 22px rgba(23,108,255,.18);
         }
 
         /* ==============================
@@ -494,9 +208,9 @@
 
         .list-filter-btn:hover,
         .list-filter-btn.is-active {
-            border-color: #9b2cff;
-            color: #9b2cff;
-            background: linear-gradient(105deg, rgba(163,38,255,.08), rgba(35,110,234,.08));
+            border-color: #176cff;
+            color: #176cff;
+            background: linear-gradient(105deg, rgba(35,110,234,.08), rgba(24,169,255,.08));
         }
 
         .list-search-wrap {
@@ -538,8 +252,8 @@
         }
 
         .list-search input:focus {
-            border-color: #a978ff;
-            box-shadow: 0 0 0 3px rgba(155,44,255,.1);
+            border-color: #7ea8ff;
+            box-shadow: 0 0 0 3px rgba(23,108,255,.1);
         }
 
         .list-rows {
@@ -704,8 +418,8 @@
             padding: 22px 16px;
 
             border-radius: 16px;
-            background: linear-gradient(165deg, #f6f1ff, #eef2ff);
-            border: 1px solid #e6e1ff;
+            background: linear-gradient(165deg, #edf6ff, #eef4ff);
+            border: 1px solid #d6e4fa;
 
             text-align: center;
         }
@@ -759,7 +473,7 @@
         .thread-header {
             padding: 18px 24px;
 
-            background: linear-gradient(120deg, #fbf5ff, #f3f6ff);
+            background: linear-gradient(120deg, #f3f8ff, #eef4ff);
             border-bottom: 1px solid #eaecf5;
 
             display: flex;
@@ -812,8 +526,8 @@
 
         .thread-icon-btn:hover,
         .thread-icon-btn.is-active {
-            border-color: #9b2cff;
-            color: #9b2cff;
+            border-color: #176cff;
+            color: #176cff;
         }
 
         .thread-icon-btn:disabled {
@@ -1026,7 +740,7 @@
         }
 
         .msg-menu-item:hover {
-            background: rgba(155,44,255,.08);
+            background: rgba(23,108,255,.08);
         }
 
         .msg-menu-item.msg-menu-danger {
@@ -1050,8 +764,8 @@
             padding: 10px 12px;
 
             border-radius: 14px;
-            border: 1px solid #d9c6ff;
-            background: #fbfaff;
+            border: 1px solid #c7dcff;
+            background: #f6faff;
         }
 
         .msg-edit-form[hidden] {
@@ -1138,8 +852,8 @@
             padding: 8px 12px;
 
             border-radius: 12px;
-            background: linear-gradient(120deg, rgba(163,38,255,.1), rgba(24,169,255,.08));
-            border: 1px solid rgba(163,38,255,.28);
+            background: linear-gradient(120deg, rgba(35,110,234,.1), rgba(24,169,255,.08));
+            border: 1px solid rgba(35,110,234,.28);
         }
 
         .composer-preview-name {
@@ -1220,7 +934,7 @@
 
         .composer-preview-file-icon {
             flex-shrink: 0;
-            color: #7a3fe0;
+            color: #176cff;
         }
 
         .msg-media {
@@ -1315,14 +1029,14 @@
             border: 1px solid #e2e5f2;
             background: #fbfbfe;
             cursor: pointer;
-            color: #8b2cff;
+            color: #176cff;
 
             transition: border-color .2s ease, background .2s ease, transform .2s ease;
         }
 
         .composer-attach:hover {
-            border-color: #a978ff;
-            background: linear-gradient(120deg, rgba(163,38,255,.1), rgba(24,169,255,.08));
+            border-color: #7ea8ff;
+            background: linear-gradient(120deg, rgba(35,110,234,.1), rgba(24,169,255,.08));
             transform: translateY(-1px);
         }
 
@@ -1352,7 +1066,7 @@
         }
 
         .thread-composer textarea:focus {
-            border-color: #a978ff;
+            border-color: #7ea8ff;
             background: #ffffff;
         }
 
@@ -1540,8 +1254,8 @@
             padding: 12px 14px;
 
             border-radius: 12px;
-            background: linear-gradient(120deg, rgba(163,38,255,.18), rgba(24,169,255,.12));
-            border: 1px solid rgba(163,38,255,.3);
+            background: linear-gradient(120deg, rgba(35,110,234,.18), rgba(24,169,255,.12));
+            border: 1px solid rgba(35,110,234,.3);
 
             font-family: 'DM Sans', sans-serif;
             font-size: 12.5px;
@@ -1557,7 +1271,7 @@
             font-family: 'DM Sans', sans-serif;
             font-size: 12.5px;
             font-weight: 600;
-            color: #b98bff;
+            color: #7fb2ff;
             text-decoration: none;
 
             word-break: break-all;
@@ -1769,32 +1483,44 @@
 
     <!-- ================= MAIN ================= -->
 
-    <main class="main-content" id="dashboardMain">
+    <main class="dashboard-page messages-page" id="dashboardMain">
 
         <!-- TOP BAR -->
 
-        <div class="topbar">
-
-            <button class="menu-btn" id="menuToggleBtn" aria-label="Toggle sidebar" type="button">
-                <i class="bi bi-list"></i>
-            </button>
-
-            <div class="top-actions">
-
-                <div class="bell">
-                    <i class="bi bi-bell"></i>
+        <header class="dashboard-topbar">
+            <button class="dashboard-menu" id="menuToggleBtn" type="button" aria-label="Toggle sidebar" aria-controls="dashboardSidebar"><i class="bi bi-list" aria-hidden="true"></i></button>
+            <form class="dashboard-search" method="get" asp-controller="InfluencerCampaigns" asp-action="Index" role="search">
+                <i class="bi bi-search" aria-hidden="true"></i>
+                <input type="search" name="search" placeholder="Search campaigns, brands..." aria-label="Search campaigns and brands" />
+                <button type="submit" aria-label="Search"><i class="bi bi-search" aria-hidden="true"></i></button>
+            </form>
+            <details class="dashboard-notifications">
+                <summary aria-label="Notifications"><i class="bi bi-bell" aria-hidden="true"></i>@if ((ViewData["UnreadNotifications"] as int? ?? 0) > 0) { <span class="dashboard-unread"></span> }</summary>
+                <div class="dashboard-notification-panel">
+                    <div class="dashboard-notification-panel-head">
+                        <h2>Notifications</h2>
+                        @if (Model.Notifications.Count > 0)
+                        {
+                            <form method="post" asp-controller="Notifications" asp-action="ClearAll">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="returnUrl" value="@(Context.Request.Path + Context.Request.QueryString)" />
+                                <button type="submit" class="dashboard-notification-clear">Clear</button>
+                            </form>
+                        }
+                    </div>
+                    @foreach (var notification in Model.Notifications)
+                    {
+                        <article><strong>@notification.Title</strong><p>@notification.Body</p></article>
+                    }
+                    @if (Model.Notifications.Count == 0) { <p>No notifications yet.</p> }
                 </div>
-
-                <a href="/InfluencerCampaigns">
-                    <button class="browse-btn">
-                        Browse Campaigns
-                        <i class="bi bi-arrow-right"></i>
-                    </button>
-                </a>
-
-            </div>
-
-        </div>
+            </details>
+            <a class="dashboard-account" href="/InfluencerSettings">
+                <span class="dashboard-avatar">@FollowerFormat.InitialsOf(Model.InfluencerName)</span>
+                <span><strong>@Model.InfluencerName</strong><small>Influencer</small></span>
+                <i class="bi bi-chevron-down" aria-hidden="true"></i>
+            </a>
+        </header>
 
 
         <!-- ================= CHAT ================= -->

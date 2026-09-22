@@ -1,12 +1,15 @@
 /* These styles were authored against the old layout's global margin/padding reset. */
 .earnings-page * { margin: 0; padding: 0; }
 .earnings-page {
+    --dash-muted: #5871a8;
+    --dash-gradient: linear-gradient(110deg,#6323ff,#0759ff);
     --earnings-ink: #141b49; --earnings-muted: #5e6c9f;
     --earnings-gradient: linear-gradient(115deg, #7224ff, #3735ff 55%, #087fff);
     color: var(--earnings-ink); background: linear-gradient(125deg, #f2f6ff, #f6f8ff 60%, #eff4ff);
     margin-left: 230px; min-height: 100vh; font-size: 14px; container-type: inline-size;
     transition: margin-left .25s ease;
 }
+.earnings-page .dashboard-topbar { font-size: 16px; margin: 0; padding: 12px 20px; background: radial-gradient(ellipse at 66% 2%,#dceeff88,transparent 50%),linear-gradient(130deg,#f3faff,#f7fbff 65%,#edf6ff); }
 .earnings-page.sidebar-hidden { margin-left: 0; }
 @media (max-width: 1100px) { .earnings-page { margin-left: 220px; } .earnings-page.sidebar-hidden { margin-left: 0; } }
 @media (max-width: 900px) { .earnings-page { margin-left: 0; } }
@@ -14,32 +17,15 @@
 .earnings-page a { text-decoration: none; }
 .earnings-page :is(a, button, select, input, summary):focus-visible { outline: 3px solid #6b50ed; outline-offset: 4px; }
 .earnings-page button, .earnings-page select, .earnings-page input { font: inherit; }
-.earnings-page .earnings-topbar { display: flex; align-items: center; gap: 16px; padding: 22px 36px; background: #e4edff; }
-.earnings-page .earnings-icon-button { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 42px; height: 42px; flex-shrink: 0; color: #384d9e; border: 1px solid #dbe5ff; border-radius: 50%; background: #edf3ff; cursor: pointer; list-style: none; }
 .earnings-page summary::-webkit-details-marker { display: none; }
-.earnings-page .earnings-search { display: flex; align-items: center; gap: 10px; width: min(460px, 48%); padding: 0 16px; min-height: 44px; background: #f6f8ffb8; border: 1px solid #dce6ff; border-radius: 13px; color: #5a69b2; }
-.earnings-page .earnings-search input { width: 100%; min-width: 0; padding: 12px 0; color: var(--earnings-ink); background: transparent; border: 0; }
-.earnings-page .earnings-search input::placeholder { color: #536698; opacity: 1; }
-.earnings-page .earnings-notification-panel { position: absolute; right: 0; top: 52px; width: min(340px, 75vw); padding: 20px; border: 1px solid #e0e7fa; background: white; border-radius: 14px; box-shadow: 0 15px 40px #253d791a; max-height: 65vh; overflow: auto; }
-.earnings-page .earnings-notification-panel h2 { font-size: 16px; margin-bottom: 12px; }
-.earnings-page .earnings-notification-panel div { padding: 12px 0; border-top: 1px solid #eef1fa; }
-.earnings-page .earnings-notification-panel p { margin-top: 5px; color: var(--earnings-muted); overflow-wrap: anywhere; }
-.earnings-page .earnings-avatar { width: 39px; height: 39px; flex-shrink: 0; display: grid; place-items: center; border: 3px solid white; border-radius: 50%; color: white; background: var(--earnings-gradient); }
 .earnings-page .earnings-hero-copy { position: relative; z-index: 2; max-width: 49%; }
 .earnings-page .earnings-hero nav { font-size: 13px; color: #465b99; margin-bottom: 9px; }
 .earnings-page .earnings-hero h1 { font-family: 'Playfair Display', Georgia, serif; font-weight: 600; font-size: clamp(26px, 2.9cqi, 39px); letter-spacing: -.9px; line-height: 1.25; margin-bottom: 14px; }
 .earnings-page .earnings-hero h1 span { display: inline-block; color: transparent; background: var(--brand-hero-gradient); background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
 .earnings-page .earnings-hero-copy > p { color: #465b99; font-size: 16px; line-height: 1.6; }
-.earnings-page .earnings-art { position: absolute; width: 260px; height: 240px; left: 47%; top: 23px; transform: translateX(-15%); z-index: 1; }
-.earnings-page .earnings-glass { position: absolute; border: 1px solid #ffffffb8; border-radius: 20px; background: linear-gradient(130deg, #ffffff52, #d9cfff40); transform: rotate(9deg); box-shadow: inset 0 0 30px #ffffff1a; }
-.earnings-page .earnings-glass-back { inset: 0; }
-.earnings-page .earnings-glass-front { inset: 20px 46px -5px -7px; padding: 30px 24px; color: #35488d; font-style: italic; font-size: 15px; line-height: 1.65; backdrop-filter: blur(2px); }
-.earnings-page .earnings-glass-front i { display: block; margin-top: 22px; width: 36px; height: 3px; border-radius: 2px; background: var(--earnings-gradient); }
 /* Earnings-specific content. Shared app shell and sidebar rules stay in the layout. */
-.earnings-page .earnings-topbar { padding: 16px 28px; }
 .earnings-page .earnings-hero h1 { margin-bottom: 8px; }
 .earnings-page .earnings-hero-copy > p { font-size: 14px; line-height: 1.6; }
-.earnings-page .earnings-art { top: 23px; left: 47%; }
 .earnings-page .earnings-content { position: relative; margin-top: -12px; padding: 0 20px 36px; z-index: 2; }
 .earnings-page .earnings-stats { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); padding: 9px; gap: 12px; border: 1px solid #e6ecfc; background: #ffffffd9; border-radius: 12px; margin-bottom: 9px; }
 .earnings-page .earnings-stat { display: flex; align-items: center; gap: 18px; min-width: 0; min-height: 92px; border: 1px solid #e1e8fc; border-radius: 9px; padding: 14px 16px; background: linear-gradient(125deg,#fff,#f2f6ff); }
@@ -152,8 +138,6 @@
 .earnings-page .earnings-add-payout-form label { display: block; font-size: 11px; color: #52679b; margin-bottom: 6px; }
 .earnings-page .earnings-add-payout-form select, .earnings-page .earnings-add-payout-form input { padding: 9px 12px; border: 1px solid #d6e0fa; border-radius: 6px; font-size: 12px; color: var(--earnings-ink); min-width: 180px; }
 .earnings-page .earnings-campaign-empty { padding: 10px 0 20px; color: #6575a3; font-size: 12px; }
-.earnings-page .earnings-search-result { color: #52679b; padding: 8px 20px 16px; font-size: 12px; overflow-wrap: anywhere; }
-.earnings-page .earnings-search-result a { margin-left: 10px; text-decoration: underline; color: #642ae5; }
 .earnings-page .earnings-mobile-label { display: none; }
 .earnings-page .earnings-sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 @container (max-width: 1200px) {
@@ -171,15 +155,11 @@
     .earnings-page .earnings-activity-item { grid-template-columns: 34px minmax(0,1fr) auto; }
     .earnings-page .earnings-activity-item time { grid-column: auto; margin: 0; }
     .earnings-page .earnings-stats { grid-template-columns: repeat(2,minmax(0,1fr)); }
-    .earnings-page .earnings-art { left: 67%; opacity: .55; }
     .earnings-page .earnings-hero-copy { max-width: 80%; }
 }
 @container (max-width: 650px) {
-    .earnings-page .earnings-topbar { padding: 14px 18px; gap: 10px; flex-wrap: wrap; }
-    .earnings-page .earnings-search { order: 4; width: 100%; }
     .earnings-page .earnings-hero h1 { font-size: 28px; }
     .earnings-page .earnings-hero-copy { max-width: 100%; }
-    .earnings-page .earnings-art { display: none; }
     .earnings-page .earnings-content { padding: 0 12px 24px; }
     .earnings-page .earnings-stats { gap: 8px; padding: 8px; }
     .earnings-page .earnings-stat { flex-direction: column; align-items: flex-start; gap: 8px; }
