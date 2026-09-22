@@ -263,74 +263,16 @@
 
 <div class="aw-panel">
     <div class="aw-tabs" id="awTabs">
-        <button type="button" class="is-active" data-tab="campaigns">Campaign-wise Fee Income</button>
-        <button type="button" data-tab="withdrawals">Income by Withdrawal</button>
+        <button type="button" class="is-active" data-tab="withdrawals">Income by Withdrawal</button>
         <button type="button" data-tab="cashouts">Cash-out History</button>
     </div>
 
-    <!-- ===== Campaign-wise Fee Income ===== -->
-    <div class="aw-pane" data-pane="campaigns">
-        <div class="aw-toolbar">
-            <form method="get">
-                <input class="aw-input" type="search" name="search" value="@Model.Search" placeholder="Search campaigns or brands..." id="awCampaignSearch" />
-                <input class="aw-input" type="date" name="from" value="@(Model.From?.ToString("yyyy-MM-dd"))" aria-label="From date" />
-                <input class="aw-input" type="date" name="to" value="@(Model.To?.ToString("yyyy-MM-dd"))" aria-label="To date" />
-                <button type="submit" class="aw-btn"><i class="bi bi-funnel"></i> Apply</button>
-            </form>
-            <button type="button" class="aw-btn" data-export="awCampaignTable"><i class="bi bi-download"></i> Export CSV</button>
-        </div>
-
-        @if (Model.Campaigns.Count == 0)
-        {
-            <div class="aw-empty"><b>No campaign earnings yet</b>Fees appear here once campaigns have milestones and payments.</div>
-        }
-        else
-        {
-            <div class="aw-scroll">
-                <table class="aw-table" id="awCampaignTable" data-paged>
-                    <thead>
-                        <tr><th>#</th><th>Campaign</th><th>Brand</th><th>Milestones</th><th>Gross amount</th><th>Paid to influencers</th><th>@feeRatePct% potential</th><th title="Estimated: influencers withdraw from their whole wallet, so each withdrawal is assigned to their oldest paid milestones.">@feeRatePct% collected (estimated)</th><th>Status</th><th>Action</th></tr>
-                    </thead>
-                    <tbody>
-                        @{ var n = 0; }
-                        @foreach (var c in Model.Campaigns)
-                        {
-                            n++;
-                            <tr class="aw-row" data-search="@((c.Title + " " + c.BrandName).ToLowerInvariant())">
-                                <td>@n</td>
-                                <td><div class="aw-camp"><div class="aw-thumb">@c.Title.Substring(0, 1).ToUpperInvariant()</div><b>@c.Title</b></div></td>
-                                <td>
-                                    <div class="aw-camp">
-                                        <div class="aw-thumb">
-                                            @if (!string.IsNullOrWhiteSpace(c.BrandPicture)) { <img src="@c.BrandPicture" alt="" /> }
-                                            else { <text>@c.BrandName.Substring(0, Math.Min(2, c.BrandName.Length)).ToUpperInvariant()</text> }
-                                        </div>
-                                        @c.BrandName
-                                    </div>
-                                </td>
-                                <td>@c.MilestoneCount</td>
-                                <td>@Money(c.Gross)</td>
-                                <td>@Money(c.Paid)</td>
-                                <td>@Money(c.FeeCollected + c.FeeExpected)</td>
-                                <td>@Money(c.FeeCollected)</td>
-                                <td><span class="aw-pill @c.StatusTone">@c.StatusLabel</span></td>
-                                <td><button type="button" class="aw-view" data-campaign="@c.CampaignId">View <i class="bi bi-arrow-right"></i></button></td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
-            <div class="aw-pager" data-pager-for="awCampaignTable"></div>
-            <div class="aw-sub" style="margin-top:14px;line-height:1.6;">
-                <b>Paid to influencers</b> and <b>@feeRatePct% potential</b> are exact: what brands have paid out for the campaign, and the most the platform could earn from it.
-                <b>@feeRatePct% collected</b> is an estimate. Influencers withdraw from their whole wallet, not per campaign, so each withdrawal is assigned to their oldest paid milestones.
-                The exact fee records are in <b>Income by Withdrawal</b>.
-            </div>
-        }
-    </div>
+    @* Campaign-by-campaign fee income used to live here as its own table, but that same real
+       data (brand fee + withdrawal fee per row) now shows directly on Payment Oversight
+       (Admin/AdminPayments), so it isn't duplicated on this page anymore. *@
 
     <!-- ===== Income by Withdrawal ===== -->
-    <div class="aw-pane" data-pane="withdrawals" hidden>
+    <div class="aw-pane" data-pane="withdrawals">
         <div class="aw-toolbar">
             <div class="aw-filters">
                 <input class="aw-input" type="search" id="wdSearch" placeholder="Search by influencer name or handle..." />
@@ -502,10 +444,6 @@
             tables[id] = { render: render, reset: function () { state.page = 1; render(); }, rows: rows, table: table };
             render();
         }
-
-        var cs = document.getElementById('awCampaignSearch');
-        setup('awCampaignTable', function (r) { return !cs || r.getAttribute('data-search').indexOf(cs.value.trim().toLowerCase()) !== -1; });
-        if (cs) cs.addEventListener('input', function () { tables['awCampaignTable'].reset(); });
 
         var q = document.getElementById('wdSearch'), m = document.getElementById('wdMethod'), s = document.getElementById('wdStatus'),
             f = document.getElementById('wdFrom'), t = document.getElementById('wdTo');
