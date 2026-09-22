@@ -10,7 +10,7 @@
         return $"<span class=\"dr-trend {(up ? "up" : "down")}\"><i class=\"bi bi-arrow-{(up ? "up" : "down")}\"></i> {Math.Abs(pct.Value).ToString("0", CultureInfo.InvariantCulture)}% vs last month</span>";
     }
     string Tone(string status) => status == "Resolved" ? "green" : status == "Under Review" ? "amber" : "red";
-    string DetailUrl(Brandora.Web.Areas.Admin.Controllers.DisputeRow r) => Model.IsPreview ? "/Admin/AdminDisputes/Details?preview=true" : $"/Admin/AdminDisputes/Details/{r.Id}";
+    string DetailUrl(Brandora.Web.Areas.Admin.Controllers.DisputeRow r) => $"/Admin/AdminDisputes/Details/{r.Id}";
 }
 
 <style>
@@ -47,25 +47,41 @@
     .dr-input.grow { flex: 1; min-width: 240px; }
     .dr-btn { display: inline-flex; align-items: center; gap: 7px; height: 40px; padding: 0 16px; border-radius: 10px; border: 1px solid #cfe0ff; background: #f3f8ff; font: 600 12.5px 'Inter', sans-serif; color: #236eff; cursor: pointer; text-decoration: none; }
 
-    .dr-scroll { overflow-x: auto; }
-    .dr-table { width: 100%; border-collapse: collapse; }
-    .dr-table th { white-space: nowrap; padding: 11px 12px; text-align: left; font: 700 11px 'Inter', sans-serif; letter-spacing: .3px; text-transform: uppercase; color: #8189a8; background: #f7f9ff; }
-    .dr-table td { padding: 13px 12px; border-top: 1px solid #eef1fb; font: 12.5px 'Inter', sans-serif; color: #2a3157; vertical-align: middle; }
-    .dr-table tr.dr-row:hover td { background: #fafbff; }
+    /* ---- dispute list (cards, not a wide scrolling table) ---- */
+    .dr-list { display: grid; gap: 10px; }
+    .dr-card {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto auto;
+        align-items: center;
+        gap: 16px;
+        padding: 13px 16px;
+        border-radius: 12px;
+        border: 1px solid #e3edfc;
+        background: #fff;
+        transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+    }
+    .dr-card:hover { transform: translateY(-1px); border-color: #cfe0ff; box-shadow: 0 10px 22px #5b83c414; }
     .dr-id { font: 700 12.5px 'DM Sans', sans-serif; color: #171d3d; white-space: nowrap; }
-    .dr-two b { display: block; font: 700 12.5px 'DM Sans', sans-serif; color: #171d3d; }
-    .dr-two small { color: #8189a8; font-size: 11.5px; }
-    .dr-who { display: flex; align-items: center; gap: 9px; white-space: nowrap; }
-    .dr-av { flex: 0 0 34px; height: 34px; border-radius: 50%; overflow: hidden; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #a326ff, #236eff); color: #fff; font: 700 12px 'DM Sans', sans-serif; }
+    .dr-body { min-width: 0; }
+    .dr-row1 { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .dr-row1 b { font: 700 13px 'DM Sans', sans-serif; color: #171d3d; }
+    .dr-row2 { margin-top: 3px; font: 12px 'Inter', sans-serif; color: #6b7290; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .dr-row2 b { color: #33477c; font-weight: 600; }
+    .dr-row3 { margin-top: 6px; font: 12px 'Inter', sans-serif; color: #33477c; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+    .dr-row4 { margin-top: 7px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .dr-who { display: flex; align-items: center; gap: 7px; white-space: nowrap; font: 500 11.5px 'Inter', sans-serif; color: #6b7290; }
+    .dr-av { flex: 0 0 24px; width: 24px; height: 24px; min-width: 24px; max-width: 24px; border-radius: 50%; overflow: hidden; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #a326ff, #236eff); color: #fff; font: 700 10px 'DM Sans', sans-serif; }
     .dr-av.is-brand { background: #171d3d; }
     .dr-av img { width: 100%; height: 100%; object-fit: cover; }
-    .dr-amt { font-weight: 700; white-space: nowrap; }
-    .dr-tag, .dr-pill { display: inline-block; padding: 5px 11px; border-radius: 8px; font: 600 11.5px 'Inter', sans-serif; white-space: nowrap; }
+    .dr-amt { text-align: right; padding-left: 14px; border-left: 1px solid #eef1fb; white-space: nowrap; }
+    .dr-amt b { display: block; font: 700 15px 'DM Sans', sans-serif; color: #171d3d; }
+    .dr-amt small { display: block; margin-top: 3px; font: 500 11px 'Inter', sans-serif; color: #8189a8; }
+    .dr-tag, .dr-pill { display: inline-block; padding: 4px 10px; border-radius: 7px; font: 600 11px 'Inter', sans-serif; white-space: nowrap; }
     .dr-tag.Brand { background: #e3f0ff; color: #236eff; } .dr-tag.Influencer { background: #f1e6ff; color: #7a2fe0; }
     .dr-pill.red { background: #fde8ea; color: #d92d3f; } .dr-pill.amber { background: #fff1de; color: #c47410; } .dr-pill.green { background: #e2f8ee; color: #0d9c6c; }
     .dr-act { display: flex; align-items: center; gap: 6px; position: relative; }
-    .dr-view { padding: 7px 18px; border-radius: 9px; border: 1px solid #cfe0ff; background: #f3f8ff; color: #236eff; font: 600 12px 'Inter', sans-serif; text-decoration: none; }
-    .dr-more { width: 34px; height: 34px; border-radius: 9px; border: 1px solid #dde1f0; background: #fff; color: #2a3157; cursor: pointer; }
+    .dr-view { padding: 8px 16px; border-radius: 9px; border: 1px solid #cfe0ff; background: #f3f8ff; color: #236eff; font: 600 12px 'Inter', sans-serif; text-decoration: none; white-space: nowrap; }
+    .dr-more { flex: 0 0 34px; width: 34px; height: 34px; border-radius: 9px; border: 1px solid #dde1f0; background: #fff; color: #2a3157; cursor: pointer; }
     .dr-menu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 30; display: none; min-width: 190px; padding: 6px; border-radius: 12px; border: 1px solid #eaecf5; background: #fff; box-shadow: 0 16px 34px rgba(30,34,90,.16); }
     .dr-menu.is-open { display: block; }
     .dr-menu a, .dr-menu button { display: block; width: 100%; padding: 9px 12px; border: 0; border-radius: 8px; background: transparent; text-align: left; font: 500 12.5px 'Inter', sans-serif; color: #2a3157; cursor: pointer; text-decoration: none; }
@@ -79,6 +95,11 @@
     .dr-empty b { display: block; margin-bottom: 4px; font: 700 14px 'DM Sans', sans-serif; color: #2a3157; }
 
     @@media(max-width: 1700px) { .dr-kpis { grid-template-columns: repeat(3, 1fr); } }
+    @@media(max-width: 900px) {
+        .dr-card { grid-template-columns: auto minmax(0, 1fr); row-gap: 10px; }
+        .dr-amt { grid-column: 2; text-align: left; padding-left: 0; border-left: 0; }
+        .dr-act { grid-column: 2; justify-content: flex-start; }
+    }
     @@media(max-width: 800px) { .dr-kpis { grid-template-columns: 1fr 1fr; } .dr-hero-tagline, .dr-art { display: none; } .dr-hero-title { max-width: 100%; } }
 </style>
 
@@ -92,12 +113,6 @@
     <div class="dr-art"><i class="bi bi-exclamation-triangle"></i></div>
 </section>
 
-@if (Model.IsPreview)
-{
-    <div class="dr-flash" style="background:#f3f8ff;color:#2a3157;border:1px solid #cfe0ff;">
-        <i class="bi bi-eye"></i> Design preview with sample data. These are not real disputes. <a href="/Admin/AdminDisputes/Index" style="color:#236eff;font-weight:700;">Back to real disputes</a>
-    </div>
-}
 @if (TempData["DisputeMessage"] is string ok) { <div class="dr-flash ok">@ok</div> }
 @if (TempData["DisputeError"] is string bad) { <div class="dr-flash bad">@bad</div> }
 
@@ -107,7 +122,7 @@
     <div class="dr-kpi"><div class="dr-kpi-icon amber"><i class="bi bi-arrow-repeat"></i></div><div><div class="dr-kpi-label">Under Review</div><div class="dr-kpi-value">@Model.UnderReviewCount</div><div class="dr-kpi-sub">Being handled by an admin</div></div></div>
     <div class="dr-kpi"><div class="dr-kpi-icon green"><i class="bi bi-check-lg"></i></div><div><div class="dr-kpi-label">Resolved</div><div class="dr-kpi-value">@Model.ResolvedCount</div><div class="dr-kpi-sub">@Html.Raw(Trend(Model.ResolvedTrend))</div></div></div>
     <div class="dr-kpi"><div class="dr-kpi-icon purple"><i class="bi bi-cash-stack"></i></div><div><div class="dr-kpi-label">Total Amount in Dispute</div><div class="dr-kpi-value">@Money(Model.AmountInDispute)</div><div class="dr-kpi-sub">On unresolved cases</div></div></div>
-    <div class="dr-kpi"><div class="dr-kpi-icon red"><i class="bi bi-shield-check"></i></div><div><div class="dr-kpi-label">Compensation Paid</div><div class="dr-kpi-value">@(Model.IsPreview ? "৳95,000" : "—")</div><div class="dr-kpi-sub">@(Model.IsPreview ? "This month" : "Shown once wallet payouts go live")</div></div></div>
+    <div class="dr-kpi"><div class="dr-kpi-icon red"><i class="bi bi-shield-check"></i></div><div><div class="dr-kpi-label">Compensation Paid</div><div class="dr-kpi-value">@Money(Model.CompensationThisMonth)</div><div class="dr-kpi-sub">This month</div></div></div>
 </section>
 
 <div class="dr-panel">
@@ -135,56 +150,49 @@
         <div class="dr-empty">
             <b>No disputes yet</b>
             When a brand or an influencer reports a problem with a milestone, it will appear here for review.
-            <div style="margin-top:12px;"><a class="dr-btn" href="/Admin/AdminDisputes/Index?preview=true"><i class="bi bi-eye"></i> See the design with sample data</a></div>
         </div>
     }
     else
     {
-        <div class="dr-scroll">
-            <table class="dr-table" id="drTable">
-                <thead>
-                    <tr><th>#</th><th>Dispute ID</th><th>Campaign / Milestone</th><th>Brand</th><th>Influencer</th><th>Reason</th><th>Amount</th><th>Raised by</th><th>Raised date</th><th>Status</th><th>Actions</th></tr>
-                </thead>
-                <tbody>
-                    @{ var n = 0; }
-                    @foreach (var r in Model.Rows)
-                    {
-                        n++;
-                        <tr class="dr-row" data-search="@((r.Code + " " + r.CampaignTitle + " " + r.MilestoneTitle + " " + r.BrandName + " " + r.InfluencerName + " " + r.Handle + " " + r.Reason).ToLowerInvariant())" data-campaign="@r.CampaignTitle" data-status="@r.Status" data-raised="@r.RaisedBy" data-date="@r.CreatedAt.ToString("yyyy-MM-dd")">
-                            <td>@n</td>
-                            <td><span class="dr-id">@r.Code</span></td>
-                            <td><div class="dr-two"><b>@r.CampaignTitle</b><small>@r.MilestoneTitle@(string.IsNullOrWhiteSpace(r.MilestoneType) ? "" : " · " + r.MilestoneType)</small></div></td>
-                            <td>
-                                <div class="dr-who">
-                                    <div class="dr-av is-brand">@if (!string.IsNullOrWhiteSpace(r.BrandPicture)) { <img src="@r.BrandPicture" alt="" /> } else { <text>@Initials(r.BrandName)</text> }</div>
-                                    @r.BrandName
-                                </div>
-                            </td>
-                            <td><div class="dr-who"><div class="dr-av">@Initials(r.InfluencerName)</div>@(string.IsNullOrWhiteSpace(r.Handle) ? r.InfluencerName : "@" + r.Handle.TrimStart('@'))</div></td>
-                            <td>@r.Reason</td>
-                            <td class="dr-amt">@Money(r.Amount)</td>
-                            <td><span class="dr-tag @r.RaisedBy">@r.RaisedBy</span></td>
-                            <td>@r.CreatedAt.ToString("MMM d, yyyy", CultureInfo.InvariantCulture)</td>
-                            <td><span class="dr-pill @Tone(r.Status)">@r.Status</span></td>
-                            <td>
-                                <div class="dr-act">
-                                    <a class="dr-view" href="@DetailUrl(r)">View</a>
-                                    <button type="button" class="dr-more" aria-label="More actions"><i class="bi bi-three-dots"></i></button>
-                                    <div class="dr-menu">
-                                        <a href="@DetailUrl(r)">Open details</a>
-                                        @if (!Model.IsPreview) { <a href="/Admin/AdminCampaigns/Details/@r.CampaignId">View campaign</a> }
-                                        @if (r.Status != "Resolved" && !Model.IsPreview)
-                                        {
-                                            <form method="post" action="/Admin/AdminDisputes/StartReview/@r.Id">@Html.AntiForgeryToken()<button type="submit">Start review</button></form>
-                                        }
-                                        <button type="button" data-copy="@r.Code">Copy dispute ID</button>
-                                    </div>
-                                </div>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
+        <div class="dr-list" id="drTable">
+            @foreach (var r in Model.Rows)
+            {
+                <div class="dr-card" data-key="@r.Id" data-search="@((r.Code + " " + r.CampaignTitle + " " + r.MilestoneTitle + " " + r.BrandName + " " + r.InfluencerName + " " + r.Handle + " " + r.Reason).ToLowerInvariant())" data-campaign="@r.CampaignTitle" data-status="@r.Status" data-raised="@r.RaisedBy" data-date="@r.CreatedAt.ToString("yyyy-MM-dd")"
+                     data-csv="@r.Code|@r.CampaignTitle|@r.MilestoneTitle|@r.BrandName|@r.InfluencerName|@r.Reason|@r.Amount.ToString("N0", CultureInfo.InvariantCulture)|@r.RaisedBy|@r.CreatedAt.ToString("MMM d, yyyy", CultureInfo.InvariantCulture)|@r.Status">
+                    <div class="dr-av is-brand">@if (!string.IsNullOrWhiteSpace(r.BrandPicture)) { <img src="@r.BrandPicture" alt="" /> } else { <text>@Initials(r.BrandName)</text> }</div>
+
+                    <div class="dr-body">
+                        <div class="dr-row1"><span class="dr-id">@r.Code</span><b>@r.CampaignTitle</b></div>
+                        <div class="dr-row2">@r.MilestoneTitle@(string.IsNullOrWhiteSpace(r.MilestoneType) ? "" : " · " + r.MilestoneType) &middot; @r.CreatedAt.ToString("MMM d, yyyy", CultureInfo.InvariantCulture)</div>
+                        <div class="dr-row3" title="@r.Reason">@r.Reason</div>
+                        <div class="dr-row4">
+                            <span class="dr-tag @r.RaisedBy">Raised by @r.RaisedBy</span>
+                            <span class="dr-pill @Tone(r.Status)">@r.Status</span>
+                            <span class="dr-who"><div class="dr-av" style="width:20px;height:20px;min-width:20px;max-width:20px;font-size:9px;">@Initials(r.BrandName)</div>@r.BrandName</span>
+                            <span class="dr-who"><div class="dr-av" style="width:20px;height:20px;min-width:20px;max-width:20px;font-size:9px;">@Initials(r.InfluencerName)</div>@(string.IsNullOrWhiteSpace(r.Handle) ? r.InfluencerName : "@" + r.Handle.TrimStart('@'))</span>
+                        </div>
+                    </div>
+
+                    <div class="dr-amt">
+                        <b>@Money(r.Amount)</b>
+                        <small>Amount</small>
+                    </div>
+
+                    <div class="dr-act">
+                        <a class="dr-view" href="@DetailUrl(r)">View</a>
+                        <button type="button" class="dr-more" aria-label="More actions"><i class="bi bi-three-dots"></i></button>
+                        <div class="dr-menu">
+                            <a href="@DetailUrl(r)">Open details</a>
+                            <a href="/Admin/AdminCampaigns/Details/@r.CampaignId">View campaign</a>
+                            @if (r.Status != "Resolved")
+                            {
+                                <form method="post" action="/Admin/AdminDisputes/StartReview/@r.Id">@Html.AntiForgeryToken()<button type="submit">Start review</button></form>
+                            }
+                            <button type="button" data-copy="@r.Code">Copy dispute ID</button>
+                        </div>
+                    </div>
+                </div>
+            }
         </div>
         <div class="dr-empty" id="drNoMatch" style="display:none;margin-top:14px;"><b>No disputes match these filters</b>Try clearing a filter or the search box.</div>
         <div class="dr-foot"><span id="drShowing"></span><div class="dr-pager" id="drPager"></div></div>
@@ -196,7 +204,7 @@
         var table = document.getElementById('drTable');
         if (!table) return;
 
-        var rows = Array.prototype.slice.call(table.tBodies[0].rows), PAGE = 10, page = 1, tabStatus = '';
+        var rows = Array.prototype.slice.call(table.querySelectorAll('.dr-card')), PAGE = 10, page = 1, tabStatus = '';
         var q = document.getElementById('drSearch'), camp = document.getElementById('drCampaign'), st = document.getElementById('drStatus'),
             rb = document.getElementById('drRaised'), from = document.getElementById('drFrom'), to = document.getElementById('drTo');
 
@@ -245,9 +253,11 @@
         });
 
         document.getElementById('drExport').addEventListener('click', function () {
-            var lines = [Array.prototype.slice.call(table.tHead.rows[0].cells, 0, -1).map(function (c) { return '"' + c.innerText.trim() + '"'; }).join(',')];
+            var head = ['Dispute ID', 'Campaign', 'Milestone', 'Brand', 'Influencer', 'Reason', 'Amount (BDT)', 'Raised By', 'Raised Date', 'Status'].map(function (c) { return '"' + c + '"'; }).join(',');
+            var lines = [head];
             rows.filter(function (r) { return r.dataset.match === '1'; }).forEach(function (r) {
-                lines.push(Array.prototype.slice.call(r.cells, 0, -1).map(function (c) { return '"' + c.innerText.replace(/\s+/g, ' ').trim().replace(/"/g, '""') + '"'; }).join(','));
+                var parts = r.getAttribute('data-csv').split('|');
+                lines.push(parts.map(function (v) { return '"' + v.replace(/"/g, '""') + '"'; }).join(','));
             });
             var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' })); a.download = 'disputes.csv'; a.click();
         });

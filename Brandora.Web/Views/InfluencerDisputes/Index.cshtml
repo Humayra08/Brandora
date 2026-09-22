@@ -1,0 +1,259 @@
+@model Brandora.Web.Controllers.InfluencerDisputesViewModel
+@using System.Text.Json
+@using System.Globalization
+@using Brandora.Web.Models.Influencers
+@{
+    ViewData["Title"] = "Report a Dispute";
+    ViewData["ActiveNav"] = "Disputes";
+    Layout = null;
+    var collabJson = JsonSerializer.Serialize(Model.Collaborations.Select(c => new {
+        id = c.CollaborationId, title = c.CampaignTitle, brand = c.BrandName,
+        milestones = c.Milestones.Select(m => new { id = m.Id, title = m.Title })
+    }));
+    string Money(decimal v) => "৳" + v.ToString("N0", CultureInfo.InvariantCulture);
+    string StatusClass(string s) => s switch { "Resolved" => "is-success", "UnderReview" => "is-pending", _ => "is-revision" };
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Report a Dispute - Brandora</title>
+    <link rel="icon" href="~/images/brandora-icon.png" />
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/lib/dashboard-assets/bootstrap-icons.css" />
+    <link rel="stylesheet" href="~/lib/dashboard-assets/dashboard-fonts.css" />
+    <link rel="stylesheet" href="~/css/brandora-influencer-shell.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/brandora-influencer-dashboard.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/brandora-upload-proof.css" asp-append-version="true" />
+    <style>
+        .dispute-list { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
+        .dispute-row { display: flex; align-items: center; gap: 14px; padding: 12px 14px; border-radius: 12px; border: 1px solid #e3edfc; background: #fff; }
+        .dispute-row-main { min-width: 0; flex: 1; }
+        .dispute-row-main b { display: block; font-family: 'DM Sans', sans-serif; font-size: 13px; color: #101d48; }
+        .dispute-row-main small { display: block; margin-top: 2px; font-family: 'Inter', sans-serif; font-size: 11.5px; color: #5877ac; }
+        .dispute-row-note { margin-top: 6px; font-family: 'Inter', sans-serif; font-size: 11.5px; color: #33477c; background: #f6f9ff; padding: 8px 10px; border-radius: 8px; }
+        .dispute-badge { display: inline-block; padding: 5px 11px; border-radius: 20px; font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 700; white-space: nowrap; }
+        .dispute-badge.is-success { background: #e2f8ee; color: #0d9c6c; }
+        .dispute-badge.is-pending { background: #e3f0ff; color: #236eff; }
+        .dispute-badge.is-revision { background: #fde8ea; color: #d92d3f; }
+    </style>
+</head>
+<body>
+<div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+@await Html.PartialAsync("_InfluencerSidebar")
+<main class="dashboard-page proof-page" id="dashboardMain">
+    <header class="dashboard-topbar">
+        <button class="dashboard-menu" id="menuToggleBtn" type="button" aria-label="Toggle sidebar" aria-controls="dashboardSidebar"><i class="bi bi-list" aria-hidden="true"></i></button>
+        <form class="dashboard-search" method="get" asp-controller="InfluencerCampaigns" asp-action="Index" role="search">
+            <i class="bi bi-search" aria-hidden="true"></i>
+            <input type="search" name="search" placeholder="Search campaigns, brands..." aria-label="Search campaigns and brands" />
+            <button type="submit" aria-label="Search"><i class="bi bi-search" aria-hidden="true"></i></button>
+        </form>
+        <details class="dashboard-notifications">
+            <summary aria-label="Notifications"><i class="bi bi-bell" aria-hidden="true"></i></summary>
+            <div class="dashboard-notification-panel">
+                <div class="dashboard-notification-panel-head"><h2>Notifications</h2></div>
+                @foreach (var notification in Model.Notifications)
+                {
+                    <article><strong>@notification.Title</strong><p>@notification.Body</p></article>
+                }
+                @if (Model.Notifications.Count == 0) { <p>No notifications yet.</p> }
+            </div>
+        </details>
+        <a class="dashboard-account" href="/InfluencerSettings" aria-label="Your profile settings">
+            <span class="dashboard-avatar">@FollowerFormat.InitialsOf(Model.Profile.FullName)</span>
+            <span><strong>@Model.Profile.FullName</strong><small>Influencer</small></span>
+            <i class="bi bi-chevron-down" aria-hidden="true"></i>
+        </a>
+    </header>
+
+    <section class="dashboard-hero" aria-labelledby="dispute-title">
+        @await Html.PartialAsync("~/Views/InfluencerDashboard/_Waves.cshtml", "hero")
+        <div class="dashboard-introduction proof-introduction">
+            <p class="proof-eyebrow">Report a Dispute</p>
+            <h1 id="dispute-title">Something Not Right? <span>Let's Sort It Out.</span></h1>
+            <p class="proof-description">Tell us what happened with a campaign or milestone. Admin reviews every dispute, and if the brand already reported the same issue, your statement joins their case.</p>
+            <ul class="proof-benefits" aria-label="What happens next">
+                <li>Reviewed by Admin</li><li>Both sides heard</li><li>Fair resolution</li>
+            </ul>
+        </div>
+        <div class="dashboard-hero-art" aria-hidden="true">
+            <div class="dashboard-glass dashboard-glass-back"></div>
+            <div class="dashboard-glass dashboard-glass-front"><div class="dashboard-glass-copy">Fair<br />Transparent<br />Resolved.<span></span></div></div>
+        </div>
+        <div class="dashboard-hero-motto">Real Creators.<br />Real Support.<span></span></div>
+    </section>
+
+    @if (TempData["DisputeError"] is not null)
+    {
+        <p class="proof-notice is-error" role="alert">@TempData["DisputeError"]</p>
+    }
+    @if (TempData["DisputeSubmitted"] is not null)
+    {
+        <p class="proof-notice" role="status"><i class="bi bi-check-circle-fill" aria-hidden="true"></i> Dispute submitted. Admin will review it and you'll be notified once it's resolved.</p>
+    }
+    @if (Model.Collaborations.Count == 0)
+    {
+        <div class="proof-notice" role="status">You don't have any collaborations to report a dispute on yet.</div>
+    }
+
+    <div class="proof-grid">
+        <form class="proof-card proof-form" method="post" asp-action="Submit" enctype="multipart/form-data" id="disputeForm">
+            @Html.AntiForgeryToken()
+
+            <section class="proof-section" aria-labelledby="campaign-heading">
+                <h2 id="campaign-heading"><label for="collabSelect">1. Select Campaign</label></h2>
+                <p>Choose the campaign this dispute is about.</p>
+                <div class="proof-select">
+                    <span class="proof-select-icon" aria-hidden="true"><i class="bi bi-briefcase"></i></span>
+                    <div class="proof-select-copy" aria-hidden="true"><strong id="collabLabel">Select a campaign</strong><small>Your collaborations</small></div>
+                    <i class="bi bi-chevron-down" aria-hidden="true"></i>
+                    <select id="collabSelect" name="collaborationId" required disabled="@(Model.Collaborations.Count == 0)">
+                        <option value="">Choose a campaign</option>
+                        @foreach (var c in Model.Collaborations)
+                        {
+                            <option value="@c.CollaborationId">@c.CampaignTitle — @c.BrandName</option>
+                        }
+                    </select>
+                </div>
+            </section>
+
+            <section class="proof-section" aria-labelledby="milestone-heading">
+                <h2 id="milestone-heading"><label for="milestoneSelect">2. Milestone (optional)</label></h2>
+                <p>If it's about a specific milestone, choose it — otherwise leave blank for the whole campaign.</p>
+                <div class="proof-select">
+                    <span class="proof-select-icon proof-milestone-icon" aria-hidden="true"><i class="bi bi-flag"></i></span>
+                    <div class="proof-select-copy" aria-hidden="true"><strong id="milestoneLabel">Whole campaign</strong><small>Choose a campaign first</small></div>
+                    <i class="bi bi-chevron-down" aria-hidden="true"></i>
+                    <select id="milestoneSelect" name="milestoneId" disabled><option value="">Whole campaign</option></select>
+                </div>
+            </section>
+
+            <div class="proof-fields">
+                <div class="proof-field">
+                    <label for="reason">Reason</label>
+                    <div class="proof-input"><i class="bi bi-exclamation-circle" aria-hidden="true"></i><input type="text" id="reason" name="reason" maxlength="150" placeholder="e.g. Payment not received" required /></div>
+                </div>
+                <div class="proof-field">
+                    <label for="statement">Describe what happened</label>
+                    <div class="proof-input proof-notes"><i class="bi bi-pencil" aria-hidden="true"></i><textarea id="statement" name="statement" rows="4" maxlength="1000" placeholder="Explain the issue in detail..." required aria-describedby="statementCount"></textarea><small id="statementCount">0/1000</small></div>
+                </div>
+            </div>
+
+            <section class="proof-section" aria-labelledby="evidence-heading">
+                <h2 id="evidence-heading">3. Evidence (optional)</h2>
+                <p>Attach screenshots or files that support your case.</p>
+                <div class="proof-dropzone" id="dropzone">
+                    <i class="bi bi-cloud-arrow-up" aria-hidden="true"></i>
+                    <strong>Drag &amp; drop files here</strong><span>or</span>
+                    <button class="proof-primary proof-choose" type="button" id="chooseFileBtn">Choose Files</button>
+                    <small>Up to 5 files · Images up to 15MB, videos up to 80MB, PDFs up to 100MB</small>
+                    <input type="file" id="evidenceFile" name="evidenceFiles" multiple accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime,application/pdf" aria-label="Evidence files" hidden />
+                </div>
+                <div class="proof-file-list" id="fileList" aria-live="polite"></div>
+            </section>
+
+            <div class="proof-actions"><button class="proof-primary" type="submit" id="submitBtn">Submit Dispute <i class="bi bi-arrow-right" aria-hidden="true"></i></button></div>
+        </form>
+
+        <aside class="proof-aside" aria-label="Your disputes and help">
+            <section class="proof-card">
+                <h2>Your Disputes</h2>
+                @if (Model.MyDisputes.Count == 0)
+                {
+                    <p class="proof-empty">No disputes reported yet.</p>
+                }
+                else
+                {
+                    <div class="dispute-list">
+                        @foreach (var d in Model.MyDisputes)
+                        {
+                            <div class="dispute-row">
+                                <div class="dispute-row-main">
+                                    <b>@d.Code · @d.CampaignTitle</b>
+                                    <small>@d.MilestoneTitle &middot; @d.CreatedAt.ToString("MMM d, yyyy")</small>
+                                    <small>@d.Reason</small>
+                                    @if (!string.IsNullOrWhiteSpace(d.ResolutionNotes))
+                                    {
+                                        <div class="dispute-row-note">@d.ResolutionNotes</div>
+                                    }
+                                </div>
+                                <span class="dispute-badge @StatusClass(d.Status)">@d.Status</span>
+                            </div>
+                        }
+                    </div>
+                }
+            </section>
+            <section class="proof-card proof-guidelines">
+                <i class="bi bi-lightbulb-fill proof-bulb" aria-hidden="true"></i>
+                <div><h2>Before You Report</h2><ul>
+                    <li><i class="bi bi-check-circle-fill" aria-hidden="true"></i>Try messaging the brand first if it's a simple mix-up</li>
+                    <li><i class="bi bi-check-circle-fill" aria-hidden="true"></i>Attach evidence — screenshots help Admin decide faster</li>
+                    <li><i class="bi bi-check-circle-fill" aria-hidden="true"></i>Be specific about dates and amounts</li>
+                </ul></div>
+            </section>
+            <section class="proof-card proof-help">
+                <h2>Need Help?</h2><p>Questions about a dispute you already raised? Message our support team.</p>
+                <a href="/InfluencerMessages">Go to Chat <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+                <svg viewBox="0 0 400 170" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="dispute-help-wave" x1="0" y1="1" x2="1" y2="0"><stop stop-color="#0955ca" stop-opacity="0"/><stop offset=".65" stop-color="#168cff" stop-opacity=".5"/><stop offset="1" stop-color="#783dff" stop-opacity=".15"/></linearGradient></defs><path d="M-20 160 C100 50 140 220 260 105 S350 85 420 20 L420 190 H-20Z" fill="url(#dispute-help-wave)"/><path d="M-20 164 C110 90 140 230 270 120 S360 70 420 40" fill="none" stroke="#2799ff" stroke-opacity=".4"/></svg>
+            </section>
+        </aside>
+    </div>
+</main>
+<script type="application/json" id="disputeCollabData">@Html.Raw(collabJson)</script>
+<script src="~/js/brandora-influencer-dashboard.js" asp-append-version="true"></script>
+<script>
+    (function () {
+        var DATA = JSON.parse(document.getElementById('disputeCollabData').textContent);
+        var collabSelect = document.getElementById('collabSelect'), milestoneSelect = document.getElementById('milestoneSelect');
+        var collabLabel = document.getElementById('collabLabel'), milestoneLabel = document.getElementById('milestoneLabel');
+
+        collabSelect.addEventListener('change', function () {
+            var c = DATA.find(function (x) { return String(x.id) === collabSelect.value; });
+            collabLabel.textContent = c ? (c.title + ' — ' + c.brand) : 'Select a campaign';
+            milestoneSelect.innerHTML = '<option value="">Whole campaign</option>';
+            if (c && c.milestones.length) {
+                c.milestones.forEach(function (m) {
+                    var o = document.createElement('option'); o.value = m.id; o.textContent = m.title; milestoneSelect.appendChild(o);
+                });
+                milestoneSelect.disabled = false;
+                milestoneLabel.textContent = 'Whole campaign';
+            } else {
+                milestoneSelect.disabled = true;
+                milestoneLabel.textContent = c ? 'No milestones yet' : 'Choose a campaign first';
+            }
+        });
+        milestoneSelect.addEventListener('change', function () {
+            var opt = milestoneSelect.options[milestoneSelect.selectedIndex];
+            milestoneLabel.textContent = opt ? opt.textContent : 'Whole campaign';
+        });
+
+        var statement = document.getElementById('statement'), count = document.getElementById('statementCount');
+        statement.addEventListener('input', function () { count.textContent = statement.value.length + '/1000'; });
+
+        var dropzone = document.getElementById('dropzone'), fileInput = document.getElementById('evidenceFile'), fileList = document.getElementById('fileList');
+        document.getElementById('chooseFileBtn').addEventListener('click', function () { fileInput.click(); });
+        dropzone.addEventListener('dragover', function (e) { e.preventDefault(); dropzone.classList.add('is-dragover'); });
+        dropzone.addEventListener('dragleave', function () { dropzone.classList.remove('is-dragover'); });
+        dropzone.addEventListener('drop', function (e) {
+            e.preventDefault(); dropzone.classList.remove('is-dragover');
+            if (e.dataTransfer.files.length) { fileInput.files = e.dataTransfer.files; renderFiles(); }
+        });
+        fileInput.addEventListener('change', renderFiles);
+        function renderFiles() {
+            fileList.innerHTML = '';
+            Array.prototype.forEach.call(fileInput.files, function (f) {
+                var el = document.createElement('div');
+                el.textContent = f.name + ' (' + Math.max(1, Math.round(f.size / 1024)) + ' KB)';
+                fileList.appendChild(el);
+            });
+        }
+
+        document.getElementById('disputeForm').addEventListener('submit', function () {
+            document.getElementById('submitBtn').disabled = true;
+        });
+    })();
+</script>
+</body>
+</html>
