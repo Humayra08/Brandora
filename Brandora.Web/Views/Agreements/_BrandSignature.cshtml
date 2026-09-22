@@ -1,0 +1,57 @@
+@model Brandora.Web.Models.Domain.Agreement
+@using Brandora.Web.Models.Influencers
+@{
+    var name = string.IsNullOrWhiteSpace(Model.BrandProfile.ContactFullName) ? Model.BrandProfile.CompanyName : Model.BrandProfile.ContactFullName;
+}
+<section class="agreement-brand-signature" data-signature-panel>
+    <h2>Your Signature</h2>
+    @if (TempData["AgreementError"] is string signError)
+    {
+        <p class="agreement-sign-error" role="alert">@signError</p>
+    }
+    <form method="post" asp-controller="Agreements" asp-action="Sign" enctype="multipart/form-data">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="id" value="@Model.Id" />
+        <input type="hidden" name="signatureDataUrl" data-signature-dataurl />
+        <input type="hidden" name="signatureMode" value="draw" data-signature-mode />
+        <div class="agreement-sign-tabs" role="tablist" aria-label="Signature method">
+            <button type="button" role="tab" id="signature-tab-draw" aria-controls="signature-draw" aria-selected="true" class="is-active" data-signature-tab="draw">Draw Signature</button>
+            <button type="button" role="tab" id="signature-tab-type" aria-controls="signature-type" aria-selected="false" tabindex="-1" data-signature-tab="type">Type Signature</button>
+            <button type="button" role="tab" id="signature-tab-upload" aria-controls="signature-upload" aria-selected="false" tabindex="-1" data-signature-tab="upload">Upload Signature</button>
+        </div>
+        <div role="tabpanel" id="signature-draw" aria-labelledby="signature-tab-draw" data-signature-pane="draw">
+            <div class="agreement-sign-canvas-wrap">
+                <canvas data-signature-canvas aria-label="Draw your signature here. Alternatively, choose Type Signature to use the keyboard."></canvas>
+                <div class="agreement-sign-hint" data-signature-hint><i class="bi bi-pen" aria-hidden="true"></i><span>Draw your signature here</span></div>
+                <button type="button" class="agreement-sign-clear" data-signature-clear><i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i> Clear</button>
+            </div>
+        </div>
+        <div role="tabpanel" id="signature-type" aria-labelledby="signature-tab-type" data-signature-pane="type" hidden>
+            <label class="agreement-visually-hidden" for="signature-typed">Type your signature</label>
+            <input type="text" id="signature-typed" class="agreement-typed-input" data-signature-typed placeholder="Type your signature here" maxlength="100" autocomplete="off" />
+            <p class="agreement-typed-preview" data-signature-preview aria-hidden="true"></p>
+        </div>
+        <div role="tabpanel" id="signature-upload" aria-labelledby="signature-tab-upload" data-signature-pane="upload" class="agreement-sign-upload" hidden>
+            <label for="signature-file">Upload a signature image</label>
+            <input type="file" id="signature-file" name="signatureFile" accept="image/jpeg,image/png,image/webp" data-signature-file />
+            <small>PNG, JPG or WebP · Up to 5 MB</small>
+            <img data-signature-upload-preview alt="Signature preview" hidden />
+        </div>
+        <p class="agreement-sign-error" data-signature-error role="alert" hidden></p>
+        <div class="agreement-sign-field">
+            <label for="signerName">Full Name</label>
+            <input type="text" id="signerName" name="signerName" value="@name" autocomplete="name" maxlength="150" required />
+        </div>
+        <div class="agreement-sign-field">
+            <label for="signerTitle">Title</label>
+            <input type="text" id="signerTitle" value="Authorized Representative" readonly />
+        </div>
+        <div class="agreement-sign-field">
+            <label for="signatureDate">Date</label>
+            <div class="agreement-sign-date"><i class="bi bi-calendar2-week" aria-hidden="true"></i><input type="text" id="signatureDate" value="@DateTime.UtcNow.ToBangladeshTime().ToString("MMM d, yyyy", System.Globalization.CultureInfo.InvariantCulture)" readonly /></div>
+        </div>
+        <label class="agreement-sign-consent"><input type="checkbox" name="consent" value="true" required /><span>I have read and agree to the terms of this Campaign Collaboration Agreement, and I intend this as my signature.</span></label>
+        <button type="submit" class="agreement-sign-submit"><i class="bi bi-pen" aria-hidden="true"></i> Sign Agreement</button>
+        <p class="agreement-sign-security"><i class="bi bi-lock-fill" aria-hidden="true"></i> Your signature will be securely attached to the agreement.</p>
+    </form>
+</section>

@@ -7,4 +7,5 @@ public class ProposalDetailViewModel
     public Proposal Proposal { get; set; } = null!;
     public int CampaignMilestonePlanCount { get; set; }
     public List<Collaboration> PastCollaborations { get; set; } = new();
+    public Agreement? Agreement { get; set; }
 }

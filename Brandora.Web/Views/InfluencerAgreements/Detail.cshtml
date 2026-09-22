@@ -1,0 +1,79 @@
+@model Brandora.Web.Models.Domain.Agreement
+@using Brandora.Web.Models.Domain
+@using Brandora.Web.Models.Influencers
+@{
+    ViewData["Title"] = "Agreement " + Model.Code;
+    ViewData["ActiveNav"] = "Agreements";
+    Layout = null;
+    ViewData["SignActionUrl"] = Url.Action("Sign", "InfluencerAgreements");
+    ViewData["SignerNamePlaceholder"] = Model.InfluencerProfile.FullName;
+    var name = ViewData["CompanyName"] as string ?? "";
+    var initial = string.IsNullOrWhiteSpace(name) ? "I" : name[..1].ToUpperInvariant();
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@ViewData["Title"] - Brandora</title>
+    <link rel="icon" href="~/images/brandora-icon.png" />
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/lib/dashboard-assets/bootstrap-icons.css" />
+    <link rel="stylesheet" href="~/lib/dashboard-assets/dashboard-fonts.css" />
+    <link rel="stylesheet" href="~/css/brandora-influencer-shell.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/brandora-influencer-dashboard.css" asp-append-version="true" />
+    <style>
+        .agreement-page { padding: 20px 26px 60px; }
+        .agreement-toolbar { max-width: 860px; margin: 18px auto 16px; display: flex; justify-content: space-between; align-items: center; }
+        .agreement-toolbar-actions { display: flex; gap: 8px; }
+        .agreement-toolbar .btn, .agreement-toolbar-actions .btn { border: 1px solid #d6dcf0; background: #fff; color: #40467a; padding: 8px 14px; border-radius: 8px; font-size: 12.5px; font-weight: 600; cursor: pointer; text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+@await Html.PartialAsync("_InfluencerSidebar")
+<main class="dashboard-page agreement-page" id="dashboardMain">
+    <header class="dashboard-topbar">
+        <button class="dashboard-menu" id="menuToggleBtn" type="button" aria-label="Toggle sidebar" aria-controls="dashboardSidebar"><i class="bi bi-list" aria-hidden="true"></i></button>
+        <form class="dashboard-search" method="get" asp-controller="InfluencerCampaigns" asp-action="Index" role="search">
+            <i class="bi bi-search" aria-hidden="true"></i>
+            <input type="search" name="search" placeholder="Search campaigns, brands..." aria-label="Search campaigns and brands" />
+            <button type="submit" aria-label="Search"><i class="bi bi-search" aria-hidden="true"></i></button>
+        </form>
+        <details class="dashboard-notifications">
+            <summary aria-label="Notifications"><i class="bi bi-bell" aria-hidden="true"></i>@if ((ViewData["UnreadNotifications"] as int? ?? 0) > 0) { <span class="dashboard-unread"></span> }</summary>
+            <div class="dashboard-notification-panel"><div class="dashboard-notification-panel-head"><h2>Notifications</h2></div><p>Open Dashboard to view notifications.</p></div>
+        </details>
+        <a class="dashboard-account" href="/InfluencerSettings">
+            <span class="dashboard-avatar">@if (!string.IsNullOrEmpty(ViewData["ProfilePictureUrl"] as string)) { <img src="@ViewData["ProfilePictureUrl"]" alt="" /> } else { @initial }</span>
+            <span><strong>@name</strong><small>Influencer</small></span>
+            <i class="bi bi-chevron-down" aria-hidden="true"></i>
+        </a>
+    </header>
+
+    <div class="agreement-toolbar agreement-no-print">
+        <a href="/InfluencerAgreements" class="btn"><i class="bi bi-arrow-left"></i> Back</a>
+        <div class="agreement-toolbar-actions">
+            <button type="button" class="btn" onclick="window.print()"><i class="bi bi-printer"></i> Print</button>
+            <button type="button" class="btn" onclick="window.print()"><i class="bi bi-file-earmark-pdf"></i> Export PDF</button>
+        </div>
+    </div>
+
+    @await Html.PartialAsync("_AgreementDocument", Model)
+
+    @if (Model.Status == AgreementStatus.AwaitingInfluencerSignature)
+    {
+        @await Html.PartialAsync("_AgreementSignPanel", Model)
+    }
+    else if (Model.Status == AgreementStatus.AwaitingBrandSignature)
+    {
+        <p style="text-align:center;color:#6b7290;font-size:12.5px;margin-top:16px;">Waiting on @Model.BrandProfile.CompanyName to sign first.</p>
+    }
+    else
+    {
+        <p style="text-align:center;color:#2d7651;font-size:12.5px;margin-top:16px;"><i class="bi bi-check-circle-fill"></i> Fully signed — the collaboration is active.</p>
+    }
+</main>
+<script src="~/js/brandora-influencer-dashboard.js" asp-append-version="true"></script>
+</body>
+</html>

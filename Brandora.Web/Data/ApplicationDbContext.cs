@@ -29,6 +29,9 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<PaymentAttempt> PaymentAttempts => Set<PaymentAttempt>();
     public DbSet<WalletTransaction> WalletTransactions => Set<WalletTransaction>();
     public DbSet<PlatformWalletTransaction> PlatformWalletTransactions => Set<PlatformWalletTransaction>();
+    public DbSet<Agreement> Agreements => Set<Agreement>();
+    public DbSet<AgreementSignature> AgreementSignatures => Set<AgreementSignature>();
+    public DbSet<AgreementEvent> AgreementEvents => Set<AgreementEvent>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -306,6 +309,48 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
                 .WithMany()
                 .HasForeignKey(e => e.DisputeId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<Agreement>(entity =>
+        {
+            entity.HasIndex(e => e.ProposalId).IsUnique();
+            entity.HasIndex(e => e.Code).IsUnique();
+
+            entity.HasOne(e => e.Campaign)
+                .WithMany()
+                .HasForeignKey(e => e.CampaignId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(e => e.Proposal)
+                .WithMany()
+                .HasForeignKey(e => e.ProposalId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(e => e.BrandProfile)
+                .WithMany()
+                .HasForeignKey(e => e.BrandProfileId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(e => e.InfluencerProfile)
+                .WithMany()
+                .HasForeignKey(e => e.InfluencerProfileId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<AgreementSignature>(entity =>
+        {
+            entity.HasOne(e => e.Agreement)
+                .WithMany(a => a.Signatures)
+                .HasForeignKey(e => e.AgreementId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<AgreementEvent>(entity =>
+        {
+            entity.HasOne(e => e.Agreement)
+                .WithMany(a => a.Events)
+                .HasForeignKey(e => e.AgreementId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

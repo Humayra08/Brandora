@@ -41,7 +41,7 @@
 
     var faqs = new[]
     {
-        ("What happens when I accept?", $"A collaboration with {creator.FullName} starts immediately. The {planCount} milestone{(planCount == 1 ? "" : "s")} in your campaign plan are created for them, a chat is opened and they're notified."),
+        ("What happens when I accept?", $"You'll be asked to create and sign a Campaign Collaboration Agreement. Once {creator.FullName} signs it too, the collaboration starts and the {planCount} milestone{(planCount == 1 ? "" : "s")} in your campaign plan are created for them."),
         ("Is the proposed rate charged now?", "No. Nothing is charged when you accept. You pay per milestone, through bKash or Nagad, only after the work is delivered and approved."),
         ("Why do both I and Brandora approve?", "You confirm the proof of post matches your brief; Brandora confirms the post is genuine and live. A milestone can only be paid once both sign-offs are in."),
         ("What does Not Selected do?", "It closes this application and records your decision. You can still message the creator or send them a new invite later.")
@@ -198,6 +198,50 @@
                 </p>
             </section>
         }
+        else if (isAccepted && Model.Agreement is null)
+        {
+            <section class="decision-card">
+                <div class="decision-card-head">
+                    <span class="icon-chip mint"><i class="bi bi-check2-circle"></i></span>
+                    <div>
+                        <div class="decision-card-eyebrow">Application Accepted</div>
+                        <div class="decision-card-title">Agreement Required</div>
+                        <p class="decision-card-text">@firstName's application has been accepted. Review and sign the Campaign Collaboration Agreement to begin the collaboration.</p>
+                    </div>
+                </div>
+                <div class="decision-card-actions">
+                    <form method="post" action="/Agreements/Create">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="proposalId" value="@proposal.Id" />
+                        <button type="submit" class="btn btn-primary"><i class="bi bi-file-earmark-text"></i>Create Agreement</button>
+                    </form>
+                    <button type="button" class="btn btn-secondary js-open-chat"
+                            data-influencer-id="@proposal.InfluencerProfileId"
+                            data-influencer-name="@creator.FullName"
+                            data-hue="@hue"><i class="bi bi-chat-dots"></i>Message Influencer</button>
+                </div>
+            </section>
+        }
+        else if (isAccepted && Model.Agreement is { Status: not AgreementStatus.FullySigned } pendingAgreement)
+        {
+            <section class="decision-card">
+                <div class="decision-card-head">
+                    <span class="icon-chip violet"><i class="bi bi-pen"></i></span>
+                    <div>
+                        <div class="decision-card-eyebrow">Agreement @pendingAgreement.Code</div>
+                        <div class="decision-card-title">@(pendingAgreement.Status == AgreementStatus.AwaitingBrandSignature ? "Awaiting your signature" : "Awaiting the influencer's signature")</div>
+                        <p class="decision-card-text">The collaboration starts as soon as both sides have signed the agreement.</p>
+                    </div>
+                </div>
+                <div class="decision-card-actions">
+                    <a href="/Agreements/Detail/@pendingAgreement.Id" class="btn btn-primary"><i class="bi bi-file-earmark-text"></i>@(pendingAgreement.Status == AgreementStatus.AwaitingBrandSignature ? "Review & Sign Agreement" : "View Agreement")</a>
+                    <button type="button" class="btn btn-secondary js-open-chat"
+                            data-influencer-id="@proposal.InfluencerProfileId"
+                            data-influencer-name="@creator.FullName"
+                            data-hue="@hue"><i class="bi bi-chat-dots"></i>Message Influencer</button>
+                </div>
+            </section>
+        }
         else if (isAccepted)
         {
             <section class="decision-card">
@@ -213,6 +257,10 @@
                     @if (collaboration is not null)
                     {
                         <a href="/Collaborations/Detail/@collaboration.Id" class="btn btn-primary"><i class="bi bi-kanban"></i>Manage Collaboration</a>
+                    }
+                    @if (Model.Agreement is not null)
+                    {
+                        <a href="/Agreements/Detail/@Model.Agreement.Id" class="btn btn-outline"><i class="bi bi-file-earmark-text"></i>View Agreement</a>
                     }
                     <button type="button" class="btn btn-secondary js-open-chat"
                             data-influencer-id="@proposal.InfluencerProfileId"

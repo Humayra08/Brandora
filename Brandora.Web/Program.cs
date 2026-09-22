@@ -66,6 +66,7 @@ builder.Services.ConfigureApplicationCookie(options =>
 
 builder.Services.AddScoped<NotificationService>();
 builder.Services.AddScoped<MediaUploadService>();
+builder.Services.AddScoped<AgreementService>();
 builder.Services.AddScoped<AdminAuthService>();
 builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
 
