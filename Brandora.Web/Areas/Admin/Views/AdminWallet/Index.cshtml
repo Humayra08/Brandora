@@ -263,16 +263,63 @@
 
 <div class="aw-panel">
     <div class="aw-tabs" id="awTabs">
-        <button type="button" class="is-active" data-tab="withdrawals">Income by Withdrawal</button>
+        <button type="button" class="is-active" data-tab="brandincome">Income by Brand</button>
+        <button type="button" data-tab="withdrawals">Income by Withdrawal</button>
         <button type="button" data-tab="cashouts">Cash-out History</button>
     </div>
 
-    @* Campaign-by-campaign fee income used to live here as its own table, but that same real
-       data (brand fee + withdrawal fee per row) now shows directly on Payment Oversight
-       (Admin/AdminPayments), so it isn't duplicated on this page anymore. *@
+    <!-- ===== Income by Brand ===== -->
+    <div class="aw-pane" data-pane="brandincome">
+        <div class="aw-toolbar">
+            <div class="aw-filters">
+                <input class="aw-input" type="search" id="biSearch" placeholder="Search by brand or campaign..." />
+                <select class="aw-input" id="biMethod"><option value="">All Methods</option><option>bKash</option><option>Nagad</option><option>Bank Transfer</option></select>
+                <select class="aw-input" id="biStatus"><option value="">All Statuses</option><option>Completed</option><option>Pending</option><option>Failed</option></select>
+                <input class="aw-input" type="date" id="biFrom" aria-label="From date" />
+                <input class="aw-input" type="date" id="biTo" aria-label="To date" />
+            </div>
+            <button type="button" class="aw-btn" data-export="awBrandIncomeTable"><i class="bi bi-download"></i> Export CSV</button>
+        </div>
+
+        @if (Model.BrandIncome.Count == 0)
+        {
+            <div class="aw-empty"><b>No brand payments yet</b>Every brand payment is reported here with the campaign and milestone it's for, and the real 5% it earned once completed.</div>
+        }
+        else
+        {
+            <div class="aw-scroll">
+                <table class="aw-table" id="awBrandIncomeTable" data-paged>
+                    <thead>
+                        <tr><th>#</th><th>Transaction ID</th><th>Date &amp; time</th><th>Brand</th><th>Campaign / Milestone</th><th>Amount</th><th>5% Fee</th><th>Method</th><th>Status</th><th>Action</th></tr>
+                    </thead>
+                    <tbody>
+                        @{ var bi = 0; }
+                        @foreach (var b in Model.BrandIncome)
+                        {
+                            bi++;
+                            var biTone = b.Status == "Completed" ? "green" : b.Status == "Failed" ? "red" : "amber";
+                            <tr class="aw-row" data-search="@((b.BrandName + " " + b.CampaignTitle).ToLowerInvariant())" data-method="@b.Method" data-status="@b.Status" data-date="@b.At.ToString("yyyy-MM-dd")">
+                                <td>@bi</td>
+                                <td><b>@b.Code</b></td>
+                                <td>@b.At.ToString("MMM d, yyyy h:mm tt", CultureInfo.InvariantCulture)</td>
+                                <td><div class="aw-camp"><div class="aw-thumb round">@if (!string.IsNullOrWhiteSpace(b.BrandPicture)) { <img src="@b.BrandPicture" alt="" /> } else { <text>@Initials(b.BrandName)</text> }</div><b>@b.BrandName</b></div></td>
+                                <td><div class="aw-camp"><b>@b.CampaignTitle</b><small>@b.MilestoneTitle</small></div></td>
+                                <td>@Money(b.Amount)</td>
+                                <td>@(b.Fee > 0 ? "+" + Money(b.Fee) : "—")</td>
+                                <td><div class="aw-method">@Html.Raw(Logo(b.Method, 18))<span>@b.Method</span></div></td>
+                                <td><span class="aw-pill @biTone">@b.Status</span></td>
+                                <td><button type="button" class="aw-view" data-brandincome="@b.PaymentId">View</button></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <div class="aw-pager" data-pager-for="awBrandIncomeTable"></div>
+        }
+    </div>
 
     <!-- ===== Income by Withdrawal ===== -->
-    <div class="aw-pane" data-pane="withdrawals">
+    <div class="aw-pane" data-pane="withdrawals" hidden>
         <div class="aw-toolbar">
             <div class="aw-filters">
                 <input class="aw-input" type="search" id="wdSearch" placeholder="Search by influencer name or handle..." />
@@ -396,6 +443,9 @@
         document.querySelectorAll('[data-withdrawal]').forEach(function (b) {
             b.addEventListener('click', function () { loadDrawer('/Admin/AdminWallet/WithdrawalDetails/' + b.getAttribute('data-withdrawal')); });
         });
+        document.querySelectorAll('[data-brandincome]').forEach(function (b) {
+            b.addEventListener('click', function () { loadDrawer('/Admin/AdminWallet/BrandIncomeDetails/' + b.getAttribute('data-brandincome')); });
+        });
 
         overlay.addEventListener('click', closeDrawer);
         document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeDrawer(); });
@@ -455,6 +505,17 @@
                 && (!f.value || d >= f.value) && (!t.value || d <= t.value);
         });
         [q, m, s, f, t].forEach(function (el) { if (el) el.addEventListener('input', function () { tables['awWithdrawalTable'].reset(); }); });
+
+        var biq = document.getElementById('biSearch'), bim = document.getElementById('biMethod'), bis = document.getElementById('biStatus'),
+            bif = document.getElementById('biFrom'), bit = document.getElementById('biTo');
+        setup('awBrandIncomeTable', function (r) {
+            var d = r.getAttribute('data-date');
+            return r.getAttribute('data-search').indexOf(biq.value.trim().toLowerCase()) !== -1
+                && (!bim.value || r.getAttribute('data-method') === bim.value)
+                && (!bis.value || r.getAttribute('data-status') === bis.value)
+                && (!bif.value || d >= bif.value) && (!bit.value || d <= bit.value);
+        });
+        [biq, bim, bis, bif, bit].forEach(function (el) { if (el) el.addEventListener('input', function () { tables['awBrandIncomeTable'].reset(); }); });
 
         // CSV export of the filtered rows (all pages), without the action column
         document.querySelectorAll('[data-export]').forEach(function (btn) {

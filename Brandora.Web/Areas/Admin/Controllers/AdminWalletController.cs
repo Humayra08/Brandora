@@ -29,6 +29,21 @@ public class AdminWalletController(
         return d.Length > 7 ? d[..5] + " " + d.Substring(5, 2) + "****" : d;
     }
 
+    private static string PaymentMethodLabel(PaymentMethod? m) => m switch
+    {
+        PaymentMethod.Bkash => "bKash",
+        PaymentMethod.Nagad => "Nagad",
+        PaymentMethod.BankTransfer => "Bank Transfer",
+        _ => "Not recorded"
+    };
+
+    private static string PayStatusLabel(Payment p) => p.Status switch
+    {
+        PaymentStatus.Completed => "Completed",
+        PaymentStatus.Failed => "Failed",
+        _ => "Pending"
+    };
+
     // Opened from the "Withdraw from Platform Wallet" button on the Platform Wallet page.
     [HttpGet]
     public async Task<IActionResult> Withdraw()
@@ -226,10 +241,36 @@ public class AdminWalletController(
             .OrderByDescending(r => r.Gross)
             .ToList();
 
+        // Income by Brand: one row per real Payment, the real 5% (BrandFeeAmount) it earned
+        // the platform once completed — the same real field Payment Oversight shows, just
+        // filtered/listed here for wallet-income auditing specifically.
+        var brandPayments = await db.Payments
+            .Include(p => p.Milestone)
+            .Include(p => p.Collaboration).ThenInclude(c => c.Campaign).ThenInclude(c => c.BrandProfile)
+            .OrderByDescending(p => p.PaidAt ?? p.CreatedAt)
+            .ToListAsync();
+
+        var brandIncomeRows = brandPayments.Select(p => new BrandIncomeRow(
+            p.Id,
+            $"TXN-{(p.PaidAt ?? p.CreatedAt).Year}-P{p.Id:D3}",
+            p.PaidAt ?? p.CreatedAt,
+            p.Collaboration.Campaign.BrandProfile.CompanyName,
+            p.Collaboration.Campaign.BrandProfile.ProfilePictureUrl,
+            p.Collaboration.Campaign.Title,
+            p.Collaboration.CampaignId,
+            p.Milestone?.Title ?? "—",
+            p.Amount,
+            p.Status == PaymentStatus.Completed ? p.BrandFeeAmount : 0m,
+            PaymentMethodLabel(p.Method),
+            PayStatusLabel(p),
+            p.TransactionReference
+        )).ToList();
+
         var vm = new AdminWalletViewModel
         {
             Ledger = ledger,
             Campaigns = rows,
+            BrandIncome = brandIncomeRows,
             Withdrawals = snap.Withdrawals.OrderByDescending(w => w.At).ToList(),
             Search = search ?? "",
             From = from,
@@ -360,6 +401,77 @@ public class AdminWalletController(
 
         return PartialView("_WithdrawalDrawer", vm);
     }
+
+    // Right-hand drawer opened from "View" on an Income by Brand row.
+    public async Task<IActionResult> BrandIncomeDetails(int id)
+    {
+        var p = await db.Payments
+            .Include(p => p.Milestone)
+            .Include(p => p.Collaboration).ThenInclude(c => c.Campaign).ThenInclude(c => c.BrandProfile)
+            .Include(p => p.Collaboration).ThenInclude(c => c.InfluencerProfile)
+            .FirstOrDefaultAsync(p => p.Id == id);
+
+        if (p is null) return NotFound();
+
+        var vm = new BrandIncomeDrawerViewModel
+        {
+            PaymentId = p.Id,
+            Code = $"TXN-{(p.PaidAt ?? p.CreatedAt).Year}-P{p.Id:D3}",
+            At = p.PaidAt ?? p.CreatedAt,
+            Status = PayStatusLabel(p),
+            Method = PaymentMethodLabel(p.Method),
+            Reference = p.TransactionReference,
+            BrandName = p.Collaboration.Campaign.BrandProfile.CompanyName,
+            BrandPicture = p.Collaboration.Campaign.BrandProfile.ProfilePictureUrl,
+            BrandProfileId = p.Collaboration.Campaign.BrandProfileId,
+            CampaignId = p.Collaboration.CampaignId,
+            CampaignTitle = p.Collaboration.Campaign.Title,
+            MilestoneTitle = p.Milestone?.Title ?? "—",
+            InfluencerName = p.Collaboration.InfluencerProfile.FullName,
+            InfluencerProfileId = p.Collaboration.InfluencerProfileId,
+            MilestoneAmount = p.Amount,
+            Fee = p.Status == PaymentStatus.Completed ? p.BrandFeeAmount : 0m,
+            TotalCharged = p.TotalCharged
+        };
+
+        return PartialView("_BrandIncomeDrawer", vm);
+    }
+}
+
+public record BrandIncomeRow(
+    int PaymentId,
+    string Code,
+    DateTime At,
+    string BrandName,
+    string? BrandPicture,
+    string CampaignTitle,
+    int CampaignId,
+    string MilestoneTitle,
+    decimal Amount,
+    decimal Fee,
+    string Method,
+    string Status,
+    string? Reference);
+
+public class BrandIncomeDrawerViewModel
+{
+    public int PaymentId { get; set; }
+    public string Code { get; set; } = "";
+    public DateTime At { get; set; }
+    public string Status { get; set; } = "";
+    public string Method { get; set; } = "";
+    public string? Reference { get; set; }
+    public string BrandName { get; set; } = "";
+    public string? BrandPicture { get; set; }
+    public int BrandProfileId { get; set; }
+    public int CampaignId { get; set; }
+    public string CampaignTitle { get; set; } = "";
+    public string MilestoneTitle { get; set; } = "";
+    public string InfluencerName { get; set; } = "";
+    public int InfluencerProfileId { get; set; }
+    public decimal MilestoneAmount { get; set; }
+    public decimal Fee { get; set; }
+    public decimal TotalCharged { get; set; }
 }
 
 public record WalletCampaignRow(
@@ -392,6 +504,7 @@ public class AdminWalletViewModel
 {
     public WalletLedger Ledger { get; set; } = null!;
     public List<WalletCampaignRow> Campaigns { get; set; } = new();
+    public List<BrandIncomeRow> BrandIncome { get; set; } = new();
     public List<WithdrawalInfo> Withdrawals { get; set; } = new();
     public string Search { get; set; } = "";
     public DateTime? From { get; set; }

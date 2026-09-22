@@ -83,10 +83,20 @@ public class AdminPaymentsController(ApplicationDbContext db, NotificationServic
 
     private const string PayType = "Brand Payment";
 
+    // Payment.Status only ever moves Pending -> Completed (see PaymentSettlementService) — a
+    // failed checkout attempt never flips it to Failed, since the brand can just retry. So a
+    // real attempt failure only shows up one level down, on PaymentAttempt. Surface it here as
+    // "Failed" for display (the brand still CAN retry; the Payment row itself stays Pending in
+    // the database) so it isn't silently invisible on this page and in Recent Failed Payments.
+    private static bool LatestAttemptFailed(Payment p) =>
+        p.Status == PaymentStatus.Pending &&
+        p.Attempts.OrderByDescending(a => a.CreatedAt).FirstOrDefault() is { Status: PaymentAttemptStatus.Failed };
+
     private static string PayStatus(Payment p) => p.Status switch
     {
         PaymentStatus.Completed => "Completed",
         PaymentStatus.Failed => "Failed",
+        _ when LatestAttemptFailed(p) => "Failed",
         _ => "Pending"
     };
 
