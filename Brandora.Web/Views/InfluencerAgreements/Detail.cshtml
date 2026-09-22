@@ -1,14 +1,23 @@
 @model Brandora.Web.Models.Domain.Agreement
 @using Brandora.Web.Models.Domain
 @using Brandora.Web.Models.Influencers
+@using System.Globalization
+@using System.Text.RegularExpressions
 @{
-    ViewData["Title"] = "Agreement " + Model.Code;
+    ViewData["Title"] = "Sign Campaign Agreement";
     ViewData["ActiveNav"] = "Agreements";
+    ViewData["AgreementSignerParty"] = AgreementParty.Influencer;
     Layout = null;
-    ViewData["SignActionUrl"] = Url.Action("Sign", "InfluencerAgreements");
-    ViewData["SignerNamePlaceholder"] = Model.InfluencerProfile.FullName;
-    var name = ViewData["CompanyName"] as string ?? "";
-    var initial = string.IsNullOrWhiteSpace(name) ? "I" : name[..1].ToUpperInvariant();
+    var name = Model.InfluencerProfile.FullName;
+    var initial = FollowerFormat.InitialsOf(name);
+    var canSign = Model.Status == AgreementStatus.AwaitingInfluencerSignature;
+    var completed = Model.Status == AgreementStatus.FullySigned;
+    var stage = completed ? 4 : canSign ? 3 : 2;
+    var brandSignature = Model.Signatures.FirstOrDefault(s => s.Party == AgreementParty.Brand);
+    var influencerSignature = Model.Signatures.FirstOrDefault(s => s.Party == AgreementParty.Influencer);
+    var totalMatch = Regex.Match(Model.ContentHtml, @"<th>Total Campaign Value</th>\s*<td>(.*?)</td>", RegexOptions.Singleline);
+    var total = totalMatch.Success ? System.Net.WebUtility.HtmlDecode(Regex.Replace(totalMatch.Groups[1].Value, "<[^>]+>", "")) : "Not specified";
+    string DateText(DateTime? date) => date?.ToString("MMM d, yyyy", CultureInfo.InvariantCulture) ?? "Not specified";
 }
 <!DOCTYPE html>
 <html lang="en">
@@ -22,12 +31,7 @@
     <link rel="stylesheet" href="~/lib/dashboard-assets/dashboard-fonts.css" />
     <link rel="stylesheet" href="~/css/brandora-influencer-shell.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/brandora-influencer-dashboard.css" asp-append-version="true" />
-    <style>
-        .agreement-page { padding: 20px 26px 60px; }
-        .agreement-toolbar { max-width: 860px; margin: 18px auto 16px; display: flex; justify-content: space-between; align-items: center; }
-        .agreement-toolbar-actions { display: flex; gap: 8px; }
-        .agreement-toolbar .btn, .agreement-toolbar-actions .btn { border: 1px solid #d6dcf0; background: #fff; color: #40467a; padding: 8px 14px; border-radius: 8px; font-size: 12.5px; font-weight: 600; cursor: pointer; text-decoration: none; }
-    </style>
+    <link rel="stylesheet" href="~/css/brandora-agreement-detail.css" asp-append-version="true" />
 </head>
 <body>
 <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
@@ -51,29 +55,75 @@
         </a>
     </header>
 
-    <div class="agreement-toolbar agreement-no-print">
-        <a href="/InfluencerAgreements" class="btn"><i class="bi bi-arrow-left"></i> Back</a>
-        <div class="agreement-toolbar-actions">
-            <button type="button" class="btn" onclick="window.print()"><i class="bi bi-printer"></i> Print</button>
-            <button type="button" class="btn" onclick="window.print()"><i class="bi bi-file-earmark-pdf"></i> Export PDF</button>
+
+    <div class="brand-agreement influencer-agreement" data-agreement-viewer data-agreement-code="@Model.Code">
+        <header class="agreement-review-header agreement-no-print">
+            <div class="agreement-review-intro">
+                <nav class="agreement-breadcrumb" aria-label="Breadcrumb">
+                    <a href="/InfluencerAgreements">Agreements</a><i class="bi bi-chevron-right" aria-hidden="true"></i>
+                    <a href="/InfluencerCampaigns/Details/@Model.CampaignId">@Model.Campaign.Title</a><i class="bi bi-chevron-right" aria-hidden="true"></i>
+                    <span aria-current="page">@(canSign ? "Sign Agreement" : "View Agreement")</span>
+                </nav>
+                <h1>@(canSign ? "Sign Campaign Agreement" : "Review Campaign Agreement")</h1>
+                <p>@(canSign ? "Review the agreement carefully and add your digital signature to confirm your acceptance." : completed ? "Both parties have signed. Your completed agreement is available below." : "Review the agreement while you wait for the brand to sign first.")</p>
+            </div>
+            <ol class="agreement-progress" aria-label="Agreement progress">
+                @foreach (var step in new[] { (1, "Review"), (2, "Brand Signs"), (3, "Influencer Signs"), (4, "Completed") })
+                {
+                    var done = step.Item1 < stage || completed;
+                    <li class="@(done ? "is-done" : step.Item1 == stage ? "is-current" : "")" aria-current="@(step.Item1 == stage ? "step" : null)">
+                        <span>@if (done) { <i class="bi bi-check-lg" aria-hidden="true"></i> } else { @step.Item1 }</span>
+                        <small>@step.Item2</small>
+                    </li>
+                }
+            </ol>
+        </header>
+
+        <div class="agreement-review-grid">
+            @await Html.PartialAsync("_AgreementViewer", Model)
+            <aside class="agreement-review-rail agreement-no-print">
+                <section class="agreement-info-card">
+                    <h2>Campaign Information</h2>
+                    <div class="agreement-campaign-identity">
+                        <span class="agreement-brand-logo">
+                            @if (!string.IsNullOrWhiteSpace(Model.BrandProfile.ProfilePictureUrl))
+                            {
+                                <img src="@Model.BrandProfile.ProfilePictureUrl" alt="@Model.BrandProfile.CompanyName" />
+                            }
+                            else { <span>@FollowerFormat.InitialsOf(Model.BrandProfile.CompanyName)</span> }
+                        </span>
+                        <div><h3>@Model.Campaign.Title</h3><p>@Model.BrandProfile.CompanyName <span aria-hidden="true">&bull;</span> @(string.IsNullOrWhiteSpace(Model.Campaign.Niche) ? Model.BrandProfile.Industry : Model.Campaign.Niche)</p></div>
+                    </div>
+                    <dl class="agreement-information">
+                        <div><dt>Campaign Period</dt><dd>@DateText(Model.Campaign.StartDate) &ndash; @DateText(Model.Campaign.Deadline)</dd></div>
+                        <div><dt>Total Value</dt><dd data-agreement-total>@total</dd></div>
+                    </dl>
+                </section>
+                @if (canSign)
+                {
+                    @await Html.PartialAsync("_AgreementSignature", Model)
+                }
+                else
+                {
+                    <section class="agreement-signed-card">
+                        <h2>Your Signature</h2>
+                        @if (influencerSignature is not null)
+                        {
+                            <img src="@influencerSignature.SignatureImageUrl" alt="Your saved signature" />
+                            <strong>@influencerSignature.SignerName</strong>
+                            <p>Signed @influencerSignature.SignedAt.ToBangladeshTime().ToString("MMM d, yyyy", CultureInfo.InvariantCulture)</p>
+                        }
+                        <p class="agreement-signed-note"><i class="bi @(completed ? "bi-check-circle" : "bi-clock")" aria-hidden="true"></i> @(completed ? "Agreement completed. Your collaboration is active." : "Waiting for " + Model.BrandProfile.CompanyName + " to sign first.")</p>
+                    </section>
+                }
+            </aside>
         </div>
     </div>
 
-    @await Html.PartialAsync("_AgreementDocument", Model)
-
-    @if (Model.Status == AgreementStatus.AwaitingInfluencerSignature)
-    {
-        @await Html.PartialAsync("_AgreementSignPanel", Model)
-    }
-    else if (Model.Status == AgreementStatus.AwaitingBrandSignature)
-    {
-        <p style="text-align:center;color:#6b7290;font-size:12.5px;margin-top:16px;">Waiting on @Model.BrandProfile.CompanyName to sign first.</p>
-    }
-    else
-    {
-        <p style="text-align:center;color:#2d7651;font-size:12.5px;margin-top:16px;"><i class="bi bi-check-circle-fill"></i> Fully signed — the collaboration is active.</p>
-    }
 </main>
 <script src="~/js/brandora-influencer-dashboard.js" asp-append-version="true"></script>
+<script src="~/lib/html2pdf/html2pdf.bundle.min.js" asp-append-version="true"></script>
+<script src="~/js/brandora-agreement-detail.js" asp-append-version="true"></script>
+<script src="~/js/brandora-signature-pad.js" asp-append-version="true"></script>
 </body>
 </html>

@@ -1,7 +1,10 @@
 @model Brandora.Web.Models.Domain.Agreement
 @using Brandora.Web.Models.Influencers
+@using Brandora.Web.Models.Domain
 @{
-    var name = string.IsNullOrWhiteSpace(Model.BrandProfile.ContactFullName) ? Model.BrandProfile.CompanyName : Model.BrandProfile.ContactFullName;
+    var isInfluencer = ViewData["AgreementSignerParty"] is AgreementParty.Influencer;
+    var signController = isInfluencer ? "InfluencerAgreements" : "Agreements";
+    var name = isInfluencer ? Model.InfluencerProfile.FullName : string.IsNullOrWhiteSpace(Model.BrandProfile.ContactFullName) ? Model.BrandProfile.CompanyName : Model.BrandProfile.ContactFullName;
 }
 <section class="agreement-brand-signature" data-signature-panel>
     <h2>Your Signature</h2>
@@ -9,7 +12,7 @@
     {
         <p class="agreement-sign-error" role="alert">@signError</p>
     }
-    <form method="post" asp-controller="Agreements" asp-action="Sign" enctype="multipart/form-data">
+    <form method="post" asp-controller="@signController" asp-action="Sign" enctype="multipart/form-data">
         @Html.AntiForgeryToken()
         <input type="hidden" name="id" value="@Model.Id" />
         <input type="hidden" name="signatureDataUrl" data-signature-dataurl />
@@ -42,10 +45,13 @@
             <label for="signerName">Full Name</label>
             <input type="text" id="signerName" name="signerName" value="@name" autocomplete="name" maxlength="150" required />
         </div>
+        @if (!isInfluencer)
+        {
         <div class="agreement-sign-field">
             <label for="signerTitle">Title</label>
             <input type="text" id="signerTitle" value="Authorized Representative" readonly />
         </div>
+        }
         <div class="agreement-sign-field">
             <label for="signatureDate">Date</label>
             <div class="agreement-sign-date"><i class="bi bi-calendar2-week" aria-hidden="true"></i><input type="text" id="signatureDate" value="@DateTime.UtcNow.ToBangladeshTime().ToString("MMM d, yyyy", System.Globalization.CultureInfo.InvariantCulture)" readonly /></div>

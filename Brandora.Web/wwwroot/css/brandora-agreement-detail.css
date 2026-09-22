@@ -160,3 +160,39 @@ body:has(.brand-agreement) .main-topbar { margin: -22px -24px 20px; }
     .brand-agreement .agreement-sheet-frame:last-child { break-after: auto; }
     .brand-agreement .agreement-sheet { position: relative; width: 100%; transform: none !important; border: 0; box-shadow: none; }
 }
+
+/* Influencer signing layout; the document viewer shares the brand page styles. */
+.agreement-page { padding: 12px 24px 32px; }
+.influencer-agreement { padding-top: 8px; }
+.influencer-agreement .agreement-review-grid { grid-template-columns: minmax(0,1.65fr) minmax(320px,1fr); grid-template-rows: auto; grid-template-areas: "document rail"; column-gap: 26px; row-gap: 16px; align-items: start; }
+.influencer-agreement .agreement-review-header { grid-template-columns: minmax(0,1.65fr) minmax(320px,1fr); column-gap: 26px; }
+.influencer-agreement .agreement-review-intro h1 { font-size: clamp(24px,2.3cqi,32px); }
+.influencer-agreement .agreement-review-intro > p { margin-top: 5px; font-size: 12px; }
+.influencer-agreement .agreement-breadcrumb { margin-bottom: 15px; }
+.influencer-agreement .agreement-viewer { grid-area: document; }
+.influencer-agreement .agreement-review-rail { grid-area: rail; grid-template-columns: minmax(0,1fr); gap: 13px; padding-top: 0; }
+.influencer-agreement .agreement-brand-signature .agreement-sign-canvas-wrap,
+.influencer-agreement .agreement-brand-signature canvas { height: 120px; }
+.influencer-agreement .agreement-brand-signature .agreement-sign-field { margin-top: 12px; }
+.influencer-agreement .agreement-sign-consent { margin-top: 14px; }
+.influencer-agreement .agreement-sign-submit { margin-top: 17px; }
+.influencer-agreement .agreement-review-rail h2 { margin-bottom: 12px; }
+.influencer-agreement .agreement-campaign-identity { margin-bottom: 5px; }
+.agreement-page .dashboard-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
+@container (max-width: 850px) {
+    .influencer-agreement .agreement-review-header { grid-template-columns: minmax(0,1fr); gap: 12px; }
+    .influencer-agreement .agreement-review-header .agreement-progress { margin-top: 0; }
+    .influencer-agreement .agreement-review-grid { grid-template-columns: minmax(0,1fr); grid-template-rows: auto; grid-template-areas: "document" "rail"; gap: 16px; }
+    .influencer-agreement .agreement-review-rail { padding-top: 0; }
+}
+@media (max-width: 650px) {
+    .agreement-page { padding: 12px 14px 24px; }
+}
+@media print {
+    body:has(.influencer-agreement) :is(.dashboard-topbar,.sidebar-backdrop) { display: none !important; }
+    body:has(.influencer-agreement) .dashboard-page { margin: 0 !important; padding: 0 !important; width: 100%; background: white; container-type: normal; }
+    .influencer-agreement { padding: 0; }
+    .influencer-agreement .agreement-review-grid { display: block; }
+    .influencer-agreement .agreement-viewer { overflow: visible; }
+    .influencer-agreement .agreement-viewer-toolbar { display: none; }
+}

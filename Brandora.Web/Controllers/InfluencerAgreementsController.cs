@@ -63,7 +63,7 @@ public class InfluencerAgreementsController(UserManager<ApplicationUser> userMan
     [HttpPost]
     [ValidateAntiForgeryToken]
     [RequestSizeLimit(10_000_000)]
-    public async Task<IActionResult> Sign(int id, string signerName, bool consent, string? signatureDataUrl, IFormFile? signatureFile)
+    public async Task<IActionResult> Sign(int id, string signerName, bool consent, string? signatureDataUrl, IFormFile? signatureFile, string? signatureMode)
     {
         var influencer = await GetCurrentInfluencerAsync();
         if (influencer is null) return RedirectToAction("Index", "Home");
@@ -76,13 +76,21 @@ public class InfluencerAgreementsController(UserManager<ApplicationUser> userMan
         if (agreement is null) return NotFound();
         if (agreement.Status != AgreementStatus.AwaitingInfluencerSignature) return RedirectToAction(nameof(Detail), new { id });
 
-        if (!consent || string.IsNullOrWhiteSpace(signerName))
+        if (!consent || string.IsNullOrWhiteSpace(signerName) || signerName.Trim().Length > 150)
         {
             TempData["AgreementError"] = "Enter your name and confirm you agree to the terms before signing.";
             return RedirectToAction(nameof(Detail), new { id });
         }
 
+        if (signatureMode is not (null or "draw" or "type" or "upload"))
+        {
+            TempData["AgreementError"] = "Choose a valid signature method.";
+            return RedirectToAction(nameof(Detail), new { id });
+        }
+        if (signatureMode is "draw" or "type") signatureFile = null;
+        if (signatureMode == "upload") signatureDataUrl = null;
         var (signatureUrl, method, error) = await UploadSignatureAsync(signatureDataUrl, signatureFile);
+        if (signatureMode == "type" && error is null) method = SignatureMethod.Typed;
         if (error is not null)
         {
             TempData["AgreementError"] = error;
@@ -136,6 +144,8 @@ public class InfluencerAgreementsController(UserManager<ApplicationUser> userMan
     {
         if (signatureFile is { Length: > 0 })
         {
+            if (signatureFile.Length > 5 * 1024 * 1024 || signatureFile.ContentType is not ("image/png" or "image/jpeg" or "image/webp"))
+                return (null, SignatureMethod.Uploaded, "Choose a PNG, JPG or WebP signature image smaller than 5 MB.");
             var (url, _, error) = await mediaUploads.SaveMediaAsync(signatureFile, "signatures");
             return error is not null ? (null, SignatureMethod.Uploaded, error) : (url, SignatureMethod.Uploaded, null);
         }
