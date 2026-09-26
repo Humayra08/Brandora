@@ -77,7 +77,7 @@
 
         /* ---- Brand grid + cards (mirrors the brand side's .creator-grid/.creator-card) ---- */
         .brand-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
-        .brand-card { --card-accent: #0759ff; position: relative; overflow: hidden; min-width: 0; border: 1px solid #e8e7f2; border-radius: 22px; background: #fff; box-shadow: 0 10px 30px rgba(32, 24, 82, .055); opacity: 0; transform: translateY(28px); transition: opacity .65s ease, transform .65s cubic-bezier(.22,1,.36,1), box-shadow .4s ease, border-color .35s ease; }
+        .brand-card { --card-accent: #0759ff; position: relative; overflow: hidden; min-width: 0; display: flex; flex-direction: column; border: 1px solid #e8e7f2; border-radius: 22px; background: #fff; box-shadow: 0 10px 30px rgba(32, 24, 82, .055); opacity: 0; transform: translateY(28px); transition: opacity .65s ease, transform .65s cubic-bezier(.22,1,.36,1), box-shadow .4s ease, border-color .35s ease; }
         .brand-card.is-visible { opacity: 1; transform: translateY(0); }
         .brand-card:hover { transform: translateY(-8px); border-color: rgba(23,108,255,.28); box-shadow: 0 25px 55px rgba(31, 55, 119, .12), 0 0 0 1px rgba(23,108,255,.04); }
         .brand-media { position: relative; height: 130px; overflow: hidden; }
@@ -90,7 +90,11 @@
         .brand-avatar { width: 47px; height: 47px; flex: 0 0 47px; overflow: hidden; border: 3px solid rgba(255,255,255,.92); border-radius: 50%; background: linear-gradient(135deg, #0759ff, #18a9ff); box-shadow: 0 8px 20px rgba(20,20,50,.22); display: grid; place-items: center; color: #fff; font: 700 17px 'DM Sans', sans-serif; }
         .brand-name-row { display: flex; align-items: center; gap: 6px; margin: 0; color: #fff; font: 750 15px 'DM Sans', sans-serif; }
         .brand-contact { margin-top: 2px; color: rgba(255,255,255,.77); font: 500 10px 'Inter', sans-serif; }
-        .brand-body { position: relative; z-index: 2; padding: 16px 17px 17px; }
+        .brand-body { position: relative; z-index: 2; flex: 1; display: flex; flex-direction: column; padding: 16px 17px 17px; }
+        .brand-body > .brand-actions { margin-top: auto; }
+        .brand-socials { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: -4px 0 14px; }
+        .brand-socials-label { flex-shrink: 0; color: #969bb3; font: 650 8.5px 'Inter', sans-serif; letter-spacing: .05em; text-transform: uppercase; }
+        .brand-socials .social-icons { justify-content: flex-end; gap: 6px; }
         .brand-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
         .brand-tags .tag { padding: 6px 8px; border: 1px solid #ebe8f7; border-radius: 999px; background: #f6f9ff; color: #656c8c; font: 650 9.5px 'Inter', sans-serif; }
         .brand-figures { display: grid; grid-template-columns: repeat(2, 1fr); gap: 7px; padding: 12px 0; margin-bottom: 14px; border-top: 1px solid #eeeef5; border-bottom: 1px solid #eeeef5; }
@@ -99,7 +103,7 @@
         .figure-value { color: #171d3d; font: 800 16px 'DM Sans', sans-serif; }
         .figure-label { margin-top: 2px; color: #969bb3; font: 650 8.5px 'Inter', sans-serif; letter-spacing: .05em; text-transform: uppercase; }
         .brand-actions { display: flex; gap: 8px; }
-        .brand-actions .btn-outline, .brand-actions .btn-gradient { flex: 1; display: inline-flex; align-items: center; justify-content: center; width: 100%; min-height: 39px; border-radius: 11px; font: 700 11px 'Inter', sans-serif; cursor: pointer; text-decoration: none; transition: transform .2s ease; }
+        .brand-actions .btn-outline, .brand-actions .btn-gradient { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; width: 100%; min-height: 39px; border-radius: 11px; font: 700 11px 'Inter', sans-serif; cursor: pointer; text-decoration: none; transition: transform .2s ease; }
         .brand-actions .btn-outline:hover, .brand-actions .btn-gradient:hover { transform: translateY(-2px); }
         .brand-actions .btn-outline { border: 1px solid #e3e1ed; color: #444b6b; background: #fff; }
         .brand-actions .btn-outline:hover { border-color: #9dc2ff; color: #0759ff; }
@@ -222,6 +226,19 @@
                             <span class="tag">@brand.Industry</span>
                             <span class="tag">@brand.MonthlyBudget</span>
                         </div>
+                        @{ var socialLinks = brand.SocialLinks(); }
+                        @if (socialLinks.Count > 0)
+                        {
+                            <div class="brand-socials">
+                                <span class="brand-socials-label">Find them on</span>
+                                <div class="social-icons">
+                                    @foreach (var link in socialLinks)
+                                    {
+                                        <a href="@link.Url" target="_blank" rel="noopener noreferrer" class="social-chip xs" style="background: @link.Platform.Background;" title="@brand.CompanyName on @link.Platform.Name" aria-label="@brand.CompanyName on @link.Platform.Name"><i class="bi @link.Platform.Icon" aria-hidden="true"></i></a>
+                                    }
+                                </div>
+                            </div>
+                        }
                         <div class="brand-figures">
                             <div class="figure"><div class="figure-value">@Model.ActiveCampaignsFor(brand.Id)</div><div class="figure-label">Active Campaigns</div></div>
                             <div class="figure"><div class="figure-value">@brand.CreatedAt.ToString("MMM yyyy")</div><div class="figure-label">Member Since</div></div>
@@ -234,7 +251,7 @@
                             <form method="post" action="/InfluencerMessages/StartWithBrand">
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="brandId" value="@brand.Id" />
-                                <button type="submit" class="btn-gradient">Message</button>
+                                <button type="submit" class="btn-gradient js-open-chat" data-brand-id="@brand.Id" data-brand-name="@brand.CompanyName" data-hue="@hue"><i class="bi bi-chat-dots" aria-hidden="true"></i> Message</button>
                             </form>
                         </div>
                     </div>

@@ -91,10 +91,21 @@ public class HomeController(ApplicationDbContext db) : Controller
         return View(vm);
     }
 
+    // "Home/Contact" keeps the conventional URL working too — the attribute route above
+    // otherwise takes this action out of conventional routing, which is why the
+    // in-app "Need Help? → Contact Support" links used to 404. Signed-in pages link
+    // here with ?accountType=Brand so the form opens with the right account type.
     [HttpGet("contact")]
-    public IActionResult Contact()
+    [HttpGet("Home/Contact")]
+    public IActionResult Contact(string? accountType)
     {
-        return View(new ContactIssueViewModel());
+        var model = new ContactIssueViewModel();
+        if (!string.IsNullOrWhiteSpace(accountType) && ContactIssueViewModel.AccountTypes.Contains(accountType))
+        {
+            model.AccountType = accountType;
+        }
+
+        return View(model);
     }
 
     [HttpPost("contact")]

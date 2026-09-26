@@ -28,6 +28,11 @@ public class Campaign
     // creator side), separate from the banner.
     public string? VideoUrl { get; set; }
 
+    // Optional link to where this campaign is already live on social media
+    // (a Facebook / Instagram / TikTok / YouTube post, etc.). Shown to creators on
+    // the campaign's details page as a clickable "View on <platform>" link.
+    public string? SocialPostUrl { get; set; }
+
     // Targeting & audience (campaign wizard Step 3). Each field maps to a
     // real InfluencerProfile attribute so a "fit" evaluation is always a
     // transparent, database-derived comparison — never a fabricated score.

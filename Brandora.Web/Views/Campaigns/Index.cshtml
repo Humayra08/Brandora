@@ -296,6 +296,13 @@
     .campaign-row-figures dt { font-family: 'Inter', sans-serif; font-size: 10.5px; font-weight: 500; color: #5877ac; }
     .campaign-row-figures dd { margin: 1px 0 0; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 700; color: #101d48; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .campaign-row-figures .icon-chip { width: 30px; height: 30px; font-size: 13px; }
+    .campaign-row-figures > div > div { min-width: 0; }
+
+    @@media(max-width: 560px) {
+        .campaign-row-figures > div { gap: 8px; padding: 10px; }
+        .campaign-row-figures dd { white-space: normal; overflow-wrap: anywhere; font-size: 13px; }
+        .campaign-row-figures .icon-chip { width: 26px; height: 26px; font-size: 12px; }
+    }
 
     .list-count { font-family: 'Inter', sans-serif; font-size: 11.5px; color: #5877ac; white-space: nowrap; }
 
@@ -631,7 +638,7 @@
         <section class="help-card">
             <h3>Need Help?</h3>
             <p>Questions about setting up, publishing or managing a campaign? Our support team can help.</p>
-            <a href="/Home/Contact">Contact Support <i class="bi bi-arrow-right"></i></a>
+            <a href="/contact?accountType=Brand#contactForm">Contact Support <i class="bi bi-arrow-right"></i></a>
             <svg viewBox="0 0 400 170" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="camp-list-help-wave" x1="0" y1="1" x2="1" y2="0"><stop stop-color="#0955ca" stop-opacity="0"/><stop offset=".65" stop-color="#168cff" stop-opacity=".5"/><stop offset="1" stop-color="#783dff" stop-opacity=".15"/></linearGradient></defs><path d="M-20 160 C100 50 140 220 260 105 S350 85 420 20 L420 190 H-20Z" fill="url(#camp-list-help-wave)"/><path d="M-20 164 C110 90 140 230 270 120 S360 70 420 40" fill="none" stroke="#2799ff" stroke-opacity=".4"/></svg>
         </section>
 

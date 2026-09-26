@@ -10,6 +10,13 @@
     var profileSaved = TempData["ProfileSaved"] as string == "true";
     var passwordChanged = TempData["PasswordChanged"] as string == "true";
     var notificationPrefsSaved = TempData["NotificationPrefsSaved"] as string == "true";
+    var socialSaved = TempData["SocialSaved"] as string == "true";
+    var socialErrors = (TempData["SocialErrors"] as string)?.Split('|', StringSplitOptions.RemoveEmptyEntries) ?? Array.Empty<string>();
+    // After a failed save, show exactly what the brand typed so only the wrong field needs fixing.
+    var socialDraft = TempData["SocialDraft"] is string draftJson
+        ? System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string?>>(draftJson) ?? new Dictionary<string, string?>()
+        : null;
+    var socialCount = Model.SocialLinks.Count(l => !string.IsNullOrWhiteSpace(l.Value));
     var rejectionReason = TempData["RejectionReason"] as string;
 
     var prefs = Model.NotificationPreferences;
@@ -25,7 +32,7 @@
 
     var faqs = new[]
     {
-        ("Who can see my brand profile?", "Creators see your company name, logo and industry on your campaigns, proposals and messages. Your contact details and budget range are only used by Brandora's review team."),
+        ("Who can see my brand profile?", "Creators see your company name, logo, industry and any social profiles you add on your campaigns, proposals, messages and in Browse Brands. Your contact details and budget range are only used by Brandora's review team."),
         ("My verification wasn't approved — what now?", "Update the details in Brand Profile (a real company name, website and logo help most) and save. Our admin team re-reviews updated profiles."),
         ("Can I change my sign-in email?", "Not from Settings. Contact support and we'll help you move your account to a new email safely."),
         ("What happens if I turn a notification type off?", "Those notifications simply aren't created for you. You'll still see the underlying activity on your Dashboard, Applications and Finance pages."),
@@ -177,12 +184,53 @@
     .billing-note { display: flex; gap: 10px; margin-top: 14px; padding: 12px 14px; border-radius: 10px; border: 1px solid #dfe9ff; background: #eef4ffbd; font-family: 'Inter', sans-serif; font-size: 12px; line-height: 1.6; color: #33477c; }
     .billing-note i { margin-top: 1px; color: #1451ff; }
 
-    /* Connected accounts */
-    .connected-list { display: grid; gap: 10px; }
-    .connected-row { display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-radius: 10px; border: 1px solid #e3edfc; background: #ffffff8c; transition: transform .2s ease, border-color .2s ease; }
-    .connected-row:hover { transform: translateY(-2px); border-color: #b9d3ff; }
-    .connected-row-name { flex: 1; font-family: 'DM Sans', sans-serif; font-size: 13.5px; font-weight: 700; color: #101d48; }
-    .connected-row-name small { display: block; font-family: 'Inter', sans-serif; font-size: 11.5px; font-weight: 400; color: #6680ad; }
+    /* Social profiles */
+    .social-edit-list { display: grid; gap: 10px; container-type: inline-size; }
+    .social-edit-row {
+        display: grid; grid-template-columns: 40px minmax(118px, 168px) minmax(0, 1fr); align-items: center; gap: 12px 14px;
+        padding: 11px 14px; border-radius: 12px; border: 1px solid #e3edfc; background: #ffffff8c;
+        transition: border-color .2s ease, box-shadow .2s ease;
+    }
+    .social-edit-row:hover { border-color: #b9d3ff; }
+    .social-edit-row:focus-within { border-color: #9fbcff; box-shadow: 0 10px 22px #5b83c41a; }
+    .social-edit-row.has-error { border-color: #f1ccd3; background: #fff7f8; }
+    .social-edit-name { min-width: 0; }
+    .social-edit-name label { display: block; font-family: 'DM Sans', sans-serif; font-size: 13.5px; font-weight: 700; color: #101d48; }
+    .social-state { display: inline-flex; align-items: center; gap: 5px; margin-top: 2px; font-family: 'Inter', sans-serif; font-size: 11px; color: #7b8fbf; }
+    .social-state::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: #c3d0e8; }
+    .social-state.is-on { color: #0d9c6c; }
+    .social-state.is-on::before { background: #0d9c6c; box-shadow: 0 0 0 3px #0d9c6c1f; }
+    .social-edit-field { position: relative; min-width: 0; }
+    .social-edit-field input {
+        width: 100%; height: 42px; padding: 0 44px 0 14px;
+        border-radius: 10px; border: 1px solid #cfe0fb; background: #ffffffd9;
+        font-family: 'Inter', sans-serif; font-size: 13px; color: #101d48; text-overflow: ellipsis;
+        outline: none; transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
+    }
+    .social-edit-field input::placeholder { color: #8ea1c8; }
+    .social-edit-field input:hover { border-color: #b3cdf7; }
+    .social-edit-field input:focus { border-color: #6b8dff; background: #ffffff; box-shadow: 0 0 0 3px #3b4dff1f; }
+    .social-open {
+        position: absolute; top: 50%; right: 6px; transform: translateY(-50%);
+        display: grid; place-items: center; width: 30px; height: 30px; border-radius: 8px;
+        color: #1451ff; background: #eef4ff; font-size: 13px; transition: background .2s ease;
+    }
+    .social-open:hover { background: #dfe9ff; }
+    .social-preview { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin-top: 16px; padding: 12px 14px; border-radius: 10px; border: 1px dashed #c9dcf8; background: #f3f8ffaa; }
+    .social-preview-label { font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; color: #33477c; }
+    .social-preview-empty { font-family: 'Inter', sans-serif; font-size: 12px; color: #6680ad; }
+    .social-icons .social-chip.is-muted { opacity: .28; filter: grayscale(1); box-shadow: none; }
+
+    /* Stack the field under the name whenever the panel itself is narrow
+       (small phones, or the two-column settings layout on tablets/laptops). */
+    @@container (max-width: 520px) {
+        .social-edit-row { grid-template-columns: 40px minmax(0, 1fr); gap: 10px 12px; }
+        .social-edit-field { grid-column: 1 / -1; }
+    }
+    @@media(max-width: 640px) {
+        .social-edit-row { grid-template-columns: 40px minmax(0, 1fr); gap: 10px 12px; }
+        .social-edit-field { grid-column: 1 / -1; }
+    }
 
     /* Rail extras */
     .ps-account-top { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
@@ -277,11 +325,11 @@
                 <span class="ps-nav-num">04</span>
             </a>
 
-            <a href="#connected-accounts" class="ps-nav-item" data-ps-nav>
+            <a href="#social-profiles" class="ps-nav-item" data-ps-nav>
                 <span class="ps-nav-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M4.2 7.8l2.1 1.2M17.7 15l2.1 1.2M4.2 16.2l2.1-1.2M17.7 9l2.1-1.2"/></svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1 1"/><path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1-1"/></svg>
                 </span>
-                <span class="ps-nav-title">Connected Accounts</span>
+                <span class="ps-nav-title">Social Profiles</span>
                 <span class="ps-nav-num">05</span>
             </a>
         </div>
@@ -315,6 +363,7 @@
                 <div><dt>Member since</dt><dd>@Model.MemberSince.ToString("MMM d, yyyy")</dd></div>
                 <div><dt>Industry</dt><dd>@(string.IsNullOrWhiteSpace(Model.Industry) ? "Not set" : Model.Industry)</dd></div>
                 <div><dt>Notifications on</dt><dd>@prefsOn of 6</dd></div>
+                <div><dt>Social profiles</dt><dd>@(socialCount == 0 ? "None added" : $"{socialCount} added")</dd></div>
             </dl>
             <a href="/Settings/Profile" class="info-card-btn" style="margin-top:10px;">View Public Profile <i class="bi bi-arrow-right"></i></a>
         </section>
@@ -351,7 +400,7 @@
         <section class="help-card">
             <h3>Need Help?</h3>
             <p>Questions about your account, verification or billing? Our support team is here to help.</p>
-            <a href="/Home/Contact">Contact Support <i class="bi bi-arrow-right"></i></a>
+            <a href="/contact?accountType=Brand#contactForm">Contact Support <i class="bi bi-arrow-right"></i></a>
             <svg viewBox="0 0 400 170" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="settings-help-wave" x1="0" y1="1" x2="1" y2="0"><stop stop-color="#0955ca" stop-opacity="0"/><stop offset=".65" stop-color="#168cff" stop-opacity=".5"/><stop offset="1" stop-color="#783dff" stop-opacity=".15"/></linearGradient></defs><path d="M-20 160 C100 50 140 220 260 105 S350 85 420 20 L420 190 H-20Z" fill="url(#settings-help-wave)"/><path d="M-20 164 C110 90 140 230 270 120 S360 70 420 40" fill="none" stroke="#2799ff" stroke-opacity=".4"/></svg>
         </section>
 
@@ -700,34 +749,82 @@
             </div>
         </div>
 
-        <div class="ui-card ps-panel" id="connected-accounts">
+        <div class="ui-card ps-panel" id="social-profiles">
 
             <div class="ps-panel-head">
                 <span class="ps-step">5</span>
                 <div class="ps-panel-copy">
-                    <div class="ps-panel-title">Connected Accounts</div>
-                    <div class="ps-panel-sub">Social platforms you can link to your brand account.</div>
+                    <div class="ps-panel-title">Social Profiles</div>
+                    <div class="ps-panel-sub">Add your brand's social accounts. They appear as icons on your profile and when creators browse brands.</div>
                 </div>
                 <span class="icon-chip pink ps-panel-chip"><i class="bi bi-link-45deg"></i></span>
             </div>
 
-            <div class="connected-list">
-                @foreach (var platform in new[] { "Instagram", "TikTok", "YouTube", "Facebook" })
-                {
-                    <div class="connected-row">
-                        <span class="icon-chip sm soft"><i class="bi bi-@platform.ToLowerInvariant()"></i></span>
-                        <div class="connected-row-name">@platform<small>Not linked to this account</small></div>
-                        <div class="connected-row-status">
-                            <span class="ui-badge is-neutral">Not Connected</span>
-                        </div>
-                    </div>
-                }
-            </div>
+            @if (socialSaved)
+            {
+                <div class="notice is-success"><i class="bi bi-check-circle-fill"></i><span>Social profiles updated.</span></div>
+            }
+            @if (socialErrors.Length > 0)
+            {
+                <div class="notice is-error">
+                    <i class="bi bi-exclamation-circle-fill"></i>
+                    <ul>
+                        @foreach (var error in socialErrors)
+                        {
+                            <li>@error</li>
+                        }
+                    </ul>
+                </div>
+            }
 
-            <div class="billing-note" style="margin-top: 16px;">
-                <i class="bi bi-info-circle"></i>
-                <span>Platform connections require an external integration that isn't configured for this Brandora instance yet — nothing here is falsely marked as connected. Once integration credentials are available, connecting an account will let you cross-post campaign briefs and verify your own social presence to creators.</span>
-            </div>
+            <form method="post" action="/Settings/UpdateSocialLinks" id="socialLinksForm">
+                @Html.AntiForgeryToken()
+
+                <div class="social-edit-list">
+                    @foreach (var platform in SocialPlatform.All)
+                    {
+                        Model.SocialLinks.TryGetValue(platform.Key, out var savedUrl);
+                        var fieldValue = socialDraft is not null
+                            ? (socialDraft.TryGetValue(platform.Key, out var drafted) ? drafted : null)
+                            : savedUrl;
+                        var isSaved = !string.IsNullOrWhiteSpace(savedUrl);
+                        var hasError = socialErrors.Any(e => e.StartsWith($"Enter your {platform.Name} link") || e.StartsWith($"{platform.Name} link"));
+                        var inputId = $"social-{platform.Key}";
+                        <div class="social-edit-row @(hasError ? "has-error" : "")">
+                            <span class="social-chip" style="background: @platform.Background;" aria-hidden="true"><i class="bi @platform.Icon"></i></span>
+                            <div class="social-edit-name">
+                                <label for="@inputId">@platform.Name</label>
+                                <span class="social-state @(isSaved ? "is-on" : "")">@(isSaved ? "Shown on profile" : "Not added")</span>
+                            </div>
+                            <div class="social-edit-field">
+                                <input type="text" inputmode="url" id="@inputId" name="social[@platform.Key]" value="@fieldValue"
+                                       placeholder="@platform.Placeholder or @@handle" autocomplete="off" spellcheck="false" maxlength="300"
+                                       data-social-input="@platform.Key" />
+                                @if (isSaved)
+                                {
+                                    <a href="@savedUrl" target="_blank" rel="noopener noreferrer" class="social-open" title="Open your @platform.Name page" aria-label="Open your @platform.Name page"><i class="bi bi-box-arrow-up-right"></i></a>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <div class="social-preview" aria-live="polite">
+                    <span class="social-preview-label">How creators see it:</span>
+                    <div class="social-icons" id="socialPreviewIcons">
+                        @foreach (var platform in SocialPlatform.All)
+                        {
+                            Model.SocialLinks.TryGetValue(platform.Key, out var savedUrl);
+                            var isSaved = !string.IsNullOrWhiteSpace(savedUrl);
+                            <span class="social-chip sm @(isSaved ? "" : "is-muted")" style="background: @platform.Background;" data-social-preview="@platform.Key" title="@platform.Name"><i class="bi @platform.Icon"></i></span>
+                        }
+                    </div>
+                </div>
+
+                <div class="ps-actions">
+                    <button type="submit" class="ps-save-btn">Save Social Profiles</button>
+                </div>
+            </form>
         </div>
 
     </div>
@@ -777,6 +874,17 @@
                     preview.innerHTML = '<img src="' + e.target.result + '" alt="Selected profile picture" />';
                 };
                 reader.readAsDataURL(file);
+            });
+        })();
+
+        // Social profiles: the preview icons light up as soon as a field has a value.
+        (function () {
+            document.querySelectorAll('[data-social-input]').forEach(function (input) {
+                var chip = document.querySelector('[data-social-preview="' + input.getAttribute('data-social-input') + '"]');
+                if (!chip) return;
+                function sync() { chip.classList.toggle('is-muted', input.value.trim() === ''); }
+                input.addEventListener('input', sync);
+                sync();
             });
         })();
 

@@ -15,6 +15,12 @@ public class InfluencerCampaignDetailsViewModel
     public string BrandIndustry { get; set; } = string.Empty;
     public string? BrandWebsiteUrl { get; set; }
 
+    // The brand's own social profiles (Brand Settings → Social Profiles), shown as icons.
+    public List<(SocialPlatform Platform, string Url)> BrandSocialLinks { get; set; } = new();
+
+    // Optional link to where the brand has already posted this campaign on social media.
+    public string? SocialPostUrl { get; set; }
+
     // The campaign's banner image and its separate video / reel (played on this page).
     public string? BannerUrl { get; set; }
     public string? VideoUrl { get; set; }

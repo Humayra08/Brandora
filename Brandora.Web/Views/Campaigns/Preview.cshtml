@@ -123,6 +123,8 @@
     }
     /* ---- Step 4 specifics ---- */
     .rv-rows dd { white-space: pre-wrap; }
+    .rv-live-link { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; color: #1451ff; }
+    .rv-live-link:hover { text-decoration: underline; }
 
     .mini-plan-list { display: grid; gap: 8px; }
     .mini-plan-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 10px; border: 1px solid #e3edfc; background: #ffffff8c; transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease; }
@@ -233,6 +235,11 @@
                     @if (!string.IsNullOrEmpty(campaign.ContentGuidelines))
                     {
                         <div><dt><span class="icon-chip"><i class="bi bi-journal-text"></i></span>Content Guidelines</dt><dd>@campaign.ContentGuidelines</dd></div>
+                    }
+                    @if (!string.IsNullOrEmpty(campaign.SocialPostUrl))
+                    {
+                        var livePlatform = Brandora.Web.Models.Domain.SocialPlatform.FromUrl(campaign.SocialPostUrl);
+                        <div><dt><span class="icon-chip"><i class="bi @(livePlatform?.Icon ?? "bi-link-45deg")"></i></span>Live Post</dt><dd><a href="@campaign.SocialPostUrl" target="_blank" rel="noopener noreferrer" class="rv-live-link">View on @(livePlatform?.Name ?? "social media") <i class="bi bi-box-arrow-up-right"></i></a><small>Creators see this link on the campaign page</small></dd></div>
                     }
                 </dl>
             </section>
@@ -440,7 +447,7 @@
             <section class="help-card">
                 <h3>Need Help?</h3>
                 <p>Want a second opinion before you go live? Our support team can help.</p>
-                <a href="/Home/Contact">Contact Support <i class="bi bi-arrow-right"></i></a>
+                <a href="/contact?accountType=Brand#contactForm">Contact Support <i class="bi bi-arrow-right"></i></a>
                 <svg viewBox="0 0 400 170" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="camp-review-help-wave" x1="0" y1="1" x2="1" y2="0"><stop stop-color="#0955ca" stop-opacity="0"/><stop offset=".65" stop-color="#168cff" stop-opacity=".5"/><stop offset="1" stop-color="#783dff" stop-opacity=".15"/></linearGradient></defs><path d="M-20 160 C100 50 140 220 260 105 S350 85 420 20 L420 190 H-20Z" fill="url(#camp-review-help-wave)"/><path d="M-20 164 C110 90 140 230 270 120 S360 70 420 40" fill="none" stroke="#2799ff" stroke-opacity=".4"/></svg>
             </section>
 

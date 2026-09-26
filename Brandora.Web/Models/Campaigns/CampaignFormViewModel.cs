@@ -47,6 +47,12 @@ public class CampaignFormViewModel
     public bool RemoveVideo { get; set; }
 
     public string? ExistingVideoUrl { get; set; }
+
+    // Optional: where this campaign is already live on social media. Creators see it on
+    // the campaign's details page as a clickable link to the post.
+    [StringLength(500, ErrorMessage = "The social media link is too long.")]
+    [Display(Name = "Social media post link")]
+    public string? SocialPostUrl { get; set; }
 }
 
 // The campaign video player (Views/Shared/_CampaignReel.cshtml), shared by the Brand's

@@ -118,6 +118,12 @@ public class CampaignsController(UserManager<ApplicationUser> userManager, Appli
             ModelState.AddModelError(nameof(model.Deadline), "End date must be on or after the start date.");
         }
 
+        var socialPostUrl = NormalizeSocialPostUrl(model.SocialPostUrl);
+        if (socialPostUrl.Error is not null)
+        {
+            ModelState.AddModelError(nameof(model.SocialPostUrl), socialPostUrl.Error);
+        }
+
         if (!ModelState.IsValid)
         {
             return View(model);
@@ -175,7 +181,8 @@ public class CampaignsController(UserManager<ApplicationUser> userManager, Appli
             Status = CampaignStatus.Draft,
             MediaUrl = mediaUrl,
             MediaType = mediaType,
-            VideoUrl = videoUrl
+            VideoUrl = videoUrl,
+            SocialPostUrl = socialPostUrl.Url
         };
 
         db.Campaigns.Add(campaign);
@@ -184,6 +191,33 @@ public class CampaignsController(UserManager<ApplicationUser> userManager, Appli
         return returnToList
             ? RedirectToAction("Index")
             : RedirectToAction("Milestones", new { id = campaign.Id });
+    }
+
+    // The optional "already live on social media" link: accepts a full link or one typed
+    // without "https://", and only ever stores an absolute http(s) URL so the creator-side
+    // link can't point anywhere unsafe (e.g. a javascript: URL).
+    private static (string? Url, string? Error) NormalizeSocialPostUrl(string? input)
+    {
+        var value = input?.Trim();
+        if (string.IsNullOrEmpty(value))
+        {
+            return (null, null);
+        }
+
+        if (!value.StartsWith("http://", StringComparison.OrdinalIgnoreCase) &&
+            !value.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+        {
+            value = "https://" + value;
+        }
+
+        if (!Uri.TryCreate(value, UriKind.Absolute, out var uri) ||
+            (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps) ||
+            !uri.Host.Contains('.'))
+        {
+            return (null, "Enter a valid link to the campaign's social media post, e.g. https://www.facebook.com/yourbrand/posts/…");
+        }
+
+        return (uri.AbsoluteUri, null);
     }
 
     // The banner slot takes images only (it's the campaign's cover everywhere); the video
@@ -233,7 +267,8 @@ public class CampaignsController(UserManager<ApplicationUser> userManager, Appli
             ContentGuidelines = campaign.ContentGuidelines,
             ExistingMediaUrl = campaign.MediaUrl,
             ExistingMediaType = campaign.MediaType,
-            ExistingVideoUrl = campaign.VideoUrl
+            ExistingVideoUrl = campaign.VideoUrl,
+            SocialPostUrl = campaign.SocialPostUrl
         });
     }
 
@@ -265,6 +300,12 @@ public class CampaignsController(UserManager<ApplicationUser> userManager, Appli
             ModelState.AddModelError(string.Empty, fileError);
         }
 
+        var socialPostUrl = NormalizeSocialPostUrl(model.SocialPostUrl);
+        if (socialPostUrl.Error is not null)
+        {
+            ModelState.AddModelError(nameof(model.SocialPostUrl), socialPostUrl.Error);
+        }
+
         if (!ModelState.IsValid)
         {
             model.Id = id;
@@ -282,6 +323,7 @@ public class CampaignsController(UserManager<ApplicationUser> userManager, Appli
         campaign.StartDate = model.StartDate.HasValue ? DateTime.SpecifyKind(model.StartDate.Value, DateTimeKind.Utc) : null;
         campaign.Deadline = model.Deadline.HasValue ? DateTime.SpecifyKind(model.Deadline.Value, DateTimeKind.Utc) : null;
         campaign.ContentGuidelines = model.ContentGuidelines;
+        campaign.SocialPostUrl = socialPostUrl.Url;
 
         if (model.RemoveMedia && campaign.MediaUrl is not null)
         {

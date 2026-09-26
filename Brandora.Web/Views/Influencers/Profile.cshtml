@@ -73,6 +73,11 @@
     .collab-row small { display: block; margin-top: 2px; font-family: 'Inter', sans-serif; font-size: 11.5px; color: #5877ac; }
     .collab-row > i { color: #8095c4; transition: transform .2s ease, color .2s ease; }
     .collab-row:hover > i { transform: translateX(3px); color: #1451ff; }
+    @@media(max-width: 560px) {
+        .collab-row { grid-template-columns: auto minmax(0, 1fr) auto; row-gap: 8px; }
+        .collab-row .ui-badge { grid-column: 2; grid-row: 2; justify-self: start; }
+        .collab-row > i { grid-column: 3; grid-row: 1 / span 2; }
+    }
 
     .cp-empty { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 26px 16px; border: 1px dashed #cfdcf5; border-radius: 12px; background: #f7faffb3; text-align: center; font-family: 'Inter', sans-serif; font-size: 12px; color: #6b7fb1; }
     .cp-empty strong { font-family: 'DM Sans', sans-serif; font-size: 13.5px; color: #142652; }
@@ -337,7 +342,7 @@
         <section class="help-card">
             <h3>Need Help?</h3>
             <p>Questions about a creator or how to invite them? Our support team can help.</p>
-            <a href="/Home/Contact">Contact Support <i class="bi bi-arrow-right"></i></a>
+            <a href="/contact?accountType=Brand#contactForm">Contact Support <i class="bi bi-arrow-right"></i></a>
             <svg viewBox="0 0 400 170" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="cp-help-wave" x1="0" y1="1" x2="1" y2="0"><stop stop-color="#0955ca" stop-opacity="0"/><stop offset=".65" stop-color="#168cff" stop-opacity=".5"/><stop offset="1" stop-color="#783dff" stop-opacity=".15"/></linearGradient></defs><path d="M-20 160 C100 50 140 220 260 105 S350 85 420 20 L420 190 H-20Z" fill="url(#cp-help-wave)"/><path d="M-20 164 C110 90 140 230 270 120 S360 70 420 40" fill="none" stroke="#2799ff" stroke-opacity=".4"/></svg>
         </section>
 
