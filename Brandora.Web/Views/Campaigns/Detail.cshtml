@@ -68,6 +68,12 @@
 
 @section Styles {
 
+    .cd-live-meta { margin: 6px 4px 12px; font-family: 'Inter', sans-serif; font-size: 11.5px; color: #6680ad; }
+    .cd-live-meta:last-child { margin-bottom: 0; }
+    .cd-live-meta a { font-weight: 600; color: #1451ff; }
+    .cd-live-meta a:hover { text-decoration: underline; }
+
+
     .cd-flow { margin: 0 0 16px; }
     .cd-body { align-items: start; }
 
@@ -515,6 +521,24 @@ else
                     </div>
                 }
             </section>
+
+            @if (Model.LivePostMilestones.Count > 0)
+            {
+                <section class="ui-card">
+                    <div class="ui-card-head" style="margin-bottom:10px;">
+                        <div>
+                            <div class="ui-card-title">Live Creator Posts</div>
+                            <p class="ui-card-sub">Posts your creators published for this campaign &mdash; open any of them on its platform.</p>
+                        </div>
+                        <span class="ui-badge is-info">@Model.LivePostMilestones.Count live</span>
+                    </div>
+                    @foreach (var postMilestone in Model.LivePostMilestones)
+                    {
+                        <partial name="_LivePostCard" model='new LivePostCard(postMilestone.LivePostUrl()!, postMilestone.Collaboration.InfluencerProfile.FullName + " is live on {platform}")' />
+                        <div class="cd-live-meta"><a href="/Milestones/Detail/@postMilestone.Id#proof">@postMilestone.Title</a> &middot; proof of post</div>
+                    }
+                </section>
+            }
 
         </div>
 

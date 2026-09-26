@@ -22,7 +22,10 @@ public class MessagesController(UserManager<ApplicationUser> userManager, Applic
 
         if (campaignId.HasValue)
         {
-            query = query.Where(c => c.CampaignId == campaignId.Value);
+            // A brand has one thread per creator, so "this campaign's conversations" are the
+            // threads with creators who applied to / were invited to that campaign.
+            query = query.Where(c => c.CampaignId == campaignId.Value ||
+                                     db.Proposals.Any(p => p.CampaignId == campaignId.Value && p.InfluencerProfileId == c.InfluencerProfileId));
         }
 
         var conversations = await query
@@ -312,7 +315,7 @@ public class MessagesController(UserManager<ApplicationUser> userManager, Applic
         // One conversation per (brand, influencer) pair, regardless of which
         // campaign the brand messages them about — CampaignId is stored only
         // as first-contact context, never used to fork a second thread.
-        var conversation = await db.Conversations.FirstOrDefaultAsync(c =>
+        var conversation = await db.Conversations.OrderBy(c => c.Id).FirstOrDefaultAsync(c =>
             c.BrandProfileId == brand.Id && c.InfluencerProfileId == influencerId);
 
         if (conversation is null)
@@ -347,7 +350,7 @@ public class MessagesController(UserManager<ApplicationUser> userManager, Applic
 
         var conversation = await db.Conversations
             .Include(c => c.Messages).ThenInclude(m => m.SenderUser)
-            .FirstOrDefaultAsync(c => c.BrandProfileId == brand.Id && c.InfluencerProfileId == influencerId);
+            .OrderBy(c => c.Id).FirstOrDefaultAsync(c => c.BrandProfileId == brand.Id && c.InfluencerProfileId == influencerId);
 
         if (conversation is null)
         {
@@ -389,7 +392,7 @@ public class MessagesController(UserManager<ApplicationUser> userManager, Applic
         var conversation = await db.Conversations
             .Include(c => c.InfluencerProfile)
             .Include(c => c.Messages).ThenInclude(m => m.SenderUser)
-            .FirstOrDefaultAsync(c => c.BrandProfileId == brand.Id && c.InfluencerProfileId == influencerId);
+            .OrderBy(c => c.Id).FirstOrDefaultAsync(c => c.BrandProfileId == brand.Id && c.InfluencerProfileId == influencerId);
 
         if (conversation is null)
         {
@@ -513,7 +516,7 @@ public class MessagesController(UserManager<ApplicationUser> userManager, Applic
         var conversation = await db.Conversations
             .Include(c => c.InfluencerProfile)
             .Include(c => c.Messages).ThenInclude(m => m.SenderUser)
-            .FirstOrDefaultAsync(c => c.BrandProfileId == brandId && c.InfluencerProfileId == influencerId);
+            .OrderBy(c => c.Id).FirstOrDefaultAsync(c => c.BrandProfileId == brandId && c.InfluencerProfileId == influencerId);
 
         if (conversation is null)
         {

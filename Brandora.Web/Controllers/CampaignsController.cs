@@ -742,7 +742,8 @@ public class CampaignsController(UserManager<ApplicationUser> userManager, Appli
 
         var applicantCount = await db.Proposals.CountAsync(p => p.CampaignId == id);
         var collaborationCount = await db.Collaborations.CountAsync(c => c.CampaignId == id);
-        var conversationCount = await db.Conversations.CountAsync(c => c.CampaignId == id);
+        var conversationCount = await db.Conversations.CountAsync(c => c.BrandProfileId == brand.Id &&
+            (c.CampaignId == id || db.Proposals.Any(p => p.CampaignId == id && p.InfluencerProfileId == c.InfluencerProfileId)));
 
         var milestonePlans = await db.CampaignMilestonePlans
             .Where(p => p.CampaignId == id)
@@ -751,6 +752,7 @@ public class CampaignsController(UserManager<ApplicationUser> userManager, Appli
 
         var campaignMilestones = await db.Milestones
             .Where(m => m.Collaboration.CampaignId == id)
+            .Include(m => m.Collaboration).ThenInclude(c => c.InfluencerProfile)
             .ToListAsync();
 
         var pendingPayments = await db.Payments
@@ -766,7 +768,12 @@ public class CampaignsController(UserManager<ApplicationUser> userManager, Appli
             MilestonePlans = milestonePlans,
             TotalMilestoneCount = campaignMilestones.Count,
             PaidMilestoneCount = campaignMilestones.Count(m => m.Status == MilestoneStatus.Paid),
-            PendingPaymentsAmount = pendingPayments
+            PendingPaymentsAmount = pendingPayments,
+            LivePostMilestones = campaignMilestones
+                .Where(m => m.LivePostUrl() is not null &&
+                            (m.Status is MilestoneStatus.Approved or MilestoneStatus.Paid || m.BrandApprovedAt != null))
+                .OrderByDescending(m => m.CreatedAt)
+                .ToList()
         });
     }
 }

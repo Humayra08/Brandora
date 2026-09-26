@@ -316,7 +316,7 @@ public class InfluencerMessagesController(UserManager<ApplicationUser> userManag
         // One conversation per (brand, influencer) pair, regardless of which
         // campaign started it — CampaignId is stored only as first-contact
         // context, never used to fork a second thread.
-        var conversation = await db.Conversations.FirstOrDefaultAsync(c =>
+        var conversation = await db.Conversations.OrderBy(c => c.Id).FirstOrDefaultAsync(c =>
             c.BrandProfileId == brandId && c.InfluencerProfileId == influencer.Id);
 
         if (conversation is null)
@@ -356,7 +356,7 @@ public class InfluencerMessagesController(UserManager<ApplicationUser> userManag
 
         var conversation = await db.Conversations
             .Include(c => c.Messages).ThenInclude(m => m.SenderUser)
-            .FirstOrDefaultAsync(c => c.BrandProfileId == brandId && c.InfluencerProfileId == influencer.Id);
+            .OrderBy(c => c.Id).FirstOrDefaultAsync(c => c.BrandProfileId == brandId && c.InfluencerProfileId == influencer.Id);
 
         if (conversation is null)
         {
@@ -398,7 +398,7 @@ public class InfluencerMessagesController(UserManager<ApplicationUser> userManag
         var conversation = await db.Conversations
             .Include(c => c.BrandProfile)
             .Include(c => c.Messages).ThenInclude(m => m.SenderUser)
-            .FirstOrDefaultAsync(c => c.BrandProfileId == brandId && c.InfluencerProfileId == influencer.Id);
+            .OrderBy(c => c.Id).FirstOrDefaultAsync(c => c.BrandProfileId == brandId && c.InfluencerProfileId == influencer.Id);
 
         if (conversation is null)
         {
@@ -522,7 +522,7 @@ public class InfluencerMessagesController(UserManager<ApplicationUser> userManag
         var conversation = await db.Conversations
             .Include(c => c.BrandProfile)
             .Include(c => c.Messages).ThenInclude(m => m.SenderUser)
-            .FirstOrDefaultAsync(c => c.BrandProfileId == brandId && c.InfluencerProfileId == influencerId);
+            .OrderBy(c => c.Id).FirstOrDefaultAsync(c => c.BrandProfileId == brandId && c.InfluencerProfileId == influencerId);
 
         if (conversation is null)
         {

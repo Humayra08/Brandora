@@ -5,12 +5,14 @@
     ViewData["ActiveNav"] = "Agreements";
     Layout = "_AppLayout";
     var tab = ViewData["Tab"] as string ?? "all";
-    var tabs = new[] { ("all", "All"), ("mine", "Awaiting Your Signature"), ("them", "Awaiting Influencer"), ("completed", "Completed") };
+    var counts = ViewData["Counts"] as Dictionary<string, int> ?? new Dictionary<string, int>();
+    foreach (var key in new[] { "all", "mine", "them", "completed" }) { counts.TryAdd(key, 0); }
+    var tabs = new[] { ("all", "All"), ("mine", "Awaiting Your Signature"), ("them", "Awaiting Creator"), ("completed", "Completed") };
     string StatusLabel(AgreementStatus status) => status switch
     {
         AgreementStatus.FullySigned => "Fully Signed",
         AgreementStatus.AwaitingBrandSignature => "Awaiting Your Signature",
-        _ => "Awaiting Influencer"
+        _ => "Awaiting Creator"
     };
     string StatusClass(AgreementStatus status) => status switch
     {
@@ -18,49 +20,138 @@
         AgreementStatus.AwaitingBrandSignature => "is-pending",
         _ => "is-neutral"
     };
-}
-
-@section Styles {
-    <style>
-        .agr-tabs { display: flex; gap: 8px; margin-bottom: 18px; flex-wrap: wrap; }
-        .agr-tabs a { padding: 8px 14px; border-radius: 999px; border: 1px solid #d6dcf0; font-size: 12.5px; font-weight: 600; color: #40467a; text-decoration: none; }
-        .agr-tabs a.is-active { background: #0759ff; border-color: #0759ff; color: #fff; }
-        .agr-list { display: flex; flex-direction: column; gap: 10px; }
-        .agr-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 18px; border: 1px solid #e6e9f4; border-radius: 12px; background: #fff; text-decoration: none; color: inherit; }
-        .agr-row:hover { border-color: #b9c8ff; }
-        .agr-row-title { font-weight: 700; font-size: 14px; color: #171d3d; }
-        .agr-row-sub { font-size: 12px; color: #6b7290; margin-top: 2px; }
-        .agr-badge { padding: 5px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
-        .agr-badge.is-success { background: #e3f7ec; color: #1b7a4a; }
-        .agr-badge.is-pending { background: #fff3e0; color: #b3690a; }
-        .agr-badge.is-neutral { background: #eef0fa; color: #55608a; }
-        .agr-empty { text-align: center; padding: 60px 20px; color: #6b7290; }
-    </style>
-}
-
-<div class="agr-tabs">
-    @foreach (var (key, label) in tabs)
+    string StatusIcon(AgreementStatus status) => status switch
     {
-        <a href="/Agreements?tab=@key" class="@(tab == key ? "is-active" : "")">@label</a>
-    }
-</div>
+        AgreementStatus.FullySigned => "bi-patch-check-fill",
+        AgreementStatus.AwaitingBrandSignature => "bi-pen",
+        _ => "bi-hourglass-split"
+    };
+}
 
-@if (Model.Count == 0)
-{
-    <div class="agr-empty">No agreements here yet.</div>
+@* The layout already wraps this section in a <style> element, so no <style> tag here. *@
+@section Styles {
+    /* ---- Agreements list (same design on the Brand and Influencer side) ---- */
+    .agr-page { --agr-ink: #101d48; --agr-soft: #33477c; --agr-muted: #5877ac; --agr-line: #e1eafa; display: grid; gap: 18px; min-width: 0; font-family: 'Inter', 'DM Sans', sans-serif; }
+    .agr-page a { text-decoration: none; }
+
+    .agr-hero { position: relative; overflow: hidden; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 22px 32px; padding: 26px 28px; border-radius: 18px; border: 1px solid #d6e4ff; background: radial-gradient(circle at 100% 0%, rgba(116, 176, 255, .35), transparent 45%), radial-gradient(circle at 0% 100%, rgba(155, 110, 255, .18), transparent 45%), linear-gradient(135deg, #f7f9ff, #eef4ff); }
+    .agr-hero-copy { min-width: 0; }
+    .agr-page .agr-eyebrow { display: inline-flex; align-items: center; gap: 7px; margin: 0; font-size: 11.5px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #6b3bff; }
+    .agr-page .agr-heading { margin: 8px 0 0; font: 600 clamp(24px, 3vw, 32px)/1.2 'Playfair Display', Georgia, serif; letter-spacing: -.4px; color: var(--agr-ink); overflow-wrap: anywhere; }
+    .agr-heading span { background: linear-gradient(115deg, #7224ff, #3735ff 55%, #087fff); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent; }
+    .agr-page .agr-lead { margin: 8px 0 0; max-width: 560px; font-size: 13.5px; line-height: 1.6; color: var(--agr-soft); }
+    .agr-page .agr-stats { display: grid; grid-template-columns: repeat(4, minmax(78px, auto)); gap: 0; margin: 0; border-radius: 14px; border: 1px solid #d6e4ff; background: #ffffffcc; overflow: hidden; }
+    .agr-stats > div { min-width: 0; padding: 12px 16px; }
+    .agr-stats > div + div { border-left: 1px solid var(--agr-line); }
+    .agr-page .agr-stats dt { margin: 0; font-size: 11px; font-weight: 600; color: var(--agr-muted); white-space: nowrap; }
+    .agr-page .agr-stats dd { margin: 3px 0 0; font: 700 20px/1.1 'DM Sans', sans-serif; color: var(--agr-ink); }
+
+    .agr-tabs { display: flex; gap: 4px; width: fit-content; max-width: 100%; padding: 5px; border-radius: 14px; border: 1px solid var(--agr-line); background: #ffffff; box-shadow: 0 4px 14px rgba(40, 70, 140, .06); overflow-x: auto; scrollbar-width: none; }
+    .agr-tabs::-webkit-scrollbar { display: none; }
+    .agr-page .agr-tab { flex-shrink: 0; display: inline-flex; align-items: center; gap: 7px; padding: 8px 14px; border-radius: 10px; font-size: 12.5px; font-weight: 600; color: var(--agr-soft); white-space: nowrap; transition: background .2s ease, color .2s ease; }
+    .agr-page .agr-tab:hover { background: #f1f5ff; color: #1451ff; }
+    .agr-tab-count { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; background: #eef2fb; font-size: 11px; font-weight: 700; color: var(--agr-soft); }
+    .agr-page .agr-tab.is-active { background: linear-gradient(110deg, #6425ff, #004dff 55%, #00a8f0); color: #ffffff; box-shadow: 0 6px 16px rgba(59, 77, 255, .28); }
+    .agr-tab.is-active .agr-tab-count { background: rgba(255, 255, 255, .22); color: #ffffff; }
+
+    .agr-list { display: grid; gap: 10px; }
+    .agr-page .agr-card { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: 14px 16px; padding: 16px 18px; border-radius: 14px; border: 1px solid var(--agr-line); background: #ffffff; color: inherit; box-shadow: 0 2px 8px rgba(40, 70, 140, .04); transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease; }
+    .agr-page .agr-card:hover { transform: translateY(-2px); border-color: #b9d0ff; box-shadow: 0 12px 26px rgba(60, 90, 180, .12); }
+    .agr-icon { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 12px; font-size: 18px; }
+    .agr-icon.is-success { background: #e4f7ee; color: #0d9c6c; }
+    .agr-icon.is-pending { background: #efe8ff; color: #6b3bff; }
+    .agr-icon.is-neutral { background: #e8f0ff; color: #1d5bd8; }
+    .agr-card-main { min-width: 0; }
+    .agr-card-title { font: 700 14.5px/1.35 'DM Sans', sans-serif; color: var(--agr-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .agr-card-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; margin-top: 5px; font-size: 12px; color: var(--agr-muted); }
+    .agr-card-meta > span { display: inline-flex; align-items: center; gap: 5px; min-width: 0; }
+    .agr-card-meta i { font-size: 12px; }
+    .agr-code { padding: 2px 7px; border-radius: 6px; background: #f1f4fb; font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; font-size: 11.5px; color: var(--agr-soft); }
+    .agr-status { display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px; border-radius: 999px; font-size: 11.5px; font-weight: 700; white-space: nowrap; }
+    .agr-status.is-success { background: #e4f7ee; color: #0b7a57; }
+    .agr-status.is-pending { background: #efe8ff; color: #5b21d6; }
+    .agr-status.is-neutral { background: #e8f0ff; color: #1d4fc4; }
+    .agr-chevron { color: #9aaed6; transition: transform .2s ease, color .2s ease; }
+    .agr-card:hover .agr-chevron { color: #1451ff; transform: translateX(3px); }
+
+    .agr-empty { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 46px 20px; border-radius: 16px; border: 1.5px dashed #cfdcf5; background: #f8faffcc; text-align: center; }
+    .agr-empty-icon { display: grid; place-items: center; width: 52px; height: 52px; border-radius: 16px; background: linear-gradient(135deg, #efe8ff, #e3eeff); color: #5b3bff; font-size: 22px; }
+    .agr-empty strong { font: 600 18px/1.3 'Playfair Display', Georgia, serif; color: var(--agr-ink); }
+    .agr-page .agr-empty p { margin: 0; max-width: 420px; font-size: 13px; line-height: 1.6; color: var(--agr-muted); }
+    .agr-page .agr-empty-link { display: inline-flex; align-items: center; gap: 6px; margin-top: 6px; padding: 9px 16px; border-radius: 10px; background: linear-gradient(110deg, #6425ff, #004dff 55%, #00a8f0); font-size: 12.5px; font-weight: 600; color: #ffffff; }
+
+    @@media (max-width: 900px) {
+        .agr-hero { grid-template-columns: minmax(0, 1fr); align-items: start; }
+        .agr-page .agr-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    }
+    @@media (max-width: 640px) {
+        .agr-hero { padding: 20px 18px; }
+        .agr-page .agr-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .agr-stats > div:nth-child(3) { border-left: 0; }
+        .agr-stats > div:nth-child(n+3) { border-top: 1px solid var(--agr-line); }
+        .agr-page .agr-card { grid-template-columns: auto minmax(0, 1fr) auto; padding: 14px; }
+        .agr-card-title { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+        .agr-status { grid-column: 2 / 3; grid-row: 2; justify-self: start; }
+        .agr-chevron { grid-column: 3; grid-row: 1 / 3; }
+    }
 }
-else
-{
-    <div class="agr-list">
-        @foreach (var agreement in Model)
+
+<div class="agr-page">
+
+    <section class="agr-hero">
+        <div class="agr-hero-copy">
+            <p class="agr-eyebrow"><i class="bi bi-file-earmark-check" aria-hidden="true"></i> Agreements</p>
+            <h1 class="agr-heading">Collaboration <span>Agreements</span></h1>
+            <p class="agr-lead">Every agreement between you and a creator, in one place. Open one to review the terms, sign it, or keep a copy.</p>
+        </div>
+        <dl class="agr-stats">
+            <div><dt>Total</dt><dd>@counts["all"]</dd></div>
+            <div><dt>Needs you</dt><dd>@counts["mine"]</dd></div>
+            <div><dt>With creator</dt><dd>@counts["them"]</dd></div>
+            <div><dt>Signed</dt><dd>@counts["completed"]</dd></div>
+        </dl>
+    </section>
+
+    <nav class="agr-tabs" aria-label="Filter agreements">
+        @foreach (var (key, label) in tabs)
         {
-            <a class="agr-row" href="/Agreements/Detail/@agreement.Id">
-                <div>
-                    <div class="agr-row-title">@agreement.Campaign.Title</div>
-                    <div class="agr-row-sub">@agreement.Code &middot; @agreement.InfluencerProfile.FullName &middot; @agreement.CreatedAt.ToString("MMM d, yyyy")</div>
-                </div>
-                <span class="agr-badge @StatusClass(agreement.Status)">@StatusLabel(agreement.Status)</span>
-            </a>
+            <a href="/Agreements?tab=@key" class="agr-tab @(tab == key ? "is-active" : "")" aria-current="@(tab == key ? "page" : null)">@label <span class="agr-tab-count">@counts[key]</span></a>
         }
-    </div>
-}
+    </nav>
+
+    @if (Model.Count == 0)
+    {
+        <div class="agr-empty">
+            <span class="agr-empty-icon"><i class="bi bi-file-earmark-text" aria-hidden="true"></i></span>
+            <strong>@(tab == "all" ? "No agreements yet" : "Nothing here right now")</strong>
+            <p>@(tab == "all" ? "Agreements are created when you accept a creator's application and confirm the collaboration." : "No agreements match this filter. Try another tab.")</p>
+            @if (tab == "all")
+            {
+                <a class="agr-empty-link" href="/Proposals">Review applications <i class="bi bi-arrow-right"></i></a>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="agr-list">
+            @foreach (var agreement in Model)
+            {
+                var statusClass = StatusClass(agreement.Status);
+                <a class="agr-card" href="/Agreements/Detail/@agreement.Id">
+                    <span class="agr-icon @statusClass" aria-hidden="true"><i class="bi @StatusIcon(agreement.Status)"></i></span>
+                    <div class="agr-card-main">
+                        <div class="agr-card-title">@agreement.Campaign.Title</div>
+                        <div class="agr-card-meta">
+                            <span class="agr-code">@agreement.Code</span>
+                            <span><i class="bi bi-person" aria-hidden="true"></i>@agreement.InfluencerProfile.FullName</span>
+                            <span><i class="bi bi-calendar3" aria-hidden="true"></i>@agreement.CreatedAt.ToString("MMM d, yyyy")</span>
+                        </div>
+                    </div>
+                    <span class="agr-status @statusClass">@StatusLabel(agreement.Status)</span>
+                    <i class="bi bi-chevron-right agr-chevron" aria-hidden="true"></i>
+                </a>
+            }
+        </div>
+    }
+
+</div>

@@ -1366,3 +1366,74 @@ button {
         opacity: .34;
     }
 }
+
+
+/* =========================================================
+   CLICKABLE CARDS + MOTION
+   Each card opens its public profile page: the "View Profile"
+   link is stretched over the whole card. Cards fade up as they
+   scroll into view (brandora-public-profile.js adds .is-in).
+========================================================= */
+
+.brand-card,
+.influencer-card {
+    position: relative;
+}
+
+.brand-card-btn::after,
+.influencer-card-btn::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    border-radius: inherit;
+}
+
+.brand-card:hover .brand-card-logo-img,
+.influencer-card:hover .influencer-card-avatar-img {
+    transform: scale(1.04);
+}
+
+.brand-card-logo-img,
+.influencer-card-avatar-img {
+    transition: transform .45s cubic-bezier(.22, 1, .36, 1);
+}
+
+.brand-card:focus-within,
+.influencer-card:focus-within {
+    outline: 2px solid var(--dir-card-accent);
+    outline-offset: 3px;
+}
+
+.js-reveal .brand-card,
+.js-reveal .influencer-card {
+    opacity: 0;
+    transform: translateY(18px);
+    transition: opacity .6s ease, transform .6s cubic-bezier(.22, 1, .36, 1), box-shadow .25s;
+    transition-delay: var(--reveal-delay, 0ms);
+}
+
+.js-reveal .brand-card.is-in,
+.js-reveal .influencer-card.is-in {
+    opacity: 1;
+    transform: none;
+}
+
+.js-reveal .brand-card.is-in:hover,
+.js-reveal .influencer-card.is-in:hover {
+    transform: translateY(-4px);
+}
+
+.brand-card-description {
+    font-weight: 600;
+    color: var(--dir-card-accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .js-reveal .brand-card,
+    .js-reveal .influencer-card {
+        opacity: 1;
+        transform: none;
+        transition: none;
+    }
+}

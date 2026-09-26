@@ -1702,6 +1702,24 @@
         .social-chip.xs { width: 26px; height: 26px; font-size: 12px; }
         a.social-chip:hover { transform: translateY(-2px); box-shadow: 0 10px 20px #10183a33; color: #ffffff; }
 
+        /* "Live on <platform>" callout — same card creators see for a campaign that is
+           live, used here for a creator's live post of a milestone. */
+        .live-post-card { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 12px; border: 1px solid #d6e6ff; background: radial-gradient(ellipse at 100% 0%, #dbe8ff, transparent 60%), linear-gradient(120deg, #f6f9ffe6, #eef5ffcc); text-decoration: none; transition: border-color .2s ease, transform .2s ease, box-shadow .2s ease; }
+        .live-post-card:hover { border-color: #9fbcff; transform: translateY(-2px); box-shadow: 0 14px 28px #5b83c41f; }
+        .live-post-card + .live-post-card { margin-top: 10px; }
+        .live-post-copy { flex: 1; min-width: 0; display: grid; gap: 2px; }
+        .live-post-copy strong { font-family: 'DM Sans', sans-serif; font-size: 13.5px; font-weight: 700; color: #101d48; overflow-wrap: anywhere; }
+        .live-post-copy small { font-family: 'Inter', sans-serif; font-size: 11.5px; color: #5877ac; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .live-post-cta { flex-shrink: 0; display: inline-flex; align-items: center; gap: 7px; max-width: 45%; padding: 9px 14px; border-radius: 9px; background: linear-gradient(110deg, #7557ff, #009fff); color: #ffffff; font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; text-align: center; overflow-wrap: anywhere; }
+        .live-post-pill { display: inline-flex; align-items: center; gap: 5px; max-width: 100%; min-width: 0; padding: 2px 9px 2px 3px; border-radius: 20px; background: #eef4ff; font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; color: #1451ff; white-space: nowrap; }
+        .live-post-pill > span:last-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+        a.live-post-pill:hover { background: #dfe9ff; }
+        .live-post-pill .social-chip { width: 18px; height: 18px; font-size: 9.5px; box-shadow: none; }
+        @@media (max-width: 560px) {
+            .live-post-card { flex-wrap: wrap; }
+            .live-post-cta { width: 100%; max-width: none; justify-content: center; }
+        }
+
         .hero-actions {
             display: flex;
             align-items: center;
@@ -1903,11 +1921,20 @@
         .detail-hero-stats dt { margin-bottom: 5px; font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 500; color: #4a6099; }
         .detail-hero-stats dd { margin: 0; font-family: 'DM Sans', sans-serif; font-size: 18px; font-weight: 700; color: #101d48; }
         .detail-hero-stats dd small { font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 500; color: #5877ac; }
+        /* When the hero gets narrow (tablet, or the sidebar open on a laptop) the side
+           column (status + actions) moves under the title instead of squeezing it. */
+        .detail-hero-side { max-width: 100%; }
+        @@media(max-width: 1180px) {
+            .detail-hero-top { flex-wrap: wrap; }
+            .detail-hero-copy { flex: 1 1 320px; }
+            .detail-hero-side { flex: 1 1 100%; flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: space-between; }
+            .detail-hero-side > * { max-width: 100%; }
+        }
         @@media(max-width: 760px) {
             .detail-hero { padding: 20px; }
             .detail-hero-top { flex-direction: column; }
-            .detail-hero-copy { align-self: stretch; }
-            .detail-hero-side { align-items: flex-start; }
+            .detail-hero-copy { align-self: stretch; flex-basis: auto; }
+            .detail-hero-side { flex-basis: auto; flex-direction: column; align-items: flex-start; }
             .detail-hero-stats { gap: 12px; }
             .detail-hero-stats > div { padding: 0 14px 0 0; border-left: 0; }
         }
@@ -2596,8 +2623,9 @@
 
         .main { overflow-wrap: break-word; }
         .main img, .main video { max-width: 100%; }
-        .btn { max-width: 100%; min-width: 0; white-space: normal; text-align: center; line-height: 1.25; }
-        .ui-badge, .status-pill { max-width: 100%; white-space: normal; line-height: 1.35; }
+        .btn { max-width: 100%; min-width: 0; text-align: center; }
+        /* Status pills stay on one line (a two-line pill looks broken) and keep their size. */
+        .ui-badge, .status-pill { max-width: 100%; white-space: nowrap; flex-shrink: 0; }
         .ui-card-head > div, .panel > div { min-width: 0; }
         .detail-hero-copy h1, .page-hero-title, .detail-hero-copy p, .detail-hero-stats dd { overflow-wrap: anywhere; }
 
@@ -2612,6 +2640,7 @@
             .fact-list dd { text-align: left; }
             .help-card p { max-width: none; }
             .ui-card-head { flex-wrap: wrap; }
+            .btn { white-space: normal; line-height: 1.25; }
             .ui-card-head > .btn, .ui-card-head > a.btn, .ui-card-head > form .btn { white-space: nowrap; }
         }
 

@@ -31,7 +31,14 @@ public class InfluencerAgreementsController(UserManager<ApplicationUser> userMan
             _ => list
         };
 
-        ViewData["Tab"] = tab ?? "all";
+        ViewData["Tab"] = tab is "mine" or "them" or "completed" ? tab : "all";
+        ViewData["Counts"] = new Dictionary<string, int>
+        {
+            ["all"] = list.Count,
+            ["mine"] = list.Count(a => a.Status == AgreementStatus.AwaitingInfluencerSignature),
+            ["them"] = list.Count(a => a.Status == AgreementStatus.AwaitingBrandSignature),
+            ["completed"] = list.Count(a => a.Status == AgreementStatus.FullySigned)
+        };
         return View(filtered);
     }
 

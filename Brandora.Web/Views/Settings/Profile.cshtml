@@ -148,6 +148,11 @@
                 {
                     <a href="@Model.WebsiteUrl" target="_blank" rel="noopener" class="btn btn-outline-brand">Visit Website</a>
                 }
+                @if (Model.VerificationStatus == VerificationStatus.Verified)
+                {
+                    @* Verified brands have a public page on Brandora's Brands directory. *@
+                    <a href="/for-brands/@Model.Id" target="_blank" rel="noopener" class="btn btn-outline-brand"><i class="bi bi-globe2" style="margin-right:8px;"></i>View Public Page</a>
+                }
             </div>
         </div>
     </div>

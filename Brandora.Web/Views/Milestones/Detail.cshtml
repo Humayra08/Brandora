@@ -94,6 +94,11 @@
         (proofUrl.Contains("/video/upload/", StringComparison.OrdinalIgnoreCase) ||
          new[] { ".mp4", ".webm", ".mov" }.Any(ext => proofUrl.Split('?')[0].EndsWith(ext, StringComparison.OrdinalIgnoreCase)));
 
+    var livePostUrl = Model.LivePostUrl();
+    // Proof stays reviewable at every stage — once it's approved the decision card turns
+    // into release / payment, so each of those cards also links back down to the proof.
+    var proofAvailable = !string.IsNullOrWhiteSpace(proofUrl) || livePostUrl is not null;
+
     var dueText = Model.DueDate?.ToString("MMM d, yyyy") ?? "Flexible";
     var daysLeft = Model.DueDate.HasValue ? (int)Math.Ceiling((Model.DueDate.Value - DateTime.UtcNow).TotalDays) : (int?)null;
 
@@ -129,6 +134,15 @@
     .ms-receipt { margin-top: 16px; }
 
     .ms-empty-proof { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 30px 16px; border: 1px dashed #cfdcf5; border-radius: 12px; background: #f7faffb3; text-align: center; font-family: 'Inter', sans-serif; font-size: 12px; color: #6b7fb1; }
+    .ms-proof-card { scroll-margin-top: 90px; }
+    .ms-proof-card:target { animation: ms-proof-flash 1.4s ease; }
+    @@keyframes ms-proof-flash { 0%, 40% { box-shadow: 0 0 0 3px #6b8dff66, 0 18px 40px #3b5bdb26; } 100% { box-shadow: none; } }
+    .ms-proof-card .live-post-card { margin-bottom: 12px; }
+    .ms-proof-record { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 0 0 12px; padding: 10px 12px; list-style: none; border-radius: 10px; background: #f3f8ff; border: 1px solid #e0ebfc; font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; color: #33477c; }
+    .ms-proof-record li { display: inline-flex; align-items: center; gap: 6px; min-width: 0; overflow-wrap: anywhere; }
+    .ms-proof-record i { color: #0d9c6c; }
+    .ms-proof-jump { margin-left: 4px; font-weight: 600; color: #1451ff; white-space: nowrap; }
+    .ms-proof-jump:hover { text-decoration: underline; }
     .ms-empty-proof strong { font-family: 'DM Sans', sans-serif; font-size: 13.5px; color: #142652; }
 
     .ms-fee-note { margin-top: 12px; padding: 10px 12px; border-radius: 9px; background: #eef4ffbd; border: 1px solid #dfe9ff; font-family: 'Inter', sans-serif; font-size: 11.5px; line-height: 1.5; color: #33477c; }
@@ -268,6 +282,10 @@
                 }
                 <div class="decision-card-actions">
                     <a href="/Payments" class="btn btn-secondary"><i class="bi bi-wallet2" style="margin-right:8px;"></i>View in Finance</a>
+                    @if (proofAvailable)
+                    {
+                        <a href="#proof" class="btn btn-ghost"><i class="bi bi-eye" style="margin-right:8px;"></i>View proof of post</a>
+                    }
                     <a href="/Collaborations/Detail/@collaboration.Id" class="btn btn-ghost">Back to collaboration</a>
                 </div>
             </section>
@@ -328,7 +346,7 @@
                         }
                     </div>
                 </form>
-                <p class="decision-card-note"><i class="bi bi-shield-lock"></i> Cancelled or failed checkouts never charge you &mdash; you can retry anytime.</p>
+                <p class="decision-card-note"><i class="bi bi-shield-lock"></i> Cancelled or failed checkouts never charge you &mdash; you can retry anytime.@if (proofAvailable) { <text> <a href="#proof" class="ms-proof-jump">Review the proof of post again <i class="bi bi-arrow-down-short"></i></a></text> }</p>
             </section>
         }
         else if (bothApproved && Model.Payment is null)
@@ -358,6 +376,10 @@
                             <i class="bi bi-unlock" style="margin-right:8px;"></i>Release Payment
                         </button>
                     </form>
+                    @if (proofAvailable)
+                    {
+                        <a href="#proof" class="btn btn-ghost"><i class="bi bi-eye" style="margin-right:8px;"></i>View proof of post</a>
+                    }
                 </div>
             </section>
         }
@@ -414,6 +436,10 @@
                     </div>
                 </div>
                 <div class="decision-card-actions">
+                    @if (proofAvailable)
+                    {
+                        <a href="#proof" class="btn btn-ghost"><i class="bi bi-eye" style="margin-right:8px;"></i>View proof of post</a>
+                    }
                     <button type="button" class="ms-revision-toggle" data-revision-toggle>Changed your mind? Request a revision instead</button>
                 </div>
                 <div class="ms-revision-panel" data-revision-panel>
@@ -467,8 +493,8 @@
             </section>
         }
 
-        @* ---------- Proof of post ---------- *@
-        <section class="ui-card">
+        @* ---------- Proof of post (always available, before and after approval) ---------- *@
+        <section class="ui-card ms-proof-card" id="proof">
             <div class="ui-card-head">
                 <div>
                     <div class="ui-card-title">Proof of Post</div>
@@ -479,6 +505,29 @@
                     <a href="@proofUrl" target="_blank" rel="noopener" class="ui-card-link">Open original <i class="bi bi-box-arrow-up-right"></i></a>
                 }
             </div>
+
+            @if (livePostUrl is not null)
+            {
+                <partial name="_LivePostCard" model='new LivePostCard(livePostUrl, "This milestone is live on {platform}")' />
+            }
+
+            @if (proofAvailable && (Model.BrandApprovedAt is not null || Model.Status is MilestoneStatus.Approved or MilestoneStatus.Paid))
+            {
+                <ul class="ms-proof-record">
+                    @if (Model.BrandApprovedAt is not null)
+                    {
+                        <li><i class="bi bi-person-check"></i>Approved by you on @Model.BrandApprovedAt.Value.ToBangladeshTime().ToString("MMM d, yyyy 'at' h:mm tt")</li>
+                    }
+                    @if (Model.Status is MilestoneStatus.Approved or MilestoneStatus.Paid)
+                    {
+                        <li><i class="bi bi-shield-check"></i>Verified by Brandora</li>
+                    }
+                    @if (isPaid)
+                    {
+                        <li><i class="bi bi-wallet2"></i>@(Model.Payment?.PaidAt is not null ? $"Paid on {Model.Payment.PaidAt.Value.ToBangladeshTime():MMM d, yyyy}" : "Paid")</li>
+                    }
+                </ul>
+            }
 
             @if (string.IsNullOrWhiteSpace(proofUrl))
             {

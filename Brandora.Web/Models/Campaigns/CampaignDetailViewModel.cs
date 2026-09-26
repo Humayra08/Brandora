@@ -13,4 +13,8 @@ public class CampaignDetailViewModel
     public int TotalMilestoneCount { get; set; }
     public int PaidMilestoneCount { get; set; }
     public decimal PendingPaymentsAmount { get; set; }
+
+    // Milestones whose creator shared a link to the live post (newest first), shown
+    // as "live on <platform>" cards. Collaboration.InfluencerProfile is loaded.
+    public List<Milestone> LivePostMilestones { get; set; } = [];
 }

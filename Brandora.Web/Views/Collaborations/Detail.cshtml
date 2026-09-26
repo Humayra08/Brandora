@@ -48,6 +48,21 @@
         return ("Awaiting Content", "is-neutral", "soft", "bi-hourglass-split", "View", false);
     }
 
+    // Proof of post stays one click away at every stage — before approval, after it, and
+    // after payment — so approving never hides what the creator delivered.
+    bool HasProof(Milestone m) => !string.IsNullOrWhiteSpace(m.ProofUrl) || m.LivePostUrl() is not null;
+    string ProofKind(string? url)
+    {
+        if (string.IsNullOrWhiteSpace(url)) return "none";
+        var path = url.Split('?')[0];
+        if (new[] { ".jpg", ".jpeg", ".png", ".webp", ".gif" }.Any(ext => path.EndsWith(ext, StringComparison.OrdinalIgnoreCase)) ||
+            url.Contains("/image/upload/", StringComparison.OrdinalIgnoreCase)) return "image";
+        if (url.Contains("/video/upload/", StringComparison.OrdinalIgnoreCase) ||
+            new[] { ".mp4", ".webm", ".mov" }.Any(ext => path.EndsWith(ext, StringComparison.OrdinalIgnoreCase))) return "video";
+        return "link";
+    }
+    var proofMilestones = milestones.Where(HasProof).ToList();
+
     var statusBadge = Model.Status switch
     {
         CollaborationStatus.Active => ("Active", "is-violet"),
@@ -77,6 +92,32 @@
     @@media(max-width: 900px) { .collab-summary { grid-template-columns: 1fr; } }
 
     .ms-list { display: grid; gap: 10px; }
+    .ms-item { display: grid; grid-template-columns: minmax(0, 1fr); }
+    .ms-item.has-proof .ms-row { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+    .ms-item.has-proof .ms-row:hover { transform: none; }
+    .ms-row-proof { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 14px; padding: 8px 14px; border: 1px solid #e3edfc; border-top: 1px dashed #dbe7fb; border-radius: 0 0 11px 11px; background: #f5f9ffcc; font-family: 'Inter', sans-serif; font-size: 11.5px; color: #5877ac; }
+    .ms-row-proof-state { display: inline-flex; align-items: center; gap: 6px; min-width: 0; font-weight: 600; overflow-wrap: anywhere; }
+    .ms-row-proof-state i { color: #0d9c6c; }
+    .ms-row-proof-actions { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; max-width: 100%; }
+    .ms-proof-btn { display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px; border-radius: 8px; border: 1px solid #cfe0fb; background: #ffffff; font-family: 'Inter', sans-serif; font-size: 11.5px; font-weight: 600; color: #1451ff; cursor: pointer; transition: border-color .2s ease, box-shadow .2s ease; }
+    .ms-proof-btn:hover { border-color: #1451ff; box-shadow: 0 6px 14px #3b4dff1f; }
+
+    .proof-dialog { position: fixed; inset: 0; margin: auto; height: fit-content; width: min(640px, calc(100vw - 32px)); max-height: calc(100vh - 48px); padding: 0; border: 1px solid #d6e6ff; border-radius: 16px; background: #fbfdff; box-shadow: 0 30px 80px #0b124e40; overflow: auto; }
+    .proof-dialog[open] { animation: fade-up .28s ease both; }
+    .proof-dialog::backdrop { background: #0b124e59; backdrop-filter: blur(3px); }
+    .proof-dialog-head { position: sticky; top: 0; z-index: 1; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 16px 18px 12px; border-bottom: 1px solid #e6eefc; background: #fbfdfff2; }
+    .proof-dialog-eyebrow { font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: #6b52d8; }
+    .proof-dialog-title { margin-top: 3px; font-family: 'DM Sans', sans-serif; font-size: 17px; font-weight: 700; color: #101d48; overflow-wrap: anywhere; }
+    .proof-dialog-close { display: grid; place-items: center; flex-shrink: 0; width: 34px; height: 34px; border: 0; border-radius: 9px; background: #eef4ff; color: #33477c; cursor: pointer; }
+    .proof-dialog-close:hover { background: #dfe9ff; }
+    .proof-dialog-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; padding: 16px 18px; }
+    .proof-dialog-body .proof-quote { margin-top: 0; }
+    .proof-dialog-record { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 0; padding: 0; list-style: none; font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; color: #8a9bc2; }
+    .proof-dialog-record li { display: flex; align-items: center; gap: 7px; min-width: 0; padding: 8px 10px; border-radius: 9px; background: #f3f7fe; overflow-wrap: anywhere; }
+    .proof-dialog-record li.is-done { color: #1c3563; }
+    .proof-dialog-record li.is-done i { color: #0d9c6c; }
+    .proof-dialog-foot { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; padding: 12px 18px 16px; border-top: 1px solid #e6eefc; }
+    @@media(max-width: 560px) { .proof-dialog-record { grid-template-columns: 1fr; } .proof-dialog-foot .btn { flex: 1; } }
     .ms-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: 14px; padding: 12px 14px; border-radius: 11px; border: 1px solid #e3edfc; background: #ffffff8c; box-shadow: 0 3px 9px #9bbfe90b; transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease; }
     .ms-row:hover { transform: translateY(-2px); border-color: #b9d3ff; box-shadow: 0 12px 24px #5b83c41a; }
     .ms-row-title { font-family: 'DM Sans', sans-serif; font-size: 13.5px; font-weight: 700; color: #101d48; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -139,14 +180,9 @@
         <div class="detail-hero-side">
             <span class="ui-badge @statusBadge.Item2">@statusBadge.Item1</span>
             <div class="hero-actions" style="display:flex;gap:8px;">
-                @if (conversationId.HasValue)
-                {
-                    <a href="/Messages/Conversation/@conversationId" class="btn btn-primary" style="height:42px;"><i class="bi bi-chat-dots" style="margin-right:8px;"></i>Open Chat</a>
-                }
-                else
-                {
-                    <button type="button" class="btn btn-primary js-open-chat" style="height:42px;" data-influencer-id="@creator.Id" data-influencer-name="@creator.FullName" data-hue="@hue"><i class="bi bi-chat-dots" style="margin-right:8px;"></i>Message</button>
-                }
+                @* Opens the chat pop-up on the brand's existing thread with this creator
+                   (the same one shown in Messages) — it never starts a second conversation. *@
+                <button type="button" class="btn btn-primary js-open-chat" style="height:42px;" data-influencer-id="@creator.Id" data-influencer-name="@creator.FullName" data-hue="@hue"><i class="bi bi-chat-dots" style="margin-right:8px;"></i>@(conversationId.HasValue ? "Open Chat" : "Message")</button>
                 <a href="/Influencers/Profile/@creator.Id" class="btn btn-secondary" style="height:42px;">Profile</a>
             </div>
         </div>
@@ -203,6 +239,10 @@ else
                 </div>
                 <div class="decision-card-actions">
                     <a href="/Milestones/Detail/@first.Id" class="btn btn-primary">@s.Action milestone <i class="bi bi-arrow-right" style="margin-left:8px;"></i></a>
+                    @if (HasProof(first))
+                    {
+                        <button type="button" class="btn btn-ghost" data-proof-open="@first.Id"><i class="bi bi-eye" style="margin-right:8px;"></i>View proof of post</button>
+                    }
                 </div>
             </section>
         }
@@ -225,6 +265,9 @@ else
                     @foreach (var milestone in milestones)
                     {
                         var st = Stage(milestone);
+                        var rowLivePost = milestone.LivePostUrl();
+                        var rowLivePlatform = SocialPlatform.FromUrl(rowLivePost);
+                        <div class="ms-item @(HasProof(milestone) ? "has-proof" : "")">
                         <a href="/Milestones/Detail/@milestone.Id" class="ms-row">
                             <span class="icon-chip @st.Chip"><i class="bi @st.Icon"></i></span>
                             <div style="min-width:0;">
@@ -241,6 +284,26 @@ else
                             <span class="ms-row-amount">৳@milestone.Amount.ToString("N0")</span>
                             <span class="ms-row-action @(st.Primary ? "is-primary" : "")">@st.Action <i class="bi bi-arrow-right"></i></span>
                         </a>
+                        @if (HasProof(milestone))
+                        {
+                            <div class="ms-row-proof">
+                                <span class="ms-row-proof-state">
+                                    <i class="bi @(milestone.BrandApprovedAt is not null ? "bi-patch-check-fill" : "bi-cloud-check")"></i>
+                                    @(milestone.BrandApprovedAt is not null ? $"You approved this proof on {milestone.BrandApprovedAt.Value.ToBangladeshTime():MMM d}" : "Proof of post submitted")
+                                </span>
+                                <span class="ms-row-proof-actions">
+                                    @if (rowLivePost is not null)
+                                    {
+                                        <a class="live-post-pill" href="@rowLivePost" target="_blank" rel="noopener noreferrer" title="Open the live post">
+                                            <span class="social-chip" style="background: @(rowLivePlatform?.Background ?? "linear-gradient(130deg, #7224ff, #3735ff 55%, #087fff)");" aria-hidden="true"><i class="bi @(rowLivePlatform?.Icon ?? "bi-link-45deg")"></i></span>
+                                            <span>Live on @(rowLivePlatform?.Name ?? "the web")</span>
+                                        </a>
+                                    }
+                                    <button type="button" class="ms-proof-btn" data-proof-open="@milestone.Id"><i class="bi bi-eye"></i>View proof</button>
+                                </span>
+                            </div>
+                        }
+                        </div>
                     }
                 </div>
             }
@@ -365,3 +428,97 @@ else
     </aside>
 
 </div>
+
+@* ---------- Proof of post viewer (one per milestone with proof) ---------- *@
+@foreach (var milestone in proofMilestones)
+{
+    var kind = ProofKind(milestone.ProofUrl);
+    var dialogLivePost = milestone.LivePostUrl();
+    <dialog class="proof-dialog" id="proofDialog-@milestone.Id" aria-labelledby="proofDialogTitle-@milestone.Id">
+        <div class="proof-dialog-head">
+            <div style="min-width:0;">
+                <div class="proof-dialog-eyebrow">Proof of post &middot; @creator.FullName</div>
+                <div class="proof-dialog-title" id="proofDialogTitle-@milestone.Id">@milestone.Title</div>
+            </div>
+            <button type="button" class="proof-dialog-close" data-proof-close aria-label="Close"><i class="bi bi-x-lg"></i></button>
+        </div>
+        <div class="proof-dialog-body">
+            @if (dialogLivePost is not null)
+            {
+                <partial name="_LivePostCard" model='new LivePostCard(dialogLivePost, "This milestone is live on {platform}")' />
+            }
+            @if (!string.IsNullOrWhiteSpace(milestone.ProofUrl) && milestone.ProofUrl != dialogLivePost)
+            {
+                <div class="proof-preview">
+                    @if (kind == "image")
+                    {
+                        <img src="@milestone.ProofUrl" alt="Proof of post for @milestone.Title" loading="lazy" />
+                    }
+                    else if (kind == "video")
+                    {
+                        <video src="@milestone.ProofUrl" controls preload="none"></video>
+                    }
+                    else
+                    {
+                        <div class="proof-preview-link">
+                            <i class="bi bi-file-earmark-text"></i>
+                            <strong style="color:#142652;">Submitted as a file or link</strong>
+                            <span>Open it to check what the creator delivered.</span>
+                        </div>
+                    }
+                    <div class="proof-preview-bar">
+                        <span><i class="bi bi-cloud-check"></i> Stored securely</span>
+                        <a href="@milestone.ProofUrl" target="_blank" rel="noopener">View full size <i class="bi bi-arrow-up-right"></i></a>
+                    </div>
+                </div>
+            }
+            @if (!string.IsNullOrWhiteSpace(milestone.ProofNotes))
+            {
+                <div class="proof-quote"><i class="bi bi-chat-quote-fill"></i><span>@milestone.ProofNotes</span></div>
+            }
+            <ul class="proof-dialog-record">
+                <li class="is-done"><i class="bi bi-cloud-check"></i>Submitted by @creator.FullName</li>
+                <li class="@(milestone.BrandApprovedAt is not null ? "is-done" : "")"><i class="bi bi-person-check"></i>@(milestone.BrandApprovedAt is not null ? $"Approved by you on {milestone.BrandApprovedAt.Value.ToBangladeshTime():MMM d, yyyy}" : "Waiting for your approval")</li>
+                <li class="@(milestone.Status is MilestoneStatus.Approved or MilestoneStatus.Paid ? "is-done" : "")"><i class="bi bi-shield-check"></i>@(milestone.Status is MilestoneStatus.Approved or MilestoneStatus.Paid ? "Verified by Brandora" : "Brandora verification pending")</li>
+                <li class="@(milestone.Status == MilestoneStatus.Paid ? "is-done" : "")"><i class="bi bi-wallet2"></i>@(milestone.Status == MilestoneStatus.Paid ? "Paid" : "Not paid yet")</li>
+            </ul>
+        </div>
+        <div class="proof-dialog-foot">
+            <button type="button" class="btn btn-ghost" data-proof-close>Close</button>
+            <a href="/Milestones/Detail/@milestone.Id#proof" class="btn btn-primary">Open milestone <i class="bi bi-arrow-right" style="margin-left:8px;"></i></a>
+        </div>
+    </dialog>
+}
+
+@section Scripts {
+    <script>
+        (function () {
+            // Proof of post viewer: works at every milestone stage, including after approval and payment.
+            document.addEventListener('click', function (e) {
+                var opener = e.target.closest('[data-proof-open]');
+                if (opener) {
+                    var dialog = document.getElementById('proofDialog-' + opener.getAttribute('data-proof-open'));
+                    if (dialog && typeof dialog.showModal === 'function') {
+                        e.preventDefault();
+                        dialog.showModal();
+                    }
+                    return;
+                }
+                if (e.target.closest('[data-proof-close]')) {
+                    var open = e.target.closest('dialog');
+                    if (open) open.close();
+                    return;
+                }
+                // Clicking the dimmed area around the dialog closes it.
+                if (e.target.tagName === 'DIALOG' && e.target.classList.contains('proof-dialog')) {
+                    var r = e.target.getBoundingClientRect();
+                    if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) e.target.close();
+                }
+            });
+            // Stop a playing proof video when the viewer closes.
+            document.querySelectorAll('dialog.proof-dialog').forEach(function (d) {
+                d.addEventListener('close', function () { d.querySelectorAll('video').forEach(function (v) { v.pause(); }); });
+            });
+        })();
+    </script>
+}

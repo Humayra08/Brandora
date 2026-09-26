@@ -54,10 +54,11 @@ public class CollaborationsController(UserManager<ApplicationUser> userManager, 
             return NotFound();
         }
 
-        var conversation = await db.Conversations.FirstOrDefaultAsync(c =>
-            c.BrandProfileId == brand.Id
-            && c.InfluencerProfileId == collaboration.InfluencerProfileId
-            && c.CampaignId == collaboration.CampaignId);
+        // The brand's one thread with this creator, whichever campaign it started from.
+        var conversation = await db.Conversations
+            .Where(c => c.BrandProfileId == brand.Id && c.InfluencerProfileId == collaboration.InfluencerProfileId)
+            .OrderBy(c => c.Id)
+            .FirstOrDefaultAsync();
 
         ViewData["ConversationId"] = conversation?.Id;
 
