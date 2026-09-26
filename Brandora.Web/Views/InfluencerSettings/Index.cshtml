@@ -97,12 +97,20 @@
             border-right: 1px solid rgba(255,255,255,.06);
             z-index: 1000;
 
+            /* Scrolls (with a hidden scrollbar, like the Brand sidebar) when the
+               window is short or zoomed in, so the bottom items stay reachable. */
             overflow-y: auto;
             overflow-x: hidden;
-            scrollbar-width: thin;
-            scrollbar-color: rgba(255,255,255,.15) transparent;
+            overscroll-behavior: contain;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
 
             transition: transform .25s ease;
+        }
+
+        .sidebar::-webkit-scrollbar {
+            width: 0;
+            height: 0;
         }
 
         .sidebar.is-hidden {
@@ -134,8 +142,9 @@
 
         .sidebar-nav-wrap {
             position: relative;
-            flex: 1;
-            min-height: 0;
+            /* Never shrink below the menu's own height (it used to, and the glass
+               panel clipped the last items); the sidebar scrolls instead. */
+            flex: 1 0 auto;
             margin-top: 14px;
         }
 
@@ -237,6 +246,7 @@
         }
 
         .sidebar-bottom {
+            flex-shrink: 0;
             margin-top: auto;
             padding: 12px 8px 0;
         }

@@ -17,6 +17,31 @@ public class Milestone
     public string? ProofUrl { get; set; }
     public string? ProofNotes { get; set; }
 
+    // The link to the creator's live social media post for this milestone (Upload Proof →
+    // "Post Link"). Kept separately from ProofUrl so a post link survives even when the
+    // creator also uploads a screenshot or video as the proof file.
+    public string? ProofPostUrl { get; set; }
+
+    /// <summary>
+    /// The public post this milestone went live as: the saved post link, or — for proof
+    /// submitted before post links were stored separately — the proof itself when it is a
+    /// link to a social platform. Null when there is no live post to open.
+    /// </summary>
+    public string? LivePostUrl()
+    {
+        if (IsWebLink(ProofPostUrl))
+        {
+            return ProofPostUrl;
+        }
+
+        return IsWebLink(ProofUrl) && SocialPlatform.FromUrl(ProofUrl) is not null ? ProofUrl : null;
+    }
+
+    private static bool IsWebLink(string? url) =>
+        !string.IsNullOrWhiteSpace(url) &&
+        Uri.TryCreate(url, UriKind.Absolute, out var uri) &&
+        (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps);
+
     // Two-stage approval: Brand and Admin each sign off independently before a milestone
     // is payment-eligible (see PaymentsController.Release, which requires BOTH
     // Status == Approved (Admin's side, via AdminProofReviewController) AND
@@ -29,3 +54,9 @@ public class Milestone
 
     public Payment? Payment { get; set; }
 }
+
+/// <summary>
+/// Model for the shared "live on &lt;platform&gt;" callout (Views/Shared/_LivePostCard).
+/// <paramref name="Heading"/> may contain "{platform}", replaced with the platform's name.
+/// </summary>
+public sealed record LivePostCard(string Url, string Heading);

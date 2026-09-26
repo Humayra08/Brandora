@@ -14,12 +14,20 @@
             border-right: 1px solid rgba(255,255,255,.06);
             z-index: 1000;
 
+            /* Scrolls (with a hidden scrollbar, like the Brand sidebar) when the
+               window is short or zoomed in, so the bottom items stay reachable. */
             overflow-y: auto;
             overflow-x: hidden;
-            scrollbar-width: thin;
-            scrollbar-color: rgba(255,255,255,.15) transparent;
+            overscroll-behavior: contain;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
 
             transition: transform .25s ease;
+        }
+
+        .sidebar::-webkit-scrollbar {
+            width: 0;
+            height: 0;
         }
 
         .sidebar.is-hidden {
@@ -51,8 +59,9 @@
 
         .sidebar-nav-wrap {
             position: relative;
-            flex: 1;
-            min-height: 0;
+            /* Never shrink below the menu's own height (it used to, and the glass
+               panel clipped the last items); the sidebar scrolls instead. */
+            flex: 1 0 auto;
             margin-top: 14px;
         }
 
@@ -156,6 +165,7 @@
         /* Sidebar Profile */
 
         .sidebar-bottom {
+            flex-shrink: 0;
             margin-top: auto;
             padding: 12px 8px 0;
         }
@@ -244,4 +254,652 @@
     .sidebar.is-open { transform: translateX(0); }
     .sidebar-backdrop { display: none; position: fixed; inset: 0; background: rgba(5,6,20,.5); z-index: 999; }
     .sidebar-backdrop.is-visible { display: block; }
+}
+
+
+/* =========================================================
+   CHAT WIDGET (pop-up chat window)
+   Copied verbatim from the Brand side's shared chat widget
+   (Views/Shared/_AppLayout.cshtml, "SHARED: CHAT WIDGET") so the
+   window an influencer opens from "Message" is identical to
+   the one a brand opens. Wired up in brandora-influencer-dashboard.js.
+========================================================= */
+
+
+.chat-widget-backdrop {
+    position: fixed;
+    right: 26px;
+    bottom: 26px;
+    z-index: 210;
+
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(16px) scale(.97);
+    transform-origin: bottom right;
+    transition: opacity .22s ease, visibility .22s ease, transform .22s cubic-bezier(.22,1,.36,1);
+}
+
+.chat-widget-backdrop.is-open {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0) scale(1);
+}
+
+.chat-widget {
+    width: min(380px, calc(100vw - 32px));
+    height: min(560px, calc(100vh - 100px));
+
+    display: flex;
+    flex-direction: column;
+
+    border-radius: 20px;
+    background: #ffffff;
+    border: 1px solid #eaecf5;
+    box-shadow: 0 30px 70px rgba(20,20,60,.28);
+    overflow: hidden;
+}
+
+.chat-widget-header {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    padding: 14px 14px 14px 18px;
+    background: linear-gradient(105deg, #a326ff, #236eff, #18a9ff);
+    color: #ffffff;
+}
+
+.chat-widget-avatar {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    border-radius: 50%;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 700;
+    font-size: 12px;
+    color: #ffffff;
+    background: rgba(255,255,255,.25);
+}
+
+.chat-widget-name {
+    flex: 1;
+    min-width: 0;
+
+    font-family: 'Inter', sans-serif;
+    font-size: 13.5px;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.chat-widget-icon-btn {
+    width: 30px;
+    height: 30px;
+    flex-shrink: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 8px;
+    border: none;
+    background: rgba(255,255,255,.16);
+    color: #ffffff;
+
+    cursor: pointer;
+    transition: background .2s ease;
+}
+
+.chat-widget-icon-btn:hover {
+    background: rgba(255,255,255,.3);
+}
+
+.chat-widget-body {
+    flex: 1;
+    overflow: hidden;
+    background: #f8f9fd;
+}
+
+.chat-widget-empty {
+    padding: 30px 20px;
+    text-align: center;
+    font-family: 'Inter', sans-serif;
+    font-size: 12.5px;
+    color: #9096b3;
+}
+
+.chat-widget-messages {
+    height: 100%;
+    overflow-y: auto;
+    padding: 16px;
+
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.chat-widget-row {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    max-width: 84%;
+}
+
+.chat-widget-row.is-mine {
+    align-self: flex-end;
+    align-items: flex-end;
+}
+
+.chat-widget-bubble-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.chat-widget-row.is-mine .chat-widget-bubble-row {
+    flex-direction: row-reverse;
+}
+
+.chat-widget-menu-wrap {
+    position: relative;
+    flex-shrink: 0;
+}
+
+.chat-widget-menu-btn {
+    width: 22px;
+    height: 22px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: #9096b3;
+
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity .15s ease, background .15s ease;
+}
+
+.chat-widget-row:hover .chat-widget-menu-btn {
+    opacity: 1;
+}
+
+.chat-widget-menu-btn:hover {
+    background: #eef0f8;
+    color: #545b7d;
+}
+
+.chat-widget-menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    z-index: 20;
+
+    min-width: 120px;
+    padding: 6px;
+
+    border-radius: 10px;
+    border: 1px solid #eaecf5;
+    background: #ffffff;
+    box-shadow: 0 12px 28px rgba(30,34,90,.16);
+
+    display: none;
+    flex-direction: column;
+}
+
+.chat-widget-row.is-mine .chat-widget-menu {
+    right: auto;
+    left: 0;
+}
+
+.chat-widget-menu.is-open {
+    display: flex;
+}
+
+.chat-widget-menu-item {
+    padding: 7px 10px;
+    border: none;
+    border-radius: 7px;
+    background: transparent;
+    text-align: left;
+
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    color: #3c4363;
+
+    cursor: pointer;
+}
+
+.chat-widget-menu-item:hover {
+    background: #f4f5fa;
+}
+
+.chat-widget-menu-danger {
+    color: #c22540;
+}
+
+.chat-widget-edit-form {
+    margin-top: 4px;
+    width: 100%;
+}
+
+.chat-widget-edit-input {
+    width: 100%;
+    min-height: 54px;
+    padding: 8px 10px;
+
+    border-radius: 10px;
+    border: 1px solid #a978ff;
+    background: #ffffff;
+
+    font-family: 'Inter', sans-serif;
+    font-size: 12.5px;
+    color: #2a3157;
+    outline: none;
+    resize: vertical;
+}
+
+.chat-widget-edit-actions {
+    margin-top: 6px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.chat-widget-edit-cancel,
+.chat-widget-edit-save {
+    padding: 5px 12px;
+    border-radius: 8px;
+    border: none;
+    font-family: 'Inter', sans-serif;
+    font-size: 11.5px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.chat-widget-edit-cancel {
+    background: #f1f2f8;
+    color: #545b7d;
+}
+
+.chat-widget-edit-save {
+    background: linear-gradient(105deg, #a326ff, #236eff, #18a9ff);
+    color: #ffffff;
+}
+
+.chat-widget-attach-btn {
+    width: 38px;
+    height: 38px;
+    flex-shrink: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 50%;
+    border: 1px solid #e2e5f2;
+    background: #ffffff;
+    color: #6b7290;
+
+    cursor: pointer;
+    transition: .2s;
+}
+
+.chat-widget-attach-btn:hover {
+    border-color: #a978ff;
+    color: #7a2df3;
+}
+
+.chat-widget-bubble {
+    padding: 9px 13px;
+    border-radius: 16px;
+
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    line-height: 1.5;
+
+    background: #ffffff;
+    color: #2a3157;
+    border: 1px solid #eaecf5;
+    border-bottom-left-radius: 4px;
+}
+
+.chat-widget-row.is-mine .chat-widget-bubble {
+    background: linear-gradient(105deg, #a326ff, #236eff, #18a9ff);
+    color: #ffffff;
+    border: none;
+    border-bottom-left-radius: 16px;
+    border-bottom-right-radius: 4px;
+}
+
+.chat-widget-time {
+    margin-top: 3px;
+    padding: 0 4px;
+    font-family: 'Inter', sans-serif;
+    font-size: 10px;
+    color: #9096b3;
+}
+
+.chat-widget-media {
+    position: relative;
+    overflow: hidden;
+    border-radius: 12px;
+}
+
+.chat-widget-media-view {
+    display: block;
+    cursor: zoom-in;
+}
+
+.chat-widget-media img,
+.chat-widget-media video {
+    display: block;
+    width: 100%;
+    max-width: 220px;
+    max-height: 220px;
+    object-fit: cover;
+}
+
+.chat-widget-media-download {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 2;
+
+    width: 26px;
+    height: 26px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 50%;
+    border: none;
+    background: rgba(15,20,45,.55);
+    color: #ffffff;
+    backdrop-filter: blur(3px);
+
+    transition: background .15s ease;
+}
+
+.chat-widget-media-download:hover {
+    background: rgba(15,20,45,.8);
+}
+
+.chat-widget-bubble.has-media {
+    padding: 6px;
+}
+
+.chat-widget-bubble.has-media.has-caption {
+    padding-bottom: 10px;
+}
+
+.chat-widget-bubble.has-media .chat-widget-text {
+    display: block;
+    padding: 4px 6px 0;
+}
+
+.chat-widget-bubble.has-media:not(.has-caption) {
+    padding: 0;
+    background: none;
+    border: none;
+    border-radius: 0;
+}
+
+.chat-widget-composer {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    padding: 12px 14px;
+    border-top: 1px solid #eaecf5;
+    background: #ffffff;
+}
+
+.chat-widget-composer input {
+    flex: 1;
+    min-width: 0;
+    height: 40px;
+    padding: 0 14px;
+
+    border-radius: 20px;
+    border: 1px solid #e2e5f2;
+    background: #f8f9fd;
+
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    color: #171d3d;
+    outline: none;
+    transition: border-color .2s ease;
+}
+
+.chat-widget-composer input:focus {
+    border-color: #a978ff;
+}
+
+.chat-widget-send {
+    width: 38px;
+    height: 38px;
+    flex-shrink: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 50%;
+    border: none;
+    background: linear-gradient(105deg, #a326ff, #236eff, #18a9ff);
+    color: #ffffff;
+
+    cursor: pointer;
+    transition: transform .2s ease, box-shadow .2s ease;
+}
+
+.chat-widget-send:hover {
+    transform: translateY(-1px) scale(1.04);
+    box-shadow: 0 8px 18px rgba(140,60,255,.3);
+}
+
+@media(max-width: 480px) {
+    .chat-widget-backdrop { right: 12px; bottom: 12px; left: 12px; }
+    .chat-widget { width: 100%; }
+}
+
+
+/* =========================================================
+   CHAT WIDGET — confirm dialog (Unsend)
+   Same look as the Brand side's shared confirm modal
+   (_AppLayout .confirm-modal-backdrop), namespaced so it can
+   never clash with a page's own modal styles.
+========================================================= */
+
+.cw-confirm-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 260;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 20px;
+
+    background: rgba(10,14,35,.45);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity .2s ease, visibility .2s ease;
+}
+
+.cw-confirm-backdrop.is-open {
+    opacity: 1;
+    visibility: visible;
+}
+
+.cw-confirm {
+    width: 100%;
+    max-width: 380px;
+    padding: 30px 28px 26px;
+
+    border-radius: 20px;
+    background: #ffffff;
+    box-shadow: 0 30px 60px rgba(20,20,60,.25);
+
+    text-align: center;
+
+    transform: translateY(14px) scale(.96);
+    transition: transform .25s cubic-bezier(.22,1,.36,1);
+}
+
+.cw-confirm-backdrop.is-open .cw-confirm {
+    transform: translateY(0) scale(1);
+}
+
+.cw-confirm-icon {
+    width: 46px;
+    height: 46px;
+    margin: 0 auto;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 50%;
+    background: linear-gradient(105deg, #ff4d6b, #d6234a);
+    color: #ffffff;
+
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 800;
+    font-size: 20px;
+}
+
+.cw-confirm-title {
+    margin-top: 16px;
+
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 700;
+    font-size: 16.5px;
+    color: #171d3d;
+}
+
+.cw-confirm-text {
+    margin: 8px 0 0;
+
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #6b7290;
+}
+
+.cw-confirm-actions {
+    margin-top: 22px;
+
+    display: flex;
+    gap: 10px;
+}
+
+.cw-confirm-actions button {
+    flex: 1;
+    height: 44px;
+    padding: 0 22px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 10px;
+
+    font-family: 'Inter', sans-serif;
+    font-size: 13.5px;
+    font-weight: 600;
+
+    cursor: pointer;
+    transition: .2s;
+    white-space: nowrap;
+}
+
+.cw-confirm-cancel {
+    color: #0641ff;
+    background: #ffffffb8;
+    border: 1px solid #b4caff;
+}
+
+.cw-confirm-cancel:hover {
+    border-color: transparent;
+    transform: translateY(-2px);
+    box-shadow: 0 0 0 1.5px #9b2cff, 0 10px 22px rgba(140,60,255,.18);
+}
+
+.cw-confirm-ok {
+    border: none;
+    color: #ffffff;
+    background: linear-gradient(105deg, #ff4d6b, #d6234a);
+}
+
+.cw-confirm-ok:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 24px rgba(214,35,74,.3);
+}
+
+
+/* =========================================================
+   SOCIAL PROFILE ICONS
+   Round chip per platform: the platform's real glyph on its
+   own brand colour (same component as the Brand side).
+========================================================= */
+
+.social-icons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.social-chip {
+    display: inline-grid;
+    place-items: center;
+    flex-shrink: 0;
+
+    width: 38px;
+    height: 38px;
+
+    border-radius: 50%;
+    color: #ffffff !important;
+    font-size: 17px;
+    line-height: 1;
+    text-decoration: none !important;
+
+    box-shadow: 0 6px 14px #10183a26, inset 0 0 0 1px #ffffff26;
+    transition: transform .2s ease, box-shadow .2s ease;
+}
+
+.social-chip.sm {
+    width: 30px;
+    height: 30px;
+    font-size: 14px;
+}
+
+.social-chip.xs {
+    width: 26px;
+    height: 26px;
+    font-size: 12px;
+    box-shadow: 0 4px 10px #10183a1f, inset 0 0 0 1px #ffffff26;
+}
+
+a.social-chip:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px #10183a33;
 }

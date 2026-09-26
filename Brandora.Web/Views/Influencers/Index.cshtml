@@ -31,7 +31,7 @@
     .fi-body { align-items: start; }
 
     /* ---- Filter bar ---- */
-    .fi-filters { display: grid; gap: 12px; }
+    .fi-filters { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
     .fi-filter-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
     .fi-search { position: relative; flex: 1 1 260px; min-width: 220px; }
     .fi-search i { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); font-size: 14px; color: #7d93c8; pointer-events: none; }
@@ -56,6 +56,11 @@
 
     .fi-fit-note { display: flex; align-items: center; gap: 12px; }
     .fi-fit-note .decision-card-text { margin-top: 2px; }
+    @@media(max-width: 700px) {
+        .fi-fit-note { flex-wrap: wrap; align-items: flex-start; }
+        .fi-fit-note > div { flex-basis: calc(100% - 60px) !important; }
+        .fi-fit-note .btn { width: 100%; }
+    }
 
     /* ---- Creator cards ---- */
     .creator-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
@@ -131,6 +136,11 @@
 
     @@media(max-width: 1350px) and (min-width: 1151px) { .creator-grid { grid-template-columns: minmax(0, 1fr); } }
     @@media(max-width: 700px) { .creator-grid { grid-template-columns: minmax(0, 1fr); } .fi-select, .fi-filter-row .btn { flex: 1 1 100%; } }
+    /* Long campaign titles / niche names inside the filter selects and active-filter
+       chips must never push the filter card wider than the screen. */
+    .fi-select { max-width: 100%; text-overflow: ellipsis; }
+    .fi-active .tag { max-width: 100%; overflow-wrap: anywhere; }
+    @@media(max-width: 700px) { .fi-search, .fi-select { min-width: 0; } .fi-clear { margin-left: 0; } }
     @@media (prefers-reduced-motion: reduce) { .creator-card, .creator-card.is-visible { opacity: 1; transform: none; transition: none; } }
 
 }
@@ -438,7 +448,7 @@
         <section class="help-card">
             <h3>Need Help?</h3>
             <p>Looking for a specific kind of creator? Our team can point you in the right direction.</p>
-            <a href="/Home/Contact">Contact Support <i class="bi bi-arrow-right"></i></a>
+            <a href="/contact?accountType=Brand#contactForm">Contact Support <i class="bi bi-arrow-right"></i></a>
             <svg viewBox="0 0 400 170" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="fi-help-wave" x1="0" y1="1" x2="1" y2="0"><stop stop-color="#0955ca" stop-opacity="0"/><stop offset=".65" stop-color="#168cff" stop-opacity=".5"/><stop offset="1" stop-color="#783dff" stop-opacity=".15"/></linearGradient></defs><path d="M-20 160 C100 50 140 220 260 105 S350 85 420 20 L420 190 H-20Z" fill="url(#fi-help-wave)"/><path d="M-20 164 C110 90 140 230 270 120 S360 70 420 40" fill="none" stroke="#2799ff" stroke-opacity=".4"/></svg>
         </section>
 

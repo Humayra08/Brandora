@@ -53,8 +53,60 @@ public class SettingsController(UserManager<ApplicationUser> userManager, Applic
             CampaignSpend = await db.Campaigns.Where(c => c.BrandProfileId == brand.Id).SumAsync(c => c.SpentAmount),
             VerificationStatus = brand.VerificationStatus,
             VerifiedAt = brand.VerifiedAt,
-            MemberSince = brand.CreatedAt
+            MemberSince = brand.CreatedAt,
+            SocialLinks = SocialPlatform.All.ToDictionary(p => p.Key, p => p.Read(brand))
         });
+    }
+
+    // Settings → Social Profiles. Each field accepts a full link, a link without
+    // "https://", or just an @handle; everything is normalised to a clean https URL on
+    // that platform's own domain, so the icon shown on the profile is always correct.
+    // An empty field removes that link.
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> UpdateSocialLinks(Dictionary<string, string?> social)
+    {
+        var brand = await GetCurrentBrandAsync();
+        if (brand is null)
+        {
+            return RedirectToAction("Index", "Home");
+        }
+
+        social ??= new Dictionary<string, string?>();
+        var errors = new List<string>();
+        var cleaned = new List<(SocialPlatform Platform, string? Url)>();
+
+        foreach (var platform in SocialPlatform.All)
+        {
+            social.TryGetValue(platform.Key, out var raw);
+            if (platform.TryNormalize(raw, out var url, out var error))
+            {
+                cleaned.Add((platform, url));
+            }
+            else
+            {
+                errors.Add(error!);
+            }
+        }
+
+        if (errors.Count > 0)
+        {
+            // Nothing is saved when any link is invalid; the typed values are kept
+            // in the form so the brand only has to fix the one that's wrong.
+            TempData["SocialErrors"] = string.Join("|", errors);
+            TempData["SocialDraft"] = System.Text.Json.JsonSerializer.Serialize(social);
+            return Redirect("/Settings#social-profiles");
+        }
+
+        foreach (var (platform, url) in cleaned)
+        {
+            platform.Write(brand, url);
+        }
+
+        await db.SaveChangesAsync();
+
+        TempData["SocialSaved"] = "true";
+        return Redirect("/Settings#social-profiles");
     }
 
     [HttpPost]

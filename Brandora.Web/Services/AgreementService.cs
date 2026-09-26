@@ -100,8 +100,11 @@ public class AgreementService(ApplicationDbContext db)
         };
         db.Collaborations.Add(collaboration);
 
+        // One conversation per brand/creator pair (the same rule Messages uses): if they
+        // have already talked — about this campaign or any other — the collaboration
+        // continues in that thread instead of opening a second one.
         var conversationExists = await db.Conversations.AnyAsync(c =>
-            c.BrandProfileId == agreement.BrandProfileId && c.InfluencerProfileId == agreement.InfluencerProfileId && c.CampaignId == agreement.CampaignId);
+            c.BrandProfileId == agreement.BrandProfileId && c.InfluencerProfileId == agreement.InfluencerProfileId);
         if (!conversationExists)
         {
             db.Conversations.Add(new Conversation

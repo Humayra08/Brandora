@@ -54,4 +54,9 @@ public class BrandSettingsViewModel
 
     [ValidateNever]
     public DateTime MemberSince { get; set; }
+
+    // Current social profile links, keyed by SocialPlatform.Key ("facebook", "instagram", ...).
+    // Saved through their own form (SettingsController.UpdateSocialLinks), not the profile form.
+    [ValidateNever]
+    public Dictionary<string, string?> SocialLinks { get; set; } = new();
 }

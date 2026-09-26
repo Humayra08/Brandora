@@ -1,0 +1,572 @@
+@model Brandora.Web.Models.Discovery.PublicBrandProfileViewModel
+@using Brandora.Web.Models.Discovery
+@using Brandora.Web.Models.Domain
+@{
+    ViewData["Title"] = Model.CompanyName;
+    ViewData["ActiveNav"] = "brands";
+    Layout = null;
+
+    // Campaign platforms are stored as a comma-separated list ("Facebook, TikTok").
+    IEnumerable<string> PlatformNames(string? value) =>
+        (value ?? string.Empty).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+    SocialPlatform? PlatformNamed(string name) =>
+        SocialPlatform.All.FirstOrDefault(p => p.Name.StartsWith(name, StringComparison.OrdinalIgnoreCase) ||
+                                               p.Key.Equals(name, StringComparison.OrdinalIgnoreCase));
+    const string FallbackChip = "linear-gradient(130deg, #7224ff, #3735ff 55%, #087fff)";
+
+    var campaignPlatforms = Model.Campaigns
+        .SelectMany(c => PlatformNames(c.Platform))
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .ToList();
+    var niches = Model.Campaigns
+        .Select(c => c.Niche)
+        .Where(n => !string.IsNullOrWhiteSpace(n))
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .Take(4)
+        .ToList();
+    var openCount = Model.OpenCampaignCount;
+    var completedCount = Model.CompletedCampaignCount;
+    var closedCount = Model.Campaigns.Count - openCount - completedCount;
+    var memberSince = Model.MemberSince.ToString("MMMM yyyy");
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@Model.CompanyName - Brandora</title>
+    <meta name="description" content="@Model.CompanyName on Brandora — @(string.IsNullOrWhiteSpace(Model.Industry) ? "verified brand" : Model.Industry + " brand"), its campaigns and the creators it works with." />
+
+    <link rel="icon" type="image/png" href="~/images/brandora-icon.png" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="~/lib/dashboard-assets/bootstrap-icons.css" />
+    <link rel="stylesheet" href="~/css/brandora-shared.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/brandora-public-profile.css" asp-append-version="true" />
+    <script>document.documentElement.classList.add('js-reveal'); setTimeout(function () { if (!window.brandoraRevealReady) document.documentElement.classList.remove('js-reveal'); }, 3000);</script>
+</head>
+<body class="pp-page">
+
+    <partial name="_BrandoraNavbar" />
+
+    @* =========================================================
+       HERO
+    ========================================================= *@
+    <header class="pp-hero" id="top">
+        <div class="pp-aurora" aria-hidden="true"><span></span><span></span><span></span></div>
+        <div class="pp-hero-tint" style="background: @Model.LogoBackground;" aria-hidden="true"></div>
+        <div class="pp-grid-bg" aria-hidden="true"></div>
+
+        <div class="pp-container">
+            <nav class="pp-crumbs" aria-label="Breadcrumb" data-hero>
+                <a href="/">Home</a><i class="bi bi-chevron-right"></i>
+                <a href="/for-brands">Brands</a><i class="bi bi-chevron-right"></i>
+                <span>@Model.CompanyName</span>
+            </nav>
+
+            <div class="pp-hero-grid">
+                <div class="pp-identity">
+                    <div class="pp-logo" style="background: @Model.LogoBackground; --hero-delay: 80ms;" data-hero>
+                        @if (!string.IsNullOrWhiteSpace(Model.LogoUrl))
+                        {
+                            <img src="@Model.LogoUrl" alt="@Model.CompanyName logo" />
+                        }
+                        else
+                        {
+                            <span class="pp-logo-text">@Model.Initials</span>
+                        }
+                    </div>
+
+                    <div class="pp-identity-copy">
+                        <div class="pp-eyebrow" data-hero style="--hero-delay: 140ms;">Brand on Brandora</div>
+                        <h1 class="pp-name" data-hero style="--hero-delay: 200ms;">@Model.CompanyName</h1>
+
+                        <div class="pp-tags" data-hero style="--hero-delay: 280ms;">
+                            <span class="pp-tag is-verified"><i class="bi bi-patch-check-fill"></i>Verified brand</span>
+                            @if (!string.IsNullOrWhiteSpace(Model.Industry))
+                            {
+                                <span class="pp-tag"><i class="bi bi-briefcase"></i>@Model.Industry</span>
+                            }
+                            <span class="pp-tag"><i class="bi bi-calendar3"></i>Since @memberSince</span>
+                            @if (openCount > 0)
+                            {
+                                <span class="pp-tag"><i class="bi bi-broadcast"></i>Hiring creators now</span>
+                            }
+                        </div>
+
+                        @if (Model.WebsiteHost is not null || Model.SocialLinks.Count > 0)
+                        {
+                            <div class="pp-links" data-hero style="--hero-delay: 360ms;">
+                                @if (Model.WebsiteHost is not null)
+                                {
+                                    <a class="pp-website" href="@Model.WebsiteUrl" target="_blank" rel="noopener noreferrer"><i class="bi bi-globe2"></i><span>@Model.WebsiteHost</span><i class="bi bi-arrow-up-right"></i></a>
+                                }
+                                @if (Model.SocialLinks.Count > 0)
+                                {
+                                    <div class="pp-socials" aria-label="@Model.CompanyName on social media">
+                                        @foreach (var link in Model.SocialLinks)
+                                        {
+                                            <a class="social-chip" href="@link.Url" target="_blank" rel="noopener noreferrer" style="background: @link.Platform.Background;" title="@Model.CompanyName on @link.Platform.Name" aria-label="@Model.CompanyName on @link.Platform.Name"><i class="bi @link.Platform.Icon"></i></a>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <dl class="pp-stats" data-hero style="--hero-delay: 260ms;">
+                    <div class="pp-stat">
+                        <dt class="pp-stat-label"><i class="bi bi-broadcast"></i>Open campaigns</dt>
+                        <dd class="pp-stat-value" data-count-to="@openCount">@openCount</dd>
+                    </div>
+                    <div class="pp-stat">
+                        <dt class="pp-stat-label"><i class="bi bi-flag"></i>Completed</dt>
+                        <dd class="pp-stat-value" data-count-to="@completedCount">@completedCount</dd>
+                    </div>
+                    <div class="pp-stat">
+                        <dt class="pp-stat-label"><i class="bi bi-people"></i>Creators worked with</dt>
+                        <dd class="pp-stat-value" data-count-to="@Model.Creators.Count">@Model.Creators.Count</dd>
+                    </div>
+                    <div class="pp-stat">
+                        <dt class="pp-stat-label"><i class="bi bi-play-circle"></i>Live posts</dt>
+                        <dd class="pp-stat-value" data-count-to="@Model.LivePostTotal">@Model.LivePostTotal</dd>
+                    </div>
+                </dl>
+            </div>
+        </div>
+    </header>
+
+    <nav class="pp-nav" aria-label="Profile sections">
+        <div class="pp-nav-inner">
+            <a href="#overview" class="is-active"><i class="bi bi-grid-1x2"></i>Overview</a>
+            <a href="#campaigns"><i class="bi bi-megaphone"></i>Campaigns <span class="pp-nav-count">@Model.Campaigns.Count</span></a>
+            <a href="#creators"><i class="bi bi-people"></i>Creators <span class="pp-nav-count">@Model.Creators.Count</span></a>
+            <a href="#posts"><i class="bi bi-play-circle"></i>Live Posts <span class="pp-nav-count">@Model.LivePostTotal</span></a>
+        </div>
+    </nav>
+
+    <main class="pp-container">
+
+        @* ---------- Overview ---------- *@
+        <section class="pp-section" id="overview">
+            <div class="pp-section-head" data-reveal>
+                <div>
+                    <div class="pp-eyebrow">Overview</div>
+                    <h2 class="pp-section-title">About <span class="pp-grad-text">@Model.CompanyName</span></h2>
+                </div>
+            </div>
+
+            <div class="pp-bento">
+                <div class="pp-tile is-wide" data-reveal>
+                    <span class="pp-tile-glow" aria-hidden="true"></span>
+                    <span class="pp-tile-icon"><i class="bi bi-stars"></i></span>
+                    <div class="pp-tile-label">What they do on Brandora</div>
+                    <p class="pp-tile-text">
+                        @Model.CompanyName @(string.IsNullOrWhiteSpace(Model.Industry) ? "is a verified brand" : $"is a verified {Model.Industry} brand") on Brandora.
+                        @if (Model.Campaigns.Count > 0)
+                        {
+                            <text>They have run @Model.Campaigns.Count campaign@(Model.Campaigns.Count == 1 ? "" : "s")@(niches.Count > 0 ? " in " + string.Join(", ", niches) : "")</text>
+                            @if (Model.CollaborationCount > 0)
+                            {
+                                <text> and worked with creators on @Model.CollaborationCount collaboration@(Model.CollaborationCount == 1 ? "" : "s")</text>
+                            }
+                            <text>.</text>
+                        }
+                        else
+                        {
+                            <text>Their first campaigns will appear here as soon as they're published.</text>
+                        }
+                    </p>
+                </div>
+
+                <div class="pp-tile" data-reveal>
+                    <span class="pp-tile-icon"><i class="bi bi-briefcase"></i></span>
+                    <div class="pp-tile-label">Industry</div>
+                    <div class="pp-tile-value">@(string.IsNullOrWhiteSpace(Model.Industry) ? "Not specified" : Model.Industry)</div>
+                </div>
+
+                <div class="pp-tile" data-reveal>
+                    <span class="pp-tile-icon"><i class="bi bi-calendar-check"></i></span>
+                    <div class="pp-tile-label">On Brandora since</div>
+                    <div class="pp-tile-value">@memberSince</div>
+                </div>
+
+                <div class="pp-tile" data-reveal>
+                    <span class="pp-tile-icon"><i class="bi bi-phone"></i></span>
+                    <div class="pp-tile-label">Campaigns on</div>
+                    @if (campaignPlatforms.Count > 0)
+                    {
+                        <div class="pp-socials" style="margin-top:10px;">
+                            @foreach (var name in campaignPlatforms)
+                            {
+                                var platform = PlatformNamed(name);
+                                <span class="social-chip sm" style="background: @(platform?.Background ?? FallbackChip);" title="@name"><i class="bi @(platform?.Icon ?? "bi-globe2")"></i></span>
+                            }
+                        </div>
+                        <p class="pp-tile-text">@string.Join(" · ", campaignPlatforms)</p>
+                    }
+                    else
+                    {
+                        <div class="pp-tile-value">Any platform</div>
+                    }
+                </div>
+
+                <div class="pp-tile" data-reveal>
+                    <span class="pp-tile-icon"><i class="bi bi-link-45deg"></i></span>
+                    <div class="pp-tile-label">Find them online</div>
+                    @if (Model.WebsiteHost is null && Model.SocialLinks.Count == 0)
+                    {
+                        <div class="pp-tile-value">Not shared yet</div>
+                    }
+                    else
+                    {
+                        @if (Model.WebsiteHost is not null)
+                        {
+                            <a class="pp-tile-value" href="@Model.WebsiteUrl" target="_blank" rel="noopener noreferrer" style="display:block;">@Model.WebsiteHost <i class="bi bi-arrow-up-right"></i></a>
+                        }
+                        @if (Model.SocialLinks.Count > 0)
+                        {
+                            <div class="pp-socials" style="margin-top:12px;">
+                                @foreach (var link in Model.SocialLinks)
+                                {
+                                    <a class="social-chip sm" href="@link.Url" target="_blank" rel="noopener noreferrer" style="background: @link.Platform.Background;" aria-label="@link.Platform.Name"><i class="bi @link.Platform.Icon"></i></a>
+                                }
+                            </div>
+                        }
+                    }
+                </div>
+            </div>
+        </section>
+
+        @* ---------- Campaigns ---------- *@
+        <section class="pp-section" id="campaigns">
+            <div class="pp-section-head" data-reveal>
+                <div>
+                    <div class="pp-eyebrow">Campaigns</div>
+                    <h2 class="pp-section-title">What they're running</h2>
+                    <p class="pp-section-sub">Every published campaign from @Model.CompanyName. Open one to see the brief, where it runs and, when it's live, the post itself.</p>
+                </div>
+                @if (Model.Campaigns.Count > 0)
+                {
+                    <div class="pp-chips" role="group" aria-label="Filter campaigns" data-filter-group="#campaignGrid" data-filter-empty="#campaignFilterEmpty">
+                        <button type="button" class="pp-chip is-active" data-filter="all" aria-pressed="true">All <span>@Model.Campaigns.Count</span></button>
+                        <button type="button" class="pp-chip" data-filter="open" aria-pressed="false">Open <span>@openCount</span></button>
+                        <button type="button" class="pp-chip" data-filter="completed" aria-pressed="false">Completed <span>@completedCount</span></button>
+                        @if (closedCount > 0)
+                        {
+                            <button type="button" class="pp-chip" data-filter="closed" aria-pressed="false">Closed <span>@closedCount</span></button>
+                        }
+                    </div>
+                }
+            </div>
+
+            @if (Model.Campaigns.Count == 0)
+            {
+                <div class="pp-empty" data-reveal>
+                    <i class="bi bi-megaphone"></i>
+                    <strong>No published campaigns yet</strong>
+                    <span>When @Model.CompanyName publishes a campaign, it will show up here.</span>
+                </div>
+            }
+            else
+            {
+                <div class="pp-campaigns" id="campaignGrid">
+                    @foreach (var campaign in Model.Campaigns)
+                    {
+                        var badge = campaign.Badge;
+                        var state = campaign.IsOpen ? "open" : campaign.Status == CampaignStatus.Completed ? "completed" : "closed";
+                        <article class="pp-campaign" data-state="@state" data-reveal data-tilt tabindex="0" role="button"
+                                 data-dialog-open="campaign-@campaign.Id" aria-haspopup="dialog" aria-label="View details of @campaign.Title">
+                            <div class="pp-campaign-media">
+                                @if (!string.IsNullOrWhiteSpace(campaign.BannerUrl))
+                                {
+                                    <img src="@campaign.BannerUrl" alt="" loading="lazy" />
+                                }
+                                else
+                                {
+                                    <span class="pp-campaign-placeholder" aria-hidden="true"><i class="bi bi-megaphone"></i></span>
+                                }
+                                <span class="pp-status @badge.Css">@badge.Label</span>
+                                <span class="pp-campaign-platforms">
+                                    @foreach (var name in PlatformNames(campaign.Platform).Take(4))
+                                    {
+                                        var platform = PlatformNamed(name);
+                                        <span class="social-chip sm" style="background: @(platform?.Background ?? FallbackChip);" title="@name"><i class="bi @(platform?.Icon ?? "bi-globe2")"></i></span>
+                                    }
+                                </span>
+                            </div>
+                            <div class="pp-campaign-body">
+                                <div class="pp-campaign-niche">@(campaign.Niche ?? "Campaign")</div>
+                                <h3 class="pp-campaign-title">@campaign.Title</h3>
+                                <p class="pp-campaign-desc">@campaign.Description</p>
+                                <div class="pp-campaign-foot">
+                                    <span>
+                                        @if (campaign.LivePlatform is not null)
+                                        {
+                                            <i class="bi bi-play-circle"></i><text>Live on @campaign.LivePlatform.Name</text>
+                                        }
+                                        else if (campaign.Deadline.HasValue && campaign.IsOpen)
+                                        {
+                                            <i class="bi bi-calendar-event"></i><text>Apply by @campaign.Deadline.Value.ToString("MMM d")</text>
+                                        }
+                                        else
+                                        {
+                                            <i class="bi bi-people"></i><text>@campaign.CreatorCount creator@(campaign.CreatorCount == 1 ? "" : "s")</text>
+                                        }
+                                    </span>
+                                    <span class="pp-campaign-more">Details <i class="bi bi-arrow-right"></i></span>
+                                </div>
+                            </div>
+                        </article>
+                    }
+                </div>
+                <div class="pp-empty" id="campaignFilterEmpty" hidden>
+                    <i class="bi bi-funnel"></i>
+                    <strong>Nothing here yet</strong>
+                    <span>No campaigns match this filter.</span>
+                </div>
+            }
+        </section>
+
+        @* ---------- Creators ---------- *@
+        <section class="pp-section" id="creators">
+            <div class="pp-section-head" data-reveal>
+                <div>
+                    <div class="pp-eyebrow">Creators</div>
+                    <h2 class="pp-section-title">Who they've worked with</h2>
+                    <p class="pp-section-sub">Verified creators who have collaborated with @Model.CompanyName through Brandora.</p>
+                </div>
+            </div>
+
+            @if (Model.Creators.Count == 0)
+            {
+                <div class="pp-empty" data-reveal>
+                    <i class="bi bi-people"></i>
+                    <strong>No public collaborations yet</strong>
+                    <span>Creators who collaborate with @Model.CompanyName will appear here.</span>
+                </div>
+            }
+            else
+            {
+                <div class="pp-people">
+                    @foreach (var creator in Model.Creators)
+                    {
+                        <div class="pp-person" data-reveal>
+                            <span class="pp-person-avatar" style="background: @creator.CoverBackground;">
+                                @if (!string.IsNullOrWhiteSpace(creator.AvatarUrl))
+                                {
+                                    <img src="@creator.AvatarUrl" alt="" loading="lazy" />
+                                }
+                                else
+                                {
+                                    @creator.Initials
+                                }
+                            </span>
+                            <div class="pp-person-body">
+                                <a class="pp-person-name pp-person-link" href="/for-influencers/@creator.Id" style="display:block;">@creator.FullName</a>
+                                <div class="pp-person-sub">@creator.Niche@(string.IsNullOrWhiteSpace(creator.Platform) ? "" : " · " + creator.Platform)</div>
+                                <div class="pp-person-stats">
+                                    <span><i class="bi bi-people"></i>@creator.FollowersDisplay</span>
+                                    <span><i class="bi bi-lightning-charge"></i>@creator.EngagementRate.ToString("0.#")%</span>
+                                    <span><i class="bi bi-briefcase"></i>@creator.Collaborations collab@(creator.Collaborations == 1 ? "" : "s")</span>
+                                </div>
+                            </div>
+                            <span class="pp-person-go" aria-hidden="true"><i class="bi bi-arrow-right"></i></span>
+                        </div>
+                    }
+                </div>
+            }
+        </section>
+
+        @* ---------- Live posts ---------- *@
+        <section class="pp-section" id="posts">
+            <div class="pp-section-head" data-reveal>
+                <div>
+                    <div class="pp-eyebrow">Live posts</div>
+                    <h2 class="pp-section-title">The work, live on social</h2>
+                    <p class="pp-section-sub">Posts creators published for @Model.CompanyName's campaigns, each verified by Brandora before it appears here.</p>
+                </div>
+            </div>
+
+            @if (Model.LivePosts.Count == 0)
+            {
+                <div class="pp-empty" data-reveal>
+                    <i class="bi bi-play-circle"></i>
+                    <strong>No live posts yet</strong>
+                    <span>Verified creator posts for @Model.CompanyName's campaigns will be collected here.</span>
+                </div>
+            }
+            else
+            {
+                <div class="pp-posts">
+                    @foreach (var post in Model.LivePosts)
+                    {
+                        var platform = post.Platform;
+                        <article class="pp-post" data-reveal style="--pp-post-color: @(platform?.Background ?? FallbackChip);">
+                            <div class="pp-post-head">
+                                <span class="social-chip" style="background: @(platform?.Background ?? FallbackChip);" aria-hidden="true"><i class="bi @(platform?.Icon ?? "bi-link-45deg")"></i></span>
+                                <div>
+                                    <div class="pp-post-platform">@(platform?.Name ?? "Live post")</div>
+                                    <div class="pp-post-host">@post.Host</div>
+                                </div>
+                            </div>
+                            <div class="pp-post-title">@post.MilestoneTitle &middot; @post.CampaignTitle</div>
+                            <div class="pp-post-meta">
+                                By @if (post.CreatorId is not null) { <a href="/for-influencers/@post.CreatorId">@post.CreatorName</a> } else { @post.CreatorName }
+                                &middot; @post.Date.ToString("MMM d, yyyy")
+                            </div>
+                            <a class="pp-post-cta" href="@post.Url" target="_blank" rel="noopener noreferrer">View on @(platform?.Name ?? "site") <i class="bi bi-box-arrow-up-right"></i></a>
+                        </article>
+                    }
+                </div>
+            }
+        </section>
+
+        @* ---------- Call to action ---------- *@
+        <section class="pp-cta" data-reveal>
+            <div class="pp-cta-copy">
+                @if (Model.Viewer == PublicViewer.Influencer)
+                {
+                    <h2 class="pp-cta-title">Want to create for @Model.CompanyName?</h2>
+                    <p class="pp-cta-text">@(openCount > 0 ? $"They have {openCount} campaign{(openCount == 1 ? "" : "s")} open right now." : "Keep an eye out — new campaigns show up in your Campaigns page first.") Apply with your pitch, or message them from Browse Brands.</p>
+                }
+                else if (Model.Viewer == PublicViewer.Brand)
+                {
+                    <h2 class="pp-cta-title">Run campaigns like @Model.CompanyName</h2>
+                    <p class="pp-cta-text">Publish a campaign, get matched with verified creators and pay per approved milestone through bKash or Nagad.</p>
+                }
+                else
+                {
+                    <h2 class="pp-cta-title">Create with <span class="pp-grad-text">@Model.CompanyName</span></h2>
+                    <p class="pp-cta-text">Join Brandora as a creator to apply to their campaigns, agree milestones and get paid securely for every approved post.</p>
+                }
+            </div>
+            <div class="pp-cta-actions">
+                @if (Model.Viewer == PublicViewer.Influencer)
+                {
+                    <a class="pp-btn pp-btn-primary" href="/InfluencerCampaigns">Browse campaigns <i class="bi bi-arrow-right"></i></a>
+                    <a class="pp-btn pp-btn-ghost" href="/Brands">Message the brand</a>
+                }
+                else if (Model.Viewer == PublicViewer.Brand)
+                {
+                    <a class="pp-btn pp-btn-primary" href="/Campaigns/Create">Create a campaign <i class="bi bi-arrow-right"></i></a>
+                    <a class="pp-btn pp-btn-ghost" href="/for-influencers">Explore creators</a>
+                }
+                else
+                {
+                    <a class="pp-btn pp-btn-primary" href="/Account/Register?role=Influencer">Join as a creator <i class="bi bi-arrow-right"></i></a>
+                    <a class="pp-btn pp-btn-ghost" href="/Account/Login">Log in</a>
+                }
+            </div>
+        </section>
+
+        @if (Model.SimilarBrands.Count > 0)
+        {
+            <section class="pp-section" style="padding-top:0;margin-bottom:96px;" aria-labelledby="similarTitle">
+                <div class="pp-section-head" data-reveal>
+                    <div>
+                        <div class="pp-eyebrow">Keep exploring</div>
+                        <h2 class="pp-section-title" id="similarTitle">More brands on Brandora</h2>
+                    </div>
+                    <a class="pp-btn pp-btn-ghost" href="/for-brands" style="min-height:44px;">All brands <i class="bi bi-arrow-right"></i></a>
+                </div>
+                <div class="pp-people">
+                    @foreach (var other in Model.SimilarBrands)
+                    {
+                        <div class="pp-person" data-reveal>
+                            <span class="pp-person-avatar is-square" style="background: @other.LogoBackground;">
+                                @if (!string.IsNullOrWhiteSpace(other.LogoUrl))
+                                {
+                                    <img src="@other.LogoUrl" alt="" loading="lazy" />
+                                }
+                                else
+                                {
+                                    @other.Initials
+                                }
+                            </span>
+                            <div class="pp-person-body">
+                                <a class="pp-person-name pp-person-link" href="/for-brands/@other.Id" style="display:block;">@other.CompanyName</a>
+                                <div class="pp-person-sub">@(string.IsNullOrWhiteSpace(other.Industry) ? "Brand" : other.Industry)</div>
+                                <div class="pp-person-stats"><span><i class="bi bi-broadcast"></i>@other.OpenCampaigns open campaign@(other.OpenCampaigns == 1 ? "" : "s")</span></div>
+                            </div>
+                            <span class="pp-person-go" aria-hidden="true"><i class="bi bi-arrow-right"></i></span>
+                        </div>
+                    }
+                </div>
+            </section>
+        }
+
+    </main>
+
+    @* =========================================================
+       CAMPAIGN DETAILS (one dialog per campaign)
+    ========================================================= *@
+    @foreach (var campaign in Model.Campaigns)
+    {
+        var badge = campaign.Badge;
+        <dialog class="pp-dialog" id="campaign-@campaign.Id" aria-labelledby="campaignTitle-@campaign.Id">
+            <div class="pp-dialog-media">
+                @if (!string.IsNullOrWhiteSpace(campaign.BannerUrl))
+                {
+                    <img src="@campaign.BannerUrl" alt="" loading="lazy" />
+                }
+                else
+                {
+                    <span class="pp-campaign-placeholder" aria-hidden="true"><i class="bi bi-megaphone"></i></span>
+                }
+                <button type="button" class="pp-dialog-close" data-dialog-close aria-label="Close"><i class="bi bi-x-lg"></i></button>
+            </div>
+            <div class="pp-dialog-body">
+                <span class="pp-status @badge.Css">@badge.Label</span>
+                <h2 class="pp-dialog-title" id="campaignTitle-@campaign.Id">@campaign.Title</h2>
+
+                @if (!string.IsNullOrWhiteSpace(campaign.SocialPostUrl))
+                {
+                    <partial name="_LivePostCard" model='new LivePostCard(campaign.SocialPostUrl, "This campaign is live on {platform}")' />
+                }
+
+                <p class="pp-dialog-text">@campaign.Description</p>
+
+                <dl class="pp-facts">
+                    <div class="pp-fact"><dt>Platforms</dt><dd>@(string.IsNullOrWhiteSpace(campaign.Platform) ? "Any platform" : string.Join(", ", PlatformNames(campaign.Platform)))</dd></div>
+                    <div class="pp-fact"><dt>Category</dt><dd>@(campaign.Niche ?? "General")</dd></div>
+                    <div class="pp-fact"><dt>Audience</dt><dd>@(string.IsNullOrWhiteSpace(campaign.TargetLocation) ? "Anywhere" : campaign.TargetLocation)</dd></div>
+                    <div class="pp-fact"><dt>Starts</dt><dd>@(campaign.StartDate?.ToString("MMM d, yyyy") ?? "Flexible")</dd></div>
+                    <div class="pp-fact"><dt>@(campaign.IsOpen ? "Apply by" : "Deadline")</dt><dd>@(campaign.Deadline?.ToString("MMM d, yyyy") ?? "Open-ended")</dd></div>
+                    <div class="pp-fact"><dt>Creators</dt><dd>@campaign.CreatorCount</dd></div>
+                </dl>
+
+                @if (!string.IsNullOrWhiteSpace(campaign.ContentGuidelines))
+                {
+                    <div>
+                        <div class="pp-dialog-sub">Content guidelines</div>
+                        <p class="pp-dialog-text" style="margin-top:8px;">@campaign.ContentGuidelines</p>
+                    </div>
+                }
+
+                <div class="pp-dialog-actions">
+                    @if (campaign.IsOpen && Model.Viewer == PublicViewer.Influencer)
+                    {
+                        <a class="pp-btn pp-btn-gradient" href="/InfluencerCampaigns/Details/@campaign.Id">View &amp; apply <i class="bi bi-arrow-right"></i></a>
+                    }
+                    else if (campaign.IsOpen && Model.Viewer == PublicViewer.Visitor)
+                    {
+                        <a class="pp-btn pp-btn-gradient" href="/Account/Register?role=Influencer">Join as a creator to apply <i class="bi bi-arrow-right"></i></a>
+                        <a class="pp-btn pp-btn-ghost" href="/Account/Login">Log in</a>
+                    }
+                    <button type="button" class="pp-btn pp-btn-ghost" data-dialog-close>Close</button>
+                </div>
+            </div>
+        </dialog>
+    }
+
+    <partial name="_BrandoraFooter" />
+
+    <script src="~/js/brandora-public-profile.js" asp-append-version="true"></script>
+</body>
+</html>

@@ -134,7 +134,25 @@
     .txn-table td a { color: inherit; }
     .txn-table td a:hover strong { color: #1451ff; }
     .txn-amount { font-family: 'DM Sans', sans-serif; font-weight: 700; color: #142652; white-space: nowrap; }
-    .txn-ref { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: #5877ac; }
+    .txn-ref { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: #5877ac; overflow-wrap: anywhere; }
+
+    /* When the card is too narrow for eight columns, each payment becomes its own
+       small card with labelled fields instead of a sideways-scrolling table. */
+    .txn-scroll { container-type: inline-size; }
+    @@container (max-width: 880px) {
+        .txn-table thead { display: none; }
+        .txn-table, .txn-table tbody, .txn-table td { display: block; }
+        .txn-table tbody { display: grid; gap: 10px; }
+        .txn-table tbody tr { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 16px; padding: 14px 16px; border: 1px solid #e3edfc; border-radius: 11px; background: #ffffffb3; }
+        .txn-table td { padding: 0; border: 0; min-width: 0; }
+        .txn-table td::before { content: attr(data-label); display: block; margin-bottom: 3px; font-family: 'Inter', sans-serif; font-size: 10.5px; font-weight: 500; color: #7b8fbf; }
+        .txn-table td.txn-wide { grid-column: span 2; }
+        .txn-amount { white-space: normal; }
+    }
+    @@container (max-width: 520px) {
+        .txn-table tbody tr { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .txn-table td.txn-wide { grid-column: 1 / -1; }
+    }
 
     /* ---- Rail ---- */
     .budget-figure { font-family: 'DM Sans', sans-serif; font-size: 26px; font-weight: 700; color: #101d48; }
@@ -332,14 +350,14 @@
                             @foreach (var payment in Model.Payments)
                             {
                                 <tr>
-                                    <td>@((payment.PaidAt ?? payment.CreatedAt).ToString("MMM d, yyyy"))</td>
-                                    <td>
+                                    <td data-label="Date">@((payment.PaidAt ?? payment.CreatedAt).ToString("MMM d, yyyy"))</td>
+                                    <td data-label="Campaign &amp; Creator" class="txn-wide">
                                         <a href="/Collaborations/Detail/@payment.CollaborationId">
                                             <strong>@payment.Collaboration.Campaign.Title</strong>
                                             <small>@payment.Collaboration.InfluencerProfile.FullName</small>
                                         </a>
                                     </td>
-                                    <td>
+                                    <td data-label="Milestone">
                                         @if (payment.MilestoneId is not null)
                                         {
                                             <a href="/Milestones/Detail/@payment.MilestoneId"><strong>@(payment.Milestone?.Title ?? "Milestone")</strong></a>
@@ -349,14 +367,14 @@
                                             <span>—</span>
                                         }
                                     </td>
-                                    <td class="txn-amount">
+                                    <td class="txn-amount" data-label="You Pay">
                                         ৳@payment.TotalCharged.ToString("N0")
                                         @if (payment.BrandFeeAmount > 0)
                                         {
                                             <small class="txn-sub">৳@payment.Amount.ToString("N0") + ৳@payment.BrandFeeAmount.ToString("N0") fee</small>
                                         }
                                     </td>
-                                    <td>
+                                    <td data-label="Creator Receives">
                                         @if (payment.Status == PaymentStatus.Completed)
                                         {
                                             <strong>৳@payment.NetAmount.ToString("N0")</strong>
@@ -368,7 +386,7 @@
                                             <small>Once paid</small>
                                         }
                                     </td>
-                                    <td>
+                                    <td data-label="Status">
                                         @if (payment.Status == PaymentStatus.Completed)
                                         {
                                             <span class="ui-badge is-success"><i class="bi bi-check-circle-fill"></i> Paid</span>
@@ -382,8 +400,8 @@
                                             <span class="ui-badge is-danger"><i class="bi bi-exclamation-circle-fill"></i> Failed</span>
                                         }
                                     </td>
-                                    <td>@MethodName(payment.Method)</td>
-                                    <td class="txn-ref">@(payment.TransactionReference ?? "—")</td>
+                                    <td data-label="Method">@MethodName(payment.Method)</td>
+                                    <td class="txn-ref" data-label="Transaction ID">@(payment.TransactionReference ?? "—")</td>
                                 </tr>
                             }
                         </tbody>
@@ -475,7 +493,7 @@
         <section class="help-card">
             <h3>Need Help?</h3>
             <p>Questions about a payment, a fee or a failed checkout? Our support team can help.</p>
-            <a href="/Home/Contact">Contact Support <i class="bi bi-arrow-right"></i></a>
+            <a href="/contact?accountType=Brand#contactForm">Contact Support <i class="bi bi-arrow-right"></i></a>
             <svg viewBox="0 0 400 170" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="finance-help-wave" x1="0" y1="1" x2="1" y2="0"><stop stop-color="#0955ca" stop-opacity="0"/><stop offset=".65" stop-color="#168cff" stop-opacity=".5"/><stop offset="1" stop-color="#783dff" stop-opacity=".15"/></linearGradient></defs><path d="M-20 160 C100 50 140 220 260 105 S350 85 420 20 L420 190 H-20Z" fill="url(#finance-help-wave)"/><path d="M-20 164 C110 90 140 230 270 120 S360 70 420 40" fill="none" stroke="#2799ff" stroke-opacity=".4"/></svg>
         </section>
 

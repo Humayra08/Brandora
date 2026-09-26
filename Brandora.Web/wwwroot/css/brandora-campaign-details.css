@@ -83,3 +83,18 @@
     .campaign-details-page .campaign-hero-stats > div { border-left: 0; padding: 0; }
     .campaign-details-page .campaign-tabs { flex-direction: column; }
 }
+
+/* The brand's optional link to where this campaign is already live on social media. */
+.campaign-details-page .live-post-card { display: flex; align-items: center; gap: 14px; margin-top: 18px; padding: 14px 16px; border-radius: 12px; border: 1px solid #d6e6ff; background: radial-gradient(ellipse at 100% 0%, #dbe8ff, transparent 60%), linear-gradient(120deg, #f6f9ffe6, #eef5ffcc); text-decoration: none; transition: border-color .2s ease, transform .2s ease, box-shadow .2s ease; }
+.campaign-details-page .live-post-card:hover { border-color: #9fbcff; transform: translateY(-2px); box-shadow: 0 14px 28px #5b83c41f; }
+.campaign-details-page .live-post-copy { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.campaign-details-page .live-post-copy strong { font-size: 13.5px; font-weight: 700; color: #101d48; overflow-wrap: anywhere; }
+.campaign-details-page .live-post-copy small { font-size: 11.5px; color: #5877ac; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.campaign-details-page .live-post-cta { flex-shrink: 0; display: inline-flex; align-items: center; gap: 7px; padding: 9px 14px; border-radius: 9px; background: linear-gradient(110deg, #7557ff, #009fff); color: #ffffff; font-size: 12px; font-weight: 600; white-space: normal; text-align: center; max-width: 45%; overflow-wrap: anywhere; }
+.campaign-details-page .live-post-link { display: inline-flex; align-items: center; gap: 6px; }
+.campaign-details-page .detail-brand-socials { gap: 6px; margin-top: 8px; }
+.campaign-details-page .brand-info-socials { justify-content: flex-end; gap: 6px; }
+@container (max-width: 600px) {
+    .campaign-details-page .live-post-card { flex-wrap: wrap; }
+    .campaign-details-page .live-post-cta { width: 100%; max-width: none; justify-content: center; white-space: normal; text-align: center; }
+}

@@ -1,5 +1,6 @@
 @model Brandora.Web.Models.Messages.InboxViewModel
 @using Brandora.Web.Models.Influencers
+@using Brandora.Web.Models.Domain
 @inject Microsoft.AspNetCore.Identity.UserManager<Brandora.Web.Models.Domain.ApplicationUser> UserManager
 @{
     ViewData["Title"] = "Chat";
@@ -30,8 +31,8 @@
     <link rel="stylesheet"
           href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Playfair+Display:wght@500;600;700&display=swap"
+    <!-- Google Fonts (Inter included: the Brand side's chat UI is set in Inter) -->
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Playfair+Display:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap"
           rel="stylesheet">
 
     <link rel="stylesheet" href="~/css/brandora-influencer-shell.css" asp-append-version="true" />
@@ -90,61 +91,540 @@
             overflow-x: hidden;
         }
 
-        /* Sidebar and topbar now come from the shared brandora-influencer-shell.css
-           and brandora-influencer-dashboard.css stylesheets (see the page head), matching
-           every other influencer page instead of a bespoke duplicate. */
-
-        /* ==============================
-           SHARED PRIMITIVES
-        ============================== */
-
         @@keyframes fade-up {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
 
-        .btn-outline {
+        /* =========================================================
+           BRAND-SIDE SHARED PRIMITIVES — copied verbatim from
+           Views/Shared/_AppLayout.cshtml so this page renders exactly
+           like the Brand side's Messages page. Buttons are namespaced
+           .bx-btn* because this page also loads Bootstrap's .btn.
+        ========================================================= */
+
+        /* =========================================================
+           SHARED: PAGE HERO
+           Reproduces the Influencer side's exact hero-card visual
+           system (brandora-influencer-dashboard.css: .dashboard-hero /
+           .dashboard-glass / .dashboard-hero-motto) so every Brand page
+           that includes this markup automatically matches it, in one
+           place, without per-page duplication.
+        ========================================================= */
+
+        .page-hero {
+            position: relative;
+            isolation: isolate;
+
+            display: flex;
+            align-items: center;
+            min-height: 170px;
+
+            margin: 0 0 26px;
+            padding: 26px 40px;
+
+            border-radius: 18px;
+            overflow: hidden;
+
+            background:
+                radial-gradient(ellipse at 61% 0%, #a9c9ff99, transparent 58%),
+                linear-gradient(110deg, #edf8ff55, #dcefff99 55%, #edf8ff55);
+            border: 1px solid #d1e2ff;
+
+            animation: fade-up .5s ease both;
+        }
+
+        .page-hero-waves {
+            position: absolute;
+            inset: auto 0 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .page-hero-intro {
+            position: relative;
+            z-index: 2;
+            max-width: 52%;
+        }
+
+        .page-hero-eyebrow {
+            font-family: 'Inter', sans-serif;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 1.6px;
+            text-transform: uppercase;
+            color: #4b6398;
+        }
+
+        .page-hero-title {
+            margin-top: 6px;
+
+            font-family: 'Playfair Display', Georgia, serif;
+            font-weight: 600;
+            font-size: clamp(24px, 2.6vw, 34px);
+            line-height: 1.2;
+            letter-spacing: -.5px;
+            color: #171d3d;
+        }
+
+        .page-hero-title span {
+            background: linear-gradient(115deg, #7224ff, #3735ff 55%, #087fff);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            color: transparent;
+        }
+
+        .page-hero-sub {
+            margin-top: 8px;
+            max-width: 480px;
+
+            font-family: 'Inter', sans-serif;
+            font-size: 13.5px;
+            line-height: 1.55;
+            color: #426098;
+        }
+
+        .page-hero-stats {
+            display: flex;
+            gap: 26px;
+            margin-top: 14px;
+        }
+
+        .page-hero-stats > div + div {
+            border-left: 1px solid #9ebce9;
+            padding-left: 26px;
+        }
+
+        .page-hero-stats dd {
+            margin: 0;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 15px;
+            font-weight: 700;
+            line-height: 1.1;
+            color: #171d3d;
+        }
+
+        .page-hero-stats dt {
+            margin: 2px 0 0;
+            font-family: 'Inter', sans-serif;
+            font-size: 11px;
+            font-weight: 500;
+            color: #2b467d;
+        }
+
+        .page-hero-art {
+            position: absolute;
+            z-index: 1;
+            width: 230px;
+            height: 200px;
+            left: 48%;
+            top: 22px;
+            transform: rotate(10deg) skewX(-3deg);
+        }
+
+        .hero-glass {
+            position: absolute;
+            border: 1px solid #ffffffb8;
+            border-radius: 18px;
+            background: linear-gradient(125deg, #ffffff80, #d4ebff35 55%, #ffffff5c);
+            box-shadow: inset 0 0 20px #ffffff44, 0 10px 30px #4488da0b;
+        }
+
+        .hero-glass-back {
+            inset: 0;
+        }
+
+        .hero-glass-front {
+            inset: 22px 18px -18px 16px;
+            padding: 17px 19px;
+
+            font-family: 'DM Sans', sans-serif;
+            font-size: 15px;
+            line-height: 1.4;
+            color: #244988;
+
+            backdrop-filter: blur(1px);
+        }
+
+        .hero-glass-copy {
+            display: block;
+            transform: skewX(3deg) rotate(-10deg);
+            transform-origin: top left;
+            padding-top: 3px;
+        }
+
+        .hero-glass-copy > span,
+        .page-hero-motto span {
+            display: block;
+            width: 34px;
+            height: 3px;
+            margin-top: 11px;
+
+            border-radius: 4px;
+            background: linear-gradient(110deg, #6323ff, #0759ff);
+        }
+
+        .hero-sparkle {
+            position: absolute;
+            top: 20px;
+            right: -6px;
+            width: 16px;
+            height: 16px;
+            background: radial-gradient(ellipse, white, transparent 65%);
+        }
+
+        .hero-sparkle::before,
+        .hero-sparkle::after {
+            content: "";
+            position: absolute;
+            inset: 7px -4px;
+            background: linear-gradient(90deg, transparent, white, transparent);
+        }
+
+        .hero-sparkle::after {
+            transform: rotate(90deg);
+        }
+
+        .page-hero-motto {
+            margin-left: auto;
+            padding: 4px 4% 4px 32px;
+
+            position: relative;
+            z-index: 2;
+
+            border-left: 1px solid #adcdec;
+
+            font-family: 'DM Sans', sans-serif;
+            font-size: 13.5px;
+            font-weight: 600;
+            line-height: 1.5;
+            color: #1e427c;
+        }
+
+        @@media(max-width: 1100px) {
+            .page-hero-art { left: auto; right: 26px; }
+            .page-hero-intro { max-width: 60%; }
+        }
+
+        @@media(max-width: 900px) {
+            .page-hero-motto { display: none; }
+        }
+
+        @@media(max-width: 760px) {
+            .page-hero { padding: 22px 24px; flex-wrap: wrap; }
+            .page-hero-art { display: none; }
+            .page-hero-intro { max-width: 100%; }
+        }
+
+        .bx-btn {
             display: inline-flex;
             align-items: center;
             justify-content: center;
 
-            width: 100%;
-            height: 40px;
-            padding: 0 18px;
+            height: 46px;
+            padding: 0 22px;
 
             border-radius: 10px;
-            border: 1px solid #dde1f0;
-            background: #ffffff;
+            border: none;
 
-            font-family: 'DM Sans', sans-serif;
-            font-size: 12.5px;
+            font-family: 'Inter', sans-serif;
+            font-size: 13.5px;
             font-weight: 600;
-            color: #2a3157;
-            text-decoration: none;
 
             cursor: pointer;
             transition: .2s;
+            white-space: nowrap;
         }
 
-        .btn-outline:hover {
-            border-color: transparent;
-            color: #0759ff;
+        .bx-btn-primary {
+            color: #ffffff;
+            background: linear-gradient(105deg, #a326ff, #236eff, #18a9ff);
+            background-size: 160% 160%;
+            background-position: 0% 50%;
+        }
+
+        .bx-btn-primary:hover {
             transform: translateY(-2px);
-            box-shadow: 0 0 0 1.5px #176cff, 0 10px 22px rgba(23,108,255,.18);
+            background-position: 100% 50%;
+            box-shadow: 0 10px 26px rgba(140,60,255,.35);
         }
 
-        /* ==============================
-           CHAT WORKSPACE
-        ============================== */
+        .bx-btn-primary:active {
+            transform: translateY(0) scale(.98);
+        }
+
+        .bx-btn-secondary {
+            color: #0641ff;
+            background: #ffffffb8;
+            border: 1px solid #b4caff;
+        }
+
+        .bx-btn-secondary:hover {
+            border-color: transparent;
+            transform: translateY(-2px);
+            box-shadow: 0 0 0 1.5px #9b2cff, 0 10px 22px rgba(140,60,255,.18);
+        }
+
+        .bx-btn-secondary:active {
+            transform: translateY(0);
+        }
+
+        .bx-btn-ghost {
+            color: #6b7290;
+            background: transparent;
+            border: 1px solid transparent;
+        }
+
+        .bx-btn-ghost:hover {
+            color: #9b2cff;
+            background: rgba(155,44,255,.06);
+        }
+
+        .bx-btn-outline-brand {
+            color: #7a2df3;
+            background: #ffffff;
+            border: 1.5px solid rgba(163,38,255,.35);
+        }
+
+        .bx-btn-outline-brand:hover {
+            border-color: #a326ff;
+            background: rgba(155,44,255,.06);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(140,60,255,.15);
+        }
+
+        .bx-btn-outline-danger {
+            color: #c22540;
+            background: #ffffff;
+            border: 1.5px solid #f6c3ca;
+        }
+
+        .bx-btn-outline-danger:hover {
+            border-color: transparent;
+            color: #ffffff;
+            background: linear-gradient(105deg, #ff4d6b, #d6234a);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(214,35,74,.25);
+        }
+
+        .bx-btn-danger-solid {
+            color: #ffffff;
+            background: linear-gradient(105deg, #ff4d6b, #d6234a);
+        }
+
+        .bx-btn-danger-solid:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 24px rgba(214,35,74,.3);
+        }
+
+        /* =========================================================
+           SHARED: CONFIRM MODAL
+        ========================================================= */
+
+        .confirm-modal-backdrop {
+            position: fixed;
+            inset: 0;
+            z-index: 200;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            padding: 20px;
+
+            background: rgba(10,14,35,.45);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity .2s ease, visibility .2s ease;
+        }
+
+        .confirm-modal-backdrop.is-open {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .confirm-modal {
+            width: 100%;
+            max-width: 380px;
+            padding: 30px 28px 26px;
+
+            border-radius: 20px;
+            background: #ffffff;
+            box-shadow: 0 30px 60px rgba(20,20,60,.25);
+
+            text-align: center;
+
+            transform: translateY(14px) scale(.96);
+            transition: transform .25s cubic-bezier(.22,1,.36,1);
+        }
+
+        .confirm-modal-backdrop.is-open .confirm-modal {
+            transform: translateY(0) scale(1);
+        }
+
+        .confirm-modal-icon {
+            width: 46px;
+            height: 46px;
+            margin: 0 auto;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            border-radius: 50%;
+            background: linear-gradient(105deg, #a326ff, #236eff, #18a9ff);
+            color: #ffffff;
+
+            font-family: 'DM Sans', sans-serif;
+            font-weight: 800;
+            font-size: 20px;
+        }
+
+        .confirm-modal-icon.is-danger {
+            background: linear-gradient(105deg, #ff4d6b, #d6234a);
+        }
+
+        .confirm-modal-title {
+            margin-top: 16px;
+
+            font-family: 'DM Sans', sans-serif;
+            font-weight: 700;
+            font-size: 16.5px;
+            color: #171d3d;
+        }
+
+        .confirm-modal-text {
+            margin-top: 8px;
+
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            line-height: 1.6;
+            color: #6b7290;
+        }
+
+        .confirm-modal-actions {
+            margin-top: 22px;
+
+            display: flex;
+            gap: 10px;
+        }
+
+        .confirm-modal-actions .bx-btn {
+            flex: 1;
+            height: 44px;
+        }
+
+        /* =========================================================
+           SHARED: BACK TO DASHBOARD
+        ========================================================= */
+
+        .back-to-dashboard {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+
+            margin-bottom: 18px;
+
+            font-family: 'Inter', sans-serif;
+            font-size: 12.5px;
+            font-weight: 600;
+            color: #5877ac;
+
+            transition: color .2s ease;
+        }
+
+        .back-to-dashboard svg {
+            transition: transform .2s ease;
+        }
+
+        .back-to-dashboard:hover {
+            color: #1451ff;
+        }
+
+        .back-to-dashboard:hover svg {
+            transform: translateX(-3px);
+        }
+
+        .verified-badge {
+            display: inline-flex;
+            align-items: center;
+            flex-shrink: 0;
+            gap: 4px;
+
+            padding: 2px 9px;
+
+            border-radius: 20px;
+            background: #e4f0ff;
+            color: #1265d6;
+            white-space: nowrap;
+
+            font-family: 'Inter', sans-serif;
+            font-size: 10.5px;
+            font-weight: 700;
+        }
+
+        /* Social profile icon: the platform's real glyph on its own brand colour
+           (Facebook blue, Instagram gradient, TikTok black...). Background is set
+           inline from SocialPlatform.Background. */
+        .social-icons { display: flex; flex-wrap: wrap; gap: 8px; }
+        .social-chip { display: inline-grid; place-items: center; flex-shrink: 0; width: 38px; height: 38px; border-radius: 50%; color: #ffffff; font-size: 17px; line-height: 1; box-shadow: 0 6px 14px #10183a26, inset 0 0 0 1px #ffffff26; transition: transform .2s ease, box-shadow .2s ease, opacity .2s ease, filter .2s ease; }
+        .social-chip.sm { width: 30px; height: 30px; font-size: 14px; }
+        .social-chip.xs { width: 26px; height: 26px; font-size: 12px; }
+        a.social-chip:hover { transform: translateY(-2px); box-shadow: 0 10px 20px #10183a33; color: #ffffff; }
+
+        .icon-chip { display: grid; place-items: center; flex-shrink: 0; width: 42px; height: 42px; border-radius: 50%; font-size: 19px; background: #ebe8ff; color: #6545ff; }
+        .icon-chip.sm { width: 34px; height: 34px; font-size: 15px; }
+        .icon-chip.lg { width: 52px; height: 52px; font-size: 23px; }
+        .icon-chip.violet { background: #ebe8ff; color: #6545ff; }
+        .icon-chip.blue { background: #e2efff; color: #176cff; }
+        .icon-chip.cyan { background: #def7fc; color: #139fc1; }
+        .icon-chip.mint { background: #e2f7ed; color: #0d9c6c; }
+        .icon-chip.amber { background: #fdf0dc; color: #c07d16; }
+        .icon-chip.pink { background: #f6ecfa; color: #b554b5; }
+        .icon-chip.soft { background: linear-gradient(135deg, #e4eeff, #cce2ff); color: #135bff; }
+
+        /* ---- Notices (inline feedback, theme-toned) ---- */
+        .notice { display: flex; align-items: flex-start; gap: 10px; margin: 0 0 14px; padding: 12px 16px; border-radius: 10px; border: 1px solid #c8e2f8; background: #eef8ff; font-family: 'Inter', sans-serif; font-size: 13px; line-height: 1.5; color: #34527b; animation: fade-up .4s ease both; }
+        .notice i { margin-top: 1px; color: #1451ff; }
+        .notice.is-success { border-color: #bfe9d6; background: #effbf5; color: #1c6a4b; }
+        .notice.is-success i { color: #0d9c6c; }
+        .notice.is-error { border-color: #f4c6cd; background: #fdf0f2; color: #a82749; }
+        .notice.is-error i { color: #c22540; }
+
+        .detail-crumb {
+            font-family: 'Inter', sans-serif;
+            font-size: 12.5px;
+            font-weight: 500;
+            color: #8189a8;
+        }
 
         .messages-shell {
+            margin-top: 14px;
+
             display: grid;
             grid-template-columns: 340px 1fr;
             gap: 20px;
 
-            height: calc(100vh - 118px);
+            /* The inbox gets (almost) a full screen of its own below the hero:
+               viewport minus the sticky topbar, never cramped, never absurdly tall. */
+            height: clamp(640px, calc(100vh - 118px), 940px);
 
             animation: fade-up .4s ease both;
+        }
+
+        .messages-shell > .list-panel,
+        .messages-shell > .thread-panel { min-height: 0; }
+
+        @@media(max-width: 900px) {
+            .messages-shell { grid-template-columns: 1fr; height: auto; }
+            .messages-shell > .list-panel { max-height: 420px; }
+            .messages-shell > .thread-panel { height: clamp(560px, calc(100vh - 110px), 820px); }
         }
 
         /* ---- List panel ---- */
@@ -181,7 +661,7 @@
         .list-head-sub {
             margin-top: 2px;
 
-            font-family: 'DM Sans', sans-serif;
+            font-family: 'Inter', sans-serif;
             font-size: 12px;
             color: #8189a8;
         }
@@ -208,9 +688,9 @@
 
         .list-filter-btn:hover,
         .list-filter-btn.is-active {
-            border-color: #176cff;
-            color: #176cff;
-            background: linear-gradient(105deg, rgba(35,110,234,.08), rgba(24,169,255,.08));
+            border-color: #9b2cff;
+            color: #9b2cff;
+            background: linear-gradient(105deg, rgba(163,38,255,.08), rgba(35,110,234,.08));
         }
 
         .list-search-wrap {
@@ -243,7 +723,7 @@
             border: 1px solid #e2e5f2;
             background: #fbfbfe;
 
-            font-family: 'DM Sans', sans-serif;
+            font-family: 'Inter', sans-serif;
             font-size: 13px;
             color: #2a3157;
 
@@ -252,8 +732,8 @@
         }
 
         .list-search input:focus {
-            border-color: #7ea8ff;
-            box-shadow: 0 0 0 3px rgba(23,108,255,.1);
+            border-color: #a978ff;
+            box-shadow: 0 0 0 3px rgba(155,44,255,.1);
         }
 
         .list-rows {
@@ -276,7 +756,6 @@
             margin-bottom: 4px;
 
             border-radius: 14px;
-            text-decoration: none;
 
             transition: background .25s ease, transform .2s ease;
 
@@ -308,7 +787,7 @@
             justify-content: center;
 
             border-radius: 50%;
-            background: linear-gradient(145deg, #c93cff, #4e38ff 55%, #159cff);
+            background: linear-gradient(135deg, #a326ff, #236eff, #18a9ff);
             color: #ffffff;
 
             font-family: 'DM Sans', sans-serif;
@@ -353,7 +832,7 @@
         }
 
         .inbox-time {
-            font-family: 'DM Sans', sans-serif;
+            font-family: 'Inter', sans-serif;
             font-size: 11px;
             font-weight: 500;
             color: #9096b3;
@@ -370,7 +849,7 @@
         }
 
         .inbox-snippet {
-            font-family: 'DM Sans', sans-serif;
+            font-family: 'Inter', sans-serif;
             font-size: 12.5px;
             color: #8189a8;
 
@@ -408,7 +887,7 @@
             padding: 30px 20px;
             text-align: center;
 
-            font-family: 'DM Sans', sans-serif;
+            font-family: 'Inter', sans-serif;
             font-size: 13px;
             color: #9096b3;
         }
@@ -418,8 +897,8 @@
             padding: 22px 16px;
 
             border-radius: 16px;
-            background: linear-gradient(165deg, #edf6ff, #eef4ff);
-            border: 1px solid #d6e4fa;
+            background: linear-gradient(165deg, #f6f1ff, #eef2ff);
+            border: 1px solid #e6e1ff;
 
             text-align: center;
         }
@@ -446,13 +925,20 @@
         }
 
         .start-convo-text {
-            margin: 5px auto 14px;
+            margin: 5px auto 0;
             max-width: 240px;
 
-            font-family: 'DM Sans', sans-serif;
+            font-family: 'Inter', sans-serif;
             font-size: 12px;
             line-height: 1.55;
             color: #6b7290;
+        }
+
+        .start-convo-card .bx-btn {
+            margin-top: 14px;
+            width: 100%;
+            height: 40px;
+            font-size: 12.5px;
         }
 
         /* ---- Thread panel ---- */
@@ -473,7 +959,7 @@
         .thread-header {
             padding: 18px 24px;
 
-            background: linear-gradient(120deg, #f3f8ff, #eef4ff);
+            background: linear-gradient(120deg, #fbf5ff, #f3f6ff);
             border-bottom: 1px solid #eaecf5;
 
             display: flex;
@@ -491,9 +977,21 @@
         .thread-sub {
             margin-top: 2px;
 
-            font-family: 'DM Sans', sans-serif;
+            font-family: 'Inter', sans-serif;
             font-size: 12px;
             color: #8189a8;
+        }
+
+        .thread-header > div:nth-child(2) { flex: 1; min-width: 0; }
+        .thread-name, .thread-sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+        @@media(max-width: 560px) {
+            .thread-header { padding: 14px 16px; gap: 10px; }
+            .thread-header-actions { gap: 6px; }
+            .thread-icon-btn { width: 34px; height: 34px; }
+            .thread-body { padding: 16px; }
+            .msg-col { max-width: 82%; }
+            .thread-composer { padding: 12px 14px; gap: 8px; }
         }
 
         .thread-header-actions {
@@ -526,8 +1024,8 @@
 
         .thread-icon-btn:hover,
         .thread-icon-btn.is-active {
-            border-color: #176cff;
-            color: #176cff;
+            border-color: #9b2cff;
+            color: #9b2cff;
         }
 
         .thread-icon-btn:disabled {
@@ -575,7 +1073,7 @@
             align-items: center;
             justify-content: center;
 
-            background: linear-gradient(145deg, #c93cff, #4e38ff 55%, #159cff);
+            background: linear-gradient(135deg, #a326ff, #236eff, #18a9ff);
 
             font-family: 'DM Sans', sans-serif;
             font-weight: 700;
@@ -603,7 +1101,7 @@
 
             border-radius: 17px;
 
-            font-family: 'DM Sans', sans-serif;
+            font-family: 'Inter', sans-serif;
             font-size: 13.5px;
             line-height: 1.55;
             word-break: break-word;
@@ -629,7 +1127,7 @@
         .msg-time {
             margin-top: 4px;
 
-            font-family: 'DM Sans', sans-serif;
+            font-family: 'Inter', sans-serif;
             font-size: 10.5px;
             color: #9096b3;
         }
@@ -731,7 +1229,7 @@
             text-align: left;
             cursor: pointer;
 
-            font-family: 'DM Sans', sans-serif;
+            font-family: 'Inter', sans-serif;
             font-size: 12.5px;
             font-weight: 500;
             color: #2a3157;
@@ -740,7 +1238,7 @@
         }
 
         .msg-menu-item:hover {
-            background: rgba(23,108,255,.08);
+            background: rgba(155,44,255,.08);
         }
 
         .msg-menu-item.msg-menu-danger {
@@ -764,8 +1262,8 @@
             padding: 10px 12px;
 
             border-radius: 14px;
-            border: 1px solid #c7dcff;
-            background: #f6faff;
+            border: 1px solid #d9c6ff;
+            background: #fbfaff;
         }
 
         .msg-edit-form[hidden] {
@@ -781,7 +1279,7 @@
             background: transparent;
             outline: none;
 
-            font-family: 'DM Sans', sans-serif;
+            font-family: 'Inter', sans-serif;
             font-size: 13.5px;
             color: #171d3d;
             line-height: 1.5;
@@ -808,7 +1306,7 @@
             border-radius: 20px;
             cursor: pointer;
 
-            font-family: 'DM Sans', sans-serif;
+            font-family: 'Inter', sans-serif;
             font-size: 12px;
             font-weight: 600;
 
@@ -838,7 +1336,7 @@
             background: #fff2f2;
             border: 1px solid #ffd4d4;
 
-            font-family: 'DM Sans', sans-serif;
+            font-family: 'Inter', sans-serif;
             font-size: 12.5px;
             color: #c22b4a;
         }
@@ -852,15 +1350,15 @@
             padding: 8px 12px;
 
             border-radius: 12px;
-            background: linear-gradient(120deg, rgba(35,110,234,.1), rgba(24,169,255,.08));
-            border: 1px solid rgba(35,110,234,.28);
+            background: linear-gradient(120deg, rgba(163,38,255,.1), rgba(24,169,255,.08));
+            border: 1px solid rgba(163,38,255,.28);
         }
 
         .composer-preview-name {
             flex: 1;
             min-width: 0;
 
-            font-family: 'DM Sans', sans-serif;
+            font-family: 'Inter', sans-serif;
             font-size: 12px;
             font-weight: 600;
             color: #3c4363;
@@ -934,7 +1432,7 @@
 
         .composer-preview-file-icon {
             flex-shrink: 0;
-            color: #176cff;
+            color: #7a3fe0;
         }
 
         .msg-media {
@@ -1029,14 +1527,14 @@
             border: 1px solid #e2e5f2;
             background: #fbfbfe;
             cursor: pointer;
-            color: #176cff;
+            color: #8b2cff;
 
             transition: border-color .2s ease, background .2s ease, transform .2s ease;
         }
 
         .composer-attach:hover {
-            border-color: #7ea8ff;
-            background: linear-gradient(120deg, rgba(35,110,234,.1), rgba(24,169,255,.08));
+            border-color: #a978ff;
+            background: linear-gradient(120deg, rgba(163,38,255,.1), rgba(24,169,255,.08));
             transform: translateY(-1px);
         }
 
@@ -1050,7 +1548,7 @@
             border: 1px solid #e2e5f2;
             background: #fbfbfe;
 
-            font-family: 'DM Sans', sans-serif;
+            font-family: 'Inter', sans-serif;
             font-size: 13.5px;
             color: #171d3d;
 
@@ -1066,7 +1564,7 @@
         }
 
         .thread-composer textarea:focus {
-            border-color: #7ea8ff;
+            border-color: #a978ff;
             background: #ffffff;
         }
 
@@ -1100,7 +1598,7 @@
             margin: auto;
             text-align: center;
 
-            font-family: 'DM Sans', sans-serif;
+            font-family: 'Inter', sans-serif;
             font-size: 13px;
             color: #9096b3;
         }
@@ -1208,7 +1706,7 @@
         .profile-handle {
             margin-top: 4px;
 
-            font-family: 'DM Sans', sans-serif;
+            font-family: 'Inter', sans-serif;
             font-size: 12.5px;
             color: rgba(255,255,255,.55);
         }
@@ -1220,12 +1718,21 @@
         }
 
         .profile-label {
-            font-family: 'DM Sans', sans-serif;
+            font-family: 'Inter', sans-serif;
             font-size: 10.5px;
             font-weight: 700;
             letter-spacing: .6px;
             text-transform: uppercase;
             color: rgba(255,255,255,.4);
+        }
+
+        .profile-bio {
+            margin-top: 8px;
+
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            line-height: 1.65;
+            color: rgba(255,255,255,.82);
         }
 
         .profile-tags {
@@ -1243,7 +1750,7 @@
             background: rgba(255,255,255,.08);
             border: 1px solid rgba(255,255,255,.14);
 
-            font-family: 'DM Sans', sans-serif;
+            font-family: 'Inter', sans-serif;
             font-size: 11px;
             font-weight: 600;
             color: rgba(255,255,255,.85);
@@ -1254,134 +1761,64 @@
             padding: 12px 14px;
 
             border-radius: 12px;
-            background: linear-gradient(120deg, rgba(35,110,234,.18), rgba(24,169,255,.12));
-            border: 1px solid rgba(35,110,234,.3);
+            background: linear-gradient(120deg, rgba(163,38,255,.18), rgba(24,169,255,.12));
+            border: 1px solid rgba(163,38,255,.3);
 
-            font-family: 'DM Sans', sans-serif;
+            font-family: 'Inter', sans-serif;
             font-size: 12.5px;
             line-height: 1.6;
             color: rgba(255,255,255,.9);
         }
 
-        .profile-website {
-            margin-top: 8px;
+        .profile-figures {
+            margin-top: 12px;
 
-            display: inline-block;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .profile-figure-value {
+            font-family: 'DM Sans', sans-serif;
+            font-weight: 800;
+            font-size: 17px;
+            color: #fff;
+        }
+
+        .profile-figure-label {
+            margin-top: 2px;
+
+            font-family: 'Inter', sans-serif;
+            font-size: 9.5px;
+            font-weight: 600;
+            letter-spacing: .3px;
+            text-transform: uppercase;
+            color: rgba(255,255,255,.45);
+        }
+
+        .profile-cta {
+            margin-top: 22px;
+
+            display: block;
+            text-align: center;
+
+            padding: 12px 18px;
+            border-radius: 12px;
+
+            background: linear-gradient(105deg, #a326ff, #236eff, #18a9ff);
+            background-size: 220% 100%;
 
             font-family: 'DM Sans', sans-serif;
-            font-size: 12.5px;
-            font-weight: 600;
-            color: #7fb2ff;
-            text-decoration: none;
+            font-weight: 700;
+            font-size: 13px;
+            color: #fff;
 
-            word-break: break-all;
+            transition: background-position .35s ease, transform .2s ease;
         }
 
-        .profile-website:hover {
-            text-decoration: underline;
+        .profile-cta:hover {
+            background-position: 100% 0;
+            transform: translateY(-2px);
         }
-
-        /* ==============================
-           RESPONSIVE
-        ============================== */
-
-        @@media(max-width: 1100px) {
-            .sidebar {
-                width: 220px;
-            }
-
-            .main-content {
-                margin-left: 220px;
-            }
-
-            .messages-shell {
-                grid-template-columns: 300px 1fr;
-            }
-        }
-
-        @@media(max-width: 900px) {
-            .sidebar {
-                transform: translateX(-100%);
-                box-shadow: 0 0 40px rgba(0,0,0,.35);
-            }
-
-            .sidebar.is-open {
-                transform: translateX(0);
-            }
-
-            .sidebar-backdrop {
-                display: none;
-                position: fixed;
-                inset: 0;
-                background: rgba(5,6,20,.5);
-                z-index: 999;
-            }
-
-            .sidebar-backdrop.is-visible {
-                display: block;
-            }
-
-            .main-content {
-                margin-left: 0;
-            }
-
-            .messages-shell {
-                grid-template-columns: 1fr;
-                height: auto;
-            }
-
-            .thread-panel {
-                min-height: 70vh;
-            }
-        }
-
-        @@media(max-width: 640px) {
-            .main-content {
-                padding: 18px 14px;
-            }
-        }
-
-
-        /* ---- Conversation pin / delete (per-side) ---- */
-        .inbox-row-wrap { position: relative; }
-        .inbox-time { transition: opacity .18s ease; }
-        .inbox-pin { flex-shrink: 0; font-size: 11px; color: #6545ff; }
-        .inbox-row-wrap.is-pinned .inbox-row:not(.is-selected) { background: linear-gradient(110deg, #f6f3ffb3, #f1f7ffb3); }
-
-        .list-section-label { display: flex; align-items: center; gap: 6px; padding: 10px 12px 6px; font-family: 'Inter', sans-serif; font-size: 10.5px; font-weight: 700; letter-spacing: 1.1px; text-transform: uppercase; color: #5877ac; }
-        .list-section-label i { font-size: 11px; color: #6545ff; }
-
-        .convo-menu-wrap { position: absolute; top: 10px; right: 10px; z-index: 6; opacity: 0; transition: opacity .18s ease; }
-        .inbox-row-wrap:hover .convo-menu-wrap,
-        .inbox-row-wrap:focus-within .convo-menu-wrap,
-        .convo-menu-wrap.is-open { opacity: 1; }
-        .inbox-row-wrap:hover .inbox-time,
-        .inbox-row-wrap:focus-within .inbox-time,
-        .inbox-row-wrap.menu-open .inbox-time { opacity: 0; }
-
-        .convo-menu-btn { display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border-radius: 50%; border: 1px solid #d7e8ff; background: #ffffffeb; color: #33477c; font-size: 14px; cursor: pointer; box-shadow: 0 4px 12px -6px #3b5bdb55; transition: border-color .18s ease, color .18s ease, background .18s ease, transform .18s ease; }
-        .convo-menu-btn:hover,
-        .convo-menu-wrap.is-open .convo-menu-btn { border-color: #1451ff; background: #eef4ff; color: #1451ff; transform: scale(1.05); }
-        .convo-menu-btn:focus-visible { outline: 2px solid #1451ff; outline-offset: 2px; }
-
-        .convo-menu { position: absolute; top: calc(100% + 6px); right: 0; min-width: 196px; padding: 6px; border-radius: 12px; border: 1px solid #d7e8ff; background: #ffffff; box-shadow: 0 18px 40px -12px rgba(30,34,90,.28); opacity: 0; visibility: hidden; transform: translateY(-6px) scale(.97); transform-origin: top right; transition: opacity .16s ease, transform .16s cubic-bezier(.22,1,.36,1), visibility .16s; }
-        .convo-menu-wrap.is-up .convo-menu { top: auto; bottom: calc(100% + 6px); transform-origin: bottom right; }
-        .convo-menu-wrap.is-open .convo-menu { opacity: 1; visibility: visible; transform: none; }
-        .convo-menu form { margin: 0; }
-        .convo-menu-item { display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 10px; border: 0; border-radius: 8px; background: transparent; text-align: left; font-family: 'Inter', 'DM Sans', sans-serif; font-size: 12.5px; font-weight: 500; color: #20365f; cursor: pointer; transition: background .15s ease, color .15s ease; }
-        .convo-menu-item i { width: 16px; font-size: 14px; text-align: center; color: #6545ff; }
-        .convo-menu-item:hover { background: linear-gradient(110deg, #efeaff, #e8f2ff); }
-        .convo-menu-item.is-danger, .convo-menu-item.is-danger i { color: #c22540; }
-        .convo-menu-item.is-danger:hover { background: #fdecef; }
-        .convo-menu-sep { height: 1px; margin: 4px 6px; background: #eef2fb; }
-
-        @@media (hover: none) {
-            .convo-menu-wrap { opacity: 1; }
-            .inbox-time { opacity: 0; }
-        }
-
-        .inbox-notice { display: flex; align-items: center; gap: 10px; margin: 0 0 14px; padding: 12px 16px; border-radius: 12px; border: 1px solid #bfe9d6; background: #effbf5; font-family: 'DM Sans', sans-serif; font-size: 13px; color: #1c6a4b; animation: fade-up .4s ease both; }
-        .inbox-notice i { color: #0d9c6c; }
 
         .confirm-modal-overlay {
             position: fixed;
@@ -1395,6 +1832,8 @@
             padding: 20px;
             background: rgba(15,20,45,.45);
             backdrop-filter: blur(2px);
+
+            animation: fade-up .18s ease both;
         }
 
         .confirm-modal-overlay[hidden] {
@@ -1497,7 +1936,7 @@
             border-radius: 20px;
             background: rgba(20,24,60,.92);
 
-            font-family: 'DM Sans', sans-serif;
+            font-family: 'Inter', sans-serif;
             font-size: 12.5px;
             font-weight: 600;
             color: #ffffff;
@@ -1511,6 +1950,139 @@
             opacity: 1;
             transform: translateX(-50%) translateY(0);
         }
+
+
+        /* =========================================================
+           Chrome aligned with the shared glass system
+           (surfaces, borders, Playfair titles, soft chips).
+           Layout sizes and chat behaviour are unchanged.
+        ========================================================= */
+
+        .list-panel,
+        .thread-panel {
+            border-radius: 14px;
+            border: 1px solid #cfe2ff;
+            background: linear-gradient(135deg, #ffffffe0, #f5faffcc 55%, #fafdffe6);
+            box-shadow: inset 0 1px 2px #ffffff, 0 12px 30px -12px #3b5bdb24;
+        }
+
+        .list-head { border-bottom-color: #e3edfc; }
+        .list-head-title { font-family: 'Playfair Display', Georgia, serif; letter-spacing: -.4px; color: #0b084e; }
+        .list-head-sub { color: #5877ac; }
+
+        .list-filter-btn { border-color: #d7e8ff; background: #ffffffb8; color: #33477c; }
+        .list-filter-btn:hover,
+        .list-filter-btn.is-active { border-color: #1451ff; color: #1451ff; background: #eef4ff; }
+
+        .list-search { border-bottom-color: #e3edfc; }
+        .list-search input { border-color: #cfe0fb; background: #ffffffd9; color: #101d48; }
+        .list-search input:focus { border-color: #6b8dff; box-shadow: 0 0 0 3px #3b4dff1f; }
+
+        a.inbox-row:hover { background: #f1f7ffcc; }
+        .inbox-row.is-selected { background: linear-gradient(110deg, #efeaffcc, #e6f1ffcc); box-shadow: inset 0 0 0 1px #cddfff; }
+        .inbox-avatar { background: linear-gradient(135deg, #7224ff, #3735ff 55%, #087fff); }
+        .inbox-name-row { color: #101d48; }
+        .inbox-time { color: #8095c4; }
+        .inbox-snippet { color: #5877ac; }
+        .inbox-snippet.is-unread { color: #101d48; }
+        .inbox-unread-dot { background: linear-gradient(110deg, #6425ff, #004dff 55%, #00a8f0); }
+
+        .start-convo-card { border-radius: 12px; border: 1px solid #d6e6ff; background: radial-gradient(ellipse at 95% 100%, #c1ddff, transparent 65%), linear-gradient(120deg, #eff7ff, #e0eeff); }
+        .start-convo-icon.icon-chip { width: 42px; height: 42px; margin: 0 auto 12px; background: linear-gradient(135deg, #e4eeff, #cce2ff); color: #135bff; }
+        .start-convo-title { color: #101d48; }
+        .start-convo-text { color: #52649b; }
+
+        .thread-header { background: linear-gradient(120deg, #f3f8ffe6, #eef3ffd9); border-bottom-color: #e3edfc; }
+        .thread-name { color: #101d48; }
+        .thread-sub { color: #5877ac; }
+
+        .thread-empty { color: #5877ac; }
+        .thread-empty-state { display: flex; flex-direction: column; align-items: center; gap: 8px; max-width: 320px; padding: 20px; }
+        .thread-empty-state .icon-chip { margin-bottom: 4px; }
+        .thread-empty-title { font: 600 19px/1.3 'Playfair Display', Georgia, serif; color: #0b084e; }
+        .thread-empty-state p { margin: 0; font-family: 'Inter', sans-serif; font-size: 12.5px; line-height: 1.6; color: #5877ac; }
+        .thread-empty-state .bx-btn { margin-top: 8px; height: 40px; }
+
+        /* ---- Conversation pin / delete (per-side) ---- */
+        .inbox-row-wrap { position: relative; }
+        .inbox-time { transition: opacity .18s ease; }
+        .inbox-pin { flex-shrink: 0; font-size: 11px; color: #6545ff; }
+        .inbox-row-wrap.is-pinned .inbox-row:not(.is-selected) { background: linear-gradient(110deg, #f6f3ffb3, #f1f7ffb3); }
+
+        .list-section-label { display: flex; align-items: center; gap: 6px; padding: 10px 12px 6px; font-family: 'Inter', sans-serif; font-size: 10.5px; font-weight: 700; letter-spacing: 1.1px; text-transform: uppercase; color: #5877ac; }
+        .list-section-label i { font-size: 11px; color: #6545ff; }
+
+        .convo-menu-wrap { position: absolute; top: 10px; right: 10px; z-index: 6; opacity: 0; transition: opacity .18s ease; }
+        .inbox-row-wrap:hover .convo-menu-wrap,
+        .inbox-row-wrap:focus-within .convo-menu-wrap,
+        .convo-menu-wrap.is-open { opacity: 1; }
+        .inbox-row-wrap:hover .inbox-time,
+        .inbox-row-wrap:focus-within .inbox-time,
+        .inbox-row-wrap.menu-open .inbox-time { opacity: 0; }
+
+        .convo-menu-btn { display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border-radius: 50%; border: 1px solid #d7e8ff; background: #ffffffeb; color: #33477c; font-size: 14px; cursor: pointer; box-shadow: 0 4px 12px -6px #3b5bdb55; transition: border-color .18s ease, color .18s ease, background .18s ease, transform .18s ease; }
+        .convo-menu-btn:hover,
+        .convo-menu-wrap.is-open .convo-menu-btn { border-color: #1451ff; background: #eef4ff; color: #1451ff; transform: scale(1.05); }
+        .convo-menu-btn:focus-visible { outline: 2px solid #1451ff; outline-offset: 2px; }
+
+        .convo-menu { position: absolute; top: calc(100% + 6px); right: 0; min-width: 196px; padding: 6px; border-radius: 12px; border: 1px solid #d7e8ff; background: #ffffff; box-shadow: 0 18px 40px -12px rgba(30,34,90,.28); opacity: 0; visibility: hidden; transform: translateY(-6px) scale(.97); transform-origin: top right; transition: opacity .16s ease, transform .16s cubic-bezier(.22,1,.36,1), visibility .16s; }
+        .convo-menu-wrap.is-up .convo-menu { top: auto; bottom: calc(100% + 6px); transform-origin: bottom right; }
+        .convo-menu-wrap.is-open .convo-menu { opacity: 1; visibility: visible; transform: none; }
+        .convo-menu form { margin: 0; }
+        .convo-menu-item { display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 10px; border: 0; border-radius: 8px; background: transparent; text-align: left; font-family: 'Inter', 'DM Sans', sans-serif; font-size: 12.5px; font-weight: 500; color: #20365f; cursor: pointer; transition: background .15s ease, color .15s ease; }
+        .convo-menu-item i { width: 16px; font-size: 14px; text-align: center; color: #6545ff; }
+        .convo-menu-item:hover { background: linear-gradient(110deg, #efeaff, #e8f2ff); }
+        .convo-menu-item.is-danger, .convo-menu-item.is-danger i { color: #c22540; }
+        .convo-menu-item.is-danger:hover { background: #fdecef; }
+        .convo-menu-sep { height: 1px; margin: 4px 6px; background: #eef2fb; }
+
+        @@media (hover: none) {
+            .convo-menu-wrap { opacity: 1; }
+            .inbox-time { opacity: 0; }
+        }
+
+        /* ---- Influencer shell adaptations ----
+           The dashboard stylesheet colours every link inside .dashboard-page blue;
+           on the Brand side links inherit their colour, so restore that here and
+           re-assert the colours the Brand side sets on its link-styled elements. */
+        .messages-page a { color: inherit; }
+        .messages-page a.back-to-dashboard { color: #5877ac; }
+        .messages-page a.back-to-dashboard:hover { color: #1451ff; }
+        .messages-page a.bx-btn-primary,
+        .messages-page a.profile-cta { color: #ffffff; }
+        .messages-page a.bx-btn-secondary { color: #0641ff; }
+        .messages-page .back-to-dashboard { margin-top: 4px; }
+
+        /* The dashboard stylesheet zeroes h1/p/dl margins inside .dashboard-page; the
+           Brand side's spacing for these elements is restored here. */
+        .messages-page .page-hero-title { margin-top: 6px; }
+        .messages-page .page-hero-sub { margin-top: 8px; }
+        .messages-page .page-hero-stats { margin-top: 14px; }
+        .messages-page .page-hero-stats dt { margin: 2px 0 0; }
+        .messages-page .start-convo-text { margin: 5px auto 0; }
+        .messages-page .profile-bio { margin-top: 8px; }
+        .messages-page .thread-empty-state p { margin: 0; }
+
+        /* Brand website + social profiles inside the company drawer */
+        .profile-website {
+            display: inline-block;
+            margin-top: 8px;
+
+            font-family: 'Inter', sans-serif;
+            font-size: 12.5px;
+            font-weight: 600;
+            color: #7fb2ff !important;
+            word-break: break-all;
+        }
+
+        .profile-website:hover {
+            text-decoration: underline;
+        }
+
+        .profile-socials {
+            margin-top: 10px;
+        }
+
     </style>
 </head>
 
@@ -1567,18 +2139,41 @@
 
         <!-- ================= CHAT ================= -->
 
+        <section class="page-hero">
+            @await Html.PartialAsync("_HeroWaves")
+            <div class="page-hero-intro">
+                <p class="page-hero-eyebrow">Chat</p>
+                <h1 class="page-hero-title">Your <span>Brand Inbox</span></h1>
+                <p class="page-hero-sub">Every brand conversation, brief and deliverable in one inbox.</p>
+                <dl class="page-hero-stats">
+                    <div><dd>@Model.TotalCount</dd><dt>Conversation@(Model.TotalCount == 1 ? "" : "s")</dt></div>
+                    <div><dd>@Model.TotalUnread</dd><dt>Unread message@(Model.TotalUnread == 1 ? "" : "s")</dt></div>
+                </dl>
+            </div>
+
+            <div class="page-hero-art" aria-hidden="true">
+                <div class="hero-glass hero-glass-back"></div>
+                <div class="hero-glass hero-glass-front">
+                    <span class="hero-glass-copy">Chat.<br />Align.<br />Deliver.<span></span></span>
+                </div>
+                <span class="hero-sparkle"></span>
+            </div>
+
+            <div class="page-hero-motto">Real Brands.<br />Real Conversations.<span></span></div>
+        </section>
+
         @if (TempData["InboxNotice"] is string inboxNotice)
         {
-            <div class="inbox-notice" role="status"><i class="bi bi-check-circle-fill"></i><span>@inboxNotice</span></div>
+            <div class="notice is-success" role="status" style="margin-top:14px;"><i class="bi bi-check-circle-fill"></i><span>@inboxNotice</span></div>
         }
 
-        <div class="messages-shell">
+        <div class="messages-shell" id="messagesShell">
 
             <div class="list-panel">
 
                 <div class="list-head">
                     <div>
-                        <div class="list-head-title">Conversations</div>
+                        <div class="list-head-title">Your Conversations</div>
                         <div class="list-head-sub">@Model.TotalCount conversation@(Model.TotalCount == 1 ? "" : "s")@(Model.TotalUnread > 0 ? $" · {Model.TotalUnread} new" : "")</div>
                     </div>
                     <button type="button" class="list-filter-btn" id="messagesFilterBtn" aria-label="Search conversations" title="Search">
@@ -1636,6 +2231,10 @@
                                             {
                                                 <i class="bi bi-pin-angle-fill inbox-pin" title="Pinned" aria-label="Pinned"></i>
                                             }
+                                            @if (conversation.BrandProfile.VerificationStatus == VerificationStatus.Verified)
+                                            {
+                                                <span class="verified-badge">Verified</span>
+                                            }
                                         </div>
                                         <span class="inbox-time">@((lastMessage?.SentAt ?? conversation.CreatedAt).ToBangladeshTime().ToString("MMM d"))</span>
                                     </div>
@@ -1690,12 +2289,12 @@
                     @if (string.IsNullOrEmpty(Model.Search))
                     {
                         <div class="start-convo-card">
-                            <div class="start-convo-icon">
+                            <div class="start-convo-icon icon-chip soft">
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/></svg>
                             </div>
-                            <div class="start-convo-title">Start a new conversation</div>
-                            <p class="start-convo-text">Connect with brands and collaborate on amazing campaigns.</p>
-                            <a href="/Brands" class="btn-outline">Browse Brands</a>
+                            <div class="start-convo-title">@(Model.TotalCount > 0 ? "Start a new conversation" : "No conversations yet")</div>
+                            <p class="start-convo-text">Message a brand to discuss a campaign, deliverable or collaboration opportunity.</p>
+                            <a href="/Brands" class="bx-btn bx-btn-secondary">Browse Brands</a>
                         </div>
                     }
                 </div>
@@ -1707,6 +2306,9 @@
                 @if (selected is not null)
                 {
                     var brand = selected.BrandProfile;
+                    var brandVerified = brand.VerificationStatus == VerificationStatus.Verified;
+                    var brandSocials = brand.SocialLinks();
+                    var safeWebsite = Uri.TryCreate(brand.WebsiteUrl, UriKind.Absolute, out var websiteUri) && (websiteUri.Scheme == "https" || websiteUri.Scheme == "http");
                     <div class="thread-header">
                         <div class="inbox-avatar" style="width:42px;height:42px;font-size:14px;">
                             @FollowerFormat.InitialsOf(brand.CompanyName)
@@ -1717,13 +2319,13 @@
                         </div>
 
                         <div class="thread-header-actions">
-                            <button type="button" class="thread-icon-btn" disabled title="Voice calling is coming soon" aria-label="Voice call">
+                            <button type="button" class="thread-icon-btn" disabled title="Voice calling isn't part of Brandora's messaging — use chat to coordinate" aria-label="Voice call unavailable">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6.6 10.8a15.6 15.6 0 0 0 6.6 6.6l2.2-2.2a1.5 1.5 0 0 1 1.5-.4 12 12 0 0 0 3.8.6 1.5 1.5 0 0 1 1.5 1.5V21a1.5 1.5 0 0 1-1.5 1.5A18.5 18.5 0 0 1 2.5 4.5 1.5 1.5 0 0 1 4 3h3.5A1.5 1.5 0 0 1 9 4.5a12 12 0 0 0 .6 3.8 1.5 1.5 0 0 1-.4 1.5L6.6 10.8Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
                             </button>
-                            <button type="button" class="thread-icon-btn" disabled title="Video calling is coming soon" aria-label="Video call">
+                            <button type="button" class="thread-icon-btn" disabled title="Video calling isn't part of Brandora's messaging — use chat to coordinate" aria-label="Video call unavailable">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="2.5" y="6" width="13" height="12" rx="2.5" stroke="currentColor" stroke-width="1.8"/><path d="M18.5 10.4 22 8v8l-3.5-2.4" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
                             </button>
-                            <button type="button" class="thread-icon-btn" id="profileInfoBtn" title="View company info" aria-label="View company info">
+                            <button type="button" class="thread-icon-btn" id="profileInfoBtn" title="View brand profile" aria-label="View brand profile">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M12 11v5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="8" r=".9" fill="currentColor"/></svg>
                             </button>
                         </div>
@@ -1870,35 +2472,64 @@
                             <div class="profile-avatar-ring">
                                 <div class="inbox-avatar">@FollowerFormat.InitialsOf(brand.CompanyName)</div>
                             </div>
-                            <div class="profile-name-row">@brand.CompanyName</div>
-                            <div class="profile-handle">@brand.ContactFullName</div>
+                            <div class="profile-name-row">
+                                @brand.CompanyName
+                                @if (brandVerified)
+                                {
+                                    <span class="verified-badge">Verified</span>
+                                }
+                            </div>
+                            <div class="profile-handle">@brand.Industry &middot; @brand.ContactFullName</div>
+                            @if (brandSocials.Count > 0)
+                            {
+                                <div class="social-icons profile-socials" aria-label="@brand.CompanyName on social media">
+                                    @foreach (var link in brandSocials)
+                                    {
+                                        <a href="@link.Url" target="_blank" rel="noopener noreferrer" class="social-chip sm" style="background: @link.Platform.Background;" title="@brand.CompanyName on @link.Platform.Name" aria-label="@brand.CompanyName on @link.Platform.Name"><i class="bi @link.Platform.Icon"></i></a>
+                                    }
+                                </div>
+                            }
                         </div>
 
                         <div class="profile-section">
-                            <div class="profile-label">Industry</div>
+                            <div class="profile-label">Focus</div>
                             <div class="profile-tags">
                                 <span class="profile-tag">@brand.Industry</span>
+                                <span class="profile-tag">Member since @brand.CreatedAt.ToString("MMM yyyy")</span>
                             </div>
                         </div>
 
-                        <div class="profile-section">
-                            <div class="profile-label">Monthly Budget</div>
-                            <div class="profile-rate-box">@brand.MonthlyBudget</div>
-                        </div>
+                        @if (!string.IsNullOrEmpty(brand.MonthlyBudget))
+                        {
+                            <div class="profile-section">
+                                <div class="profile-label">Monthly Budget</div>
+                                <div class="profile-rate-box">@brand.MonthlyBudget</div>
+                            </div>
+                        }
 
-                        @if (!string.IsNullOrEmpty(brand.WebsiteUrl))
+                        @if (safeWebsite)
                         {
                             <div class="profile-section">
                                 <div class="profile-label">Website</div>
-                                <a href="@brand.WebsiteUrl" target="_blank" rel="noopener" class="profile-website">@brand.WebsiteUrl</a>
+                                <a href="@brand.WebsiteUrl" target="_blank" rel="noopener noreferrer" class="profile-website">@brand.WebsiteUrl</a>
                             </div>
                         }
+
+                        <a href="/Brands?search=@Uri.EscapeDataString(brand.CompanyName)" class="profile-cta">View in Browse Brands</a>
 
                     </div>
                 }
                 else
                 {
-                    <div class="thread-empty">Select or start a conversation to see it here.</div>
+                    <div class="thread-empty thread-empty-state">
+                        <span class="icon-chip lg soft"><i class="bi bi-chat-square-text"></i></span>
+                        <div class="thread-empty-title">@(Model.TotalCount > 0 ? "Select a conversation" : "Your inbox is ready")</div>
+                        <p>@(Model.TotalCount > 0 ? "Pick a brand on the left to read and reply to your conversation." : "When you message a brand, your conversation appears here.")</p>
+                        @if (Model.TotalCount == 0)
+                        {
+                            <a href="/Brands" class="bx-btn bx-btn-primary">Browse Brands</a>
+                        }
+                    </div>
                 }
 
             </section>
@@ -1921,117 +2552,121 @@
         </div>
     </div>
 
-    <div class="confirm-modal-overlay" id="convoDeleteOverlay" hidden>
-        <div class="confirm-modal" role="alertdialog" aria-labelledby="convoDeleteTitle" aria-describedby="convoDeleteBody">
-            <div class="confirm-modal-icon">
-                <i class="bi bi-trash3" style="font-size:20px;"></i>
-            </div>
-            <div class="confirm-modal-title" id="convoDeleteTitle">Delete this conversation?</div>
-            <p class="confirm-modal-body" id="convoDeleteBody">It will be removed from your inbox. The brand keeps their copy.</p>
+    <div class="copy-toast" id="copyToast">Copied</div>
+
+    @* Same shared confirm dialog the Brand side uses (_AppLayout's #brandoraConfirmModal) —
+       used here for "Delete conversation", exactly as on the Brand side. *@
+    <div class="confirm-modal-backdrop" id="brandoraConfirmModal">
+        <div class="confirm-modal" role="alertdialog" aria-modal="true">
+            <div class="confirm-modal-icon">!</div>
+            <div class="confirm-modal-title">Are you sure?</div>
+            <p class="confirm-modal-text"></p>
             <div class="confirm-modal-actions">
-                <button type="button" class="confirm-modal-cancel" id="convoDeleteCancel">Cancel</button>
-                <button type="button" class="confirm-modal-danger" id="convoDeleteOk">Delete</button>
+                <button type="button" class="bx-btn bx-btn-secondary confirm-modal-cancel">Cancel</button>
+                <button type="button" class="bx-btn bx-btn-primary confirm-modal-confirm">Confirm</button>
             </div>
         </div>
     </div>
 
-    <div class="copy-toast" id="copyToast">Copied</div>
-
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/brandora-influencer-dashboard.js" asp-append-version="true"></script>
+
+    <script>
+        // Brand side's shared confirm dialog (Views/Shared/_AppLayout.cshtml), same behaviour.
+        window.brandoraConfirm = function (triggerEl, opts) {
+            opts = opts || {};
+            var modal = document.getElementById('brandoraConfirmModal');
+            if (!modal) { return; }
+
+            var form = triggerEl && triggerEl.closest ? triggerEl.closest('form') : null;
+
+            modal.querySelector('.confirm-modal-title').textContent = opts.title || 'Are you sure?';
+            modal.querySelector('.confirm-modal-text').textContent = opts.text || '';
+
+            var icon = modal.querySelector('.confirm-modal-icon');
+            icon.classList.toggle('is-danger', !!opts.danger);
+
+            var confirmBtn = modal.querySelector('.confirm-modal-confirm');
+            confirmBtn.textContent = opts.confirmLabel || 'Confirm';
+            confirmBtn.classList.toggle('bx-btn-primary', !opts.danger);
+            confirmBtn.classList.toggle('bx-btn-danger-solid', !!opts.danger);
+
+            function close() {
+                modal.classList.remove('is-open');
+                confirmBtn.onclick = null;
+                document.removeEventListener('keydown', onKeydown);
+            }
+
+            function onKeydown(e) {
+                if (e.key === 'Escape') { close(); }
+            }
+
+            confirmBtn.onclick = function () {
+                close();
+                if (form) { form.submit(); }
+                else if (typeof opts.onConfirm === 'function') { opts.onConfirm(); }
+            };
+
+            modal.querySelector('.confirm-modal-cancel').onclick = close;
+            modal.onclick = function (e) { if (e.target === modal) { close(); } };
+            document.addEventListener('keydown', onKeydown);
+
+            modal.classList.add('is-open');
+        };
+
+    </script>
 
     <script>
 
-    // Conversation options (pin / delete) — one menu open at a time.
-    (function () {
-        function closeAllConvoMenus(except) {
-            document.querySelectorAll('[data-convo-menu].is-open').forEach(function (wrap) {
-                if (wrap === except) { return; }
-                wrap.classList.remove('is-open');
-                var rowWrap = wrap.closest('.inbox-row-wrap');
-                if (rowWrap) { rowWrap.classList.remove('menu-open'); }
-                var b = wrap.querySelector('[data-convo-menu-toggle]');
-                if (b) { b.setAttribute('aria-expanded', 'false'); }
-            });
-        }
-
-        document.querySelectorAll('[data-convo-menu-toggle]').forEach(function (btn) {
-            btn.addEventListener('click', function (e) {
-                e.preventDefault();
-                e.stopPropagation();
-                var wrap = btn.closest('[data-convo-menu]');
-                var willOpen = !wrap.classList.contains('is-open');
-                closeAllConvoMenus(wrap);
-                if (willOpen) {
-                    // Open upwards when there isn't room below inside the scrolling list.
-                    var list = wrap.closest('.list-rows');
-                    var menu = wrap.querySelector('.convo-menu');
-                    var spaceBelow = (list ? list.getBoundingClientRect().bottom : window.innerHeight) - btn.getBoundingClientRect().bottom;
-                    wrap.classList.toggle('is-up', spaceBelow < (menu ? menu.offsetHeight : 110) + 12);
-                }
-                wrap.classList.toggle('is-open', willOpen);
-                var rowWrap = wrap.closest('.inbox-row-wrap');
-                if (rowWrap) { rowWrap.classList.toggle('menu-open', willOpen); }
-                btn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
-            });
-        });
-
-        document.addEventListener('click', function (e) {
-            if (!e.target.closest('[data-convo-menu]')) { closeAllConvoMenus(null); }
-        });
-        document.addEventListener('keydown', function (e) {
-            if (e.key === 'Escape') { closeAllConvoMenus(null); }
-        });
-
-        var deleteOverlay = document.getElementById('convoDeleteOverlay');
-        var deleteBody = document.getElementById('convoDeleteBody');
-        var pendingDeleteForm = null;
-        function closeDeleteConfirm() { if (deleteOverlay) { deleteOverlay.hidden = true; } pendingDeleteForm = null; }
-        if (deleteOverlay) {
-            document.getElementById('convoDeleteCancel').addEventListener('click', closeDeleteConfirm);
-            document.getElementById('convoDeleteOk').addEventListener('click', function () {
-                var form = pendingDeleteForm;
-                closeDeleteConfirm();
-                if (form) { form.submit(); }
-            });
-            deleteOverlay.addEventListener('click', function (e) { if (e.target === deleteOverlay) { closeDeleteConfirm(); } });
-            document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !deleteOverlay.hidden) { closeDeleteConfirm(); } });
-        }
-
-        document.querySelectorAll('[data-convo-delete]').forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                closeAllConvoMenus(null);
-                var name = btn.getAttribute('data-convo-name') || 'They';
-                pendingDeleteForm = btn.closest('form'); if (deleteBody) { deleteBody.textContent = 'It will be removed from your inbox. ' + name + ' keeps their copy, and if they message you again it will reappear with only the new messages.'; } if (deleteOverlay) { deleteOverlay.hidden = false; }
-            });
-        });
-    })();
+        // Conversation options (pin / delete) — one menu open at a time.
         (function () {
-            var menuBtn = document.getElementById('menuToggleBtn');
-            var sidebar = document.getElementById('dashboardSidebar');
-            var main = document.getElementById('dashboardMain');
-            var backdrop = document.getElementById('sidebarBackdrop');
-            var mobileQuery = window.matchMedia('(max-width: 900px)');
-
-            if (menuBtn && sidebar && main) {
-                function closeMobile() {
-                    sidebar.classList.remove('is-open');
-                    if (backdrop) backdrop.classList.remove('is-visible');
-                }
-
-                menuBtn.addEventListener('click', function () {
-                    if (mobileQuery.matches) {
-                        sidebar.classList.toggle('is-open');
-                        if (backdrop) backdrop.classList.toggle('is-visible');
-                    } else {
-                        sidebar.classList.toggle('is-hidden');
-                        main.classList.toggle('sidebar-hidden');
-                    }
+            function closeAllConvoMenus(except) {
+                document.querySelectorAll('[data-convo-menu].is-open').forEach(function (wrap) {
+                    if (wrap === except) { return; }
+                    wrap.classList.remove('is-open');
+                    var rowWrap = wrap.closest('.inbox-row-wrap');
+                    if (rowWrap) { rowWrap.classList.remove('menu-open'); }
+                    var b = wrap.querySelector('[data-convo-menu-toggle]');
+                    if (b) { b.setAttribute('aria-expanded', 'false'); }
                 });
-
-                if (backdrop) backdrop.addEventListener('click', closeMobile);
             }
-        })();
 
+            document.querySelectorAll('[data-convo-menu-toggle]').forEach(function (btn) {
+                btn.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    var wrap = btn.closest('[data-convo-menu]');
+                    var willOpen = !wrap.classList.contains('is-open');
+                    closeAllConvoMenus(wrap);
+                    if (willOpen) {
+                        // Open upwards when there isn't room below inside the scrolling list.
+                        var list = wrap.closest('.list-rows');
+                        var menu = wrap.querySelector('.convo-menu');
+                        var spaceBelow = (list ? list.getBoundingClientRect().bottom : window.innerHeight) - btn.getBoundingClientRect().bottom;
+                        wrap.classList.toggle('is-up', spaceBelow < (menu ? menu.offsetHeight : 110) + 12);
+                    }
+                    wrap.classList.toggle('is-open', willOpen);
+                    var rowWrap = wrap.closest('.inbox-row-wrap');
+                    if (rowWrap) { rowWrap.classList.toggle('menu-open', willOpen); }
+                    btn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+                });
+            });
+
+            document.addEventListener('click', function (e) {
+                if (!e.target.closest('[data-convo-menu]')) { closeAllConvoMenus(null); }
+            });
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') { closeAllConvoMenus(null); }
+            });
+
+            document.querySelectorAll('[data-convo-delete]').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    closeAllConvoMenus(null);
+                    var name = btn.getAttribute('data-convo-name') || 'They';
+                    window.brandoraConfirm(btn, { title: 'Delete this conversation?', text: 'It will be removed from your inbox. ' + name + ' keeps their copy, and if they message you again it will reappear with only the new messages.', danger: true, confirmLabel: 'Delete' });
+                });
+            });
+        })();
         (function () {
             var rows = document.querySelectorAll('.inbox-row[data-reveal]');
             if (rows.length) {
@@ -2143,6 +2778,18 @@
 
             if (threadBody) {
                 threadBody.scrollTop = threadBody.scrollHeight;
+            }
+
+            // Opening a specific conversation (row click, chat widget, "Open Chat")
+            // lands the page on the inbox itself rather than back on the hero.
+            var shell = document.getElementById('messagesShell');
+            if (shell && /[?&]open=/.test(window.location.search)) {
+                requestAnimationFrame(function () {
+                    var topbar = document.querySelector('.dashboard-topbar');
+                    var offset = (topbar ? topbar.getBoundingClientRect().height : 0) + 16;
+                    var target = shell.getBoundingClientRect().top + window.pageYOffset - offset;
+                    window.scrollTo({ top: Math.max(0, target), behavior: 'smooth' });
+                });
             }
 
             // Message actions: 3-dot menu (Edit / Copy / Unsend)

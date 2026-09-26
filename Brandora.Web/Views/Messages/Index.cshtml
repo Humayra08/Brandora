@@ -397,6 +397,18 @@
         color: #8189a8;
     }
 
+    .thread-header > div:nth-child(2) { flex: 1; min-width: 0; }
+    .thread-name, .thread-sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    @@media(max-width: 560px) {
+        .thread-header { padding: 14px 16px; gap: 10px; }
+        .thread-header-actions { gap: 6px; }
+        .thread-icon-btn { width: 34px; height: 34px; }
+        .thread-body { padding: 16px; }
+        .msg-col { max-width: 82%; }
+        .thread-composer { padding: 12px 14px; gap: 8px; }
+    }
+
     .thread-header-actions {
         margin-left: auto;
         flex-shrink: 0;
@@ -1445,11 +1457,6 @@
     }
 
 }
-
-<a href="/Dashboard" class="back-to-dashboard">
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    Back
-</a>
 
 <section class="page-hero">
     @await Html.PartialAsync("_HeroWaves")

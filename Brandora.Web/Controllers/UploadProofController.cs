@@ -74,6 +74,30 @@ public class UploadProofController(UserManager<ApplicationUser> userManager, App
             return NotFound();
         }
 
+        // The post link is optional, but when given it must be a real web address so the
+        // brand's "View on <platform>" button always opens the creator's live post.
+        string? postUrl = null;
+        if (!string.IsNullOrWhiteSpace(proofUrl))
+        {
+            var candidate = proofUrl.Trim();
+            if (!candidate.StartsWith("http://", StringComparison.OrdinalIgnoreCase) &&
+                !candidate.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+            {
+                candidate = "https://" + candidate;
+            }
+
+            if (candidate.Length > 500 ||
+                !Uri.TryCreate(candidate, UriKind.Absolute, out var postUri) ||
+                (postUri.Scheme != Uri.UriSchemeHttp && postUri.Scheme != Uri.UriSchemeHttps) ||
+                !postUri.Host.Contains('.'))
+            {
+                TempData["ProofError"] = "Enter the full link to your post, e.g. https://www.instagram.com/reel/…";
+                return RedirectToAction("Index");
+            }
+
+            postUrl = postUri.AbsoluteUri;
+        }
+
         string? finalProofUrl = null;
 
         if (proofFile is { Length: > 0 })
@@ -87,9 +111,9 @@ public class UploadProofController(UserManager<ApplicationUser> userManager, App
 
             finalProofUrl = url;
         }
-        else if (!string.IsNullOrWhiteSpace(proofUrl))
+        else if (postUrl is not null)
         {
-            finalProofUrl = proofUrl;
+            finalProofUrl = postUrl;
         }
 
         if (finalProofUrl is null)
@@ -99,6 +123,7 @@ public class UploadProofController(UserManager<ApplicationUser> userManager, App
         }
 
         milestone.ProofUrl = finalProofUrl;
+        milestone.ProofPostUrl = postUrl;
         milestone.ProofNotes = proofNotes;
         milestone.Status = MilestoneStatus.Submitted;
 

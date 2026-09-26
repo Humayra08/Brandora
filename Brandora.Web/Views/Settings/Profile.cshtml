@@ -6,6 +6,7 @@
     Layout = "_AppLayout";
 
     var campaignCount = ViewData["CampaignCount"] as int? ?? 0;
+    var socialLinks = Model.SocialLinks();
 
     var completenessItems = new[]
     {
@@ -14,7 +15,8 @@
         ("Industry", "bi-tag", !string.IsNullOrWhiteSpace(Model.Industry)),
         ("Monthly budget", "bi-cash-stack", !string.IsNullOrWhiteSpace(Model.MonthlyBudget)),
         ("Website", "bi-globe2", !string.IsNullOrWhiteSpace(Model.WebsiteUrl)),
-        ("Brand logo", "bi-image", !string.IsNullOrWhiteSpace(Model.ProfilePictureUrl))
+        ("Brand logo", "bi-image", !string.IsNullOrWhiteSpace(Model.ProfilePictureUrl)),
+        ("Social profiles", "bi-share", socialLinks.Count > 0)
     };
     var completedCount = completenessItems.Count(c => c.Item3);
     var completenessPercent = (int)Math.Round(completedCount * 100.0 / completenessItems.Length);
@@ -31,7 +33,7 @@
 
     var faqs = new[]
     {
-        ("Who sees my brand profile?", "Creators see your company name, logo and industry on your campaigns, proposals and messages. Your budget range and contact details are used by Brandora's review team."),
+        ("Who sees my brand profile?", "Creators see your company name, logo, industry and social profiles on your campaigns, proposals, messages and in Browse Brands. Your budget range and contact details are used by Brandora's review team."),
         ("How do I edit these details?", "Use Edit Profile — it opens Settings, where you can update your company details and upload or change your logo."),
         ("Why does verification matter?", "Every brand is reviewed by Brandora's admin team before it can sign in and work with creators, so creators know the brands they meet are real."),
         ("What if my verification is rejected?", "The reason is shown on this page. Fix the details in Settings and save — updated profiles are reviewed again."),
@@ -55,6 +57,10 @@
     .detail-rows dd a { color: #1451ff; font-weight: 600; }
     .detail-rows dd a:hover { text-decoration: underline; }
     .bp-muted { color: #8095c4; font-style: italic; }
+    .detail-hero-socials { margin-top: 12px; }
+    .bp-social-list { display: flex; flex-wrap: wrap; gap: 8px; }
+    .bp-social-list a.bp-social-link { display: inline-flex; align-items: center; gap: 8px; padding: 4px 12px 4px 4px; border-radius: 20px; border: 1px solid #dfe9fb; background: #ffffffb3; font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; color: #20365f; transition: border-color .2s ease, transform .2s ease; }
+    .bp-social-list a.bp-social-link:hover { text-decoration: none; border-color: #9fbcff; transform: translateY(-1px); }
 
     /* Completeness */
     .bp-complete-top { display: flex; align-items: center; gap: 18px; }
@@ -123,6 +129,15 @@
                     <text>&middot; <a href="@Model.WebsiteUrl" target="_blank" rel="noopener">@Model.WebsiteUrl</a></text>
                 }
             </p>
+            @if (socialLinks.Count > 0)
+            {
+                <div class="social-icons detail-hero-socials" aria-label="@Model.CompanyName on social media">
+                    @foreach (var link in socialLinks)
+                    {
+                        <a href="@link.Url" target="_blank" rel="noopener noreferrer" class="social-chip sm" style="background: @link.Platform.Background;" title="@Model.CompanyName on @link.Platform.Name" aria-label="@Model.CompanyName on @link.Platform.Name"><i class="bi @link.Platform.Icon"></i></a>
+                    }
+                </div>
+            }
         </div>
 
         <div class="detail-hero-side">
@@ -132,6 +147,11 @@
                 @if (!string.IsNullOrEmpty(Model.WebsiteUrl))
                 {
                     <a href="@Model.WebsiteUrl" target="_blank" rel="noopener" class="btn btn-outline-brand">Visit Website</a>
+                }
+                @if (Model.VerificationStatus == VerificationStatus.Verified)
+                {
+                    @* Verified brands have a public page on Brandora's Brands directory. *@
+                    <a href="/for-brands/@Model.Id" target="_blank" rel="noopener" class="btn btn-outline-brand"><i class="bi bi-globe2" style="margin-right:8px;"></i>View Public Page</a>
                 }
             </div>
         </div>
@@ -217,6 +237,28 @@
                         }
                     </dd>
                 </div>
+                <div>
+                    <dt><span class="icon-chip"><i class="bi bi-share"></i></span>Social Profiles</dt>
+                    <dd>
+                        @if (socialLinks.Count == 0)
+                        {
+                            <span class="bp-muted">Not added yet</span>
+                            <small><a href="/Settings#social-profiles">Add your social accounts in Settings</a></small>
+                        }
+                        else
+                        {
+                            <div class="bp-social-list">
+                                @foreach (var link in socialLinks)
+                                {
+                                    <a href="@link.Url" target="_blank" rel="noopener noreferrer" class="bp-social-link">
+                                        <span class="social-chip sm" style="background: @link.Platform.Background;" aria-hidden="true"><i class="bi @link.Platform.Icon"></i></span>
+                                        <span>@link.Platform.Name</span>
+                                    </a>
+                                }
+                            </div>
+                        }
+                    </dd>
+                </div>
             </dl>
         </section>
 
@@ -258,7 +300,7 @@
                         }
                         else
                         {
-                            <a href="/Settings#brand-profile" class="ui-badge is-info">Add <i class="bi bi-arrow-right"></i></a>
+                            <a href="/Settings#@(item.Item1 == "Social profiles" ? "social-profiles" : "brand-profile")" class="ui-badge is-info">Add <i class="bi bi-arrow-right"></i></a>
                         }
                     </div>
                 }
@@ -310,6 +352,7 @@
                 <li><i class="bi bi-check-circle-fill"></i>A clear logo that matches your social accounts.</li>
                 <li><i class="bi bi-check-circle-fill"></i>Your real company or trading name.</li>
                 <li><i class="bi bi-check-circle-fill"></i>A working website so creators can learn about you.</li>
+                <li><i class="bi bi-check-circle-fill"></i>Your social profiles, so creators can see your audience and style.</li>
                 <li><i class="bi bi-check-circle-fill"></i>An accurate industry, so the right creators find your campaigns.</li>
             </ul>
         </section>
@@ -332,7 +375,7 @@
         <section class="help-card">
             <h3>Need Help?</h3>
             <p>Questions about your brand profile or verification? Our support team can help.</p>
-            <a href="/Home/Contact">Contact Support <i class="bi bi-arrow-right"></i></a>
+            <a href="/contact?accountType=Brand#contactForm">Contact Support <i class="bi bi-arrow-right"></i></a>
             <svg viewBox="0 0 400 170" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="profile-help-wave" x1="0" y1="1" x2="1" y2="0"><stop stop-color="#0955ca" stop-opacity="0"/><stop offset=".65" stop-color="#168cff" stop-opacity=".5"/><stop offset="1" stop-color="#783dff" stop-opacity=".15"/></linearGradient></defs><path d="M-20 160 C100 50 140 220 260 105 S350 85 420 20 L420 190 H-20Z" fill="url(#profile-help-wave)"/><path d="M-20 164 C110 90 140 230 270 120 S360 70 420 40" fill="none" stroke="#2799ff" stroke-opacity=".4"/></svg>
         </section>
 

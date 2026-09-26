@@ -11,6 +11,10 @@
     var milestoneDates = Model.Milestones.Where(m => m.DueDate.HasValue).Select(m => m.DueDate!.Value).OrderBy(d => d).ToList();
     var safeWebsite = Uri.TryCreate(Model.BrandWebsiteUrl, UriKind.Absolute, out var website) && (website.Scheme == "https" || website.Scheme == "http");
     var closed = Model.Status is CampaignStatus.Completed or CampaignStatus.Cancelled || Model.Deadline < DateTime.UtcNow;
+    // Only ever link out to an absolute http(s) URL (the brand side already normalises it).
+    var safePost = Uri.TryCreate(Model.SocialPostUrl, UriKind.Absolute, out var postUri) && (postUri.Scheme == "https" || postUri.Scheme == "http");
+    var postPlatform = safePost ? SocialPlatform.FromUrl(Model.SocialPostUrl) : null;
+    var postPlatformName = postPlatform?.Name ?? "social media";
     var statusLabel = Model.IsCollabCompleted ? "Completed" : Model.IsCollaborating ? "In Progress" : Model.MyProposalStatus == ProposalStatus.Pending ? "In Review" : Model.MyProposalStatus == ProposalStatus.Accepted ? "Accepted" : Model.MyProposalStatus.HasValue ? "Not Selected" : closed ? "Closed" : null;
 }
 <!DOCTYPE html>
@@ -78,6 +82,15 @@
                     </div>
                     <strong>@Model.BrandName</strong>
                     @if (Model.BrandVerified) { <span class="detail-verified"><i class="bi bi-check-circle-fill" aria-hidden="true"></i> Verified Brand</span> }
+                    @if (Model.BrandSocialLinks.Count > 0)
+                    {
+                        <span class="social-icons detail-brand-socials">
+                            @foreach (var link in Model.BrandSocialLinks)
+                            {
+                                <a href="@link.Url" target="_blank" rel="noopener noreferrer" class="social-chip xs" style="background: @link.Platform.Background;" title="@Model.BrandName on @link.Platform.Name" aria-label="@Model.BrandName on @link.Platform.Name"><i class="bi @link.Platform.Icon" aria-hidden="true"></i></a>
+                            }
+                        </span>
+                    }
                 </div>
                 <div class="detail-hero-copy">
                     <div class="detail-tags">@if (!string.IsNullOrWhiteSpace(Model.Niche)) { <span>@Model.Niche</span> } @if (!string.IsNullOrWhiteSpace(Model.Platform)) { <span>@Model.Platform</span> }</div>
@@ -102,6 +115,18 @@
                 <section class="campaign-tab-panel dashboard-card" data-panel="overview">
                     <h2>Campaign Overview</h2>
                     <p class="campaign-full-description">@Model.Description</p>
+
+                    @if (safePost)
+                    {
+                        <a class="live-post-card" href="@Model.SocialPostUrl" target="_blank" rel="noopener noreferrer">
+                            <span class="social-chip" style="background: @(postPlatform?.Background ?? "linear-gradient(130deg, #7224ff, #3735ff 55%, #087fff)");" aria-hidden="true"><i class="bi @(postPlatform?.Icon ?? "bi-link-45deg")"></i></span>
+                            <span class="live-post-copy">
+                                <strong>This campaign is live on @postPlatformName</strong>
+                                <small>@postUri!.Host.Replace("www.", "")</small>
+                            </span>
+                            <span class="live-post-cta">View on @(postPlatform?.Name ?? "site") <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i></span>
+                        </a>
+                    }
 
                     @if (!string.IsNullOrWhiteSpace(Model.VideoUrl))
                     {
@@ -138,6 +163,20 @@
                         @if (safeWebsite)
                         {
                             <div><dt>Website</dt><dd><a href="@Model.BrandWebsiteUrl" target="_blank" rel="noopener">@Model.BrandWebsiteUrl</a></dd></div>
+                        }
+                        @if (Model.BrandSocialLinks.Count > 0)
+                        {
+                            <div>
+                                <dt>Social profiles</dt>
+                                <dd>
+                                    <span class="social-icons brand-info-socials">
+                                        @foreach (var link in Model.BrandSocialLinks)
+                                        {
+                                            <a href="@link.Url" target="_blank" rel="noopener noreferrer" class="social-chip sm" style="background: @link.Platform.Background;" title="@Model.BrandName on @link.Platform.Name" aria-label="@Model.BrandName on @link.Platform.Name"><i class="bi @link.Platform.Icon" aria-hidden="true"></i></a>
+                                        }
+                                    </span>
+                                </dd>
+                            </div>
                         }
                     </dl>
                 </section>
@@ -195,6 +234,10 @@
                         <div><dt>Platform</dt><dd>@(Model.Platform ?? "Not specified")</dd></div>
                         <div><dt>Content Type</dt><dd>Not specified</dd></div>
                         <div><dt>Posted</dt><dd>@Model.CreatedAt.ToString("MMM d, yyyy", CultureInfo.InvariantCulture)</dd></div>
+                        @if (safePost)
+                        {
+                            <div><dt>Live post</dt><dd><a class="live-post-link" href="@Model.SocialPostUrl" target="_blank" rel="noopener noreferrer"><i class="bi @(postPlatform?.Icon ?? "bi-link-45deg")" aria-hidden="true"></i> View on @(postPlatform?.Name ?? "site")</a></dd></div>
+                        }
                         <div><dt>Deadline</dt><dd>@(Model.Deadline?.ToString("MMM d, yyyy", CultureInfo.InvariantCulture) ?? "Not set")</dd></div>
                         <div><dt>Target Audience</dt><dd>Not specified</dd></div>
                         <div><dt>Language</dt><dd>Not specified</dd></div>
